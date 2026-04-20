@@ -17,7 +17,7 @@ import { useLanguage } from '../../hooks/useLanguage'
 
 /*  Types  */
 
-// Extends the base AuditEntry with additional audit-specific fields
+//Extends the base AuditEntry with additional audit-specific fields
 
 interface Props {
   auditLog: AuditEntry[]
@@ -169,7 +169,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const PAGE_SIZE = 15
 
-  //  Derived data
+  // Derived data
   const actionTypes = useMemo(() =>
     [...new Set(auditLog.map(a => a.action_type).filter(Boolean))].sort(),
   [auditLog])
@@ -178,7 +178,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
     [...new Set(auditLog.map(a => a.operator_name).filter(Boolean))].sort(),
   [auditLog])
 
-  //  Stats
+  // Stats
   const stats = useMemo(() => {
     const today = new Date().toDateString()
     const todayCount = auditLog.filter(a => new Date(a.created_at).toDateString() === today).length
@@ -193,7 +193,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
     return { todayCount, thisWeek, criticalActions, operatorCount: operators.length, typeCount: actionTypes.length }
   }, [auditLog, operators, actionTypes])
 
-  //  7-day activity timeline
+  // 7-day activity timeline
   const timeline = useMemo(() => {
     const days: { label: string; count: number; date: string }[] = []
     for (let i = 6; i >= 0; i--) {
@@ -209,7 +209,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
 
   const maxTimelineCount = useMemo(() => Math.max(...timeline.map(d => d.count), 1), [timeline])
 
-  //  Filtered + sorted (memoized)
+  // Filtered + sorted (memoized)
   const filteredAudit = useMemo(() => {
     let items = [...auditLog]
     if (typeFilter !== 'all') items = items.filter(a => a.action_type === typeFilter)
@@ -236,14 +236,14 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
     return items
   }, [auditLog, typeFilter, operatorFilter, dateFrom, dateTo, search, sortOrder])
 
-  // Pagination
+  //Pagination
   const paginatedItems = useMemo(() => filteredAudit.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE), [filteredAudit, page])
   const totalPages = Math.max(1, Math.ceil(filteredAudit.length / PAGE_SIZE))
 
-  // Reset page on filter change
+  //Reset page on filter change
   const resetPage = useCallback(() => setPage(0), [])
 
-  //  Refresh handler
+  // Refresh handler
   const handleRefresh = useCallback(() => {
     setRefreshing(true)
     setFetchError(null)
@@ -253,7 +253,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
       .finally(() => setRefreshing(false))
   }, [setAuditLog, lang])
 
-  //  Auto-refresh every 30 s
+  // Auto-refresh every 30 s
   useEffect(() => {
     const id = setInterval(() => {
       apiGetAuditLog({ limit: '500' })
@@ -263,7 +263,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
     return () => clearInterval(id)
   }, [setAuditLog])
 
-  //  Active filters check
+  // Active filters check
   const hasFilters = search || typeFilter !== 'all' || operatorFilter !== 'all' || dateFrom || dateTo
 
   const clearFilters = () => {
@@ -275,7 +275,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
     resetPage()
   }
 
-  // Keyboard shortcuts
+  //Keyboard shortcuts
   const [showKeyboard, setShowKeyboard] = useState(false)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -294,7 +294,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
     return () => document.removeEventListener('keydown', handler)
   }, [handleRefresh, filteredAudit])
 
-  //  Operator breakdown
+  // Operator breakdown
   const operatorBreakdown = useMemo(() => {
     const map: Record<string, number> = {}
     auditLog.forEach(a => {
@@ -304,7 +304,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
     return Object.entries(map).sort(([, a], [, b]) => b - a).slice(0, 5)
   }, [auditLog])
 
-  //  Type breakdown
+  // Type breakdown
   const typeBreakdown = useMemo(() => {
     const map: Record<string, number> = {}
     auditLog.forEach(a => {
@@ -512,7 +512,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
               className="text-xs px-2 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
               title={t('audit.dateFrom', lang)}
             />
-            <span className="text-[10px] text-gray-400">–</span>
+            <span className="text-[10px] text-gray-400">-</span>
             <input
               type="date"
               value={dateTo}
@@ -611,7 +611,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                         {entry.target_type && <p className="text-[9px] text-gray-400 dark:text-gray-400 mt-0.5 capitalize">{entry.target_type}</p>}
                       </div>
                     ) : (
-                      <span className="text-xs text-gray-400 dark:text-gray-300">—</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-300">--</span>
                     )}
                   </div>
 
@@ -626,7 +626,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                     {hasMeta ? (
                       <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                     ) : (
-                      <span className="text-[9px] text-gray-300 dark:text-gray-300">—</span>
+                      <span className="text-[9px] text-gray-300 dark:text-gray-300">--</span>
                     )}
                   </div>
                 </div>

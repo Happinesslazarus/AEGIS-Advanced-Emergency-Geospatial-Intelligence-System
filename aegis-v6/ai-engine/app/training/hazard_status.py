@@ -12,7 +12,6 @@ Used by:
   - session_report.py  (summarises the full training session)
 
 Design principles applied throughout this refactor
----------------------------------------------------
 - Labels must come from an INDEPENDENT external source (real events, satellite
   detection, authoritative records).  Labels derived by thresholding the very
   same variables that are used as model input features are a tautology.
@@ -122,22 +121,20 @@ class ValidationResult:
         }
 
 
-# ---------------------------------------------------------------------------
 # Per-hazard leakage annotations (read-only ground truth)
 #
 # After the refactor, annotations reflect the *new* design for each hazard:
-# - Fixed hazards have reduced severity because tainted columns are removed
+# Fixed hazards have reduced severity because tainted columns are removed
 #   from their feature sets.
-# - UNSUPPORTED hazards are noted separately in UNSUPPORTED_HAZARDS below.
+# UNSUPPORTED hazards are noted separately in UNSUPPORTED_HAZARDS below.
 #
 # Do not change severity entries here to make a hazard "pass" validation.
 # Fix the label derivation or the feature set, then update the annotation.
-# ---------------------------------------------------------------------------
 
 HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
 
     "flood": {
-        # Labels from SEPA / EA flood event archives — independent source.
+        # Labels from SEPA / EA flood event archives -- independent source.
         # Feature set includes river levels and rainfall, which are legitimate
         # predictors, not label constructors.
         "severity": LeakageSeverity.NONE,
@@ -151,7 +148,7 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         "dissertation_suitability": "strong",
         "note": (
             "Primary labels come from recorded SEPA / Environment Agency flood "
-            "event archives — an independent data source. No overlap between "
+            "event archives -- an independent data source. No overlap between "
             "feature columns and the label derivation. GloFAS fallback provides "
             "global coverage when UK APIs are unreachable."
         ),
@@ -171,9 +168,9 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         # Labels upgraded from ERA5-derived SPI proxy (tautological with features)
         # to CSIC SPEI Global v2.9 computed from CRU TS4 OBSERVED station data
         # (Harris et al., 2020).  SPEI and ERA5 use entirely different underlying
-        # datasets → LeakageSeverity.NONE.
+ # datasets -> LeakageSeverity.NONE.
         # ERA5-derived SPI (spi_30d, spi_90d) and soil_moisture are now REINSTATED
-        # as features — they are no longer tainted because the label comes from a
+        # as features -- they are no longer tainted because the label comes from a
         # completely different data source (CRU TS4, not ERA5).
         "severity": LeakageSeverity.NONE,
         "tainted_columns": [],
@@ -186,7 +183,7 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         "label_source": (
             "CSIC SPEI Global Database v2.9 (Vicente-Serrano et al., 2010): "
             "SPEI-3 < -1.0 (WMO moderate drought) derived from CRU TS4 OBSERVED "
-            "station precipitation and temperature — entirely independent of ERA5. "
+            "station precipitation and temperature -- entirely independent of ERA5. "
             "24 globally distributed drought-prone locations. "
             "DOI: 10.20350/digitalCSIC/8508"
         ),
@@ -204,7 +201,7 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
             "which has zero overlap with the ERA5 reanalysis used for features. "
             "severity = NONE: there is no shared data source between labels and features. "
             "ERA5-derived SPI (spi_30d, spi_90d) and soil_moisture can now be "
-            "legitimately included as features — they are not the label source. "
+            "legitimately included as features -- they are not the label source. "
             "24 global sites span sub-Saharan Africa, Mediterranean, Middle East, "
             "South Asia, Australia, NE Brazil, SW USA, and Central America."
         ),
@@ -221,7 +218,7 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         # heatwave episodes from national meteorological services (Met Office
         # HHA Level 3+, Météo-France canicule rouge/orange, AEMET aviso rojo,
         # HHWS Italy, HNMS Greece).  Labels are independent event records.
-        # consecutive_hot_days has been REINSTATED in features — it is no
+        # consecutive_hot_days has been REINSTATED in features -- it is no
         # longer a label constructor because declarations are made by forecasters
         # using factors beyond a raw temperature count.
         "severity": LeakageSeverity.NONE,
@@ -233,7 +230,7 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
             "services: Met Office HHA Level 3+ (UK), Météo-France canicule "
             "orange/rouge, AEMET aviso rojo (Spain), Italian HHWS Level 3, "
             "HNMS Greece extreme heat advisories.  Static table in "
-            "data_fetch_events.OFFICIAL_HEATWAVES (30+ episodes, 2019–2025)."
+            "data_fetch_events.OFFICIAL_HEATWAVES (30+ episodes, 2019-2025)."
         ),
         "data_validity": "independent",
         "dissertation_suitability": "strong",
@@ -241,7 +238,7 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
             "Labels upgraded from ERA5 threshold proxy to formally declared "
             "heatwave episodes from European national meteorological services. "
             "Declarations are authoritative public health events that incorporate "
-            "Tmax, Tmin, duration, humidity, and health-impact criteria — they "
+            "Tmax, Tmin, duration, humidity, and health-impact criteria -- they "
             "are not a simple ERA5 threshold rule.  This removes all label-feature "
             "correlation: severity = NONE.  consecutive_hot_days has been "
             "reinstated as a feature because with independent event-based labels "
@@ -260,8 +257,8 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
     "severe_storm": {
         # Labels upgraded from ERA5 wind/pressure threshold proxy to officially
         # declared named storms from the Met Office / Met Éireann Named Storm
-        # Archive (2015–2025, 60+ storms).  Labels are independent event records.
-        # wind_speed_10m and wind_gusts_10m have been REINSTATED in features —
+        # Archive (2015-2025, 60+ storms).  Labels are independent event records.
+        # wind_speed_10m and wind_gusts_10m have been REINSTATED in features --
         # they are now legitimate predictors, not label constructors.
         "severity": LeakageSeverity.NONE,
         "tainted_columns": [],
@@ -272,17 +269,17 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         "region_scope": "GLOBAL",
         "label_source": (
             "IBTrACS v04r00 (Knapp et al., 2010; WMO authoritative global tropical "
-            "cyclone archive): all named storms 2015–2023, WMO_WIND >= 34 knots, "
+            "cyclone archive): all named storms 2015-2023, WMO_WIND >= 34 knots, "
             "500 km spatial radius, 12 h lead window; 28 globally distributed sites "
             "across all 6 tropical cyclone basins.  "
             "Supplement: Met Office / Met Éireann Named Storm Archive for "
             "extratropical NW European storms (UK/Ireland/NL sites only). "
-            "Source: NCEI — https://www.ncei.noaa.gov/products/international-best-track-archive"
+            "Source: NCEI -- https://www.ncei.noaa.gov/products/international-best-track-archive"
         ),
         "data_validity": "independent",
         "dissertation_suitability": "strong",
         "required_dataset": (
-            "IBTrACS v04r00 CSV files (auto-downloaded from NCEI ~5–30 MB each): "
+            "IBTrACS v04r00 CSV files (auto-downloaded from NCEI ~5-30 MB each): "
             "from app.training.data_fetch_ibtracs import download_ibtracs_basin; "
             "download_ibtracs_basin('NA')  # repeat for WP, EP, NI, SI, SP"
         ),
@@ -290,9 +287,9 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
             "Labels upgraded from ERA5 wind-gust / pressure-drop threshold proxy "
             "to IBTrACS WMO authoritative global tropical cyclone track archive. "
             "Track positions are from national meteorological agency best-track "
-            "datasets aggregated by WMO — entirely independent of ERA5 reanalysis. "
+            "datasets aggregated by WMO -- entirely independent of ERA5 reanalysis. "
             "severity = NONE: no shared data source between labels and features. "
-            "wind_speed_10m and wind_gusts_10m reinstated as features — they are "
+            "wind_speed_10m and wind_gusts_10m reinstated as features -- they are "
             "legitimate predictors of storm persistence, not label constructors. "
             "Expanded from UK-only (13 sites) to GLOBAL (28 sites covering all "
             "active tropical cyclone basins).  UK named storms supplement covers "
@@ -335,10 +332,10 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         ),
         "note": (
             "Labels upgraded from FWI-threshold proxy (which used ERA5 "
-            "temperature and humidity — moderate correlation with features) to "
+            "temperature and humidity -- moderate correlation with features) to "
             "NASA FIRMS satellite active fire pixel detections.  FIRMS detects "
             "thermal anomalies from polar-orbiting satellites (VIIRS 375m, "
-            "MODIS 1km) — entirely independent of any meteorological variable. "
+            "MODIS 1km) -- entirely independent of any meteorological variable. "
             "severity = NONE: zero overlap between label source (satellite "
             "thermal observations) and feature variables (ERA5 meteorology). "
             "FWI sub-indices remain excluded from features in both primary "
@@ -349,7 +346,7 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         "recommended_fix": (
             "Register for a free NASA FIRMS MAP_KEY and set FIRMS_MAP_KEY "
             "environment variable.  For retrospective training, VIIRS_SNPP_SP "
-            "(standard processing, 5–7 day latency) provides highest quality "
+            "(standard processing, 5-7 day latency) provides highest quality "
             "historical records.  MODIS_SP (1km) is the fallback if VIIRS is "
             "unavailable for a given period."
         ),
@@ -357,18 +354,18 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
 
     "landslide": {
         # Labels come from NASA Global Landslide Catalog (GLC) / COOLR via the
-        # NCCS ESRI FeatureServer REST API — queried live in _fetch_glc_events().
+        # NCCS ESRI FeatureServer REST API -- queried live in _fetch_glc_events().
         # GLC records are compiled from news reports, scientific papers, and
-        # disaster databases by NASA GSFC — entirely independent of ERA5.
+        # disaster databases by NASA GSFC -- entirely independent of ERA5.
         # With event-based labels, rainfall_24h and rainfall_72h are LEGITIMATE
-        # PREDICTORS, not label constructors — severity = NONE.
+        # PREDICTORS, not label constructors -- severity = NONE.
         "severity": LeakageSeverity.NONE,
         "tainted_columns": [],
         "previously_tainted": ["rainfall_24h", "rainfall_72h"],
         "region_scope": "GLOBAL",
         "label_source": (
             "NASA Global Landslide Catalog (GLC) / Cooperative Open Online "
-            "Landslide Repository (COOLR) — ESRI FeatureServer REST API: "
+            "Landslide Repository (COOLR) -- ESRI FeatureServer REST API: "
             "https://maps.nccs.nasa.gov/arcgis/rest/services/ISERV/NASA_GLC/"
             "FeatureServer/0/query.  Event records with date + lat/lon matched "
             "to weather stations within 25 km.  No registration required."
@@ -376,25 +373,25 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         "data_validity": "independent",
         "dissertation_suitability": "strong",
         "required_dataset": (
-            "NASA GLC API is queried automatically — no registration required.  "
+            "NASA GLC API is queried automatically -- no registration required.  "
             "If the API is unreachable, the pipeline falls back to BGS rainfall "
             "thresholds and the validator blocks training as NOT_TRAINABLE.  "
             "The fallback is intentionally blocked to prevent tautological training."
         ),
         "note": (
-            "Labels from NASA GLC/COOLR — compiled by NASA GSFC from news archives, "
+            "Labels from NASA GLC/COOLR -- compiled by NASA GSFC from news archives, "
             "scientific papers, and disaster databases: entirely independent of ERA5. "
             "severity = NONE: no shared data source between GLC event dates and ERA5 "
             "meteorological reanalysis used as features.  All rainfall and soil-moisture "
             "features are legitimate predictors of landslide triggering conditions.  "
             "The pipeline has a graceful fallback to BGS thresholds that explicitly "
-            "marks itself as tautological so the validator blocks it — this prevents "
+            "marks itself as tautological so the validator blocks it -- this prevents "
             "any accidental tautological training even in offline environments.  "
             "14 global sites cover Nepal, Colombia, Philippines, Japan, Norway, Italy, "
-            "India, and UK — regions with highest GLC event density."
+            "India, and UK -- regions with highest GLC event density."
         ),
         "recommended_fix": (
-            "No fix required — NASA GLC API auto-queries on training.  "
+            "No fix required -- NASA GLC API auto-queries on training.  "
             "To improve UK coverage, add BGS BNLD data once bulk access is available. "
             "Consider raising _MATCH_RADIUS_DEG from 0.23 (~25km) to 0.45 (~50km) "
             "for regions where the GLC has coarser location precision."
@@ -403,11 +400,11 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
 
     "power_outage": {
         # Labels upgraded from weather-threshold tautology to:
-        # (a) UK Named Storm Outage Records — embedded, Ofgem/SSEN/WPD/ENW/NIE press
-        #     releases; 27 major storms 2015–2025 with customer counts and timestamps.
-        # (b) EIA Form OE-417 — US federal NERC-mandated weather disturbance reporting,
-        #     all weather-caused electric disturbances 2015–2024.
-        # Both are OBSERVED utility operational records — independent of ERA5.
+        # (a) UK Named Storm Outage Records -- embedded, Ofgem/SSEN/WPD/ENW/NIE press
+        #     releases; 27 major storms 2015-2025 with customer counts and timestamps.
+        # (b) EIA Form OE-417 -- US federal NERC-mandated weather disturbance reporting,
+        #     all weather-caused electric disturbances 2015-2024.
+        # Both are OBSERVED utility operational records -- independent of ERA5.
         "severity": LeakageSeverity.NONE,
         "tainted_columns": [],
         "previously_tainted": [
@@ -417,9 +414,9 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         "region_scope": "UK+US",
         "label_source": (
             "UK Named Storm Outage Records (Ofgem / SSEN / WPD / ENW / NIE, "
-            "2015–2025): 27 major storm events with customer counts and timestamps. "
-            "EIA Form OE-417 (US federal NERC reporting, 2015–2024): all weather-caused "
-            "electric disturbance events.  Both are observed utility records — "
+            "2015-2025): 27 major storm events with customer counts and timestamps. "
+            "EIA Form OE-417 (US federal NERC reporting, 2015-2024): all weather-caused "
+            "electric disturbance events.  Both are observed utility records -- "
             "independent of ERA5 reanalysis."
         ),
         "data_validity": "independent",
@@ -428,14 +425,14 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
             "UK storm outage records are embedded (no download required). "
             "EIA OE-417 (US, optional): "
             "from app.training.data_fetch_outages import download_eia_oe417; "
-            "download_eia_oe417()  — or manually from "
+            "download_eia_oe417()  -- or manually from "
             "https://www.eia.gov/electricity/disturbances/"
         ),
         "note": (
             "Labels upgraded from tautological weather-threshold proxy (AUC=0.9999 "
             "was the model reconstructing its own label formula) to observed utility "
             "outage records.  UK storm outages curated from Ofgem disturbance "
-            "notifications and network company press releases — independent of ERA5. "
+            "notifications and network company press releases -- independent of ERA5. "
             "EIA OE-417 provides US coverage under federal NERC reporting requirements. "
             "severity = NONE: no shared data source between label records and ERA5 features. "
             "All previously tainted wind/temperature/humidity features are now legitimate "
@@ -450,11 +447,11 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
 
     "water_supply_disruption": {
         # Labels upgraded from weather-threshold tautology to:
-        # (a) GRDC measured daily discharge — Q10 low-flow (drought) and Q90
+        # (a) GRDC measured daily discharge -- Q10 low-flow (drought) and Q90
         #     high-flow (flood turbidity) labels at 22 global gauge stations.
-        #     GRDC data is measured river telemetry from national agencies — independent.
-        # (b) Curated static water supply disruption events — 20+ WHO/EA/USBR/ANA
-        #     documented crisis events from 5 continents, 2015–2023.
+        #     GRDC data is measured river telemetry from national agencies -- independent.
+        # (b) Curated static water supply disruption events -- 20+ WHO/EA/USBR/ANA
+        #     documented crisis events from 5 continents, 2015-2023.
         "severity": LeakageSeverity.NONE,
         "tainted_columns": [],
         "previously_tainted": [
@@ -464,7 +461,7 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         "label_source": (
             "GRDC (Global Runoff Data Centre, WMO) measured daily discharge: "
             "Q10 low-flow and Q90 high-flow labels at 22 global gauges. "
-            "Curated static water supply disruption events (2015–2023): "
+            "Curated static water supply disruption events (2015-2023): "
             "Cape Town Day Zero, UK 2018/2022 droughts, São Paulo Cantareira, "
             "Lake Mead shortage, Jordan/Iraq water crises, and more. "
             "All labels independent of ERA5 reanalysis."
@@ -481,9 +478,9 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         "note": (
             "Labels upgraded from weather-threshold tautology to observed hydrological "
             "records + official water authority crisis declarations.  GRDC discharge "
-            "data comes from national hydrological agency stream-gauge telemetry — "
+            "data comes from national hydrological agency stream-gauge telemetry -- "
             "entirely independent of ERA5.  Static events curated from WHO/EA/USBR "
-            "bulletins — not meteorological thresholds.  severity = NONE: no shared "
+            "bulletins -- not meteorological thresholds.  severity = NONE: no shared "
             "data source.  All previously tainted features (rainfall, temperature, "
             "soil moisture) are now legitimate predictors.  22 global training sites."
         ),
@@ -498,7 +495,7 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
     "infrastructure_damage": {
         # Labels upgraded from weather-threshold tautology to EM-DAT global
         # disaster event records.  EM-DAT (CRED) is the world's most comprehensive
-        # disaster database — curated from national agencies, UN OCHA, insurance
+        # disaster database -- curated from national agencies, UN OCHA, insurance
         # reports, and peer-reviewed literature.  Independent of ERA5 reanalysis.
         "severity": LeakageSeverity.NONE,
         "tainted_columns": [],
@@ -525,7 +522,7 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
             "Labels upgraded from tautological weather-threshold proxy (AUC=0.9991 "
             "was the model reconstructing its label formula) to EM-DAT disaster event "
             "records.  EM-DAT data is curated by CRED from national disaster management "
-            "agencies, UN OCHA, and peer-reviewed literature — entirely independent of "
+            "agencies, UN OCHA, and peer-reviewed literature -- entirely independent of "
             "ERA5 reanalysis.  severity = NONE: no shared data source.  All previously "
             "tainted features (wind, rainfall, soil moisture) are now legitimate "
             "predictors.  Multi-region training across 27 European + Turkey sites."
@@ -539,11 +536,11 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
 
     "public_safety_incident": {
         # Labels upgraded from weather-threshold tautology to:
-        # (a) UK DfT Stats19 Road Safety Data — police-reported road injury
-        #     accidents with adverse weather condition codes (2015–2023).
-        # (b) US NHTSA FARS — all fatal road accidents with adverse atmospheric
-        #     condition codes (2015–2022).
-        # Both are observed police/government records — independent of ERA5.
+        # (a) UK DfT Stats19 Road Safety Data -- police-reported road injury
+        #     accidents with adverse weather condition codes (2015-2023).
+        # (b) US NHTSA FARS -- all fatal road accidents with adverse atmospheric
+        #     condition codes (2015-2022).
+        # Both are observed police/government records -- independent of ERA5.
         "severity": LeakageSeverity.NONE,
         "tainted_columns": [],
         "previously_tainted": [
@@ -552,10 +549,10 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         ],
         "region_scope": "UK+US",
         "label_source": (
-            "UK DfT Stats19 Road Safety Data (2015–2023): police-reported road "
+            "UK DfT Stats19 Road Safety Data (2015-2023): police-reported road "
             "injury accidents with adverse weather condition codes "
             "{2,3,4,5,6,7,8} (rain, snow, fog, high winds). "
-            "US NHTSA FARS (2015–2022): all fatal road accidents with adverse "
+            "US NHTSA FARS (2015-2022): all fatal road accidents with adverse "
             "atmospheric condition codes {2,3,4,5,6,7,8,9,10,11,98}. "
             "80km spatial radius matching. Independent of ERA5 reanalysis."
         ),
@@ -563,7 +560,7 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         "dissertation_suitability": "strong",
         "required_dataset": (
             "Stats19 CSV files (free, ~5 MB/year): "
-            "https://data.gov.uk/dataset/road-safety-data — or auto-downloaded via "
+            "https://data.gov.uk/dataset/road-safety-data -- or auto-downloaded via "
             "from app.training.data_fetch_road_accidents import download_stats19; "
             "download_stats19().  "
             "NHTSA FARS ZIP files (free): "
@@ -572,7 +569,7 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         "note": (
             "Labels upgraded from tautological weather-threshold proxy to observed "
             "road accident records from national transport safety databases.  "
-            "Stats19 records are made by police officers at the scene — they represent "
+            "Stats19 records are made by police officers at the scene -- they represent "
             "OBSERVED weather impacts on public safety, not meteorological rules.  "
             "NHTSA FARS is collected under US federal highway safety legislation.  "
             "severity = NONE: both datasets are entirely independent of ERA5 reanalysis. "
@@ -592,7 +589,7 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
         # air quality exceedances will occur.  Label source (DEFRA/OpenAQ
         # measurements) is independent of the meteorological feature set.
         "severity": LeakageSeverity.NONE,
-        "tainted_columns": [],  # Cleared — AQ measurements removed from features
+        "tainted_columns": [],  # Cleared -- AQ measurements removed from features
         "previously_tainted": ["aqi", "pm2_5", "pm10", "no2"],
         "region_scope": "MULTI-REGION",
         "label_source": (
@@ -617,18 +614,17 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
             "Extend label source to include OpenAQ global measurements across "
             "multiple cities to improve class balance and geographic diversity. "
             "Add planetary boundary layer height (PBLH) as a feature if "
-            "available from ERA5 — it is the primary physical control on "
+            "available from ERA5 -- it is the primary physical control on "
             "pollution dispersion and is entirely independent of AQ observations."
         ),
     },
 }
 
 
-# ---------------------------------------------------------------------------
 # Hazards formally marked UNSUPPORTED
 #
 # As of this refactor all 11 hazards have been enabled with scientifically
-# valid independent label sources.  This frozenset is now empty — every
+# valid independent label sources.  This frozenset is now empty -- every
 # hazard will proceed through full validation logic in HazardValidator.
 #
 # A hazard is UNSUPPORTED when NO scientifically valid training path exists
@@ -637,6 +633,5 @@ HAZARD_LEAKAGE_ANNOTATIONS: dict[str, dict] = {
 # exists once data is acquired (see required_dataset in each annotation).
 #
 # To add a new unsupported hazard in future, add its key here.
-# ---------------------------------------------------------------------------
 
 UNSUPPORTED_HAZARDS: frozenset[str] = frozenset()

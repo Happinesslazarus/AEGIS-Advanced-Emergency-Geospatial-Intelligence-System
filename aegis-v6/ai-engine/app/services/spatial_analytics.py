@@ -1,17 +1,17 @@
 """
 Provides advanced spatial analysis primitives for AEGIS incident response:
 
-  1. Isochrone generation    — "which areas can be reached within 15 minutes?"
+  1. Isochrone generation    -- "which areas can be reached within 15 minutes?"
                                Used to identify population in immediate danger
                                and nearest emergency facilities.
 
-  2. Population exposure     — counts people inside a hazard polygon using
+  2. Population exposure     -- counts people inside a hazard polygon using
                                WorldPop 100m raster data.
 
-  3. Facility proximity      — finds the nearest hospitals, fire stations, and
+  3. Facility proximity      -- finds the nearest hospitals, fire stations, and
                                coast guard stations to an incident location.
 
-  4. Evacuation routing      — suggests evacuation corridors away from the hazard
+  4. Evacuation routing      -- suggests evacuation corridors away from the hazard
                                polygon using road network analysis.
 
 All results are cached in a PostgreSQL table (isochrone_cache,
@@ -20,7 +20,7 @@ population_exposure_cache) to avoid re-computing identical queries.
 Glossary:
   isochrone      = contour of equal travel time from a source point
                    (Greek: iso = equal, chronos = time)
-  OSM            = OpenStreetMap — the free collaborative world map used for
+  OSM            = OpenStreetMap -- the free collaborative world map used for
                    road network routing
   pgRouting      = PostgreSQL extension that adds graph routing algorithms
                    (Dijkstra, A*, Travelling Salesman) to a PostGIS database
@@ -29,13 +29,13 @@ Glossary:
   PostGIS        = spatial extension for PostgreSQL enabling geographic queries
   GeoJSON        = open standard format for geographic data in JSON
 
-  Called by  ← app/routers/incidents.py (GET /api/incidents/{id}/spatial)
-             ← scripts/evaluation/spatial_benchmark.py
-  Reads from → OpenStreetMap Overpass API (facility lookup)
-             → WorldPop raster (data/worldpop/gbr_ppp_2020_1km.tif)
-             → PostgreSQL isochrone_cache table
-  Writes to  → PostgreSQL population_exposure_cache table
-             → uploads/spatial/<incident_id>_isochrone.geojson
+ Called by <- app/routers/incidents.py (GET /api/incidents/{id}/spatial)
+ <- scripts/evaluation/spatial_benchmark.py
+ Reads from -> OpenStreetMap Overpass API (facility lookup)
+ -> WorldPop raster (data/worldpop/gbr_ppp_2020_1km.tif)
+ -> PostgreSQL isochrone_cache table
+ Writes to -> PostgreSQL population_exposure_cache table
+ -> uploads/spatial/<incident_id>_isochrone.geojson
 
 Usage (programmatic):
   from app.services.spatial_analytics import SpatialAnalyticsService
@@ -97,7 +97,7 @@ async def find_nearest_facilities(
     """
     Query Overpass API for emergency facilities within radius_m of (lat, lon).
 
-    Returns a dict mapping facility type → list of {name, lat, lon, distance_m}.
+ Returns a dict mapping facility type -> list of {name, lat, lon, distance_m}.
     """
     results: dict[str, list[dict]] = {}
 
@@ -150,7 +150,7 @@ def compute_population_exposure(geojson: dict) -> int:
     Returns -1 if WorldPop file is not available (graceful degradation).
     """
     if not WORLDPOP_TIF.exists():
-        logger.warning(f"WorldPop raster not found at {WORLDPOP_TIF} — "
+        logger.warning(f"WorldPop raster not found at {WORLDPOP_TIF} -- "
                        "returning density-based estimate")
         # Fallback to area × UK average density
         try:
@@ -327,7 +327,6 @@ class SpatialAnalyticsService:
     Orchestrates all spatial analytics for an incident.
 
     Parameters
-    ----------
     db_url : optional PostgreSQL connection string for caching results.
              If None, caching is disabled.
     """
@@ -414,4 +413,4 @@ class SpatialAnalyticsService:
                     json.dumps(result),
                 )
         except ImportError:
-            logger.debug("asyncpg not installed — skipping isochrone cache")
+            logger.debug("asyncpg not installed -- skipping isochrone cache")

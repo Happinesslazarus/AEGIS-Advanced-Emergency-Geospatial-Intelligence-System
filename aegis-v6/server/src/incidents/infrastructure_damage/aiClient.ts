@@ -15,7 +15,7 @@ export class InfrastructureDamageAIClient {
    */
   static async getPredictions(region: string): Promise<IncidentPrediction[]> {
     try {
-      // Analyze recent reports
+      //Analyze recent reports
       const result = await pool.query(
         `SELECT COUNT(*) as count,
                 COUNT(*) FILTER (WHERE custom_fields->>'structuralIntegrity' = 'Collapsed') as collapsed_count,
@@ -33,7 +33,7 @@ export class InfrastructureDamageAIClient {
       const hazardCount = parseInt(result.rows[0]?.hazard_count || '0')
       const blockedAccessCount = parseInt(result.rows[0]?.blocked_access_count || '0')
       
-      // Rule-based scoring
+      //Rule-based scoring
       let probability = Math.min(0.95, reportCount / 15)
       if (collapsedCount > 0) probability += 0.3
       if (hazardCount >= 3) probability += 0.2

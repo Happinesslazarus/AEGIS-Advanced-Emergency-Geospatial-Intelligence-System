@@ -24,7 +24,7 @@ const STATION_COLORS: Record<string, string> = STATION_HEX
 
 const API = ''
 
-// Global fallback centre (only used when no center prop is provided)
+//Global fallback centre (only used when no center prop is provided)
 const DEFAULT_CENTER: [number, number] = [0, 0] // [lng, lat] for MapLibre
 const DEFAULT_ZOOM = 3
 const DEFAULT_PITCH = 55
@@ -33,7 +33,7 @@ const DEFAULT_BEARING = -20
 const SEV_COLOURS = SEVERITY_RGBA
 const STATUS_COLOURS = STATUS_RGBA
 
-// OpenFreeMap dark style (free, no token, OSM-based) — replaces CARTO which is unavailable
+//OpenFreeMap dark style (free, no token, OSM-based) -- replaces CARTO which is unavailable
 const DARK_STYLE = 'https://tiles.openfreemap.org/styles/dark'
 
 interface Report {
@@ -90,12 +90,12 @@ export default function Map3DView({
   const [animationTime, setAnimationTime] = useState(0)
   const [markerCount, setMarkerCount] = useState({ reports: 0, rivers: 0, distress: 0, riskZones: 0, stations: 0, predictions: 0 })
 
-  // Real API data (replaces static globalFloodData)
+  //Real API data (replaces static globalFloodData)
   const [riskLayerData, setRiskLayerData] = useState<any[]>([])
   const [stationsData, setStationsData] = useState<any[]>([])
   const [predictionsData, setPredictionsData] = useState<any[]>([])
 
-  // Convert center from [lat, lng] to [lng, lat] for MapLibre
+  //Convert center from [lat, lng] to [lng, lat] for MapLibre
   const mapCenter = useMemo<[number, number]>(() => {
     if (center) return [center[1], center[0]]
     return DEFAULT_CENTER
@@ -123,7 +123,7 @@ export default function Map3DView({
     return [baseLat + latOffset, baseLng + lngOffset]
   }, [center, mapCenter])
 
-  // Animation loop for pulsing effects
+  //Animation loop for pulsing effects
   useEffect(() => {
     let running = true
     const animate = () => {
@@ -135,7 +135,7 @@ export default function Map3DView({
     return () => { running = false; if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current) }
   }, [])
 
-  // Init MapLibre
+  //Init MapLibre
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
 
@@ -153,7 +153,7 @@ export default function Map3DView({
     map.addControl(new AttributionControl({ compact: true }), 'bottom-right')
 
     map.on('load', () => {
-      // 3D buildings layer from OSM data in the CartoDB style
+      //3D buildings layer from OSM data in the CartoDB style
       if (map.getSource('carto')) {
         map.addLayer({
           id: '3d-buildings',
@@ -173,7 +173,7 @@ export default function Map3DView({
 
     mapRef.current = map
 
-    // Deck.gl overlay
+    //Deck.gl overlay
     const deck = new Deck({
       parent: containerRef.current,
       style: { position: 'absolute', top: '0', left: '0', zIndex: '1', pointerEvents: 'none' },
@@ -199,19 +199,19 @@ export default function Map3DView({
         }
         if (object._type === 'globalZone') {
           const pop = object.population >= 1000000 ? `${(object.population / 1000000).toFixed(1)}M` : `${(object.population / 1000).toFixed(0)}K`
-          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:300px;"><b style="font-size:14px;">${object.name}</b><br/><span style="color:${(RISK_COLORS as any)[object.risk]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.risk} RISK</span> <span style="color:#9ca3af;font-size:10px;">— ${object.type} — ${object.country}</span><br/><span style="color:#d1d5db;font-size:11px;line-height:1.4;">${object.description}</span><br/><span style="color:#60a5fa;font-size:10px;">Pop: ${pop}</span>${object.rivers?.length ? `<br/><span style="color:#22d3ee;font-size:10px;">🌊 ${object.rivers.join(', ')}</span>` : ''}</div>` }
+          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:300px;"><b style="font-size:14px;">${object.name}</b><br/><span style="color:${(RISK_COLORS as any)[object.risk]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.risk} RISK</span> <span style="color:#9ca3af;font-size:10px;">-- ${object.type} -- ${object.country}</span><br/><span style="color:#d1d5db;font-size:11px;line-height:1.4;">${object.description}</span><br/><span style="color:#60a5fa;font-size:10px;">Pop: ${pop}</span>${object.rivers?.length ? `<br/><span style="color:#22d3ee;font-size:10px;">🌊 ${object.rivers.join(', ')}</span>` : ''}</div>` }
         }
         if (object._type === 'globalRiver') {
-          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:280px;"><b style="font-size:14px;">🌊 ${object.name}</b><br/><span style="color:${(RISK_COLORS as any)[object.floodRisk]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.floodRisk} flood risk</span><br/><span style="color:#9ca3af;">${object.country}</span><br/><span style="font-family:monospace;font-size:13px;font-weight:700;">${object.lengthKm?.toLocaleString()} km</span> <span style="color:#9ca3af;">— Basin: ${object.basinPopulationMillions}M people</span></div>` }
+          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:280px;"><b style="font-size:14px;">🌊 ${object.name}</b><br/><span style="color:${(RISK_COLORS as any)[object.floodRisk]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.floodRisk} flood risk</span><br/><span style="color:#9ca3af;">${object.country}</span><br/><span style="font-family:monospace;font-size:13px;font-weight:700;">${object.lengthKm?.toLocaleString()} km</span> <span style="color:#9ca3af;">-- Basin: ${object.basinPopulationMillions}M people</span></div>` }
         }
         if (object._type === 'globalStation') {
-          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:260px;"><b style="font-size:13px;">${object.name}</b><br/><span style="color:${(STATION_COLORS as any)[object.status]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.status}</span> <span style="color:#9ca3af;">— ${object.country}</span>${object.waterLevel != null ? `<br/><span style="font-size:18px;font-weight:800;font-family:monospace;">${object.waterLevel}m</span> <span style="color:#6b7280;">/ ${object.maxLevel}m max</span><br/><span style="color:#9ca3af;font-size:10px;">Trend: ${object.trend || 'unknown'}</span>` : ''}</div>` }
+          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:260px;"><b style="font-size:13px;">${object.name}</b><br/><span style="color:${(STATION_COLORS as any)[object.status]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.status}</span> <span style="color:#9ca3af;">-- ${object.country}</span>${object.waterLevel != null ? `<br/><span style="font-size:18px;font-weight:800;font-family:monospace;">${object.waterLevel}m</span> <span style="color:#6b7280;">/ ${object.maxLevel}m max</span><br/><span style="color:#9ca3af;font-size:10px;">Trend: ${object.trend || 'unknown'}</span>` : ''}</div>` }
         }
         return null
       },
     })
 
-    // Sync deck viewState with MapLibre
+    //Sync deck viewState with MapLibre
     map.on('move', () => {
       const center = map.getCenter()
       deck.setProps({
@@ -225,7 +225,7 @@ export default function Map3DView({
       })
     })
 
-    // Click handler — pick Deck.gl objects via MapLibre click event
+    //Click handler -- pick Deck.gl objects via MapLibre click event
     map.on('click', (e) => {
       if (!deckRef.current) return
       const picked = deckRef.current.pickObject({ x: e.point.x, y: e.point.y, radius: 10 })
@@ -234,7 +234,7 @@ export default function Map3DView({
       }
     })
 
-    // Cursor change on hover over clickable layers
+    //Cursor change on hover over clickable layers
     map.on('mousemove', (e) => {
       if (!deckRef.current) return
       const picked = deckRef.current.pickObject({ x: e.point.x, y: e.point.y, radius: 6 })
@@ -251,7 +251,7 @@ export default function Map3DView({
     }
   }, [])
 
-  // Fly to new location when center/zoom props change
+  //Fly to new location when center/zoom props change
   useEffect(() => {
     if (!mapRef.current) return
     mapRef.current.flyTo({
@@ -263,7 +263,7 @@ export default function Map3DView({
     })
   }, [mapCenter, zoom])
 
-  // Fetch live data
+  //Fetch live data
   const fetchRivers = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/rivers/levels`)
@@ -298,7 +298,7 @@ export default function Map3DView({
     } catch {}
   }, [])
 
-  // Fetch PostGIS risk layer (flood polygons) — replaces static GLOBAL_FLOOD_ZONES
+  //Fetch PostGIS risk layer (flood polygons) -- replaces static GLOBAL_FLOOD_ZONES
   const fetchRiskLayer = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/map/risk-layer`)
@@ -324,7 +324,7 @@ export default function Map3DView({
     } catch {}
   }, [])
 
-  // Fetch real monitoring stations — replaces static GLOBAL_STATIONS
+  //Fetch real monitoring stations -- replaces static GLOBAL_STATIONS
   const fetchStations = useCallback(async () => {
     try {
       const targetLat = center?.[0] ?? mapCenter[1]
@@ -364,7 +364,7 @@ export default function Map3DView({
     } catch {}
   }, [center, mapCenter])
 
-  // Fetch AI predictions — replaces hardcoded prediction columns
+  //Fetch AI predictions -- replaces hardcoded prediction columns
   const fetchPredictions = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/predictions`)
@@ -396,7 +396,7 @@ export default function Map3DView({
     return () => clearInterval(interval)
   }, [fetchRivers, fetchDistress, fetchEvacuation, fetchRiskLayer, fetchStations, fetchPredictions])
 
-  // Auto-rotate
+  //Auto-rotate
   useEffect(() => {
     if (!autoRotate || !mapRef.current) return
     const map = mapRef.current
@@ -411,7 +411,7 @@ export default function Map3DView({
     return () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current) }
   }, [autoRotate])
 
-  // Toggle 3D buildings
+  //Toggle 3D buildings
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
@@ -422,7 +422,7 @@ export default function Map3DView({
     } catch {}
   }, [show3DBuildings])
 
-  // Update Deck.gl layers
+  //Update Deck.gl layers
   useEffect(() => {
     if (!deckRef.current) return
 
@@ -430,7 +430,7 @@ export default function Map3DView({
 
     const layers: any[] = []
 
-    // Report columns (3D extruded)
+    //Report columns (3D extruded)
     const reportData = reports.filter(r => {
       const lat = r.latitude ?? r.coordinates?.[0]
       const lng = r.longitude ?? r.coordinates?.[1]
@@ -459,7 +459,7 @@ export default function Map3DView({
         })
       )
 
-      // Glow rings at base
+      //Glow rings at base
       layers.push(
         new ScatterplotLayer({
           id: 'report-glow',
@@ -475,7 +475,7 @@ export default function Map3DView({
       )
     }
 
-    // Heatmap mode
+    //Heatmap mode
     if (showHeatmap && reportData.length > 0) {
       layers.push(
         new HeatmapLayer({
@@ -504,14 +504,14 @@ export default function Map3DView({
       )
     }
 
-    // River gauge stations (3D orbs)
+    //River gauge stations (3D orbs)
     const riverMarkers = riverData.filter(r => r.coordinates?.lat && r.coordinates?.lng).map(r => ({
       ...r,
       _type: 'river',
     }))
 
     if (riverMarkers.length > 0) {
-      // Column for water level
+      //Column for water level
       layers.push(
         new ColumnLayer({
           id: 'river-columns',
@@ -527,7 +527,7 @@ export default function Map3DView({
         })
       )
 
-      // Glow base
+      //Glow base
       layers.push(
         new ScatterplotLayer({
           id: 'river-glow',
@@ -543,7 +543,7 @@ export default function Map3DView({
       )
     }
 
-    // Distress beacons (pulsing red pillars)
+    //Distress beacons (pulsing red pillars)
     const distressMarkers = distressData.filter((b: any) => {
       const lat = b.latitude || b.location?.lat
       const lng = b.longitude || b.location?.lng
@@ -583,7 +583,7 @@ export default function Map3DView({
       )
     }
 
-    // Evacuation route arcs
+    //Evacuation route arcs
     if (showEvacuationRoutes && evacuationData.length > 0) {
       const arcData = evacuationData.filter((r: any) => r.coordinates?.length >= 2).map((route: any) => {
         const coords = route.coordinates
@@ -608,7 +608,7 @@ export default function Map3DView({
       }
     }
 
-    // Risk Zones from real API (replaces static GLOBAL_FLOOD_ZONES)
+    //Risk Zones from real API (replaces static GLOBAL_FLOOD_ZONES)
     const hexToRgba = (hex: string, alpha: number): [number, number, number, number] => {
       const r = parseInt(hex.slice(1, 3), 16)
       const g = parseInt(hex.slice(3, 5), 16)
@@ -659,7 +659,7 @@ export default function Map3DView({
           id: 'risk-zone-labels',
           data: riskZoneData,
           getPosition: (d: any) => [d._lng, d._lat],
-          getText: (d: any) => d.name.length > 25 ? d.name.substring(0, 22) + '—' : d.name,
+          getText: (d: any) => d.name.length > 25 ? d.name.substring(0, 22) + '--' : d.name,
           getSize: 11,
           getColor: [255, 255, 255, 200],
           getAngle: 0,
@@ -678,7 +678,7 @@ export default function Map3DView({
       )
     }
 
-    // Real Monitoring Stations from API (replaces static GLOBAL_STATIONS)
+    //Real Monitoring Stations from API (replaces static GLOBAL_STATIONS)
     const stationLayerData = stationsData.map(s => ({
       ...s,
       _type: 'globalStation' as const,
@@ -714,7 +714,7 @@ export default function Map3DView({
       )
     }
 
-    // AI Predictions as 3D columns
+    //AI Predictions as 3D columns
     const predLayerData = predictionsData.map(p => ({
       ...p,
       _type: 'prediction' as const,
@@ -768,7 +768,7 @@ export default function Map3DView({
     deckRef.current.setProps({ layers })
   }, [reports, riverData, distressData, evacuationData, riskLayerData, stationsData, predictionsData, showFloodPredictions, showEvacuationRoutes, showHeatmap, animationTime])
 
-  // Controls
+  //Controls
   const resetView = () => {
     mapRef.current?.flyTo({
       center: mapCenter,
@@ -793,7 +793,7 @@ export default function Map3DView({
       {/* MapLibre + Deck.gl container */}
       <div ref={containerRef} className="w-full h-full" style={{ background: '#0a0a1a' }} />
 
-      {/* Controls — top-right (below the overlay panels area) */}
+      {/* Controls -- top-right (below the overlay panels area) */}
       <div className="absolute bottom-16 right-3 z-[1000] flex flex-col gap-1 bg-gray-900/90 backdrop-blur-md rounded-lg border border-gray-700/50 p-1">
         <button
           onClick={() => setAutoRotate(!autoRotate)}
@@ -825,7 +825,7 @@ export default function Map3DView({
         </button>
       </div>
 
-      {/* 3D Mode badge — bottom-left */}
+      {/* 3D Mode badge -- bottom-left */}
       <div className="absolute bottom-3 left-3 z-[1000] bg-gray-900/90 backdrop-blur-md rounded-lg border border-gray-700/50 px-3 py-1.5 flex items-center gap-3">
         <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
@@ -833,7 +833,7 @@ export default function Map3DView({
         </div>
         <div className="h-3 w-px bg-gray-700" />
         <span className="text-[10px] text-gray-400 dark:text-gray-300">
-          {markerCount.reports} reports — {markerCount.rivers + markerCount.stations} stations — {markerCount.riskZones} zones — {markerCount.predictions} predictions — {markerCount.distress} SOS
+          {markerCount.reports} reports -- {markerCount.rivers + markerCount.stations} stations -- {markerCount.riskZones} zones -- {markerCount.predictions} predictions -- {markerCount.distress} SOS
         </span>
       </div>
     </div>

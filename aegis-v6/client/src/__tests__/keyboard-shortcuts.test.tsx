@@ -45,14 +45,12 @@ import { BrowserRouter } from 'react-router-dom'
 import { useKeyboardShortcuts, SHORTCUTS } from '../hooks/useKeyboardShortcuts'
 import React from 'react'
 
-// ---------------------------------------------------------------------------
-// Module mock — replaces useNavigate so navigation can be asserted
-// vi.mock() is hoisted by Vitest to run before imports, so mockNavigate must
-// be declared here at module scope
-// ---------------------------------------------------------------------------
+//Module mock -- replaces useNavigate so navigation can be asserted
+//vi.mock() is hoisted by Vitest to run before imports, so mockNavigate must
+//be declared here at module scope
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async () => {
-  // vi.importActual loads the real react-router-dom exports
+  //vi.importActual loads the real react-router-dom exports
   const actual = await vi.importActual('react-router-dom')
   return {
     ...actual,                          // keep all real exports (Route, Link, etc.)
@@ -60,18 +58,14 @@ vi.mock('react-router-dom', async () => {
   }
 })
 
-// ---------------------------------------------------------------------------
-// Wrapper — each renderHook call needs BrowserRouter so the hook can call
-// useNavigate() without throwing "useNavigate() may be used only in the
-// context of a <Router> component"
-// ---------------------------------------------------------------------------
+//Wrapper -- each renderHook call needs BrowserRouter so the hook can call
+//useNavigate() without throwing "useNavigate() may be used only in the
+//context of a <Router> component"
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <BrowserRouter>{children}</BrowserRouter>
 )
 
-// ---------------------------------------------------------------------------
-// useKeyboardShortcuts hook tests
-// ---------------------------------------------------------------------------
+//useKeyboardShortcuts hook tests
 describe('useKeyboardShortcuts', () => {
   beforeEach(() => {
     vi.clearAllMocks() // reset call counts so tests don't interfere with each other
@@ -82,8 +76,8 @@ describe('useKeyboardShortcuts', () => {
   })
 
   test('adds event listener on mount', () => {
-    // When the hook mounts it must register a 'keydown' listener on window
-    // so it receives every keypress regardless of which element has focus
+    //When the hook mounts it must register a 'keydown' listener on window
+    //so it receives every keypress regardless of which element has focus
     const addEventListenerSpy = vi.spyOn(window, 'addEventListener')
     
     renderHook(() => useKeyboardShortcuts(), { wrapper })
@@ -92,8 +86,8 @@ describe('useKeyboardShortcuts', () => {
   })
 
   test('removes event listener on unmount', () => {
-    // When the component that uses this hook unmounts (e.g. navigation or logout),
-    // the listener must be removed to prevent memory leaks and stale callbacks
+    //When the component that uses this hook unmounts (e.g. navigation or logout),
+    //the listener must be removed to prevent memory leaks and stale callbacks
     const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener')
     
     const { unmount } = renderHook(() => useKeyboardShortcuts(), { wrapper })
@@ -102,24 +96,22 @@ describe('useKeyboardShortcuts', () => {
     expect(removeEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function))
   })
 
-  // ---------------------------------------------------------------------------
-  // Shortcut handler tests
-  // ---------------------------------------------------------------------------
+  //Shortcut handler tests
 
   test('Ctrl+K calls onFocusSearch', () => {
-    // Ctrl+K is the standard "focus search bar" shortcut (like VSCode, GitHub)
+    //Ctrl+K is the standard "focus search bar" shortcut (like VSCode, GitHub)
     const onFocusSearch = vi.fn()
     
     renderHook(() => useKeyboardShortcuts({ onFocusSearch }), { wrapper })
     
-    // fireEvent.keyDown dispatches the event directly; sets ctrlKey=true on the event object
+    //fireEvent.keyDown dispatches the event directly; sets ctrlKey=true on the event object
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
     
     expect(onFocusSearch).toHaveBeenCalled()
   })
 
   test('Cmd+K (Mac) calls onFocusSearch', () => {
-    // On macOS the Command key (⌘) replaces Ctrl for most shortcuts; metaKey=true
+    //On macOS the Command key (⌘) replaces Ctrl for most shortcuts; metaKey=true
     const onFocusSearch = vi.fn()
     
     renderHook(() => useKeyboardShortcuts({ onFocusSearch }), { wrapper })
@@ -130,7 +122,7 @@ describe('useKeyboardShortcuts', () => {
   })
 
   test('Ctrl+/ calls onToggleChat', () => {
-    // Ctrl+/ is the shortcut for opening/closing the AI chat assistant panel
+    //Ctrl+/ is the shortcut for opening/closing the AI chat assistant panel
     const onToggleChat = vi.fn()
     
     renderHook(() => useKeyboardShortcuts({ onToggleChat }), { wrapper })
@@ -141,8 +133,8 @@ describe('useKeyboardShortcuts', () => {
   })
 
   test('Ctrl+N calls onNewReport', () => {
-    // Ctrl+N opens the "New Incident Report" form; browser default (new tab/window)
-    // must be overridden with preventDefault (tested separately below)
+    //Ctrl+N opens the "New Incident Report" form; browser default (new tab/window)
+    //must be overridden with preventDefault (tested separately below)
     const onNewReport = vi.fn()
     
     renderHook(() => useKeyboardShortcuts({ onNewReport }), { wrapper })
@@ -153,7 +145,7 @@ describe('useKeyboardShortcuts', () => {
   })
 
   test('Ctrl+Shift+A navigates to admin', () => {
-    // Ctrl+Shift+A is an admin-only shortcut that jumps directly to the admin dashboard
+    //Ctrl+Shift+A is an admin-only shortcut that jumps directly to the admin dashboard
     renderHook(() => useKeyboardShortcuts(), { wrapper })
     
     fireEvent.keyDown(window, { key: 'A', ctrlKey: true, shiftKey: true })
@@ -162,7 +154,7 @@ describe('useKeyboardShortcuts', () => {
   })
 
   test('Escape calls onEscape', () => {
-    // Escape is used to close modals, dialogs, and panels — universal "cancel" key
+    //Escape is used to close modals, dialogs, and panels -- universal "cancel" key
     const onEscape = vi.fn()
     
     renderHook(() => useKeyboardShortcuts({ onEscape }), { wrapper })
@@ -172,18 +164,16 @@ describe('useKeyboardShortcuts', () => {
     expect(onEscape).toHaveBeenCalled()
   })
 
-  // ---------------------------------------------------------------------------
-  // '?' shortcut — should fire only when the user is NOT typing in an input
-  // ---------------------------------------------------------------------------
+  // '?' shortcut -- should fire only when the user is NOT typing in an input
 
   test('? calls onShowHelp when not in input', () => {
     // '?' shows the keyboard shortcut help overlay, but only when the user is
-    // not currently typing something; event.target = document.body means no text field is focused
+    //not currently typing something; event.target = document.body means no text field is focused
     const onShowHelp = vi.fn()
     
     renderHook(() => useKeyboardShortcuts({ onShowHelp }), { wrapper })
     
-    // Manually construct the event so we can override .target (read-only on fireEvent events)
+    //Manually construct the event so we can override .target (read-only on fireEvent events)
     const event = new KeyboardEvent('keydown', { key: '?', bubbles: true })
     Object.defineProperty(event, 'target', { value: document.body })
     window.dispatchEvent(event)
@@ -192,13 +182,13 @@ describe('useKeyboardShortcuts', () => {
   })
 
   test('does not call onShowHelp when typing in input', () => {
-    // If the user is typing in a text input, '?' should be treated as regular text,
-    // not a shortcut trigger — otherwise the help overlay pops up unexpectedly
+    //If the user is typing in a text input, '?' should be treated as regular text,
+    //not a shortcut trigger -- otherwise the help overlay pops up unexpectedly
     const onShowHelp = vi.fn()
     
     renderHook(() => useKeyboardShortcuts({ onShowHelp }), { wrapper })
     
-    // Create an <input> element that simulates a focused text field
+    //Create an <input> element that simulates a focused text field
     const input = document.createElement('input')
     document.body.appendChild(input)
     
@@ -212,7 +202,7 @@ describe('useKeyboardShortcuts', () => {
   })
 
   test('does not call onShowHelp when typing in textarea', () => {
-    // Same guard applies to <textarea> — multi-line text areas should also block the shortcut
+    //Same guard applies to <textarea> -- multi-line text areas should also block the shortcut
     const onShowHelp = vi.fn()
     
     renderHook(() => useKeyboardShortcuts({ onShowHelp }), { wrapper })
@@ -229,13 +219,11 @@ describe('useKeyboardShortcuts', () => {
     document.body.removeChild(textarea)
   })
 
-  // ---------------------------------------------------------------------------
-  // preventDefault tests — browser built-in actions must be suppressed
-  // ---------------------------------------------------------------------------
+  //preventDefault tests -- browser built-in actions must be suppressed
 
   test('prevents default for Ctrl+K', () => {
-    // Without preventDefault, Ctrl+K in some browsers focuses the address bar
-    // We must create our own KeyboardEvent with cancelable: true so the spy works
+    //Without preventDefault, Ctrl+K in some browsers focuses the address bar
+    //We must create our own KeyboardEvent with cancelable: true so the spy works
     const onFocusSearch = vi.fn()
     
     renderHook(() => useKeyboardShortcuts({ onFocusSearch }), { wrapper })
@@ -254,7 +242,7 @@ describe('useKeyboardShortcuts', () => {
   })
 
   test('prevents default for Ctrl+/', () => {
-    // Without preventDefault, Ctrl+/ may be intercepted by the browser or OS
+    //Without preventDefault, Ctrl+/ may be intercepted by the browser or OS
     const onToggleChat = vi.fn()
     
     renderHook(() => useKeyboardShortcuts({ onToggleChat }), { wrapper })
@@ -273,7 +261,7 @@ describe('useKeyboardShortcuts', () => {
   })
 
   test('prevents default for Ctrl+N', () => {
-    // Ctrl+N normally opens a new browser window; our handler must prevent that
+    //Ctrl+N normally opens a new browser window; our handler must prevent that
     const onNewReport = vi.fn()
     
     renderHook(() => useKeyboardShortcuts({ onNewReport }), { wrapper })
@@ -292,20 +280,18 @@ describe('useKeyboardShortcuts', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// SHORTCUTS constant tests
-// The SHORTCUTS array drives the "Keyboard shortcuts" help panel UI
-// ---------------------------------------------------------------------------
+//SHORTCUTS constant tests
+//The SHORTCUTS array drives the "Keyboard shortcuts" help panel UI
 describe('SHORTCUTS', () => {
   test('contains expected shortcuts', () => {
-    // There must be at least one shortcut defined
+    //There must be at least one shortcut defined
     expect(SHORTCUTS).toBeDefined()
     expect(SHORTCUTS.length).toBeGreaterThan(0)
   })
 
   test('each shortcut has keys and description', () => {
-    // keys[] = the key names shown in the UI (e.g. ['Ctrl', 'K'])
-    // description = plain-English explanation shown beside the keys
+    //keys[] = the key names shown in the UI (e.g. ['Ctrl', 'K'])
+    //description = plain-English explanation shown beside the keys
     for (const shortcut of SHORTCUTS) {
       expect(shortcut).toHaveProperty('keys')
       expect(shortcut).toHaveProperty('description')
@@ -316,7 +302,7 @@ describe('SHORTCUTS', () => {
   })
 
   test('includes Ctrl+K for search', () => {
-    // The most important shortcut — users need to quickly focus the search bar
+    //The most important shortcut -- users need to quickly focus the search bar
     const searchShortcut = SHORTCUTS.find(s => 
       s.keys.some(k => k === 'Ctrl') && s.keys.some(k => k === 'K')
     )
@@ -324,7 +310,7 @@ describe('SHORTCUTS', () => {
   })
 
   test('includes Escape for closing', () => {
-    // Escape is universally expected to close/cancel; it must appear in the help overlay
+    //Escape is universally expected to close/cancel; it must appear in the help overlay
     const escapeShortcut = SHORTCUTS.find(s => s.keys.some(k => k === 'Esc'))
     expect(escapeShortcut).toBeDefined()
   })

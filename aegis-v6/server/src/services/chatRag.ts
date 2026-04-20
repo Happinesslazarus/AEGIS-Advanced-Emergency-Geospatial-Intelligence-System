@@ -12,7 +12,7 @@ import { generateEmbeddings, embedText } from './embeddingRouter.js'
 /**
  * Cross-encoder re-ranking: score each (query, document) pair with a
  * HuggingFace Inference API cross-encoder model, then sort by score.
- * Uses ms-marco-MiniLM-L-6-v2 — free tier, ~6ms per pair.
+ * Uses ms-marco-MiniLM-L-6-v2 -- free tier, ~6ms per pair.
  */
 export async function crossEncoderRerank(
   query: string,
@@ -21,7 +21,7 @@ export async function crossEncoderRerank(
 ): Promise<Array<{ title: string; content: string; source: string; similarity?: number; rerank_score: number }>> {
   const hfKey = process.env.HF_API_KEY
   if (!hfKey || docs.length <= topK) {
-    // No HF key or too few docs — skip re-ranking
+    //No HF key or too few docs -- skip re-ranking
     return docs.slice(0, topK).map(d => ({ ...d, rerank_score: d.similarity ?? 0 }))
   }
 
@@ -34,7 +34,7 @@ export async function crossEncoderRerank(
       sentences: [d.content.substring(0, 512)],  // Cross-encoder needs short passages
     }))
 
-    // HF inference API expects a flat request for text-classification / sentence-similarity
+    //HF inference API expects a flat request for text-classification / sentence-similarity
     const res = await fetch(url, {
       method: 'POST',
       headers: {
@@ -50,7 +50,7 @@ export async function crossEncoderRerank(
     })
 
     if (!res.ok) {
-      devLog(`[RAG Rerank] HF API ${res.status} — skipping re-rank`)
+      devLog(`[RAG Rerank] HF API ${res.status} -- skipping re-rank`)
       return docs.slice(0, topK).map(d => ({ ...d, rerank_score: d.similarity ?? 0 }))
     }
 
@@ -64,22 +64,22 @@ export async function crossEncoderRerank(
     devLog(`[RAG Rerank] Re-ranked ${docs.length} docs, top score: ${scored[0]?.rerank_score?.toFixed(4)}`)
     return scored.slice(0, topK)
   } catch (err: any) {
-    devLog(`[RAG Rerank] Error: ${err.message} — using original order`)
+    devLog(`[RAG Rerank] Error: ${err.message} -- using original order`)
     return docs.slice(0, topK).map(d => ({ ...d, rerank_score: d.similarity ?? 0 }))
   }
 }
 
 export async function retrieveRAGContext(query: string, limit = 12): Promise<string> {
   try {
-    // Phase 1: Hybrid retrieval — vector similarity + BM25 full-text in parallel
+    //Phase 1: Hybrid retrieval -- vector similarity + BM25 full-text in parallel
     let vectorRows: any[] = []
     let bm25Rows: any[] = []
 
     const candidateLimit = Math.max(limit * 3, 20)
 
-    // Run vector search and BM25 full-text search concurrently
+    //Run vector search and BM25 full-text search concurrently
     const [vectorResult, bm25Result] = await Promise.allSettled([
-      // Vector similarity search
+      //Vector similarity search
       (async () => {
         const embedding = await embedText(query)
         if (!embedding || embedding.length === 0) return []
@@ -96,7 +96,7 @@ export async function retrieveRAGContext(query: string, limit = 12): Promise<str
         )
         return rows
       })(),
-      // BM25 full-text search
+      //BM25 full-text search
       (async () => {
         const { rows } = await pool.query(
           `SELECT title, content, source,
@@ -112,15 +112,15 @@ export async function retrieveRAGContext(query: string, limit = 12): Promise<str
     ])
 
     if (vectorResult.status === 'fulfilled') vectorRows = vectorResult.value
-    else logger.warn({ err: vectorResult.reason }, '[Chat RAG] Vector search failed — using BM25 only')
+    else logger.warn({ err: vectorResult.reason }, '[Chat RAG] Vector search failed -- using BM25 only')
 
     if (bm25Result.status === 'fulfilled') bm25Rows = bm25Result.value
 
-    // Phase 2: Reciprocal Rank Fusion (RRF) — merge both result sets
+    //Phase 2: Reciprocal Rank Fusion (RRF) -- merge both result sets
     const RRF_K = 60 // standard RRF constant
     const scoreMap = new Map<string, { doc: any; score: number }>()
 
-    // Score vector results by rank
+    //Score vector results by rank
     vectorRows.forEach((doc, rank) => {
       const key = `${doc.title}::${doc.source}`
       const existing = scoreMap.get(key)
@@ -132,7 +132,7 @@ export async function retrieveRAGContext(query: string, limit = 12): Promise<str
       }
     })
 
-    // Score BM25 results by rank
+    //Score BM25 results by rank
     bm25Rows.forEach((doc, rank) => {
       const key = `${doc.title}::${doc.source}`
       const existing = scoreMap.get(key)
@@ -144,14 +144,14 @@ export async function retrieveRAGContext(query: string, limit = 12): Promise<str
       }
     })
 
-    // Sort by fused score
+    //Sort by fused score
     const fusedCandidates = Array.from(scoreMap.values())
       .sort((a, b) => b.score - a.score)
       .map(({ doc, score }) => ({ ...doc, fusion_score: score }))
 
     if (fusedCandidates.length === 0) return ''
 
-    // Phase 3: Cross-encoder re-ranking for final precision
+    //Phase 3: Cross-encoder re-ranking for final precision
     const reranked = await crossEncoderRerank(query, fusedCandidates, limit)
     devLog(`[Chat RAG] Hybrid retrieval: ${vectorRows.length} vector + ${bm25Rows.length} BM25 ? ${fusedCandidates.length} fused ? re-ranked top ${reranked.length}`)
 

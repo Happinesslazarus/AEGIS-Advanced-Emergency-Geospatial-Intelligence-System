@@ -44,16 +44,14 @@ import React from 'react'
 
 import { ThemeProvider, useTheme, THEMES, type ThemeName } from '../contexts/ThemeContext'
 
-// ---------------------------------------------------------------------------
-// ThemeContext Tests
-// ---------------------------------------------------------------------------
+//ThemeContext Tests
 
 describe('ThemeContext', () => {
   let localStorageMock: Record<string, string>   // in-memory dict acting as localStorage
   let matchMediaMock: ReturnType<typeof vi.fn>   // controls what OS colour scheme is reported
   
   beforeEach(() => {
-    // Inject a fake localStorage backed by a plain object
+    //Inject a fake localStorage backed by a plain object
     localStorageMock = {}
     Object.defineProperty(window, 'localStorage', {
       value: {
@@ -65,8 +63,8 @@ describe('ThemeContext', () => {
       writable: true,
     })
     
-    // Inject a fake matchMedia that reports 'dark' when the query string includes 'dark'.
-    // This mimics a user who has set their OS to dark mode.
+    //Inject a fake matchMedia that reports 'dark' when the query string includes 'dark'.
+    //This mimics a user who has set their OS to dark mode.
     matchMediaMock = vi.fn().mockImplementation((query: string) => ({
       matches: query.includes('dark'), // true for '(prefers-color-scheme: dark)'
       media: query,
@@ -82,12 +80,12 @@ describe('ThemeContext', () => {
   
   afterEach(() => {
     vi.restoreAllMocks()
-    // Clean up DOM changes applied by ThemeProvider so tests don't bleed into each other
+    //Clean up DOM changes applied by ThemeProvider so tests don't bleed into each other
     document.documentElement.classList.remove('dark')
     document.documentElement.removeAttribute('data-theme')
   })
   
-  // Minimal test component that reads the full theme shape from context
+  //Minimal test component that reads the full theme shape from context
   function ThemeConsumer() {
     const theme = useTheme()
     return (
@@ -102,7 +100,7 @@ describe('ThemeContext', () => {
   }
   
   test('THEMES array contains expected themes', () => {
-    // Verify the app ships with all 7 expected colour themes
+    //Verify the app ships with all 7 expected colour themes
     expect(THEMES).toHaveLength(7)
     expect(THEMES.map(t => t.name)).toContain('default')
     expect(THEMES.map(t => t.name)).toContain('light')
@@ -114,8 +112,8 @@ describe('ThemeContext', () => {
   })
   
   test('THEMES have correct structure', () => {
-    // Each theme object must carry all required fields;
-    // isDark must be a boolean (not undefined or a string)
+    //Each theme object must carry all required fields;
+    //isDark must be a boolean (not undefined or a string)
     for (const theme of THEMES) {
       expect(theme).toHaveProperty('name')        // machine-readable key (e.g. 'ocean')
       expect(theme).toHaveProperty('label')       // human-readable name ('Ocean')
@@ -127,7 +125,7 @@ describe('ThemeContext', () => {
   })
   
   test('provides default theme when system prefers dark', () => {
-    // OS dark-mode preference → ThemeProvider should default to 'default' (dark) theme
+ //OS dark-mode preference -> ThemeProvider should default to 'default' (dark) theme
     matchMediaMock.mockImplementation((query: string) => ({
       matches: query.includes('dark'), // '(prefers-color-scheme: dark)' resolves to true
       media: query,
@@ -144,7 +142,7 @@ describe('ThemeContext', () => {
   })
   
   test('provides light theme when system prefers light', () => {
-    // OS light-mode preference → ThemeProvider should default to 'light' theme
+ //OS light-mode preference -> ThemeProvider should default to 'light' theme
     matchMediaMock.mockImplementation((query: string) => ({
       matches: !query.includes('dark'), // prefers-color-scheme: dark = false
       media: query,
@@ -161,7 +159,7 @@ describe('ThemeContext', () => {
   })
   
   test('restores theme from localStorage', () => {
-    // Pre-set a saved theme in the fake localStorage
+    //Pre-set a saved theme in the fake localStorage
     localStorageMock['aegis-theme'] = 'ocean'
     
     render(
@@ -170,12 +168,12 @@ describe('ThemeContext', () => {
       </ThemeProvider>
     )
     
-    // ThemeProvider reads aegis-theme on mount and restores the saved choice
+    //ThemeProvider reads aegis-theme on mount and restores the saved choice
     expect(screen.getByTestId('theme-name')).toHaveTextContent('ocean')
   })
   
   test('toggle switches between dark and light', async () => {
-    // userEvent.setup() creates a user-event instance that handles pointer events properly
+    //userEvent.setup() creates a user-event instance that handles pointer events properly
     const user = userEvent.setup()
     
     render(
@@ -184,15 +182,15 @@ describe('ThemeContext', () => {
       </ThemeProvider>
     )
     
-    // Default dark mode (OS prefers dark)
+    //Default dark mode (OS prefers dark)
     expect(screen.getByTestId('is-dark')).toHaveTextContent('dark')
     
-    // Click Toggle → switches to light
+ //Click Toggle -> switches to light
     await user.click(screen.getByRole('button', { name: /toggle/i }))
     expect(screen.getByTestId('theme-name')).toHaveTextContent('light')
     expect(screen.getByTestId('is-dark')).toHaveTextContent('light')
     
-    // Click Toggle again → returns to dark (default)
+ //Click Toggle again -> returns to dark (default)
     await user.click(screen.getByRole('button', { name: /toggle/i }))
     expect(screen.getByTestId('theme-name')).toHaveTextContent('default')
     expect(screen.getByTestId('is-dark')).toHaveTextContent('dark')
@@ -207,12 +205,12 @@ describe('ThemeContext', () => {
       </ThemeProvider>
     )
     
-    // Click 'Set Ocean' button
+    //Click 'Set Ocean' button
     await user.click(screen.getByRole('button', { name: /ocean/i }))
     expect(screen.getByTestId('theme-name')).toHaveTextContent('ocean')
     expect(screen.getByTestId('is-dark')).toHaveTextContent('dark') // ocean is a dark theme
     
-    // Click 'Set Sunset' button
+    //Click 'Set Sunset' button
     await user.click(screen.getByRole('button', { name: /sunset/i }))
     expect(screen.getByTestId('theme-name')).toHaveTextContent('sunset')
     expect(screen.getByTestId('is-dark')).toHaveTextContent('light') // sunset is a light theme
@@ -228,7 +226,7 @@ describe('ThemeContext', () => {
     )
     
     await user.click(screen.getByRole('button', { name: /ocean/i }))
-    // Choosing 'ocean' must be saved so it survives a page refresh
+    //Choosing 'ocean' must be saved so it survives a page refresh
     expect(localStorageMock['aegis-theme']).toBe('ocean')
   })
   
@@ -241,19 +239,19 @@ describe('ThemeContext', () => {
       </ThemeProvider>
     )
     
-    // Default dark theme → <html class="dark"> enables Tailwind dark: variants
+ //Default dark theme -> <html class="dark"> enables Tailwind dark: variants
     expect(document.documentElement.classList.contains('dark')).toBe(true)
-    // Switch to light theme (sunset) — 'dark' class must be removed
+    //Switch to light theme (sunset) -- 'dark' class must be removed
     await user.click(screen.getByRole('button', { name: /sunset/i }))
     expect(document.documentElement.classList.contains('dark')).toBe(false)
     
-    // Switch back to a dark theme (ocean) — 'dark' class must be re-added
+    //Switch back to a dark theme (ocean) -- 'dark' class must be re-added
     await user.click(screen.getByRole('button', { name: /ocean/i }))
     expect(document.documentElement.classList.contains('dark')).toBe(true)
   })
   
   test('sets data-theme attribute', async () => {
-    // data-theme drives CSS custom-property overrides for accent colours
+    //data-theme drives CSS custom-property overrides for accent colours
     const user = userEvent.setup()
     
     render(
@@ -269,8 +267,8 @@ describe('ThemeContext', () => {
   })
   
   test('migrates legacy "dark" localStorage value', () => {
-    // Older versions of the app stored 'dark' (a boolean mode) instead of a theme name.
-    // When we encounter this legacy value we upgrade it to 'default' (the new dark theme).
+    //Older versions of the app stored 'dark' (a boolean mode) instead of a theme name.
+    //When we encounter this legacy value we upgrade it to 'default' (the new dark theme).
     localStorageMock['aegis-theme'] = 'dark'
     
     render(
@@ -283,13 +281,13 @@ describe('ThemeContext', () => {
   })
   
   test('useTheme returns defaults without provider', () => {
-    // When a component calls useTheme() without being wrapped in ThemeProvider,
-    // the hook must return safe defaults rather than crashing; it also logs a console.warn.
+    //When a component calls useTheme() without being wrapped in ThemeProvider,
+    //the hook must return safe defaults rather than crashing; it also logs a console.warn.
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     
     render(<ThemeConsumer />)
     
-    // Fallback defaults: theme='default', dark=false (light mode)
+    //Fallback defaults: theme='default', dark=false (light mode)
     expect(screen.getByTestId('theme-name')).toHaveTextContent('default')
     expect(screen.getByTestId('is-dark')).toHaveTextContent('light')
     
@@ -297,8 +295,8 @@ describe('ThemeContext', () => {
   })
   
   test('themeConfig returns correct config for current theme', () => {
-    // themeConfig = the full theme object (label, swatch, isDark, description)
-    // for the currently active theme; used by settings panels to display theme info
+    //themeConfig = the full theme object (label, swatch, isDark, description)
+    //for the currently active theme; used by settings panels to display theme info
     localStorageMock['aegis-theme'] = 'forest'
     
     function ConfigConsumer() {
@@ -322,8 +320,8 @@ describe('ThemeContext', () => {
   })
   
   test('toggleDarkMode is alias for toggle', async () => {
-    // Some older components reference toggleDarkMode(); this test ensures it still works
-    // after the rename to toggle()
+    //Some older components reference toggleDarkMode(); this test ensures it still works
+    //after the rename to toggle()
     const user = userEvent.setup()
     
     function ToggleConsumer() {
@@ -348,13 +346,13 @@ describe('ThemeContext', () => {
   })
   
   test('all dark themes have isDark true', () => {
-    // Sanity-check that the THEMES data is consistent: dark themes must all be flagged isDark=true
+    //Sanity-check that the THEMES data is consistent: dark themes must all be flagged isDark=true
     const darkThemes = THEMES.filter(t => t.isDark)
     expect(darkThemes.map(t => t.name)).toEqual(['default', 'midnight', 'ocean', 'forest', 'rose'])
   })
   
   test('all light themes have isDark false', () => {
-    // Light themes must be flagged isDark=false
+    //Light themes must be flagged isDark=false
     const lightThemes = THEMES.filter(t => !t.isDark)
     expect(lightThemes.map(t => t.name)).toEqual(['light', 'sunset'])
   })

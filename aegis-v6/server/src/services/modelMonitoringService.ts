@@ -1,5 +1,5 @@
 ﻿/**
- * Deployed model health monitor — collects rolling stats (average confidence,
+ * Deployed model health monitor -- collects rolling stats (average confidence,
  * drift scores, prediction positive rates) from recent ai_predictions rows
  * and exposes them via Prometheus metrics. Converts health to alert levels.
  *
@@ -19,8 +19,8 @@ import {
 
 const fallbackCountCache = new Map<string, number>()
 
-// Prometheus-compatible numeric encoding for alert levels.
-// Gauges must be numeric; 0=healthy, 1=info, 2=warning, 3=critical.
+//Prometheus-compatible numeric encoding for alert levels.
+//Gauges must be numeric; 0=healthy, 1=info, 2=warning, 3=critical.
 function alertLevelToMetric(alertLevel: string): number {
   const level = String(alertLevel || '').toUpperCase()
   if (level === 'INFO') return 1
@@ -29,8 +29,8 @@ function alertLevelToMetric(alertLevel: string): number {
   return 0
 }
 
-// Convert AI engine health_status strings to standardised Prometheus alert level labels.
-// rollback_recommended → CRITICAL keeps runbooks consistent with PagerDuty routing rules.
+//Convert AI engine health_status strings to standardised Prometheus alert level labels.
+//rollback_recommended -> CRITICAL keeps runbooks consistent with PagerDuty routing rules.
 function toAlertLevel(healthStatus: string): string {
   const hs = String(healthStatus || '').toLowerCase()
   if (hs === 'rollback_recommended') return 'CRITICAL'
@@ -39,9 +39,9 @@ function toAlertLevel(healthStatus: string): string {
   return 'HEALTHY'
 }
 
-// Collect rolling 15-minute stats for every registered model and push to Prometheus.
-// Uses a 15-minute window so dashboards show near-real-time inference quality
-// without being noisy from single outlier predictions.
+//Collect rolling 15-minute stats for every registered model and push to Prometheus.
+//Uses a 15-minute window so dashboards show near-real-time inference quality
+//without being noisy from single outlier predictions.
 export async function collectModelRollingStats(): Promise<number> {
   const health = await aiClient.getAllRegistryHealth()
   const items: any[] = health?.items || []
@@ -122,8 +122,8 @@ export async function computeAndPersistModelDriftSnapshots(): Promise<number> {
       const cacheKey = `${hazard}:${region}:${version}`
       const currentFallback = Number(item.fallback_count || 0)
       const previousFallback = Number(fallbackCountCache.get(cacheKey) || 0)
-      // Track delta only so we increment the counter by new fallbacks since last run,
-      // rather than resetting the Prometheus counter to the registry total (which would go backwards).
+      //Track delta only so we increment the counter by new fallbacks since last run,
+      //rather than resetting the Prometheus counter to the registry total (which would go backwards).
       const delta = currentFallback - previousFallback
       if (delta > 0) {
         aegisModelFallbackTotal.inc({ hazard, region }, delta)

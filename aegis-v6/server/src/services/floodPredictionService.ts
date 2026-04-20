@@ -1,5 +1,5 @@
 ﻿/**
- * Flood prediction engine — combines current river levels, rainfall forecasts
+ * Flood prediction engine -- combines current river levels, rainfall forecasts
  * (OpenWeatherMap with Open-Meteo fallback), GeoJSON flood extents, and
  * catchment response profiles to predict flood risk for each river.
  *
@@ -17,7 +17,7 @@ import fs from 'fs'
 import path from 'path'
 import { logger } from './logger.js'
 
-// Types
+//Types
 
 interface PredictedLevel {
   hours: number
@@ -41,10 +41,10 @@ export interface FloodPrediction {
   calculatedAt: string
 }
 
-// Rainfall Forecast
+//Rainfall Forecast
 
 async function fetchRainfallForecast(lat: number, lng: number): Promise<number> {
-  // Try OpenWeatherMap first
+  //Try OpenWeatherMap first
   const owmKey = process.env.OPENWEATHER_API_KEY || process.env.WEATHER_API_KEY
   if (owmKey) {
     try {
@@ -59,11 +59,11 @@ async function fetchRainfallForecast(lat: number, lng: number): Promise<number> 
       }
     } catch (err: any) {
       logger.warn({ err, lat, lng }, '[FloodPrediction] OpenWeather fetch failed')
-      // Fall through to Open-Meteo
+      //Fall through to Open-Meteo
     }
   }
 
-  // Fallback: Open-Meteo (free, no API key)
+  //Fallback: Open-Meteo (free, no API key)
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=precipitation&forecast_hours=6`
     const res = await fetch(url, { signal: AbortSignal.timeout(10_000) })
@@ -74,13 +74,13 @@ async function fetchRainfallForecast(lat: number, lng: number): Promise<number> 
     }
   } catch (err: any) {
     logger.warn({ err, lat, lng }, '[FloodPrediction] Open-Meteo fallback failed')
-    // Return conservative estimate
+    //Return conservative estimate
   }
 
   return 0
 }
 
-// Flood Extent GeoJSON Loading
+//Flood Extent GeoJSON Loading
 
 const extentCache = new Map<string, any>()
 
@@ -93,7 +93,7 @@ function loadFloodExtent(riverName: string): any[] | null {
 
   try {
     const filePath = path.join(process.cwd(), 'src', 'data', 'floodExtents', filename)
-    // Try multiple possible locations
+    //Try multiple possible locations
     const candidates = [
       filePath,
       path.resolve('src', 'data', 'floodExtents', filename),
@@ -119,7 +119,7 @@ function loadFloodExtent(riverName: string): any[] | null {
 function getExtentForLevel(features: any[], levelMetres: number): { extent: any; properties: any } | null {
   if (!features || features.length === 0) return null
 
-  // Find the highest matching flood level
+  //Find the highest matching flood level
   let bestMatch: any = null
   let bestProps: any = null
 
@@ -139,9 +139,9 @@ function getExtentForLevel(features: any[], levelMetres: number): { extent: any;
   return bestMatch ? { extent: bestMatch.geometry, properties: bestProps } : null
 }
 
-// Catchment response characteristics — determines how fast rivers rise/fall
-// based on catchment type. Urban catchments respond faster (impervious surfaces),
-// rural/upland catchments have slower, sustained response.
+//Catchment response characteristics -- determines how fast rivers rise/fall
+//based on catchment type. Urban catchments respond faster (impervious surfaces),
+//rural/upland catchments have slower, sustained response.
 interface CatchmentProfile {
   risingRateBase: number    // m/h base rate when rising
   fallingRateBase: number   // m/h base rate when falling (negative)
@@ -159,8 +159,8 @@ const CATCHMENT_PROFILES: Record<string, CatchmentProfile> = {
 }
 
 function getCatchmentProfile(riverName: string, regionId: string): CatchmentProfile {
-  // Look up from river config, fall back to default
-  // Rivers in urban areas (Glasgow, Edinburgh centers) use urban profiles
+  //Look up from river config, fall back to default
+  //Rivers in urban areas (Glasgow, Edinburgh centers) use urban profiles
   const urbanRivers = ['clyde', 'kelvin', 'water of leith', 'thames', 'trent']
   const uplandRivers = ['tweed', 'tay', 'spey', 'dee']
   const lower = riverName.toLowerCase()
@@ -169,7 +169,7 @@ function getCatchmentProfile(riverName: string, regionId: string): CatchmentProf
   return CATCHMENT_PROFILES.default
 }
 
-// Prediction Calculation
+//Prediction Calculation
 
  /*
  * Calculate flood predictions for all rivers in the active region.
@@ -187,8 +187,8 @@ export async function getFloodPredictions(): Promise<FloodPrediction[]> {
     const rainfallMm = await fetchRainfallForecast(coords.lat, coords.lng)
     const extentFeatures = loadFloodExtent(river.name)
 
-    // H10: Try AI engine — pass REAL observed river level and rainfall so the
-    // physics model uses actual conditions instead of hardcoded defaults.
+    //H10: Try AI engine -- pass REAL observed river level and rainfall so the
+    //physics model uses actual conditions instead of hardcoded defaults.
     let aiProbability: number | null = null
     let aiConfidenceBoost = 0
     try {
@@ -201,7 +201,7 @@ export async function getFloodPredictions(): Promise<FloodPrediction[]> {
         include_contributing_factors: false,
         feature_overrides: {
           river_level: currentReading.levelMetres,
-          // 6h rainfall total ? approximate 24h by scaling; 7d by further scaling
+          //6h rainfall total ? approximate 24h by scaling; 7d by further scaling
           rainfall_24h: rainfallMm > 0 ? Math.round(rainfallMm * 4 * 10) / 10 : 0,
           rainfall_7d:  rainfallMm > 0 ? Math.round(rainfallMm * 7 * 10) / 10 : 0,
           rainfall_1h:  rainfallMm > 0 ? Math.round((rainfallMm / 6) * 10) / 10 : 0,
@@ -209,13 +209,13 @@ export async function getFloodPredictions(): Promise<FloodPrediction[]> {
       })
       if (aiResponse && typeof aiResponse.probability === 'number') {
         aiProbability = aiResponse.probability
-        // Confidence boost scales with how far above normal the river is:
-        // 0—20% above ? +5, 20—50% ? +8, 50%+ ? +10
+        //Confidence boost scales with how far above normal the river is:
+        //0--20% above ? +5, 20--50% ? +8, 50%+ ? +10
         const levelRatio = currentReading.levelMetres / (river.floodThresholds?.normal ?? 1.5)
         aiConfidenceBoost = levelRatio >= 1.5 ? 10 : levelRatio >= 1.2 ? 8 : 5
       }
     } catch {
-      // AI engine offline — continue with linear extrapolation only
+      //AI engine offline -- continue with linear extrapolation only
     }
 
     const prediction = calculatePrediction(
@@ -234,7 +234,7 @@ export async function getFloodPredictions(): Promise<FloodPrediction[]> {
     prediction.rainfallForecastMm = rainfallMm
     predictions.push(prediction)
 
-    // Store in DB
+    //Store in DB
     storePrediction(prediction, aiProbability).catch(err => {
       logger.error({ err }, '[FloodPrediction] DB store failed')
     })
@@ -260,7 +260,7 @@ function calculatePrediction(
   let maxProperties = 0
   let maxPeople = 0
 
-  // Level-awareness: add up to +8 when river approaches flood thresholds
+  //Level-awareness: add up to +8 when river approaches flood thresholds
   const levelRatio = currentLevel / (thresholds.elevated ?? 2.0)
   const levelBonus = Math.min(8, Math.round(levelRatio * 4))
 
@@ -269,23 +269,23 @@ function calculatePrediction(
     let predictedLevel: number
 
     if (trend === 'rising') {
-      // Rising limb: power-law growth with rainfall amplification
-      // Level increase decelerates as it approaches flood peak (logistic saturation)
+      //Rising limb: power-law growth with rainfall amplification
+      //Level increase decelerates as it approaches flood peak (logistic saturation)
       const maxRise = (thresholds.severe - currentLevel) * 1.5  // Allow overshoot beyond severe
       const ratePerHour = profile.risingRateBase + (rainfallMm * profile.rainfallCoeff / 6)
       const rawRise = ratePerHour * hours
-      // Logistic saturation: prevents unrealistic exponential growth
+      //Logistic saturation: prevents unrealistic exponential growth
       predictedLevel = currentLevel + maxRise * (rawRise / (rawRise + maxRise))
     } else if (trend === 'falling') {
-      // Falling limb: exponential recession (hydrologically correct)
-      // Q(t) = Q0 * exp(-k * t) where k is the recession constant
+      //Falling limb: exponential recession (hydrologically correct)
+      //Q(t) = Q0 * exp(-k * t) where k is the recession constant
       const decayFactor = Math.exp(profile.recessionExponent * hours)
       const excessAboveNormal = Math.max(0, currentLevel - thresholds.normal)
       predictedLevel = thresholds.normal + excessAboveNormal / decayFactor
-      // Rainfall can slow or reverse recession
+      //Rainfall can slow or reverse recession
       predictedLevel += rainfallMm * profile.rainfallCoeff * hours / 6
     } else {
-      // Stable: small variation proportional to rainfall
+      //Stable: small variation proportional to rainfall
       const variation = profile.stableVariation * hours
       const rainfallContribution = rainfallMm * profile.rainfallCoeff * hours / 6
       predictedLevel = currentLevel + variation + rainfallContribution
@@ -294,13 +294,13 @@ function calculatePrediction(
     predictedLevel = Math.max(0, Math.round(predictedLevel * 100) / 100)
     const roundedLevel = predictedLevel
 
-    // Determine status at predicted level
+    //Determine status at predicted level
     let status = 'NORMAL'
     if (roundedLevel >= thresholds.severe) status = 'CRITICAL'
     else if (roundedLevel >= thresholds.high) status = 'HIGH'
     else if (roundedLevel >= thresholds.elevated) status = 'ELEVATED'
 
-    // Get flood extent polygon
+    //Get flood extent polygon
     let extent: any = null
     let props: any = null
     if (extentFeatures) {
@@ -311,7 +311,7 @@ function calculatePrediction(
       }
     }
 
-    // Confidence: quadratic time decay with data quality bonuses
+    //Confidence: quadratic time decay with data quality bonuses
     const baseConfidence = 90
     const timeDecay = Math.round(hours * hours * 0.8)  // Quadratic decay (uncertainty grows faster with time)
     const dataSourceBonus = rainfallMm > 0 ? 5 : 0     // Having rainfall data helps
@@ -321,7 +321,7 @@ function calculatePrediction(
 
     predictedLevels.push({ hours, level: roundedLevel, status, extent, confidence })
 
-    // Track worst-case affected areas
+    //Track worst-case affected areas
     if (props?.affectedAreas) {
       const areas: string[] = props.affectedAreas
       if (areas.length > maxAffectedAreas.length) maxAffectedAreas = areas
@@ -346,12 +346,12 @@ function calculatePrediction(
 }
 
 async function storePrediction(prediction: FloodPrediction, aiProbability: number | null = null): Promise<void> {
-  // Determine worst-case prediction for summary
+  //Determine worst-case prediction for summary
   const worst = prediction.predictions.reduce(
     (w, p) => (p.level > w.level ? p : w),
     prediction.predictions[0] ||  { hours: 1, level: 0, status: 'NORMAL', confidence: 50, extent: null },
   )
-  // Use AI probability when available; fall back to normalised level estimate
+  //Use AI probability when available; fall back to normalised level estimate
   const probability = aiProbability !== null ? aiProbability : Math.min(0.99, worst.level / 5)
   const timeToFlood = worst.status !== 'NORMAL'
     ? `${worst.hours} hour${worst.hours > 1 ? 's' : ''}`
@@ -393,7 +393,7 @@ async function storePrediction(prediction: FloodPrediction, aiProbability: numbe
       ],
     )
   } catch (err: any) {
-    // Backward compatibility for deployments where region_id has not been migrated yet.
+    //Backward compatibility for deployments where region_id has not been migrated yet.
     if (!String(err?.message || '').toLowerCase().includes('region_id')) throw err
 
     await pool.query(
@@ -434,8 +434,8 @@ function predictNonLinear(
   const rainfallRate = rainfallMm * 0.05 / 6 // mm to metres per hour contribution
 
   if (trend === 'rising') {
-    // Logistic growth: level approaches a saturation max
-    // Max is current level * 2.5 (natural river capacity ceiling)
+    //Logistic growth: level approaches a saturation max
+    //Max is current level * 2.5 (natural river capacity ceiling)
     const maxLevel = Math.max(currentLevel * 2.5, currentLevel + 3.0)
     const growthRate = 0.3 + rainfallRate * 2
     const logistic = maxLevel / (1 + ((maxLevel - currentLevel) / currentLevel) * Math.exp(-growthRate * hours))
@@ -443,18 +443,18 @@ function predictNonLinear(
   }
 
   if (trend === 'falling') {
-    // Exponential decay — rivers recede slowly
+    //Exponential decay -- rivers recede slowly
     const decayRate = 0.05 // ~5% per hour
     const baseLevel = Math.max(0.1, currentLevel * 0.3) // Floor level
     const decayed = baseLevel + (currentLevel - baseLevel) * Math.exp(-decayRate * hours)
-    // Rainfall can slow the recession
+    //Rainfall can slow the recession
     const rainfallOffset = rainfallRate * hours * 0.5
     return Math.round(Math.max(0, decayed + rainfallOffset) * 100) / 100
   }
 
-  // Stable: small drift proportional to rainfall
+  //Stable: small drift proportional to rainfall
   const drift = rainfallRate * hours
-  // Small natural variation: +-2% per hour
+  //Small natural variation: +-2% per hour
   const variation = currentLevel * 0.02 * Math.sin(hours * 0.5)
   return Math.round(Math.max(0, currentLevel + drift + variation) * 100) / 100
 }
@@ -482,15 +482,15 @@ export async function findHistoricalAnalogs(
       const peakLevel = parseFloat(row.peak_water_level_m) || 0
       const eventMonth = new Date(row.event_date).getMonth() + 1
 
-      // Similarity components (each 0-1, lower = more similar)
+      //Similarity components (each 0-1, lower = more similar)
       const levelDiff = Math.abs(peakLevel - currentLevel) / Math.max(peakLevel, currentLevel, 1)
-      // Seasonal proximity: 0 = same month, 0.5 = 6 months apart
+      //Seasonal proximity: 0 = same month, 0.5 = 6 months apart
       const monthDiff = Math.min(
         Math.abs(eventMonth - month),
         12 - Math.abs(eventMonth - month),
       ) / 6
 
-      // Combined similarity (1 = perfect match, 0 = no similarity)
+      //Combined similarity (1 = perfect match, 0 = no similarity)
       const similarity = Math.round((1 - levelDiff * 0.6 - monthDiff * 0.4) * 100) / 100
 
       const outcome = row.severity === 'critical'
@@ -508,7 +508,7 @@ export async function findHistoricalAnalogs(
       }
     })
 
-    // Return top 3 most similar
+    //Return top 3 most similar
     analogs.sort((a: any, b: any) => b.similarity - a.similarity)
     return analogs.slice(0, 3)
   } catch (err: any) {
@@ -525,24 +525,24 @@ export async function findHistoricalAnalogs(
 export async function getEnsemblePredictions(): Promise<
   Array<FloodPrediction & { ensembleMethod: string; uncertainty: { lower: number; upper: number } }>
 > {
-  // Get standard predictions
+  //Get standard predictions
   const standardPredictions = await getFloodPredictions()
   const currentMonth = new Date().getMonth() + 1
 
   const ensembleResults: Array<FloodPrediction & { ensembleMethod: string; uncertainty: { lower: number; upper: number } }> = []
 
   for (const pred of standardPredictions) {
-    // Get historical analogs for context
+    //Get historical analogs for context
     const analogs = await findHistoricalAnalogs(pred.currentLevel, pred.rainfallForecastMm, currentMonth)
     const analogPeakAvg = analogs.length > 0
       ? analogs.reduce((sum, a) => sum + a.peakLevel, 0) / analogs.length
       : pred.currentLevel
 
-    // Build ensemble predictions for each time horizon
+    //Build ensemble predictions for each time horizon
     const ensembleLevels: PredictedLevel[] = pred.predictions.map((p) => {
       const linearLevel = p.level
 
-      // Non-linear prediction
+      //Non-linear prediction
       const nlLevel = predictNonLinear(
         pred.currentLevel,
         pred.status === 'CRITICAL' || pred.status === 'HIGH' ? 'rising' : 'stable',
@@ -550,16 +550,16 @@ export async function getEnsemblePredictions(): Promise<
         p.hours,
       )
 
-      // Historical analog contribution: weighted interpolation toward analog peak
+      //Historical analog contribution: weighted interpolation toward analog peak
       const analogWeight = 0.2
       const analogLevel = pred.currentLevel + (analogPeakAvg - pred.currentLevel) * analogWeight * (p.hours / 6)
 
-      // Ensemble average (weighted: linear 40%, non-linear 40%, analog 20%)
+      //Ensemble average (weighted: linear 40%, non-linear 40%, analog 20%)
       const ensembleLevel = Math.round(
         (linearLevel * 0.4 + nlLevel * 0.4 + analogLevel * 0.2) * 100,
       ) / 100
 
-      // Uncertainty from spread between methods
+      //Uncertainty from spread between methods
       const levels = [linearLevel, nlLevel, analogLevel]
       const minLevel = Math.min(...levels)
       const maxLevel = Math.max(...levels)
@@ -573,7 +573,7 @@ export async function getEnsemblePredictions(): Promise<
       }
     })
 
-    // Compute overall uncertainty from spread
+    //Compute overall uncertainty from spread
     const allLevels = ensembleLevels.map(e => e.level)
     const avgLevel = allLevels.reduce((s, l) => s + l, 0) / allLevels.length
     const spread = Math.max(...allLevels) - Math.min(...allLevels)
@@ -616,7 +616,7 @@ export async function trackPredictionAccuracy(): Promise<Array<{
 
       const actualLevel = currentReading.levelMetres
 
-      // Get predictions made 6-24h ago for this area
+      //Get predictions made 6-24h ago for this area
       const pastPredictions = await pool.query(
         `SELECT predicted_levels, calculated_at
          FROM flood_predictions
@@ -639,7 +639,7 @@ export async function trackPredictionAccuracy(): Promise<Array<{
 
         if (!Array.isArray(predictions)) continue
 
-        // Find the prediction closest to the elapsed time
+        //Find the prediction closest to the elapsed time
         const elapsedHours = (Date.now() - new Date(row.calculated_at).getTime()) / (1000 * 60 * 60)
 
         let bestPrediction: any = null
@@ -672,7 +672,7 @@ export async function trackPredictionAccuracy(): Promise<Array<{
         sampleSize: n,
       })
 
-      // Store accuracy metrics in DB
+      //Store accuracy metrics in DB
       await pool.query(
         `INSERT INTO ai_executions
          (model_name, model_version, input_payload, raw_response, execution_time_ms,
@@ -726,7 +726,7 @@ export async function analyzeMultiRiverDynamics(): Promise<{
       details.push(`Multiple rivers rising simultaneously: ${risingRivers.map(r => r.riverName).join(', ')}`)
     }
 
-    // Determine interaction risk
+    //Determine interaction risk
     let interactionRisk: 'none' | 'low' | 'moderate' | 'high' = 'none'
     let amplificationFactor = 1.0
 

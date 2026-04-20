@@ -3,13 +3,13 @@ Estimates the probability of crowd-related or public-order incidents
 using event-density metrics, current weather conditions, and historical
 incident rates for the area.
 
-The model is intentionally conservative — it only flags HIGH risk when
+The model is intentionally conservative -- it only flags HIGH risk when
 multiple independent signals align, to minimise false positives that
 could waste emergency-service resources.
 """
 
 """
- AEGIS AI ENGINE — Public Safety Incident Prediction Module
+ AEGIS AI ENGINE -- Public Safety Incident Prediction Module
  Crowd-disorder and civil-unrest risk estimation using environmental
  stressors, seasonal patterns, and historical incident density.
 """

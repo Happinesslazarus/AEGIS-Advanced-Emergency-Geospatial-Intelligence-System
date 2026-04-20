@@ -1,5 +1,5 @@
 ﻿/**
- * Disaster photo analyser — processes uploaded images through HuggingFace
+ * Disaster photo analyser -- processes uploaded images through HuggingFace
  * vision models (ViT for classification, DETR for object detection), extracts
  * EXIF metadata (GPS, timestamps), and estimates flood damage severity.
  *
@@ -18,11 +18,11 @@ import { logger } from './logger.js'
 const HF_API_KEY = process.env.HF_API_KEY || ''
 const HF_BASE_URL = 'https://router.huggingface.co'
 
-// Models for different tasks
+//Models for different tasks
 const IMAGE_CLASSIFIER_MODEL = process.env.HF_IMAGE_CLASSIFIER || 'google/vit-base-patch16-224'
 const OBJECT_DETECTOR_MODEL = process.env.HF_OBJECT_DETECTOR || 'facebook/detr-resnet-50'
 
-// Disaster-related labels from ImageNet/ViT classification
+//Disaster-related labels from ImageNet/ViT classification
 const DISASTER_LABELS = new Set([
   'flood', 'dam', 'water', 'rain', 'storm', 'tornado', 'fire',
   'volcano', 'earthquake', 'landslide', 'tsunami', 'debris',
@@ -138,12 +138,12 @@ async function extractExif(imageBuffer: Buffer): Promise<ExifAnalysisResult> {
   }
 
   try {
-    // Parse full EXIF data with exifr
+    //Parse full EXIF data with exifr
     const parsed = await exifr.parse(imageBuffer, {
       gps: true,
       tiff: true,
       exif: true,
-      // Return all available tags
+      //Return all available tags
       pick: ['GPSLatitude', 'GPSLatitudeRef', 'GPSLongitude', 'GPSLongitudeRef',
              'DateTimeOriginal', 'DateTime', 'CreateDate',
              'latitude', 'longitude'],
@@ -152,8 +152,8 @@ async function extractExif(imageBuffer: Buffer): Promise<ExifAnalysisResult> {
     if (!parsed) return result
     result.hasExif = true
 
-    // Extract GPS coordinates - exifr auto-converts DMS to decimal degrees
-    // and applies N/S, E/W sign correction when returning latitude/longitude
+    //Extract GPS coordinates - exifr auto-converts DMS to decimal degrees
+    //and applies N/S, E/W sign correction when returning latitude/longitude
     const lat = parsed.latitude ?? parsed.GPSLatitude ?? null
     const lng = parsed.longitude ?? parsed.GPSLongitude ?? null
 
@@ -162,12 +162,12 @@ async function extractExif(imageBuffer: Buffer): Promise<ExifAnalysisResult> {
       result.exifLng = lng
     }
 
-    // Extract timestamp - exifr returns Date objects for date fields
+    //Extract timestamp - exifr returns Date objects for date fields
     const rawDate = parsed.DateTimeOriginal ?? parsed.DateTime ?? parsed.CreateDate ?? null
     if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
       result.exifTimestamp = rawDate
     } else if (typeof rawDate === 'string') {
-      // Handle string format "YYYY:MM:DD HH:MM:SS"
+      //Handle string format "YYYY:MM:DD HH:MM:SS"
       const dateMatch = rawDate.match(/(\d{4}):(\d{2}):(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/)
       if (dateMatch) {
         const [, y, m, d, h, min, s] = dateMatch
@@ -178,7 +178,7 @@ async function extractExif(imageBuffer: Buffer): Promise<ExifAnalysisResult> {
       }
     }
   } catch {
-    // EXIF parsing failures are non-critical - return default result
+    //EXIF parsing failures are non-critical - return default result
   }
 
   return result
@@ -207,8 +207,8 @@ function computeTemporalPlausibility(
   label: ExifAnalysisResult['temporalPlausibilityLabel']
   deltaHours: number
 } {
-  // Positive deltaHours = image was taken BEFORE submission (normal)
-  // Negative deltaHours = image timestamp is in the future relative to submission (anomalous)
+  //Positive deltaHours = image was taken BEFORE submission (normal)
+  //Negative deltaHours = image timestamp is in the future relative to submission (anomalous)
   const deltaMs = submissionTime.getTime() - exifTimestamp.getTime()
   const deltaHours = deltaMs / 3_600_000
 
@@ -216,30 +216,30 @@ function computeTemporalPlausibility(
   let label: ExifAnalysisResult['temporalPlausibilityLabel']
 
   if (deltaHours < 0) {
-    // EXIF timestamp is after submission - clock skew or fabrication
+    //EXIF timestamp is after submission - clock skew or fabrication
     score = 0.00
     label = 'suspicious'
   } else if (deltaHours <= 1) {
     score = 1.00
     label = 'verified'
   } else if (deltaHours <= 6) {
-    // Linear decay from 1.00 ? 0.90 over the 1h-6h window
+    //Linear decay from 1.00 ? 0.90 over the 1h-6h window
     score = Number((0.90 + (1 - (deltaHours - 1) / 5) * 0.10).toFixed(3))
     label = 'verified'
   } else if (deltaHours <= 24) {
-    // Decay from 0.90 ? 0.72 over 6h-24h
+    //Decay from 0.90 ? 0.72 over 6h-24h
     score = Number((0.72 + (1 - (deltaHours - 6) / 18) * 0.18).toFixed(3))
     label = 'recent'
   } else if (deltaHours <= 72) {
-    // 1-3 days
+    //1-3 days
     score = Number((0.48 + (1 - (deltaHours - 24) / 48) * 0.24).toFixed(3))
     label = 'outdated'
   } else if (deltaHours <= 168) {
-    // 3-7 days
+    //3-7 days
     score = Number((0.25 + (1 - (deltaHours - 72) / 96) * 0.23).toFixed(3))
     label = 'outdated'
   } else if (deltaHours <= 720) {
-    // 7-30 days
+    //7-30 days
     score = Number((0.10 + (1 - (deltaHours - 168) / 552) * 0.15).toFixed(3))
     label = 'suspicious'
   } else {
@@ -266,11 +266,11 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 function assessImageQuality(imageBuffer: Buffer): 'low' | 'medium' | 'high' {
   const sizeKB = imageBuffer.length / 1024
 
-  // Detect format
+  //Detect format
   const isJPEG = imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8
   const isPNG = imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50
 
-  // For JPEG: estimate dimensions from SOF0/SOF2 markers
+  //For JPEG: estimate dimensions from SOF0/SOF2 markers
   let estimatedPixels = 0
   if (isJPEG) {
     for (let i = 0; i < imageBuffer.length - 9; i++) {
@@ -283,21 +283,21 @@ function assessImageQuality(imageBuffer: Buffer): 'low' | 'medium' | 'high' {
     }
   }
 
-  // For PNG: dimensions are at fixed offset (bytes 16-23 in IHDR)
+  //For PNG: dimensions are at fixed offset (bytes 16-23 in IHDR)
   if (isPNG && imageBuffer.length > 24) {
     const width = imageBuffer.readUInt32BE(16)
     const height = imageBuffer.readUInt32BE(20)
     estimatedPixels = width * height
   }
 
-  // Quality scoring based on actual pixel count when available
+  //Quality scoring based on actual pixel count when available
   if (estimatedPixels > 0) {
     if (estimatedPixels < 100_000) return 'low'       // < ~316x316
     if (estimatedPixels < 500_000) return 'medium'     // < ~707x707
     return 'high'                                       // >= ~0.5MP
   }
 
-  // Fallback to filesize if dimensions could not be extracted
+  //Fallback to filesize if dimensions could not be extracted
   if (sizeKB < 30) return 'low'
   if (sizeKB < 150) return 'medium'
   return 'high'
@@ -320,7 +320,7 @@ export async function analyseImage(
 ): Promise<FullImageAnalysis> {
   const start = Date.now()
 
-  // Read image file
+  //Read image file
   let imageBuffer: Buffer
   try {
     const fullPath = path.resolve(imagePath)
@@ -355,14 +355,14 @@ export async function analyseImage(
     }
   }
 
-  // Run classification, detection, and EXIF extraction in parallel
+  //Run classification, detection, and EXIF extraction in parallel
   const [classifications, detections, exifRaw] = await Promise.all([
     classifyImage(imageBuffer),
     detectObjects(imageBuffer),
     extractExif(imageBuffer),
   ])
 
-  // Determine flood/disaster relevance from classification
+  //Determine flood/disaster relevance from classification
   let disasterConfidence = 0
   let waterConfidence = 0
   const objectsDetected: string[] = []
@@ -384,14 +384,14 @@ export async function analyseImage(
     }
   }
 
-  // Add detected objects from DETR
+  //Add detected objects from DETR
   for (const det of detections) {
     if (!objectsDetected.includes(det.label)) {
       objectsDetected.push(det.label)
     }
   }
 
-  // EXIF location verification
+  //EXIF location verification
   const exifAnalysis: ExifAnalysisResult = { ...exifRaw }
   if (exifRaw.exifLat !== null && exifRaw.exifLng !== null) {
     const distKm = haversineKm(reportLat, reportLng, exifRaw.exifLat, exifRaw.exifLng)
@@ -399,7 +399,7 @@ export async function analyseImage(
     exifAnalysis.locationMatch = distKm < 5 // Within 5km = match
   }
 
-  // EXIF time verification - formal temporal plausibility scoring
+  //EXIF time verification - formal temporal plausibility scoring
   if (exifRaw.exifTimestamp) {
     const submissionTime = new Date()
     const timeDiffHours = (submissionTime.getTime() - exifRaw.exifTimestamp.getTime()) / 3_600_000
@@ -430,7 +430,7 @@ export async function analyseImage(
 
   const processingTimeMs = Date.now() - start
 
-  // Store results in database
+  //Store results in database
   if (reportId) {
     try {
       await pool.query(
@@ -460,7 +460,7 @@ export async function analyseImage(
         ],
       )
 
-      // Log AI execution
+      //Log AI execution
       await pool.query(
         `INSERT INTO ai_executions
          (model_name, model_version, input_payload, raw_response, execution_time_ms, target_type, target_id)
@@ -512,7 +512,7 @@ export function estimateDamageSeverityFromImage(
   let structuralCount = 0
   let disasterCategoryCount = 0
 
-  // Scan classifications for water/fire/disaster labels
+  //Scan classifications for water/fire/disaster labels
   for (const cls of classifications) {
     const words = cls.label.toLowerCase().split(/[\s,_]+/)
     for (const word of words) {
@@ -530,7 +530,7 @@ export function estimateDamageSeverityFromImage(
     }
   }
 
-  // Scan detections for structural damage indicators
+  //Scan detections for structural damage indicators
   for (const det of detections) {
     const labelLower = det.label.toLowerCase()
     if (STRUCTURAL_DAMAGE_LABELS.has(labelLower) && det.score > 0.4) {
@@ -539,7 +539,7 @@ export function estimateDamageSeverityFromImage(
     }
   }
 
-  // Derive severity from strongest signal
+  //Derive severity from strongest signal
   const dominantConf = Math.max(maxWaterConf, maxFireConf)
   let severity: 'low' | 'medium' | 'high' | 'critical'
   if (dominantConf < 0.3) severity = 'low'
@@ -547,7 +547,7 @@ export function estimateDamageSeverityFromImage(
   else if (dominantConf < 0.7) severity = 'high'
   else severity = 'critical'
 
-  // Boost severity when multiple disaster categories are detected
+  //Boost severity when multiple disaster categories are detected
   if (disasterCategoryCount >= 3 && severity !== 'critical') {
     const levels: Array<'low' | 'medium' | 'high' | 'critical'> = ['low', 'medium', 'high', 'critical']
     const idx = levels.indexOf(severity)
@@ -555,7 +555,7 @@ export function estimateDamageSeverityFromImage(
     indicators.push('multi_disaster_boost')
   }
 
-  // Boost severity when structural damage objects are present
+  //Boost severity when structural damage objects are present
   if (structuralCount >= 2 && severity !== 'critical') {
     const levels: Array<'low' | 'medium' | 'high' | 'critical'> = ['low', 'medium', 'high', 'critical']
     const idx = levels.indexOf(severity)
@@ -589,7 +589,7 @@ export function detectManipulation(imageBuffer: Buffer): {
 
   const bufStr = imageBuffer.toString('binary')
 
-  // 1. Check for software editing tags
+  //1. Check for software editing tags
   for (const sig of EDITOR_SIGNATURES) {
     if (bufStr.includes(sig)) {
       risk += 0.3
@@ -601,7 +601,7 @@ export function detectManipulation(imageBuffer: Buffer): {
   const isJPEG = imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8
   const isPNG = imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50
 
-  // 2. Check for double JPEG compression (multiple SOI markers)
+  //2. Check for double JPEG compression (multiple SOI markers)
   if (isJPEG) {
     let soiCount = 0
     for (let i = 0; i < imageBuffer.length - 1; i++) {
@@ -615,7 +615,7 @@ export function detectManipulation(imageBuffer: Buffer): {
     }
   }
 
-  // 3. Check if EXIF was stripped (JPEG but no APP1 marker 0xFFE1)
+  //3. Check if EXIF was stripped (JPEG but no APP1 marker 0xFFE1)
   if (isJPEG) {
     const hasExifMarker = imageBuffer.indexOf(Buffer.from([0xFF, 0xE1])) !== -1
     if (!hasExifMarker) {
@@ -624,7 +624,7 @@ export function detectManipulation(imageBuffer: Buffer): {
     }
   }
 
-  // 4. Check for unusually small file size (overcompressed)
+  //4. Check for unusually small file size (overcompressed)
   const sizeKB = imageBuffer.length / 1024
   if (isJPEG && sizeKB < 20) {
     risk += 0.2
@@ -686,7 +686,7 @@ export function understandScene(
 
   const labelSet = new Set(allLabels)
 
-  // Classify environment type
+  //Classify environment type
   let urbanScore = 0
   let ruralScore = 0
   let coastalScore = 0
@@ -708,7 +708,7 @@ export function understandScene(
   envScores.sort((a, b) => b[1] - a[1])
   const environmentType = envScores[0][1] > 0 ? envScores[0][0] : 'suburban'
 
-  // Weather indicators
+  //Weather indicators
   const weatherIndicators: string[] = []
   for (const label of labelSet) {
     if (WEATHER_RAIN_LABELS.has(label)) weatherIndicators.push(label)
@@ -716,14 +716,14 @@ export function understandScene(
   }
   if (weatherIndicators.length === 0) weatherIndicators.push('indeterminate')
 
-  // Hazard indicators
+  //Hazard indicators
   const hazardIndicators: string[] = []
   const hazardKeywords = ['water', 'flood', 'fire', 'smoke', 'debris', 'damage', 'storm', 'tornado', 'landslide']
   for (const label of labelSet) {
     if (hazardKeywords.includes(label)) hazardIndicators.push(label)
   }
 
-  // Generate description
+  //Generate description
   const envDesc = environmentType.charAt(0).toUpperCase() + environmentType.slice(1)
   const weatherDesc = weatherIndicators[0] !== 'indeterminate' ? weatherIndicators.join(', ') : 'unclear weather'
   const hazardDesc = hazardIndicators.length > 0 ? hazardIndicators.join(', ') + ' detected' : 'no obvious hazards'
@@ -744,10 +744,10 @@ export function compareImageAnalyses(
   const waterDelta = analysisB.waterConfidence - analysisA.waterConfidence
   const disasterDelta = analysisB.disasterConfidence - analysisA.disasterConfidence
 
-  // Overall change magnitude is the maximum absolute shift across signals
+  //Overall change magnitude is the maximum absolute shift across signals
   const changeMagnitude = Math.max(Math.abs(waterDelta), Math.abs(disasterDelta))
 
-  // Determine direction from the dominant signal
+  //Determine direction from the dominant signal
   const dominantDelta = Math.abs(waterDelta) >= Math.abs(disasterDelta) ? waterDelta : disasterDelta
   let changeType: string
   if (Math.abs(dominantDelta) < 0.05) {
@@ -758,7 +758,7 @@ export function compareImageAnalyses(
     changeType = 'improving'
   }
 
-  // Build a human-readable description
+  //Build a human-readable description
   const parts: string[] = []
   if (Math.abs(waterDelta) >= 0.05) {
     parts.push(`water confidence ${waterDelta > 0 ? 'increased' : 'decreased'} by ${Math.abs(waterDelta).toFixed(2)}`)
@@ -790,7 +790,7 @@ export function assessImageQualityEnhanced(imageBuffer: Buffer): {
   const issues: string[] = []
   let usabilityScore = 50 // Start at midpoint
 
-  // Detect format
+  //Detect format
   const isJPEG = imageBuffer.length >= 2 && imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8
   const isPNG = imageBuffer.length >= 2 && imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50
   const formatName = isJPEG ? 'JPEG' : isPNG ? 'PNG' : 'unknown'
@@ -800,7 +800,7 @@ export function assessImageQualityEnhanced(imageBuffer: Buffer): {
     usabilityScore -= 15
   }
 
-  // Extract actual dimensions when possible
+  //Extract actual dimensions when possible
   let imgWidth = 0
   let imgHeight = 0
   if (isJPEG) {
@@ -819,7 +819,7 @@ export function assessImageQualityEnhanced(imageBuffer: Buffer): {
   const pixels = imgWidth * imgHeight
   let resolution: string
   if (pixels > 0) {
-    // Use actual dimensions
+    //Use actual dimensions
     resolution = `${imgWidth}x${imgHeight}`
     if (pixels < 100_000) {
       issues.push('too_small')
@@ -851,13 +851,13 @@ export function assessImageQualityEnhanced(imageBuffer: Buffer): {
     usabilityScore += 30
   }
 
-  // Check for likely screenshot (PNG with small-to-medium size)
+  //Check for likely screenshot (PNG with small-to-medium size)
   if (isPNG && sizeKB < 300) {
     issues.push('likely_screenshot')
     usabilityScore -= 5
   }
 
-  // Check EXIF presence for JPEGs (cameras usually embed EXIF)
+  //Check EXIF presence for JPEGs (cameras usually embed EXIF)
   if (isJPEG) {
     const hasExif = imageBuffer.indexOf(Buffer.from([0xFF, 0xE1])) !== -1
     if (hasExif) {
@@ -865,13 +865,13 @@ export function assessImageQualityEnhanced(imageBuffer: Buffer): {
     }
   }
 
-  // Very small buffer might be corrupted
+  //Very small buffer might be corrupted
   if (imageBuffer.length < 500) {
     issues.push('corrupted')
     usabilityScore -= 20
   }
 
-  // Clamp score
+  //Clamp score
   usabilityScore = Math.max(0, Math.min(100, usabilityScore))
 
   let quality: 'low' | 'medium' | 'high'

@@ -44,15 +44,13 @@
 
 import { getToken } from './api'
 
-// VITE_API_BASE_URL is injected by Vite at build time from .env files;
-// falls back to empty string so paths resolve to the same origin in production
+//VITE_API_BASE_URL is injected by Vite at build time from .env files;
+//falls back to empty string so paths resolve to the same origin in production
 const BASE = String(import.meta.env.VITE_API_BASE_URL || '')
-// V1 is the versioned base URL appended to every fetch call in this module
+//V1 is the versioned base URL appended to every fetch call in this module
 const V1 = `${BASE}/api/v1/incidents`
 
-// ---------------------------------------------------------------------------
-// Internal HTTP helper
-// ---------------------------------------------------------------------------
+//Internal HTTP helper
 
 /**
  * Thin fetch wrapper for all v1 incident API calls.
@@ -64,9 +62,9 @@ async function v1Fetch<T = unknown>(path: string, opts: RequestInit = {}): Promi
   const token = getToken() // retrieve the current JWT from in-memory storage
   const h: Record<string, string> = { ...(opts.headers as Record<string, string> || {}) }
   if (token) h['Authorization'] = `Bearer ${token}`
-  // Skip Content-Type for FormData — browser sets it automatically with the correct boundary
+  //Skip Content-Type for FormData -- browser sets it automatically with the correct boundary
   if (!(opts.body instanceof FormData)) h['Content-Type'] = 'application/json'
-  // CSRF double-submit for state-changing requests
+  //CSRF double-submit for state-changing requests
   const safeMethods = ['GET', 'HEAD', 'OPTIONS']
   if (!safeMethods.includes((opts.method || 'GET').toUpperCase())) {
     const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
@@ -77,12 +75,12 @@ async function v1Fetch<T = unknown>(path: string, opts: RequestInit = {}): Promi
   try {
     res = await fetch(`${V1}${path}`, { ...opts, headers: h })
   } catch {
-    // Network error (no connection, CORS failure, etc.) — give a human-readable message
+    //Network error (no connection, CORS failure, etc.) -- give a human-readable message
     throw new Error('Cannot connect to incident API.')
   }
 
   if (!res.ok) {
-    // Extract the error message from the JSON body if available, otherwise use the HTTP status
+    //Extract the error message from the JSON body if available, otherwise use the HTTP status
     const e = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
     const errMsg = typeof e.error === 'string' ? e.error : e.error?.message || e.message || `HTTP ${res.status}`
     throw new Error(errMsg)
@@ -90,9 +88,7 @@ async function v1Fetch<T = unknown>(path: string, opts: RequestInit = {}): Promi
   return res.json() as Promise<T>
 }
 
-// ---------------------------------------------------------------------------
-// TypeScript interfaces — shape of data returned by the incident API
-// ---------------------------------------------------------------------------
+//TypeScript interfaces -- shape of data returned by the incident API
 
 /** Metadata record for a single incident plugin (e.g. 'flood', 'wildfire') */
 export interface IncidentRegistryEntry {
@@ -183,9 +179,7 @@ export interface IncidentDashboardSummary {
   totalPredictions: number
 }
 
-// ---------------------------------------------------------------------------
-// Cross-incident endpoints — aggregate data across all incident types
-// ---------------------------------------------------------------------------
+//Cross-incident endpoints -- aggregate data across all incident types
 
 /** Fetches all registered incident modules and their operational status from /registry */
 export async function apiGetIncidentRegistry(): Promise<{ modules: IncidentRegistryEntry[]; incidents?: IncidentRegistryEntry[] }> {
@@ -227,9 +221,7 @@ export async function apiGetAllIncidentMapData(region?: string): Promise<{
   return v1Fetch(`/all/map-data${q}`)
 }
 
-// ---------------------------------------------------------------------------
-// Per-incident-type endpoints — data scoped to a specific incident plugin
-// ---------------------------------------------------------------------------
+//Per-incident-type endpoints -- data scoped to a specific incident plugin
 
 /** Fetches reports currently flagged as active for the given incident type */
 export async function apiGetIncidentActive(type: string, region?: string): Promise<{
@@ -288,9 +280,7 @@ export async function apiSubmitIncidentReport(
   })
 }
 
-// ---------------------------------------------------------------------------
-// Flood-specific endpoints — kept for backward compatibility with pre-plugin code
-// ---------------------------------------------------------------------------
+//Flood-specific endpoints -- kept for backward compatibility with pre-plugin code
 
 /** Returns the current flood threat level (SEPA and AI combined) */
 export async function apiGetFloodThreat(): Promise<any> {

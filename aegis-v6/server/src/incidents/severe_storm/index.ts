@@ -33,7 +33,7 @@ class SevereStormModule extends BaseIncidentModule {
   }
 
   async getPredictions(region: string): Promise<IncidentPrediction[]> {
-    // Statistical approach: use weather data + report patterns
+    //Statistical approach: use weather data + report patterns
     try {
       const meta = regionRegistry.getActiveRegion().getMetadata()
       const weatherUrl = process.env.WEATHER_API_KEY
@@ -48,7 +48,7 @@ class SevereStormModule extends BaseIncidentModule {
       const gusts = data.current?.wind_gusts_10m || data.wind?.gust || 0
       const precipitation = data.current?.precipitation || data.rain?.['1h'] || 0
 
-      // Statistical thresholds for storm severity
+      //Statistical thresholds for storm severity
       let severity = 'Low'
       let probability = 0.1
       if (gusts > 80 || windSpeed > 60) { severity = 'Critical'; probability = 0.85 }

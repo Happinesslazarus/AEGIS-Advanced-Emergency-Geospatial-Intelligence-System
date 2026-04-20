@@ -48,7 +48,7 @@ function getYearRange(events: HistoricalEvent[]): string {
   if (dates.length === 0) return 'N/A'
   const min = Math.min(...dates)
   const max = Math.max(...dates)
-  return min === max ? `${min}` : `${min}–${max}`
+  return min === max ? `${min}` : `${min}-${max}`
 }
 
 /*  CSV Export  */
@@ -89,7 +89,7 @@ export default function AdminHistoricalIntelligence() {
   const lang = useLanguage()
   const { location: loc } = useLocation()
 
-  // State
+  //State
   const [heatmapData, setHeatmapData] = useState<HeatmapZone[]>([])
   const [heatmapError, setHeatmapError] = useState(false)
   const [histSearch, setHistSearch] = useState('')
@@ -104,13 +104,13 @@ export default function AdminHistoricalIntelligence() {
   const [page, setPage] = useState(0)
   const PAGE_SIZE = 6
 
-  // Live data state with static fallback
+  //Live data state with static fallback
   const [HISTORICAL_EVENTS, setHistoricalEvents] = useState<HistoricalEvent[]>(STATIC_EVENTS)
   const [SEASONAL_TRENDS, setSeasonalTrends] = useState(STATIC_TRENDS)
   const [dataSource, setDataSource] = useState<'loading' | 'database' | 'demo'>('loading')
   const [loading, setLoading] = useState(true)
 
-  // Fetch live data from APIs with fallback to static demo data
+  //Fetch live data from APIs with fallback to static demo data
   useEffect(() => {
     let cancelled = false
     async function fetchData() {
@@ -126,7 +126,7 @@ export default function AdminHistoricalIntelligence() {
       const [eventsResult, trendsResult, heatmapResult] = results
       let source: 'database' | 'demo' = 'demo'
 
-      // Historical events
+      //Historical events
       if (eventsResult.status === 'fulfilled' && eventsResult.value?.events?.length > 0) {
         setHistoricalEvents(eventsResult.value.events as HistoricalEvent[])
         source = 'database'
@@ -134,15 +134,15 @@ export default function AdminHistoricalIntelligence() {
         setHistoricalEvents(STATIC_EVENTS)
       }
 
-      // Seasonal trends
+      //Seasonal trends
       if (trendsResult.status === 'fulfilled' && trendsResult.value?.trends?.some((t: any) => t.floodCount > 0)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        //eslint-disable-next-line @typescript-eslint/no-explicit-any
         setSeasonalTrends(trendsResult.value.trends as any)
       } else {
         setSeasonalTrends(STATIC_TRENDS)
       }
 
-      // Heatmap
+      //Heatmap
       if (heatmapResult.status === 'fulfilled') {
         const d = heatmapResult.value as any
         setHeatmapData(d?.intensity_data || [])
@@ -160,7 +160,7 @@ export default function AdminHistoricalIntelligence() {
     return () => { cancelled = true }
   }, [])
 
-  //  Computed stats
+  // Computed stats
   const stats = useMemo(() => {
     const totalDamage = HISTORICAL_EVENTS.reduce((s, e) => s + parseDamage(e.damage), 0)
     const totalAffected = HISTORICAL_EVENTS.reduce((s, e) => s + (e.affectedPeople || 0), 0)
@@ -170,7 +170,7 @@ export default function AdminHistoricalIntelligence() {
     return { totalDamage, totalAffected, highCount, avgAffected, types }
   }, [HISTORICAL_EVENTS])
 
-  //  Seasonal stats
+  // Seasonal stats
   const seasonalStats = useMemo(() => {
     const totalFloods = SEASONAL_TRENDS.reduce((s, t) => s + t.floodCount, 0)
     const totalRainfall = SEASONAL_TRENDS.reduce((s, t) => s + t.rainfallMm, 0)
@@ -179,7 +179,7 @@ export default function AdminHistoricalIntelligence() {
     return { totalFloods, totalRainfall, peakMonth, avgSeverity }
   }, [SEASONAL_TRENDS])
 
-  //  Filtered + sorted events (memoized)
+  // Filtered + sorted events (memoized)
   const sortedEvents = useMemo(() => {
     let items = [...HISTORICAL_EVENTS]
     if (histFilter !== 'all') items = items.filter(e => e.severity === histFilter)
@@ -202,7 +202,7 @@ export default function AdminHistoricalIntelligence() {
     return items
   }, [HISTORICAL_EVENTS, histSearch, histSort, histFilter, histType])
 
-  //  Year-grouped events
+  // Year-grouped events
   const yearGroups = useMemo(() => {
     const groups: Record<string, HistoricalEvent[]> = {}
     for (const e of sortedEvents) {
@@ -213,14 +213,14 @@ export default function AdminHistoricalIntelligence() {
     return Object.entries(groups).sort(([a], [b]) => Number(b) - Number(a))
   }, [sortedEvents])
 
-  // Pagination
+  //Pagination
   const paginatedEvents = useMemo(() => sortedEvents.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE), [sortedEvents, page])
   const totalPages = Math.ceil(sortedEvents.length / PAGE_SIZE)
 
-  // Reset page on filter change
+  //Reset page on filter change
   useEffect(() => { setPage(0) }, [histSearch, histFilter, histType, histSort])
 
-  //  Heatmap zone cards
+  // Heatmap zone cards
   const zoneCards = useMemo(() => {
     if (heatmapData.length > 0) {
       return heatmapData.slice(0, 4).map((h) => {
@@ -237,7 +237,7 @@ export default function AdminHistoricalIntelligence() {
     })
   }, [heatmapData, loc])
 
-  //  Event type distribution for header
+  // Event type distribution for header
   const typeDist = useMemo(() => {
     const total = HISTORICAL_EVENTS.length
     if (total === 0) return []
@@ -246,7 +246,7 @@ export default function AdminHistoricalIntelligence() {
     return Object.entries(map).sort(([, a], [, b]) => b - a)
   }, [HISTORICAL_EVENTS])
 
-  // Keyboard shortcuts — use ref to avoid re-attaching listener on every sort change
+  //Keyboard shortcuts -- use ref to avoid re-attaching listener on every sort change
   const [showKeyboard, setShowKeyboard] = useState(false)
   const sortedEventsRef = useRef(sortedEvents)
   sortedEventsRef.current = sortedEvents
@@ -511,7 +511,7 @@ export default function AdminHistoricalIntelligence() {
                 } else {
                   pct = maxSev > 0 ? (s.avgSeverity / maxSev) * 100 : 10
                   barColor = s.avgSeverity >= 2.0 ? 'from-red-500 to-orange-500' : s.avgSeverity >= 1.0 ? 'from-amber-500 to-yellow-500' : 'from-emerald-400 to-green-400'
-                  displayValue = s.avgSeverity > 0 ? `${s.avgSeverity.toFixed(1)}` : '—'
+                  displayValue = s.avgSeverity > 0 ? `${s.avgSeverity.toFixed(1)}` : '--'
                 }
 
                 const isPeak = s.month === seasonalStats.peakMonth.month
@@ -530,7 +530,7 @@ export default function AdminHistoricalIntelligence() {
                         <div className="space-y-0.5 text-[9px]">
                           <p><span className="text-blue-300">{t('historical.floods', lang)}:</span> {s.floodCount}</p>
                           <p><span className="text-cyan-300">{t('weather.rainfall', lang)}:</span> {s.rainfallMm}mm</p>
-                          <p><span className="text-amber-300">{t('common.severity', lang)}:</span> {s.avgSeverity > 0 ? s.avgSeverity.toFixed(1) : '—'}</p>
+                          <p><span className="text-amber-300">{t('common.severity', lang)}:</span> {s.avgSeverity > 0 ? s.avgSeverity.toFixed(1) : '--'}</p>
                         </div>
                         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-700" />
                       </div>

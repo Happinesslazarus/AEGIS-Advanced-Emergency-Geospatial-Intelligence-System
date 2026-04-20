@@ -121,11 +121,11 @@ class FakeDetector:
             # with the source modifier ranging -10 to +10.
             fake_probability = min(1.0, max(0.0, suspicion_score / 100))
             
-            # Classification thresholds — derived from empirical testing:
-            # ≥75%  likely_fake  → reject immediately
-            # 50-75% suspicious   → queue for human review
-            # 25-50% questionable → monitor but accept provisionally
-            # <25%  genuine       → accept
+            # Classification thresholds -- derived from empirical testing:
+ # ≥75% likely_fake -> reject immediately
+ # 50-75% suspicious -> queue for human review
+ # 25-50% questionable -> monitor but accept provisionally
+ # <25% genuine -> accept
             if fake_probability >= 0.75:
                 classification = 'likely_fake'
                 confidence = 0.85

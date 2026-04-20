@@ -1,7 +1,7 @@
 ﻿/**
- * Multi-provider translation service — supports Azure Cognitive Translator,
+ * Multi-provider translation service -- supports Azure Cognitive Translator,
  * DeepL, and LibreTranslate. Uses a three-tier caching strategy (process memory
- * → PostgreSQL → live API call) with inflight request deduplication to avoid
+ * -> PostgreSQL -> live API call) with inflight request deduplication to avoid
  * hammering paid APIs with identical simultaneous requests.
  *
  * How it works:
@@ -10,7 +10,7 @@
  * 3. If not there, deduplicate: check if an identical request is already in-flight
  *    (same text + languages). If yes, wait for that promise instead of calling again.
  * 4. Check PostgreSQL cache (30-day TTL)
- * 5. If still no hit, call providers in priority order (Azure → DeepL → LibreTranslate)
+ * 5. If still no hit, call providers in priority order (Azure -> DeepL -> LibreTranslate)
  *    stopping at the first success. Failed providers get a cooldown period.
  * 6. Store successful result in both memory and DB caches for future requests.
  *
@@ -69,7 +69,7 @@ class ProviderRequestError extends Error {
   }
 }
 
-// Shared constants ---------------------------------------------------------
+//Shared constants
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000       // In-memory entries live for 24 hours
 const MEMORY_CACHE_LIMIT = 5000                  // Evict oldest entry when we exceed this
@@ -78,22 +78,22 @@ export const MAX_TRANSLATION_TEXT_LENGTH = 5000  // Characters accepted per sing
 export const MAX_TRANSLATION_BATCH_ITEMS = 100   // Max texts in a single batch call
 export const MAX_TRANSLATION_BATCH_CHARACTERS = 25_000 // Character budget for a batch
 
-// How long to skip a provider after each failure type.
-// Rate limits get a full minute; server errors 20 s; network blips 10 s.
+//How long to skip a provider after each failure type.
+//Rate limits get a full minute; server errors 20 s; network blips 10 s.
 const PROVIDER_COOLDOWNS: Record<'rate_limit' | 'server_error' | 'network', number> = {
   rate_limit: 60_000,
   server_error: 20_000,
   network: 10_000,
 }
 
-// Process-level in-memory cache — fastest lookup, lost on restart.
+//Process-level in-memory cache -- fastest lookup, lost on restart.
 const memoryCache = new Map<string, CacheEntry>()
 
-// Prevents duplicate API calls for the same text requested simultaneously.
-// Maps a cache key to the in-progress promise so all waiters share one result.
+//Prevents duplicate API calls for the same text requested simultaneously.
+//Maps a cache key to the in-progress promise so all waiters share one result.
 const inflightTranslations = new Map<string, Promise<TranslationResult>>()
 
-// Tracks providers that have recently failed and should be skipped.
+//Tracks providers that have recently failed and should be skipped.
 const providerCooldowns = new Map<ProviderName, ProviderCooldown>()
 
 export const SUPPORTED_LANGUAGES: SupportedLanguage[] = [
@@ -170,18 +170,18 @@ const LIBRE_DEFAULT_ENDPOINTS = [
   'https://translate.argosopentech.com/translate',
 ]
 
-// Normalisation helpers -------------------------------------------------------
+//Normalisation helpers
 
-// Convert caller-supplied language codes to our internal format (e.g. 'ZH-HANS' → 'zh').
-// Falls back to 'en' (or a caller-specified default) for unknown codes.
+//Convert caller-supplied language codes to our internal format (e.g. 'ZH-HANS' -> 'zh').
+//Falls back to 'en' (or a caller-specified default) for unknown codes.
 function normalizeLanguageCode(value?: string, fallback = 'en'): string {
   if (!value) return fallback
   const normalized = String(value).trim().toLowerCase().replace('_', '-')
-  const base = normalized.split('-')[0] // strip regional variants like 'en-GB' → 'en'
+ const base = normalized.split('-')[0] // strip regional variants like 'en-GB' -> 'en'
   return SUPPORTED_CODES.has(base) ? base : fallback
 }
 
-// Source language can legitimately be 'auto' (provider detects it); handle that sentinel.
+//Source language can legitimately be 'auto' (provider detects it); handle that sentinel.
 function normalizeSourceLanguage(value?: string): string {
   if (!value) return 'auto'
   return String(value).trim().toLowerCase() === 'auto' ? 'auto' : normalizeLanguageCode(value, 'auto')
@@ -191,19 +191,19 @@ function trimText(text: string): string {
   return String(text || '').trim()
 }
 
-// Decide whether to skip translation and return the text as-is.
-// Covers: URLs, email addresses, and text with no alphabetic characters
-// (numbers-only, emoji-only, punctuation strings) — pointless to translate those.
+//Decide whether to skip translation and return the text as-is.
+//Covers: URLs, email addresses, and text with no alphabetic characters
+// (numbers-only, emoji-only, punctuation strings) -- pointless to translate those.
 function shouldPassthroughText(text: string): boolean {
   if (!text) return true
   if (/^(https?:\/\/\S+|www\.\S+|\S+@\S+\.\S+)$/i.test(text)) return true // URLs or emails
-  return !/\p{L}/u.test(text) // no Unicode letters found — nothing to translate
+  return !/\p{L}/u.test(text) // no Unicode letters found -- nothing to translate
 }
 
-// Cache key helpers -----------------------------------------------------------
+//Cache key helpers
 
-// SHA-256 of the full triplet: source lang + target lang + trimmed text.
-// Used for both the in-memory Map key and the inflight deduplication map.
+//SHA-256 of the full triplet: source lang + target lang + trimmed text.
+//Used for both the in-memory Map key and the inflight deduplication map.
 function createCacheKey(text: string, sourceLanguage: string, targetLanguage: string): string {
   return crypto
     .createHash('sha256')
@@ -211,8 +211,8 @@ function createCacheKey(text: string, sourceLanguage: string, targetLanguage: st
     .digest('hex')
 }
 
-// Separate MD5 for the DB source_text_hash column (just the text, no language prefix).
-// MD5 is fine here — it's not security-sensitive, just a fast lookup key.
+//Separate MD5 for the DB source_text_hash column (just the text, no language prefix).
+//MD5 is fine here -- it's not security-sensitive, just a fast lookup key.
 function createDbTextHash(text: string): string {
   return crypto
     .createHash('md5')
@@ -257,14 +257,14 @@ function createUnavailableResult(
   }
 }
 
-// Tier 1 — in-memory cache (fastest: O(1) Map lookup, ~0ms) ------------------
+//Tier 1 -- in-memory cache (fastest: O(1) Map lookup, ~0ms)
 
 function getMemoryCache(text: string, sourceLanguage: string, targetLanguage: string): TranslationResult | null {
   const key = createCacheKey(text, sourceLanguage, targetLanguage)
   const entry = memoryCache.get(key)
   if (!entry) return null
   if (entry.expiresAt <= Date.now()) {
-    // Lazy expiry — remove on read rather than running a background sweep
+    //Lazy expiry -- remove on read rather than running a background sweep
     memoryCache.delete(key)
     return null
   }
@@ -278,20 +278,20 @@ function setMemoryCache(text: string, sourceLanguage: string, targetLanguage: st
     expiresAt: Date.now() + CACHE_TTL_MS,
   })
 
-  // Simple LRU eviction: Maps preserve insertion order, so the first key is the oldest.
+  //Simple LRU eviction: Maps preserve insertion order, so the first key is the oldest.
   if (memoryCache.size <= MEMORY_CACHE_LIMIT) return
   const oldestKey = memoryCache.keys().next().value
   if (oldestKey) memoryCache.delete(oldestKey)
 }
 
-// Tier 2 — PostgreSQL cache (persists across restarts, ~30-day TTL) -----------
+//Tier 2 -- PostgreSQL cache (persists across restarts, ~30-day TTL)
 
 async function getDbCache(text: string, sourceLanguage: string, targetLanguage: string): Promise<TranslationResult | null> {
   const textHash = createDbTextHash(text)
   const legacyText = text.slice(0, 2000) // truncated version for old schema that stored full text (2000 char)
 
   try {
-    // Primary lookup: uses hash column for index performance
+    //Primary lookup: uses hash column for index performance
     const result = await pool.query(
       `SELECT translated_text, detected_language, provider
        FROM translations_cache
@@ -322,7 +322,7 @@ async function getDbCache(text: string, sourceLanguage: string, targetLanguage: 
     setMemoryCache(text, sourceLanguage, targetLanguage, translation)
     return translation
   } catch {
-    // source_text_hash column may not exist on older schema — fall back to text comparison
+    //source_text_hash column may not exist on older schema -- fall back to text comparison
     try {
       const result = await pool.query(
         `SELECT translated_text, detected_language, provider
@@ -359,7 +359,7 @@ async function getDbCache(text: string, sourceLanguage: string, targetLanguage: 
   }
 }
 
-// Tier 2 — save to PostgreSQL cache (fire-and-forget; failures are non-fatal) --
+//Tier 2 -- save to PostgreSQL cache (fire-and-forget; failures are non-fatal)
 
 async function saveDbCache(
   text: string,
@@ -370,7 +370,7 @@ async function saveDbCache(
   const textHash = createDbTextHash(text)
 
   try {
-    // Modern schema: uses hash for the unique constraint (handles texts > 2000 chars cleanly)
+    //Modern schema: uses hash for the unique constraint (handles texts > 2000 chars cleanly)
     await pool.query(
       `INSERT INTO translations_cache (
          source_text, source_text_hash, source_lang, target_lang, translated_text, detected_language, provider
@@ -416,20 +416,20 @@ async function saveDbCache(
         ],
       )
     } catch {
-      // Optional cache table.
+      //Optional cache table.
     }
   }
 }
 
-// Provider cooldown management -----------------------------------------------
-// When a provider errors (rate-limited, 5xx, network), we skip it for a while
-// to avoid burning through retries and hammering an already-struggling service.
+//Provider cooldown management
+//When a provider errors (rate-limited, 5xx, network), we skip it for a while
+//to avoid burning through retries and hammering an already-struggling service.
 
 function isProviderCoolingDown(provider: ProviderName): boolean {
   const cooldown = providerCooldowns.get(provider)
   if (!cooldown) return false
   if (cooldown.until <= Date.now()) {
-    providerCooldowns.delete(provider) // cooldown expired — clean up and allow again
+    providerCooldowns.delete(provider) // cooldown expired -- clean up and allow again
     return false
   }
   return true
@@ -442,15 +442,15 @@ function setProviderCooldown(provider: ProviderName, type: keyof typeof PROVIDER
   })
 }
 
-// URL builders — tolerate several formats an operator might paste into .env ---
-// Azure has both global and regional endpoints with varying path structures.
+//URL builders -- tolerate several formats an operator might paste into .env
+//Azure has both global and regional endpoints with varying path structures.
 
 function getAzureTranslateUrl(): string {
   const base = (process.env.AZURE_TRANSLATOR_ENDPOINT || 'https://api.cognitive.microsofttranslator.com/')
     .trim()
     .replace(/\/+$/, '') // strip trailing slashes
 
-  // Handle each common form the env var might arrive in
+  //Handle each common form the env var might arrive in
   if (/\/translate$/i.test(base)) return `${base}?api-version=3.0`
   if (/\/translator\/text\/v3\.0$/i.test(base)) return `${base}/translate?api-version=3.0`
   if (/api\.cognitive\.microsofttranslator\.com/i.test(base)) return `${base}/translate?api-version=3.0`
@@ -535,14 +535,14 @@ function handleProviderNetworkError(provider: ProviderName, error: unknown): nev
   throw new ProviderRequestError(reason, 'network')
 }
 
-// Individual provider implementations ----------------------------------------
+//Individual provider implementations
 
 export async function translateWithAzure(
   text: string,
   targetLanguage: string,
   sourceLanguage = 'auto',
 ): Promise<ProviderTranslation | null> {
-  // Skip if not configured or currently in cooldown period
+  //Skip if not configured or currently in cooldown period
   if (!process.env.AZURE_TRANSLATOR_KEY || !process.env.AZURE_TRANSLATOR_ENDPOINT || isProviderCoolingDown('azure')) {
     return null
   }
@@ -550,7 +550,7 @@ export async function translateWithAzure(
   const url = new URL(getAzureTranslateUrl())
   url.searchParams.set('to', mapAzureLanguage(targetLanguage))
   if (sourceLanguage !== 'auto') {
-    // Omitting 'from' lets Azure auto-detect; including it gives better accuracy when known
+    //Omitting 'from' lets Azure auto-detect; including it gives better accuracy when known
     url.searchParams.set('from', mapAzureLanguage(sourceLanguage))
   }
 
@@ -684,18 +684,18 @@ export async function translateWithLibre(
   return null
 }
 
-// Provider cascade — the heart of the fallback strategy ----------------------
-// Try each translation API in priority order (Azure > DeepL > LibreTranslate).
-// Returns the first successful result; if all fail, returns an 'unavailable' result
-// that echoes the original text so the caller always has something usable.
+//Provider cascade -- the heart of the fallback strategy
+//Try each translation API in priority order (Azure > DeepL > LibreTranslate).
+//Returns the first successful result; if all fail, returns an 'unavailable' result
+//that echoes the original text so the caller always has something usable.
 
 async function translateWithFallbacks(
   text: string,
   sourceLanguage: string,
   targetLanguage: string,
 ): Promise<TranslationResult> {
-  // Priority order: Azure (best quality, paid), DeepL (excellent quality, paid),
-  // LibreTranslate (open-source, free, tries multiple public endpoints)
+  //Priority order: Azure (best quality, paid), DeepL (excellent quality, paid),
+  //LibreTranslate (open-source, free, tries multiple public endpoints)
   const providers: Array<{
     name: ProviderName
     translate: (text: string, targetLanguage: string, sourceLanguage?: string) => Promise<ProviderTranslation | null>
@@ -710,7 +710,7 @@ async function translateWithFallbacks(
   for (const provider of providers) {
     try {
       const result = await provider.translate(text, targetLanguage, sourceLanguage)
-      if (!result?.translatedText) continue // provider returned nothing — move to next
+      if (!result?.translatedText) continue // provider returned nothing -- move to next
 
       detectedLanguage = result.detectedLanguage || detectedLanguage
 
@@ -718,7 +718,7 @@ async function translateWithFallbacks(
         originalText: text,
         translatedText: result.translatedText,
         targetLanguage,
-        // If source was 'auto', use what the provider detected; otherwise echo the caller's value
+        //If source was 'auto', use what the provider detected; otherwise echo the caller's value
         sourceLanguage: sourceLanguage === 'auto'
           ? result.sourceLanguage || null
           : sourceLanguage,
@@ -729,20 +729,20 @@ async function translateWithFallbacks(
         status: 'translated',
       }
     } catch (error) {
-      // Log provider failures in dev (too noisy for prod logs)
+      //Log provider failures in dev (too noisy for prod logs)
       if (process.env.NODE_ENV !== 'production') {
         logger.warn({ err: error, provider: provider.name }, '[Translation] Provider failed')
       }
-      // Continue to next provider — exception already set cooldown inside the provider function
+      //Continue to next provider -- exception already set cooldown inside the provider function
     }
   }
 
-  // All providers exhausted — return original text so the app degrades gracefully
+  //All providers exhausted -- return original text so the app degrades gracefully
   return createUnavailableResult(text, targetLanguage, sourceLanguage, detectedLanguage)
 }
 
-// Public API — single text translation ----------------------------------------
-// This is the main entry point. All the caching and fallback logic funnels through here.
+//Public API -- single text translation
+//This is the main entry point. All the caching and fallback logic funnels through here.
 
 export async function translateText(
   text: string,
@@ -753,44 +753,44 @@ export async function translateText(
   const normalizedTarget = normalizeLanguageCode(targetLanguage, 'en')
   const normalizedSource = normalizeSourceLanguage(sourceLanguage)
 
-  // Early-exit cases that need no translation at all
+  //Early-exit cases that need no translation at all
   if (!trimmed) return createPassthroughResult('', normalizedTarget, normalizedSource)
 
-  // Source and target are the same language — nothing to do
+  //Source and target are the same language -- nothing to do
   if (normalizedSource !== 'auto' && normalizedSource === normalizedTarget) {
     return createPassthroughResult(trimmed, normalizedTarget, normalizedSource)
   }
 
-  // URLs, emails, numbers-only etc. — skip translation
+  //URLs, emails, numbers-only etc. -- skip translation
   if (shouldPassthroughText(trimmed)) {
     return createPassthroughResult(trimmed, normalizedTarget, normalizedSource)
   }
 
-  // Tier 1: process-memory cache (fastest)
+  //Tier 1: process-memory cache (fastest)
   const memoryHit = getMemoryCache(trimmed, normalizedSource, normalizedTarget)
   if (memoryHit) return memoryHit
 
   const cacheKey = createCacheKey(trimmed, normalizedSource, normalizedTarget)
 
-  // Inflight deduplication: if another async call is already fetching this exact translation,
-  // wait for that promise instead of firing a second API call.
+  //Inflight deduplication: if another async call is already fetching this exact translation,
+  //wait for that promise instead of firing a second API call.
   const inflight = inflightTranslations.get(cacheKey)
   if (inflight) {
     const result = await inflight
     return cloneResult(result, result.cached)
   }
 
-  // Create the translation promise and register it in the inflight map immediately
-  // so any concurrent calls for the same key will attach here.
+  //Create the translation promise and register it in the inflight map immediately
+  //so any concurrent calls for the same key will attach here.
   const translationPromise = (async (): Promise<TranslationResult> => {
-    // Tier 2: PostgreSQL cache (persists across restarts)
+    //Tier 2: PostgreSQL cache (persists across restarts)
     const dbHit = await getDbCache(trimmed, normalizedSource, normalizedTarget)
     if (dbHit) return cloneResult(dbHit, true)
 
-    // Tier 3: live API call through provider cascade
+    //Tier 3: live API call through provider cascade
     const translation = await translateWithFallbacks(trimmed, normalizedSource, normalizedTarget)
 
-    // Warm the caches for next time (fire-and-forget DB write — failure is non-fatal)
+    //Warm the caches for next time (fire-and-forget DB write -- failure is non-fatal)
     if (translation.available && translation.status === 'translated') {
       setMemoryCache(trimmed, normalizedSource, normalizedTarget, translation)
       saveDbCache(trimmed, normalizedSource, normalizedTarget, translation).catch(() => {})
@@ -805,14 +805,14 @@ export async function translateText(
     const result = await translationPromise
     return cloneResult(result, result.cached)
   } finally {
-    // Always remove from inflight map, even if the promise rejected
+    //Always remove from inflight map, even if the promise rejected
     inflightTranslations.delete(cacheKey)
   }
 }
 
-// Public API — batch translation ----------------------------------------------
-// Translates an array of texts. Deduplicates identical strings before API calls
-// and runs up to 4 translations concurrently to balance speed vs provider rate limits.
+//Public API -- batch translation
+//Translates an array of texts. Deduplicates identical strings before API calls
+//and runs up to 4 translations concurrently to balance speed vs provider rate limits.
 
 export async function translateTexts(
   texts: string[],
@@ -821,14 +821,14 @@ export async function translateTexts(
 ): Promise<TranslationResult[]> {
   const normalizedTexts = texts.map((text) => trimText(text))
 
-  // Deduplicate: if the same phrase appears 10 times, translate it once and reuse the result
+  //Deduplicate: if the same phrase appears 10 times, translate it once and reuse the result
   const uniqueTexts = [...new Set(normalizedTexts.filter(Boolean))]
   const translated = new Map<string, TranslationResult>()
   const normalizedTarget = normalizeLanguageCode(targetLanguage, 'en')
   const normalizedSource = normalizeSourceLanguage(sourceLanguage)
 
-  // Worker pool pattern: spawn `concurrency` promises that each pull from a shared index.
-  // Cheaper than Promise.all(texts.map(...)) which would fire all requests simultaneously.
+  //Worker pool pattern: spawn `concurrency` promises that each pull from a shared index.
+  //Cheaper than Promise.all(texts.map(...)) which would fire all requests simultaneously.
   let nextIndex = 0
   const concurrency = Math.min(4, uniqueTexts.length) // cap workers at 4
 
@@ -843,7 +843,7 @@ export async function translateTexts(
     }),
   )
 
-  // Map results back to the original array positions (preserving duplicates and order)
+  //Map results back to the original array positions (preserving duplicates and order)
   return normalizedTexts.map((text) => {
     if (!text) return createPassthroughResult('', normalizedTarget, normalizedSource)
     return translated.get(text) || createUnavailableResult(text, normalizedTarget, normalizedSource)
@@ -879,10 +879,10 @@ export async function detectLanguage(text: string): Promise<string | null> {
   }
 }
 
-// Test helpers ---------------------------------------------------------------
+//Test helpers
 
-// Clears all in-process state so unit tests start from a clean slate.
-// Named with __ prefix convention so linters can flag accidental production use.
+//Clears all in-process state so unit tests start from a clean slate.
+//Named with __ prefix convention so linters can flag accidental production use.
 export function __resetTranslationStateForTests(): void {
   memoryCache.clear()
   inflightTranslations.clear()

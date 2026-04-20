@@ -1,11 +1,7 @@
 /**
- * Index React component.
- *
- * How it connects:
- * - Re-exports AdminLayout, AppLayout, sidebars, and navbars
- * - Consumed via: import { AdminLayout, TopNavbar } from '@/components/layout'
- * Simple explanation:
- * Central export file for layout components. */
+ * Barrel export for layout shells, sidebars, and navigation bars.
+ * Consumed via `import { AdminLayout, TopNavbar } from '@/components/layout'`
+ */
 
 export { default as AdminLayout } from './AdminLayout'
 export { default as AdminNavbar } from './AdminNavbar'

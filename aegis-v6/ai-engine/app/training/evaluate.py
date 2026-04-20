@@ -217,10 +217,10 @@ class ModelEvaluator:
         brier = float(brier_score_loss(y_arr, y_prob))
         results["brier_score"] = brier
 
-        # Brier Skill Score (BSS) — meaningful ONLY when base_rate > ~5%.
+        # Brier Skill Score (BSS) -- meaningful ONLY when base_rate > ~5%.
         # For extreme rare events (landslide=0.03%, power_outage=0.24%) the
         # climatology Brier is so small that ANY non-trivial predicted probability
-        # produces BSS << 0 — this is a known property of BSS for rare events,
+        # produces BSS << 0 -- this is a known property of BSS for rare events,
         # not a model flaw (see Wilks 2011 §8.4; Mason 2004 BAMS).
         # When base_rate < 0.05, ignore BSS and rely on AUC + recall@FPR metrics.
         base_rate = float(y_arr.mean()) if len(y_arr) > 0 else 0.5
@@ -236,7 +236,7 @@ class ModelEvaluator:
                 "See Wilks (2011) §8.4, Mason (2004) BAMS."
             )
 
-        # Recall at fixed false-positive rates — the operationally meaningful metric
+        # Recall at fixed false-positive rates -- the operationally meaningful metric
         # for rare-event hazards.  "If we allow 1% of non-events to trigger alerts,
         # what fraction of real events do we detect?"
         # This is independent of class imbalance and directly answers the alerting
@@ -279,7 +279,7 @@ class ModelEvaluator:
         results["pr_curve"] = self._safe_pr_curve(y_arr, y_prob, single_class)
         results["calibration_curve"] = self._safe_calibration_curve(y_arr, y_prob)
 
-        # SHAP feature importance — use the underlying tree estimator, not the
+        # SHAP feature importance -- use the underlying tree estimator, not the
         # calibration wrapper (PlattWrapper / CalibratedClassifierCV), because
         # shap.TreeExplainer requires direct access to the tree structure.
         shap_model = base_model if base_model is not None else model
@@ -297,7 +297,7 @@ class ModelEvaluator:
 
         # Bootstrap AUC confidence interval (200 iterations, 95% CI).
         # Resamples the test set with replacement to quantify uncertainty in the AUC
-        # point estimate — standard practice in clinical/geoscience ML evaluation.
+        # point estimate -- standard practice in clinical/geoscience ML evaluation.
         # A wide CI (e.g. ±0.05) indicates the test set is too small for a reliable
         # estimate; a narrow CI confirms the AUC is well-determined.
         if not single_class:
@@ -309,7 +309,7 @@ class ModelEvaluator:
                 "mean": 0.5, "std": 0.0,
                 "ci_lower": 0.5, "ci_upper": 0.5,
                 "n_iterations": 0,
-                "note": "single-class test set — bootstrap skipped",
+                "note": "single-class test set -- bootstrap skipped",
             }
 
         logger.success(
@@ -410,7 +410,7 @@ class ModelEvaluator:
                     results.append(entry)
                     continue
 
-                # Predict — use the cost-optimal threshold derived from the val
+                # Predict -- use the cost-optimal threshold derived from the val
                 # set PR curve, not a hardcoded 0.5 (which would be systematically
                 # wrong for rare-event hazards where optimal_threshold << 0.5).
                 prob = self._get_positive_probs(model, event_features)[0]
@@ -519,7 +519,7 @@ class ModelEvaluator:
 
             quarterly_metrics[str(quarter)] = q_metrics
 
-        # Drift detection — only use quarters that have at least 2 positive
+        # Drift detection -- only use quarters that have at least 2 positive
         # samples.  Quarters with 0 or 1 positives default to roc_auc=0.5
         # (no positive class to discriminate), which would spuriously trigger
         # drift detection against high-AUC quarters, rejecting well-trained
@@ -551,7 +551,7 @@ class ModelEvaluator:
 
             # Drift is flagged only when BOTH conditions hold:
             #   1. A meaningful fraction (>40%) of valid quarters fall below
-            #      75% of the best observed AUC — a single bad quarter due to
+            #      75% of the best observed AUC -- a single bad quarter due to
             #      seasonal scarcity or a one-off event is NOT drift.
             #   2. The overall trend is clearly degrading (recent half is at
             #      least 5 pp worse than the earlier half), indicating the
@@ -705,7 +705,6 @@ class ModelEvaluator:
         computes AUC on each resample.  Reports mean, std, and percentile CI.
 
         Parameters
-        ----------
         y_true : array of shape (n_samples,)
             True binary labels.
         y_prob : array of shape (n_samples,)
@@ -713,12 +712,12 @@ class ModelEvaluator:
         n_iterations : int
             Number of bootstrap resamples (200 is sufficient for 95% CI).
         ci : float
-            Confidence level, default 0.95 → 2.5th / 97.5th percentiles.
+ Confidence level, default 0.95 -> 2.5th / 97.5th percentiles.
         seed : int
             Random seed for reproducibility.
 
         Returns
-        -------
+
         dict with keys: mean, std, ci_lower, ci_upper, n_iterations
         """
         rng = np.random.default_rng(seed)
@@ -768,7 +767,7 @@ class ModelEvaluator:
                 scores = proba[:, 1]
             else:
                 scores = proba.ravel()
-            # LightGBM focal objective returns raw logits — apply sigmoid
+            # LightGBM focal objective returns raw logits -- apply sigmoid
             if scores.min() < 0.0 or scores.max() > 1.0:
                 scores = 1.0 / (1.0 + np.exp(-scores))
             return scores

@@ -10,7 +10,7 @@ import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { t, getLanguage } from '../../utils/i18n'
 import ErrorPage from '../../pages/ErrorPage'
 
-// Helpers
+//Helpers
 
 /* Generate a short correlation ID for error tracking (8-char hex). */
 function generateCorrelationId(): string {
@@ -23,11 +23,11 @@ const API_BASE = String((import.meta as Record<string, any>).env?.VITE_API_BASE_
 const MAX_RETRIES_DEFAULT = 3
 const COOLDOWN_BASE_MS = 2_000
 
-// Types
+//Types
 
 interface Props {
   children: ReactNode
-  /* Optional custom fallback UI — receives error & reset callback */
+  /* Optional custom fallback UI -- receives error & reset callback */
   fallback?: ReactNode | ((error: Error, reset: () => void) => ReactNode)
   /* Debug identifier shown in logs and Sentry breadcrumbs */
   name?: string
@@ -35,7 +35,7 @@ interface Props {
   fullPage?: boolean
   /* Maximum number of automatic retries before showing hard failure (default 3) */
   maxRetries?: number
-  /* Called after each caught error — allows parent-level telemetry */
+  /* Called after each caught error -- allows parent-level telemetry */
   onError?: (error: Error, info: ErrorInfo, correlationId: string) => void
 }
 
@@ -48,7 +48,7 @@ interface State {
   cooldownSeconds: number
 }
 
-// Component
+//Component
 
 export default class ErrorBoundary extends Component<Props, State> {
   private cooldownTimer: ReturnType<typeof setInterval> | null = null
@@ -76,7 +76,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
     this.setState({ componentStack: info.componentStack || null })
 
-    // Sentry
+    //Sentry
     Sentry.withScope(scope => {
       scope.setTag('error_boundary', boundary)
       scope.setTag('correlation_id', cid)
@@ -85,20 +85,20 @@ export default class ErrorBoundary extends Component<Props, State> {
       Sentry.captureException(error)
     })
 
-    // Console
+    //Console
     console.error(
       `[ErrorBoundary: ${boundary}] cid=${cid} retry=${this.state.retryCount}`,
       error,
       info.componentStack,
     )
 
-    // Backend log
+    //Backend log
     this.logToBackend(error, info, cid)
 
-    // Parent callback
+    //Parent callback
     this.props.onError?.(error, info, cid)
 
-    // Screen reader announcement
+    //Screen reader announcement
     this.announceError()
   }
 
@@ -106,7 +106,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (this.cooldownTimer) clearInterval(this.cooldownTimer)
   }
 
-  // Backend logging (fire-and-forget)
+  //Backend logging (fire-and-forget)
 
   private logToBackend(error: Error, info: ErrorInfo, cid: string): void {
     try {
@@ -134,11 +134,11 @@ export default class ErrorBoundary extends Component<Props, State> {
         body: JSON.stringify(payload),
       }).catch(() => {})
     } catch {
-      // Swallow — error logging must never break the app
+      //Swallow -- error logging must never break the app
     }
   }
 
-  // A11y: screen reader live region
+  //A11y: screen reader live region
 
   private announceError(): void {
     requestAnimationFrame(() => {
@@ -151,7 +151,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     })
   }
 
-  // Retry with exponential back-off cooldown
+  //Retry with exponential back-off cooldown
 
   private handleRetry = (): void => {
     const maxRetries = this.props.maxRetries ?? MAX_RETRIES_DEFAULT
@@ -194,7 +194,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     })
   }
 
-  // Render
+  //Render
 
   render(): ReactNode {
     const srAnnouncer = (
@@ -220,7 +220,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     const retriesExhausted = this.state.retryCount >= maxRetries
     const isCooling = this.state.cooldownSeconds > 0
 
-    // Custom fallback
+    //Custom fallback
     if (this.props.fallback) {
       const fb = this.props.fallback
       return (
@@ -233,7 +233,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       )
     }
 
-    // Full-page mode
+    //Full-page mode
     if (this.props.fullPage) {
       return (
         <>
@@ -250,12 +250,12 @@ export default class ErrorBoundary extends Component<Props, State> {
       )
     }
 
-    // Inline card mode
+    //Inline card mode
     const lang = getLanguage()
-    // Translate raw technical error messages into plain language
+    //Translate raw technical error messages into plain language
     const rawMsg = this.state.error?.message || ''
     const friendlyMsg = rawMsg.includes('Loading chunk') || rawMsg.includes('Failed to fetch dynamically imported module')
-      ? 'This section failed to load. This can happen after an update — try refreshing the page.'
+      ? 'This section failed to load. This can happen after an update -- try refreshing the page.'
       : rawMsg.includes('NetworkError') || rawMsg.includes('Failed to fetch')
       ? 'Could not connect to the server. Check your internet connection.'
       : rawMsg.includes('Cannot read properties') || rawMsg.includes('is not a function') || rawMsg.includes('is undefined')

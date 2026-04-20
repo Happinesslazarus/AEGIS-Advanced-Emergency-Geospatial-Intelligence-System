@@ -5,18 +5,18 @@
  * endpoints (rollback, drift detection, version promotion) for admins.
  *
  * Route groups:
- * - POST /api/ai/predict         — run a hazard prediction and persist to DB
- * - GET  /api/ai/predictions     — historical prediction log with filters
- * - GET  /api/ai/status          — liveness probe for the AI engine
- * - POST /api/ai/retrain         — trigger background model retraining
- * - POST /api/ai/classify-image  — CNN image classification (ViT + DETR)
- * - POST /api/ai/classify-report — NLP hazard type classification
- * - POST /api/ai/predict-severity— NLP severity prediction
- * - POST /api/ai/detect-fake     — fake/spam report detector
- * - GET  /api/ai/models          — governed model list
- * - POST /api/ai/models/rollback — model rollback (admin)
- * - GET  /api/ai/drift           — drift detection report
- * - POST /api/ai/registry/*      — on-disk model registry management
+ * - POST /api/ai/predict         -- run a hazard prediction and persist to DB
+ * - GET  /api/ai/predictions     -- historical prediction log with filters
+ * - GET  /api/ai/status          -- liveness probe for the AI engine
+ * - POST /api/ai/retrain         -- trigger background model retraining
+ * - POST /api/ai/classify-image  -- CNN image classification (ViT + DETR)
+ * - POST /api/ai/classify-report -- NLP hazard type classification
+ * - POST /api/ai/predict-severity-- NLP severity prediction
+ * - POST /api/ai/detect-fake     -- fake/spam report detector
+ * - GET  /api/ai/models          -- governed model list
+ * - POST /api/ai/models/rollback -- model rollback (admin)
+ * - GET  /api/ai/drift           -- drift detection report
+ * - POST /api/ai/registry/*      -- on-disk model registry management
  *
  * - Mounted at /api/ai in index.ts
  * - Forwards requests to the AI engine via aiClient service
@@ -47,7 +47,7 @@ import { adaptiveMFAMiddleware } from '../services/adaptiveMFAService.js'
 
 const router = Router()
 
-// Prometheus requires numeric gauge values; map string alert levels to 0-3.
+//Prometheus requires numeric gauge values; map string alert levels to 0-3.
 function alertLevelToMetric(alertLevel: string): number {
   const level = String(alertLevel || '').toUpperCase()
   if (level === 'INFO') return 1
@@ -72,7 +72,7 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       include_contributing_factors
     } = req.body
 
-    // Validate required fields
+    //Validate required fields
     if (
       !hazard_type ||
       !region_id ||
@@ -84,7 +84,7 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       throw AppError.badRequest('Please provide all required fields: location coordinates and hazard type.')
     }
 
-    // Validate coordinates
+    //Validate coordinates
     if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
       throw AppError.badRequest('The coordinates provided are invalid. Latitude must be -90 to 90, longitude -180 to 180.')
     }
@@ -93,7 +93,7 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       `[AI Prediction] ${hazard_type} for (${latitude}, ${longitude}) in ${region_id}`
     )
 
-    // Call AI Engine
+    //Call AI Engine
     const predStart = Date.now()
     const prediction = await aiClient.predict({
       hazard_type,
@@ -104,7 +104,7 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       include_contributing_factors: include_contributing_factors !== false
     })
 
-    // Store prediction in database
+    //Store prediction in database
     const insertQuery = `
       INSERT INTO ai_predictions (
         hazard_type, region_id, probability, risk_level, confidence,
@@ -121,9 +121,9 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       ) RETURNING id
     `
 
-    // Build WKT polygon string from the GeoJSON if it's valid.
-    // Invalid or missing geometry is logged and skipped rather than failing the whole request.
-    // PostGIS requires exactly: POLYGON((lng lat, lng lat, ...))
+    //Build WKT polygon string from the GeoJSON if it's valid.
+    //Invalid or missing geometry is logged and skipped rather than failing the whole request.
+    //PostGIS requires exactly: POLYGON((lng lat, lng lat, ...))
     let affectedAreaWKT: string | null = null
     try {
       const geo = prediction.geo_polygon
@@ -144,17 +144,17 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       logger.warn({ err: polyErr }, '[AI Predict] Skipping invalid geo_polygon')
     }
 
-    // Extract top 5 SHAP contributors sorted by absolute importance descending.
-    // Stored separately from the full prediction payload for fast analytics queries.
+    //Extract top 5 SHAP contributors sorted by absolute importance descending.
+    //Stored separately from the full prediction payload for fast analytics queries.
     const topShapContributors = (prediction.contributing_factors || [])
       .filter((f: any) => typeof f === 'object' && f !== null)
       .sort((a: any, b: any) => Math.abs(Number(b.importance || 0)) - Math.abs(Number(a.importance || 0)))
       .slice(0, 5)
       .map((f: any) => ({ factor: f.factor || f.name, importance: Number(f.importance || 0), value: f.value }))
 
-    // SHA-256 hash of the full input feature set used as an idempotency/dedup key.
-    // Allows the frontend to check whether a cached prediction is still valid
-    // for the same coordinates, hazard type, and horizon.
+    //SHA-256 hash of the full input feature set used as an idempotency/dedup key.
+    //Allows the frontend to check whether a cached prediction is still valid
+    //for the same coordinates, hazard type, and horizon.
     const inputFeatureSummaryHash = crypto
       .createHash('sha256')
       .update(JSON.stringify({
@@ -195,8 +195,8 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
     aiPredictionLatency.observe({ hazard_type }, (Date.now() - predStart) / 1000)
     aegisModelPredictionsTotal.inc({ hazard: hazard_type, region: region_id, version: prediction.model_version || 'unknown' })
 
-    // Broadcast to connected admin clients via socket.io so dashboards
-    // update in real time without a manual refresh.
+    //Broadcast to connected admin clients via socket.io so dashboards
+    //update in real time without a manual refresh.
     const io = (req as any).app?.get('io')
     if (io) {
       io.to('admins').emit('ai:prediction', {
@@ -211,7 +211,7 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       })
     }
 
-    // Return prediction to frontend
+    //Return prediction to frontend
     res.json({
       ...prediction,
       prediction_id: result.rows[0].id
@@ -293,7 +293,7 @@ router.get('/predictions', authMiddleware, operatorOnly, async (req: Request, re
  */
 router.get('/status', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Check AI Engine availability
+    //Check AI Engine availability
     const isAvailable = await aiClient.isAvailable()
 
     if (!isAvailable) {
@@ -305,7 +305,7 @@ router.get('/status', async (_req: Request, res: Response, next: NextFunction): 
       return
     }
 
-    // Get model status
+    //Get model status
     const modelStatus = await aiClient.getModelStatus()
 
     res.json({
@@ -347,7 +347,7 @@ router.post('/retrain', authMiddleware, adminOnly, adaptiveMFAMiddleware('admin:
 
     const result = await aiClient.triggerRetrain(hazard_type, resolvedRegionId)
 
-    // Log the retrain request
+    //Log the retrain request
     await pool.query(
       `INSERT INTO activity_log (operator_id, action, action_type, metadata)
        VALUES ($1, $2, $3, $4)`,
@@ -496,9 +496,9 @@ router.post('/detect-fake', authMiddleware, operatorOnly, async (req: AuthReques
 })
 
 /*
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+ * â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-
  *  Phase 5: Model Governance Endpoints
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+ * â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-
  */
 
 /*
@@ -546,13 +546,13 @@ router.post('/models/rollback', authMiddleware, adminOnly, adaptiveMFAMiddleware
 
     const result = await aiClient.rollbackModel(model_name, target_version)
 
-    // Log the rollback action
+    //Log the rollback action
     await pool.query(
       `INSERT INTO activity_log (operator_id, action, action_type, metadata)
        VALUES ($1, $2, $3, $4)`,
       [
         req.user?.id,
-        `Model rollback: ${model_name} â†’ ${result.to_version || 'previous'}`,
+        `Model rollback: ${model_name} â†' ${result.to_version || 'previous'}`,
         'deploy',
         JSON.stringify({ model_name, target_version, result })
       ]
@@ -618,7 +618,7 @@ router.get('/predictions/stats', authMiddleware, operatorOnly, async (req: Reque
 
 /*
  * GET /api/ai/governance/models
- * Alias for /api/ai/models â€” governance dashboard entry point
+ * Alias for /api/ai/models â€" governance dashboard entry point
  */
 router.get('/governance/models', authMiddleware, operatorOnly, async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -631,14 +631,14 @@ router.get('/governance/models', authMiddleware, operatorOnly, async (_req: Requ
 
 /*
  * GET /api/ai/governance/drift
- * Governance-level drift report â€” returns drift status for all models
+ * Governance-level drift report â€" returns drift status for all models
  */
 router.get('/governance/drift', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const parsedHours3 = parseInt(req.query.hours as string)
     const hours = Number.isFinite(parsedHours3) && parsedHours3 > 0 ? Math.min(parsedHours3, 8760) : 24
     const result = await aiClient.checkDrift(undefined, hours)
-    // Also pull persisted drift records from DB if available
+    //Also pull persisted drift records from DB if available
     const dbDrift = await pool.query(`
       SELECT model_name, metric_name, drift_detected, threshold,
              baseline_value, current_value, created_at
@@ -688,7 +688,7 @@ router.get('/confidence-distribution', authMiddleware, operatorOnly, async (req:
       ORDER BY MIN(confidence)
     `, params).catch(() => ({ rows: [] }))
 
-    // Fallback: try ai_predictions table if prediction_logs is empty
+    //Fallback: try ai_predictions table if prediction_logs is empty
     if (result.rows.length === 0) {
       const fallback = await pool.query(`
         SELECT
@@ -733,8 +733,8 @@ router.get('/audit', authMiddleware, operatorOnly, async (req: Request, res: Res
       modelFilter = `AND model_name = $${params.length}`
     }
 
-    // Try prediction_logs first (full ML run logs); fall back to ai_predictions
-    // if that table is empty (older deployments or test environments).
+    //Try prediction_logs first (full ML run logs); fall back to ai_predictions
+    //if that table is empty (older deployments or test environments).
     const result = await pool.query(`
       SELECT id, model_name, hazard_type, risk_level, confidence,
              execution_time_ms, feedback, created_at
@@ -745,7 +745,7 @@ router.get('/audit', authMiddleware, operatorOnly, async (req: Request, res: Res
     `, params).catch(() => ({ rows: [] as any[], rowCount: 0 }))
 
     if (result.rows.length === 0 && !modelName) {
-      // Fall back to ai_predictions
+      //Fall back to ai_predictions
       const fallback = await pool.query(`
         SELECT id, hazard_type, risk_level, confidence_score as confidence,
                model_version, feedback, created_at
@@ -795,7 +795,7 @@ router.post('/registry/promote/:hazardType/:regionId/:version', authMiddleware, 
        VALUES ($1, $2, $3, $4)`,
       [
         req.user?.id,
-        `Promoted model: ${hazardType}/${regionId} → ${version}`,
+ `Promoted model: ${hazardType}/${regionId} -> ${version}`,
         'deploy',
         JSON.stringify({ targetType: 'ai_model', hazardType, regionId, version, result }),
       ]
@@ -870,7 +870,7 @@ router.post('/registry/cleanup/:hazardType/:regionId', authMiddleware, adminOnly
 router.post('/registry/cleanup-all', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const keep = parseInt(req.query.keep as string) || 3
-    const dryRun = req.query.dry_run !== 'false' // default to dry-run for safety — must explicitly pass dry_run=false to actually delete
+    const dryRun = req.query.dry_run !== 'false' // default to dry-run for safety -- must explicitly pass dry_run=false to actually delete
     const result = await aiClient.cleanupAllRegistry(keep, dryRun)
     res.json(result)
   } catch (err) {

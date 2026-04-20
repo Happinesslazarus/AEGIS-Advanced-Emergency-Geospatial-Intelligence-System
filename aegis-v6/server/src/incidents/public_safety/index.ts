@@ -34,7 +34,7 @@ class PublicSafetyModule extends BaseIncidentModule {
   async evaluateAlertRules(context: AlertRuleContext): Promise<AlertRuleResult[]> {
     const results = await super.evaluateAlertRules(context)
 
-    // Injuries + large crowd = escalation
+    //Injuries + large crowd = escalation
     const injuryReports = context.recentReports.filter(
       r => r.customFields?.injuriesReported === true
     )

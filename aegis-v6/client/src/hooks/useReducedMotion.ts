@@ -17,12 +17,12 @@ interface ReducedMotionState {
 
 export function useReducedMotion(): ReducedMotionState {
   const [prefersReduced, setPrefersReduced] = useState(() => {
-    // SSR guard: `window` does not exist in Node.js (e.g. server-side rendering).
-    // We default to `false` (animations allowed) so the first paint on the server
-    // never crashes, and the real value is read on the client after hydration.
+    //SSR guard: `window` does not exist in Node.js (e.g. server-side rendering).
+    //We default to `false` (animations allowed) so the first paint on the server
+    //never crashes, and the real value is read on the client after hydration.
     if (typeof window === 'undefined') return false
     // `prefers-reduced-motion: reduce` is a CSS media query that the OS sets
-    // when the user enables "Reduce Motion" in their accessibility settings
+    //when the user enables "Reduce Motion" in their accessibility settings
     // (System Preferences on macOS/iOS, Settings on Windows/Android).
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches
   })
@@ -32,9 +32,9 @@ export function useReducedMotion(): ReducedMotionState {
     
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
     
-    // MediaQueryListEvent fires when the user changes their OS motion setting
-    // at runtime (e.g. toggles the switch while the app is open), so we update
-    // React state immediately without needing a page refresh.
+    //MediaQueryListEvent fires when the user changes their OS motion setting
+    //at runtime (e.g. toggles the switch while the app is open), so we update
+    //React state immediately without needing a page refresh.
     const handler = (event: MediaQueryListEvent) => {
       setPrefersReduced(event.matches)
     }
@@ -45,10 +45,10 @@ export function useReducedMotion(): ReducedMotionState {
   
   return {
     prefersReduced,
-    // getSafeDuration: return 0 when reduced motion is on so CSS transitions
-    // happen instantly (no visible animation), otherwise use the provided ms value.
+    //getSafeDuration: return 0 when reduced motion is on so CSS transitions
+    //happen instantly (no visible animation), otherwise use the provided ms value.
     getSafeDuration: (defaultMs: number) => prefersReduced ? 0 : defaultMs,
-    // getSafeTransition: 'none' disables all CSS transitions for reduced-motion users.
+    //getSafeTransition: 'none' disables all CSS transitions for reduced-motion users.
     getSafeTransition: (defaultTransition: string) => 
       prefersReduced ? 'none' : defaultTransition,
   }

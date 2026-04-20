@@ -33,7 +33,7 @@ class EnvironmentalHazardModule extends BaseIncidentModule {
 
   async getPredictions(region: string): Promise<IncidentPrediction[]> {
     try {
-      // Air quality index from Open-Meteo
+      //Air quality index from Open-Meteo
       const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=57.15&longitude=-2.09&current=pm2_5,pm10,nitrogen_dioxide,sulphur_dioxide,ozone,european_aqi`
       const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
       if (!res.ok) return this.ruleBasedPrediction(region)
@@ -58,7 +58,7 @@ class EnvironmentalHazardModule extends BaseIncidentModule {
         confidence: 0.6,
         confidenceSource: 'statistical',
         region,
-        description: `Air Quality Index: ${aqi}. PM2.5: ${pm25}—g/m—, PM10: ${pm10}—g/m—, NO2: ${no2}—g/m—`,
+        description: `Air Quality Index: ${aqi}. PM2.5: ${pm25}--g/m--, PM10: ${pm10}--g/m--, NO2: ${no2}--g/m--`,
         advisoryText: this.getAdvisoryText(severity),
         generatedAt: new Date().toISOString(),
         dataSourcesUsed: ['air_quality_api', 'statistical_model'],

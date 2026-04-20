@@ -1,6 +1,6 @@
 ﻿/**
  * The citizen login and registration page. Handles both flows with a
- * toggled form — sign up (name, email, phone, location, password) or
+ * toggled form -- sign up (name, email, phone, location, password) or
  * sign in (email + password). On success, navigates to CitizenDashboard.
  * Also supports Google OAuth and shows 2FA challenge when applicable.
  *
@@ -10,9 +10,9 @@
  * - On 2FA required, renders TwoFactorChallenge component inline
  * - Redirects to /citizen/dashboard after successful login
  *
- * - server/src/routes/citizenAuthRoutes.ts    — the backend login/register endpoints
- * - client/src/contexts/CitizenAuthContext.tsx — token storage and auth state
- * - client/src/pages/CitizenDashboard.tsx     — destination after login
+ * - server/src/routes/citizenAuthRoutes.ts    -- the backend login/register endpoints
+ * - client/src/contexts/CitizenAuthContext.tsx -- token storage and auth state
+ * - client/src/pages/CitizenDashboard.tsx     -- destination after login
  */
 
 import { useState, useRef, useEffect } from 'react'
@@ -42,22 +42,22 @@ import ProfileCountryPicker, { ProfileRegionPicker } from '../components/shared/
 import { REGION_MAP as FULL_REGION_MAP, getCountryEntryByName } from '../data/allCountries'
 import { getFlagUrl } from '../data/worldRegions'
 
-// Max local subscriber digits (after the dial prefix) by ISO-3166-1 alpha-2 country code.
-// Falls back to 15 − dial-prefix-digit-count (ITU-T E.164 maximum) for unlisted countries.
+//Max local subscriber digits (after the dial prefix) by ISO-3166-1 alpha-2 country code.
+//Falls back to 15 − dial-prefix-digit-count (ITU-T E.164 maximum) for unlisted countries.
 const PHONE_LOCAL_MAX: Record<string, number> = {
-  // North America (+1)
+  //North America (+1)
   US:10, CA:10, AG:10, BB:10, BS:10, DM:10, DO:10, GD:10, JM:10, KN:10, LC:10, TT:10, VC:10,
-  // Europe
+  //Europe
   GB:10, FR:9, DE:11, IT:10, ES:9, PT:9, NL:9, BE:9, CH:9, AT:10, SE:10, NO:8, DK:8,
   FI:10, PL:9, CZ:9, SK:9, HU:9, RO:9, BG:9, HR:9, RS:9, UA:9, GR:10, IE:9, RU:10,
-  // Asia
+  //Asia
   IN:10, CN:11, JP:11, KR:10, SG:8, MY:10, PH:10, ID:12, TH:9, VN:10, PK:10, BD:10,
   LK:9, NP:10, AE:9, SA:9, QA:8, KW:8, BH:8, OM:8, JO:9, LB:8, IQ:10, IR:10, IL:9, TR:10,
-  // Africa
+  //Africa
   NG:10, ZA:9, KE:9, GH:9, ET:9, TZ:9, UG:9, RW:9, SN:9, CI:10, CM:9, EG:10, MA:9, DZ:9,
-  // Americas
+  //Americas
   BR:11, MX:10, AR:10, CO:10, CL:9, PE:9, VE:10, EC:9, BO:8, GT:8, HN:8, CR:8, PA:8, CU:8,
-  // Pacific
+  //Pacific
   AU:9, NZ:9,
 }
 
@@ -118,7 +118,7 @@ export default function CitizenAuthPage(): JSX.Element {
     }
   }, [authError, searchParams, setSearchParams, socialEmail])
 
-  // Close dropdown on outside click
+  //Close dropdown on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (navDropdownRef.current && !navDropdownRef.current.contains(e.target as Node)) setNavDropdownOpen(false)
@@ -127,13 +127,13 @@ export default function CitizenAuthPage(): JSX.Element {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  // Form fields — Step 1 (Account)
+  //Form fields -- Step 1 (Account)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
-  // Form fields — Step 2 (Personal)
+  //Form fields -- Step 2 (Personal)
   const [dialCode, setDialCode] = useState('')
   const [localPhone, setLocalPhone] = useState('')
   const [country, setCountry] = useState('')
@@ -142,14 +142,14 @@ export default function CitizenAuthPage(): JSX.Element {
   const [addressLine, setAddressLine] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
 
-  // When country changes, look up the calling code and pre-fill the prefix
+  //When country changes, look up the calling code and pre-fill the prefix
   useEffect(() => {
     if (!country) { setDialCode(''); setLocalPhone(''); return }
     const entry = getCountryEntryByName(country)
     if (entry?.dial) { setDialCode(entry.dial); setLocalPhone('') }
   }, [country])
 
-  // Form fields — Step 3 (Profile & Preferences)
+  //Form fields -- Step 3 (Profile & Preferences)
   const [bio, setBio] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -157,12 +157,12 @@ export default function CitizenAuthPage(): JSX.Element {
   const [vulnerabilityDetails, setVulnerabilityDetails] = useState('')
   const [statusColor, setStatusColor] = useState('green')
 
-  // Notification state
+  //Notification state
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
-  // Field-level validation errors (shown onBlur and real-time)
+  //Field-level validation errors (shown onBlur and real-time)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
-  // 2FA challenge state
+  //2FA challenge state
   const [twoFactorRequired, setTwoFactorRequired] = useState(false)
   const [tempToken, setTempToken] = useState('')
   const [twoFactorCode, setTwoFactorCode] = useState('')
@@ -172,7 +172,7 @@ export default function CitizenAuthPage(): JSX.Element {
   const [rememberDevice, setRememberDevice] = useState(false)
   const twoFactorInputRef = useRef<HTMLInputElement>(null)
 
-  // Redirect if already authenticated
+  //Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !loading) {
       const returnTo = sessionStorage.getItem('aegis_qr_return_to')
@@ -186,7 +186,7 @@ export default function CitizenAuthPage(): JSX.Element {
     }
   }, [isAuthenticated, loading, navigate])
 
-  // Show nothing while checking auth status
+  //Show nothing while checking auth status
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center">
@@ -219,16 +219,16 @@ export default function CitizenAuthPage(): JSX.Element {
   const pwStrength = getPasswordStrength(password, lang)
   const regions = FULL_REGION_MAP[country] || []
 
-  // Derive full phone from dial prefix + local number
+  //Derive full phone from dial prefix + local number
   const fullPhone = dialCode ? `${dialCode}${localPhone.replace(/\s/g, '')}` : localPhone
 
-  // Compute max local digits for the selected country
+  //Compute max local digits for the selected country
   const phoneCountryEntry = getCountryEntryByName(country)
   const phoneMaxLocal = phoneCountryEntry
     ? (PHONE_LOCAL_MAX[phoneCountryEntry.code.toUpperCase()] ?? (15 - phoneCountryEntry.dial.replace('+', '').length))
     : 15
 
-  // Real-time password requirement checks (matches server requirements)
+  //Real-time password requirement checks (matches server requirements)
   const pwRequirements = [
     { met: password.length >= 12, label: t('citizen.auth.pwReq.minLength', lang) || 'At least 12 characters' },
     { met: /[A-Z]/.test(password), label: t('citizen.auth.pwReq.uppercase', lang) || 'One uppercase letter' },
@@ -239,7 +239,7 @@ export default function CitizenAuthPage(): JSX.Element {
   ]
   const allPwReqsMet = password.length > 0 && pwRequirements.every(r => r.met)
 
-  // Field blur validation
+  //Field blur validation
   const validateFieldOnBlur = async (field: string) => {
     const errors = { ...fieldErrors }
     switch (field) {
@@ -252,7 +252,7 @@ export default function CitizenAuthPage(): JSX.Element {
         else if (!validateEmail(email.trim())) errors.email = t('citizen.auth.error.invalidEmail', lang)
         else {
           delete errors.email
-          // Check server-side availability
+          //Check server-side availability
           try {
             const avail = await apiCheckAvailability({ email: email.trim() })
             if (avail.emailAvailable === false) {
@@ -260,7 +260,7 @@ export default function CitizenAuthPage(): JSX.Element {
             }
           } catch { /* ignore network errors during check */ }
         }
-        // Re-validate password if it contains email
+        //Re-validate password if it contains email
         if (password && email && password.toLowerCase().includes(email.split('@')[0]?.toLowerCase() || '___')) {
           errors.password = t('citizen.auth.error.passwordContainsEmail', lang) || 'Password must not contain your email address'
         } else if (password.length >= 12) {
@@ -329,7 +329,7 @@ export default function CitizenAuthPage(): JSX.Element {
       setNotification({ message: msg, type: 'warning' })
       return false
     }
-    // Client-side email format validation (#50)
+    //Client-side email format validation (#50)
     if (!validateEmail(email.trim())) {
       const msg = t('citizen.auth.error.invalidEmail', lang)
       setError(msg)
@@ -381,7 +381,7 @@ export default function CitizenAuthPage(): JSX.Element {
       const msg = t('citizen.auth.error.addressRequired', lang) || 'Address is required'
       setError(msg); setNotification({ message: msg, type: 'warning' }); return false
     }
-    // Date of birth smart validation
+    //Date of birth smart validation
     if (dateOfBirth) {
       const dob = new Date(dateOfBirth)
       const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -404,13 +404,13 @@ export default function CitizenAuthPage(): JSX.Element {
     return true
   }
 
-  // Translates raw server/network error messages into user-friendly text.
-  // Catches CSRF token mismatch and auto-reloads the page so the user never sees
-  // a technical security error — they just get a fresh session cookie automatically.
+  //Translates raw server/network error messages into user-friendly text.
+  //Catches CSRF token mismatch and auto-reloads the page so the user never sees
+  //a technical security error -- they just get a fresh session cookie automatically.
   const sanitizeError = (msg: string): string | null => {
     if (!msg) return null
     if (msg.includes('CSRF') || msg.includes('Security token') || msg.includes('token mismatch')) {
-      // Auto-reload will get a fresh CSRF cookie — no need to show anything
+      //Auto-reload will get a fresh CSRF cookie -- no need to show anything
       window.location.reload()
       return null
     }
@@ -427,7 +427,7 @@ export default function CitizenAuthPage(): JSX.Element {
     try {
       if (mode === 'register') {
         if (!validateStep1()) { setSubmitting(false); return }
-        // Check ToS acceptance (#27)
+        //Check ToS acceptance (#27)
         if (!tosAccepted) {
           setError(t('citizen.auth.error.tosRequired', lang))
           setNotification({ message: t('citizen.auth.error.tosAccept', lang), type: 'warning' })
@@ -453,7 +453,7 @@ export default function CitizenAuthPage(): JSX.Element {
 
         if (result.success) {
           setNotification({ message: t('citizen.auth.success.accountCreated', lang), type: 'success' })
-          // Upload avatar if selected (after registration, user is now authenticated)
+          //Upload avatar if selected (after registration, user is now authenticated)
           if (avatarFile) {
             try {
               await uploadAvatar(avatarFile)
@@ -503,7 +503,7 @@ export default function CitizenAuthPage(): JSX.Element {
     }
   }
 
-  // 2FA Challenge handler
+  //2FA Challenge handler
   const handle2FASubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setTwoFactorError('')
@@ -647,7 +647,7 @@ export default function CitizenAuthPage(): JSX.Element {
                 <div className="px-4 py-2.5 border-t border-gray-100 dark:border-white/5 flex items-center gap-2">
                   <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" /></span>
                   <span className="text-[9px] font-bold text-green-600/70 dark:text-green-400/60">ONLINE</span>
-                  <span className="text-gray-200 dark:text-white/10">·</span>
+                  <span className="text-gray-200 dark:text-white/10">-</span>
                   <Lock className="w-2.5 h-2.5 text-aegis-400/50" />
                   <span className="text-[9px] font-bold text-aegis-500/50 dark:text-aegis-400/40">ENCRYPTED</span>
                 </div>
@@ -812,7 +812,7 @@ export default function CitizenAuthPage(): JSX.Element {
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ email: forgotEmail.trim() }),
                     })
-                    // Always show success to prevent email enumeration
+                    //Always show success to prevent email enumeration
                     setForgotSent(true)
                   } catch {
                     setForgotSent(true)
@@ -835,7 +835,7 @@ export default function CitizenAuthPage(): JSX.Element {
               )}
               <button onClick={() => { setMode('login'); setError(''); setForgotSent(false); setForgotEmail('') }}
                 className="w-full text-xs text-aegis-600 hover:text-aegis-700 font-semibold py-2">
-                ← {t('citizen.auth.forgot.backToLogin', lang)}
+ <- {t('citizen.auth.forgot.backToLogin', lang)}
               </button>
             </div>
           )}
@@ -883,7 +883,7 @@ export default function CitizenAuthPage(): JSX.Element {
             </div>
           )}
 
-          {/* Form — shown for login and register modes only */}
+          {/* Form -- shown for login and register modes only */}
           {mode !== 'forgot' && (
           <form onSubmit={handleSubmit} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/80 dark:border-gray-700/50 p-6 shadow-2xl shadow-gray-300/20 dark:shadow-black/40 space-y-4" style={{ animation: 'aegis-fade-up 0.6s ease-out' }}>
 
@@ -927,7 +927,7 @@ export default function CitizenAuthPage(): JSX.Element {
                   </button>
                 </div>
 
-                {/*  ─── Alternative Sign-In Methods ─── */}
+                {/*  --- Alternative Sign-In Methods --- */}
                 <div className="relative my-3">
                   <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700" /></div>
                   <div className="relative flex justify-center text-xs">
@@ -935,7 +935,7 @@ export default function CitizenAuthPage(): JSX.Element {
                   </div>
                 </div>
 
-                {/* Primary quick options — 2-col grid, always visible */}
+                {/* Primary quick options -- 2-col grid, always visible */}
                 <div className="grid grid-cols-2 gap-2">
                   <a href={`${API_BASE}/api/auth/google`}
                     className="flex items-center justify-center gap-2 py-2.5 px-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm">
@@ -1007,7 +1007,7 @@ export default function CitizenAuthPage(): JSX.Element {
                       </div>
                       <div className="text-left min-w-0">
                         <p className="font-medium text-sm">Emergency QR</p>
-                        <p className="text-[11px] text-red-500/70 dark:text-red-400/60">Scan from kiosk or phone — no password needed</p>
+                        <p className="text-[11px] text-red-500/70 dark:text-red-400/60">Scan from kiosk or phone -- no password needed</p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-red-300 dark:text-red-600 ml-auto flex-shrink-0" />
                     </Link>
@@ -1016,10 +1016,10 @@ export default function CitizenAuthPage(): JSX.Element {
               </>
             )}
 
-            {/*  REGISTER STEP 1 — Account  */}
+            {/*  REGISTER STEP 1 -- Account  */}
             {mode === 'register' && regStep === 1 && (
               <>
-                {/* Honeypot — hidden from real users, catches bots */}
+                {/* Honeypot -- hidden from real users, catches bots */}
                 <div className="absolute -left-[9999px]" aria-hidden="true" tabIndex={-1}>
                   <label htmlFor="website">Website</label>
                   <input type="text" id="website" name="website" autoComplete="off" tabIndex={-1}
@@ -1098,10 +1098,10 @@ export default function CitizenAuthPage(): JSX.Element {
               </>
             )}
 
-            {/*  REGISTER STEP 2 — Personal Details  */}
+            {/*  REGISTER STEP 2 -- Personal Details  */}
             {mode === 'register' && regStep === 2 && (
               <>
-                {/* Country + City — must come FIRST so dial code can auto-fill phone */}
+                {/* Country + City -- must come FIRST so dial code can auto-fill phone */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t('citizen.auth.country', lang)} *</label>
@@ -1121,7 +1121,7 @@ export default function CitizenAuthPage(): JSX.Element {
                   </div>
                 </div>
 
-                {/* Phone — split dial-prefix + local number */}
+                {/* Phone -- split dial-prefix + local number */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
                     {t('citizen.auth.phone', lang)} *
@@ -1208,7 +1208,7 @@ export default function CitizenAuthPage(): JSX.Element {
               </>
             )}
 
-            {/*  REGISTER STEP 3 — Profile Photo, Bio, Vulnerability, Status  */}
+            {/*  REGISTER STEP 3 -- Profile Photo, Bio, Vulnerability, Status  */}
             {mode === 'register' && regStep === 3 && (
               <>
                 {/* Profile Photo Upload */}

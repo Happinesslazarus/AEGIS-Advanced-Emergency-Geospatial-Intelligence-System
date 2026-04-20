@@ -7,7 +7,7 @@ Glossary:
   FIRMS         = NASA Fire Information for Resource Management System;
                   continuously processes MODIS Terra/Aqua (1 km) and VIIRS
                   S-NPP (375 m) satellite detections of active fires
-  FRP           = Fire Radiative Power (MW) — pixel-level energy emitted by
+  FRP           = Fire Radiative Power (MW) -- pixel-level energy emitted by
                   a fire; higher values indicate larger/more intense burns
   confidence    = FIRMS per-pixel quality flag: nominal/high = reliable
                   detection; low = possible false positive (artefact from
@@ -15,23 +15,23 @@ Glossary:
   5 km radius   = maximum distance between a sample point and a fire pixel
                   for the point to be labelled positive; chosen to match
                   the spatial resolution of the lowest-confidence FIRMS data
-  7-day horizon = a wildfire risk label looks 7 days *forward* — we want the
+  7-day horizon = a wildfire risk label looks 7 days *forward* -- we want the
                   model to predict ignition risk before it happens, not just
                   detect ongoing fires
 
 Download:
   FIRMS UK data (MODIS + VIIRS, 2000-2024, CSV):
     https://firms.modaps.eosdis.nasa.gov/download/
-    → Select "South/Southeast Asia" → change to Europe/UK bbox
-    → Instrument: MODIS_NRT + VIIRS_SNPP_NRT
-    → Date range: 2000-01-01 to 2024-12-31
-    → Format: CSV
+    -> Select "South/Southeast Asia" -> change to Europe/UK bbox
+    -> Instrument: MODIS_NRT + VIIRS_SNPP_NRT
+    -> Date range: 2000-01-01 to 2024-12-31
+    -> Format: CSV
   Save as: data/raw/labels/firms_uk.csv
 
-  Input  ← data/processed/master_features_uk_2000_2024.parquet
-  Input  ← data/raw/labels/firms_uk.csv
-  Output → data/labels/wildfire_labels.parquet
-  Used by← ai-engine/training/train_all_hazards_v2.py
+  Input  <- data/processed/master_features_uk_2000_2024.parquet
+  Input  <- data/raw/labels/firms_uk.csv
+  Output -> data/labels/wildfire_labels.parquet
+  Used by<- ai-engine/training/train_all_hazards_v2.py
 """
 
 from __future__ import annotations
@@ -56,9 +56,7 @@ FIRE_RADIUS_KM  = 5       # label positive within 5 km of a fire pixel
 HORIZON_DAYS    = 7       # look 7 days forward for fire occurrence
 
 
-# ---------------------------------------------------------------------------
 # Haversine helper (vectorised)
-# ---------------------------------------------------------------------------
 
 def haversine_km(lat1: pd.Series, lon1: pd.Series, lat2: float, lon2: float) -> pd.Series:
     """Return great-circle distance in km between (lat1, lon1) and (lat2, lon2)."""
@@ -72,14 +70,12 @@ def haversine_km(lat1: pd.Series, lon1: pd.Series, lat2: float, lon2: float) -> 
     return R * 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
 
 
-# ---------------------------------------------------------------------------
 # Main
-# ---------------------------------------------------------------------------
 
 def build_wildfire_labels(args: argparse.Namespace) -> None:
     _LABEL_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("[1/4] Loading master features …")
+    print("[1/4] Loading master features ...")
     master = pd.read_parquet(str(args.master))
     master["date_dt"] = pd.to_datetime(master["date"])
     print(f"  {len(master):,} rows")
@@ -89,7 +85,7 @@ def build_wildfire_labels(args: argparse.Namespace) -> None:
         print(
             f"\n  FIRMS file not found at {firms_path}.\n"
             "  Download from https://firms.modaps.eosdis.nasa.gov/download/\n"
-            "  Generating zero-label placeholder — re-run after download.\n"
+            "  Generating zero-label placeholder -- re-run after download.\n"
         )
         master["wildfire_label"] = 0
         out = master[["lat", "lon", "date", "wildfire_label"]]
@@ -97,7 +93,7 @@ def build_wildfire_labels(args: argparse.Namespace) -> None:
         out.to_parquet(str(out_path), index=False, compression="snappy")
         return
 
-    print("[2/4] Loading FIRMS fire detections …")
+    print("[2/4] Loading FIRMS fire detections ...")
     firms = pd.read_csv(str(firms_path))
 
     # Normalise column names (MODIS and VIIRS use slightly different headers)
@@ -115,7 +111,7 @@ def build_wildfire_labels(args: argparse.Namespace) -> None:
 
     print(f"  {len(firms):,} fire pixels (high-confidence)")
 
-    print("[3/4] Labelling master rows (vectorised event-driven) …")
+    print("[3/4] Labelling master rows (vectorised event-driven) ...")
     labels = pd.Series(0, index=master.index, dtype=int)
 
     # Sort FIRMS by date and spatial-index master by (lat, lon) for fast lookup
@@ -148,14 +144,14 @@ def build_wildfire_labels(args: argparse.Namespace) -> None:
             hit_idx = candidates.index[dists <= FIRE_RADIUS_KM]
             labels.iloc[labels.index.get_indexer(hit_idx)] = 1
 
-    print("[4/4] Saving …")
+    print("[4/4] Saving ...")
     out = master[["lat", "lon", "date"]].copy()
     out["wildfire_label"] = labels
 
     out_path = args.output or (_LABEL_DIR / "wildfire_labels.parquet")
     out.to_parquet(str(out_path), index=False, compression="snappy")
     pos_rate = labels.mean() * 100
-    print(f"\n  Saved → {out_path}")
+    print(f"\n  Saved -> {out_path}")
     print(f"  Positive rate: {pos_rate:.2f}%")
 
 

@@ -11,8 +11,8 @@
 export class AppError extends Error {
   public readonly statusCode: number
   public readonly errorCode: string
-  // isOperational: true = expected user-facing error; false = programmer error.
-  // errorHandler only reveals details to the client for operational errors.
+  //isOperational: true = expected user-facing error; false = programmer error.
+  //errorHandler only reveals details to the client for operational errors.
   public readonly isOperational: boolean
   public readonly details?: unknown
 
@@ -28,7 +28,7 @@ export class AppError extends Error {
     this.errorCode = errorCode
     this.isOperational = isOperational
     this.details = details
-    // Required because TypeScript extends of built-in classes break prototype chain in ES5 targets.
+    //Required because TypeScript extends of built-in classes break prototype chain in ES5 targets.
     Object.setPrototypeOf(this, AppError.prototype)
   }
 

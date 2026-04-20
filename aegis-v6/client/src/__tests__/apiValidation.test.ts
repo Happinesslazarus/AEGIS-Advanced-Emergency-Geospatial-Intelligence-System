@@ -1,5 +1,5 @@
 /**
- * Tests for the API validation library — a collection of Zod schemas and wrapper
+ * Tests for the API validation library -- a collection of Zod schemas and wrapper
  * functions that validate and sanitise data received from the server before the
  * rest of the client code touches it. This prevents malformed or malicious server
  * responses from causing runtime errors deep inside the application.
@@ -14,9 +14,9 @@
  *   Zod                     = TypeScript-first schema validation library; schemas describe
  *                             the exact shape and types a value must have
  *   schema.safeParse()      = validates data WITHOUT throwing; returns {success, data} or
- *                             {success:false, error} — ideal for untrusted input
+ *                             {success:false, error} -- ideal for untrusted input
  *   schemas                 = object of reusable Zod sub-schemas: uuid, coordinates,
- *                             severity, email — used as building blocks in larger schemas
+ *                             severity, email -- used as building blocks in larger schemas
  *   reportSchema            = full Zod schema for an incident report object
  *   alertSchema             = Zod schema for an emergency alert broadcast object
  *   userProfileSchema       = Zod schema for a citizen/admin user profile
@@ -29,13 +29,13 @@
  *   validatedArrayFetch()   = like validatedFetch() but expects a JSON array
  *   validateData()          = validates a value against a schema; returns the parsed value
  *                             (possibly transformed) or null on failure
- *   matchesSchema()         = boolean quick-check — true if data passes the schema
+ *   matchesSchema()         = boolean quick-check -- true if data passes the schema
  *   inputSanitizers         = object of pre-built sanitiser schemas that also normalise input
- *                             (trim whitespace, lowercase email, coerce string→int, reject
+ * (trim whitespace, lowercase email, coerce string->int, reject
  *                             dangerous URL schemes like javascript: or data:)
- *   UUID                    = Universally Unique Identifier — 32 hex chars in the pattern
+ *   UUID                    = Universally Unique Identifier -- 32 hex chars in the pattern
  *                             xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx; used as DB primary keys
- *   coordinates             = {lat, lng} — latitude (−90 to 90) and longitude (−180 to 180)
+ *   coordinates             = {lat, lng} -- latitude (−90 to 90) and longitude (−180 to 180)
  *   severity                = enum: 'low' | 'medium' | 'high' | 'critical'
  *   globalThis.fetch        = the global fetch API; replaced with a vi.fn() mock so tests
  *                             run offline without real HTTP requests
@@ -65,19 +65,17 @@ import {
   paginatedSchema,
 } from '../lib/apiValidation'
 
-// ---------------------------------------------------------------------------
-// Common reusable sub-schemas
-// ---------------------------------------------------------------------------
+//Common reusable sub-schemas
 describe('Common Schemas', () => {
   describe('uuid', () => {
     it('accepts valid UUIDs', () => {
-      // Both are valid UUID v4 strings (8-4-4-4-12 hex groups, hyphen-separated)
+      //Both are valid UUID v4 strings (8-4-4-4-12 hex groups, hyphen-separated)
       expect(schemas.uuid.safeParse('550e8400-e29b-41d4-a716-446655440000').success).toBe(true)
       expect(schemas.uuid.safeParse('123e4567-e89b-12d3-a456-426614174000').success).toBe(true)
     })
 
     it('rejects invalid UUIDs', () => {
-      // Plain strings, short numbers, and empty strings must all fail
+      //Plain strings, short numbers, and empty strings must all fail
       expect(schemas.uuid.safeParse('not-a-uuid').success).toBe(false)
       expect(schemas.uuid.safeParse('12345').success).toBe(false)
       expect(schemas.uuid.safeParse('').success).toBe(false)
@@ -86,14 +84,14 @@ describe('Common Schemas', () => {
 
   describe('coordinates', () => {
     it('accepts valid coordinates', () => {
-      // London, south pole (lat=-90), prime meridian (lng=0) are all valid
+      //London, south pole (lat=-90), prime meridian (lng=0) are all valid
       expect(schemas.coordinates.safeParse({ lat: 51.5074, lng: -0.1278 }).success).toBe(true)
       expect(schemas.coordinates.safeParse({ lat: -90, lng: 180 }).success).toBe(true)
       expect(schemas.coordinates.safeParse({ lat: 0, lng: 0 }).success).toBe(true)
     })
 
     it('rejects out-of-range values', () => {
-      // Latitude > 90 or < -90 is physically impossible; same for longitude > 180
+      //Latitude > 90 or < -90 is physically impossible; same for longitude > 180
       expect(schemas.coordinates.safeParse({ lat: 91, lng: 0 }).success).toBe(false)
       expect(schemas.coordinates.safeParse({ lat: 0, lng: 181 }).success).toBe(false)
       expect(schemas.coordinates.safeParse({ lat: -91, lng: 0 }).success).toBe(false)
@@ -102,7 +100,7 @@ describe('Common Schemas', () => {
 
   describe('severity', () => {
     it('accepts valid severity levels', () => {
-      // All four recognised severity strings must pass
+      //All four recognised severity strings must pass
       expect(schemas.severity.safeParse('low').success).toBe(true)
       expect(schemas.severity.safeParse('medium').success).toBe(true)
       expect(schemas.severity.safeParse('high').success).toBe(true)
@@ -119,13 +117,13 @@ describe('Common Schemas', () => {
 
   describe('email', () => {
     it('accepts valid emails', () => {
-      // Standard email and a complex address with plus-addressing (test.user+tag@...)
+      //Standard email and a complex address with plus-addressing (test.user+tag@...)
       expect(schemas.email.safeParse('user@example.com').success).toBe(true)
       expect(schemas.email.safeParse('test.user+tag@domain.co.uk').success).toBe(true)
     })
 
     it('rejects invalid emails', () => {
-      // No @ symbol, missing local part, empty string — all must fail
+      //No @ symbol, missing local part, empty string -- all must fail
       expect(schemas.email.safeParse('not-an-email').success).toBe(false)
       expect(schemas.email.safeParse('@no-user.com').success).toBe(false)
       expect(schemas.email.safeParse('').success).toBe(false)
@@ -133,11 +131,9 @@ describe('Common Schemas', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Report schema — shape of an incident report from the server
-// ---------------------------------------------------------------------------
+//Report schema -- shape of an incident report from the server
 describe('Report Schema', () => {
-  // Complete valid report object used as the baseline; individual tests spread overrides
+  //Complete valid report object used as the baseline; individual tests spread overrides
   const validReport = {
     id: '550e8400-e29b-41d4-a716-446655440000',
     title: 'Flood reported on Main Street',
@@ -155,12 +151,12 @@ describe('Report Schema', () => {
   }
 
   it('validates complete report', () => {
-    // All required and optional fields present — must pass validation
+    //All required and optional fields present -- must pass validation
     expect(reportSchema.safeParse(validReport).success).toBe(true)
   })
 
   it('validates report without optional fields', () => {
-    // location and other optional fields may be absent; minimal required fields only
+    //location and other optional fields may be absent; minimal required fields only
     const minimal = {
       id: '550e8400-e29b-41d4-a716-446655440000',
       title: 'Test Report',
@@ -181,15 +177,13 @@ describe('Report Schema', () => {
   })
 
   it('rejects report with oversized title', () => {
-    // Title longer than 200 characters must fail to prevent overly large DOM content
+    //Title longer than 200 characters must fail to prevent overly large DOM content
     const invalid = { ...validReport, title: 'x'.repeat(201) }
     expect(reportSchema.safeParse(invalid).success).toBe(false)
   })
 })
 
-// ---------------------------------------------------------------------------
-// Alert schema — shape of an emergency broadcast alert from the server
-// ---------------------------------------------------------------------------
+//Alert schema -- shape of an emergency broadcast alert from the server
 describe('Alert Schema', () => {
   const validAlert = {
     id: '550e8400-e29b-41d4-a716-446655440000',
@@ -213,20 +207,18 @@ describe('Alert Schema', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Input sanitisers — normalise and validate user-supplied values
-// ---------------------------------------------------------------------------
+//Input sanitisers -- normalise and validate user-supplied values
 describe('Input Sanitizers', () => {
   describe('string sanitizer', () => {
     it('trims whitespace', () => {
-      // Leading/trailing spaces must be removed by the sanitiser transform
+      //Leading/trailing spaces must be removed by the sanitiser transform
       const sanitizer = inputSanitizers.string(100) // max length 100
       const result = sanitizer.parse('  hello world  ')
       expect(result).toBe('hello world')
     })
 
     it('enforces max length', () => {
-      // Strings longer than the specified maximum must fail validation
+      //Strings longer than the specified maximum must fail validation
       const sanitizer = inputSanitizers.string(10)
       expect(sanitizer.safeParse('12345678901').success).toBe(false) // 11 chars
       expect(sanitizer.safeParse('1234567890').success).toBe(true)   // 10 chars
@@ -235,13 +227,13 @@ describe('Input Sanitizers', () => {
 
   describe('integer sanitizer', () => {
     it('coerces string to integer', () => {
-      // Form inputs are always strings; the sanitiser should convert '42' → 42
+ //Form inputs are always strings; the sanitiser should convert '42' -> 42
       const sanitizer = inputSanitizers.integer(0, 100)
       expect(sanitizer.parse('42')).toBe(42)
     })
 
     it('enforces min/max bounds', () => {
-      // Values outside the specified range must fail
+      //Values outside the specified range must fail
       const sanitizer = inputSanitizers.integer(0, 100)
       expect(sanitizer.safeParse(-1).success).toBe(false)  // below min
       expect(sanitizer.safeParse(101).success).toBe(false) // above max
@@ -249,7 +241,7 @@ describe('Input Sanitizers', () => {
     })
 
     it('rejects non-integers', () => {
-      // Floating-point values must not be accepted when an integer is expected
+      //Floating-point values must not be accepted when an integer is expected
       const sanitizer = inputSanitizers.integer()
       expect(sanitizer.safeParse(3.14).success).toBe(false)
     })
@@ -257,26 +249,26 @@ describe('Input Sanitizers', () => {
 
   describe('url sanitizer', () => {
     it('accepts http/https URLs', () => {
-      // Standard web URLs must pass
+      //Standard web URLs must pass
       const sanitizer = inputSanitizers.url()
       expect(sanitizer.safeParse('https://example.com').success).toBe(true)
       expect(sanitizer.safeParse('http://localhost:3000').success).toBe(true)
     })
 
     it('rejects javascript: URLs', () => {
-      // javascript: URLs execute code when clicked (XSS vector — OWASP A03)
+      //javascript: URLs execute code when clicked (XSS vector -- OWASP A03)
       const sanitizer = inputSanitizers.url()
       expect(sanitizer.safeParse('javascript:alert(1)').success).toBe(false)
     })
 
     it('rejects data: URLs', () => {
-      // data: URLs can embed HTML/script content inline (another XSS vector)
+      //data: URLs can embed HTML/script content inline (another XSS vector)
       const sanitizer = inputSanitizers.url()
       expect(sanitizer.safeParse('data:text/html,<script>alert(1)</script>').success).toBe(false)
     })
 
     it('rejects file: URLs', () => {
-      // file: URLs expose the server filesystem to the browser (information disclosure)
+      //file: URLs expose the server filesystem to the browser (information disclosure)
       const sanitizer = inputSanitizers.url()
       expect(sanitizer.safeParse('file:///etc/passwd').success).toBe(false)
     })
@@ -284,26 +276,24 @@ describe('Input Sanitizers', () => {
 
   describe('email sanitizer', () => {
     it('normalizes email to lowercase', () => {
-      // Email addresses are case-insensitive; store and compare in lowercase
+      //Email addresses are case-insensitive; store and compare in lowercase
       const sanitizer = inputSanitizers.email()
       expect(sanitizer.parse('USER@EXAMPLE.COM')).toBe('user@example.com')
     })
 
     it('trims whitespace', () => {
-      // Users often paste email addresses with accidental leading/trailing spaces
+      //Users often paste email addresses with accidental leading/trailing spaces
       const sanitizer = inputSanitizers.email()
       expect(sanitizer.parse('  user@example.com  ')).toBe('user@example.com')
     })
   })
 })
 
-// ---------------------------------------------------------------------------
-// Schema factories — create envelope schemas for common API response shapes
-// ---------------------------------------------------------------------------
+//Schema factories -- create envelope schemas for common API response shapes
 describe('Schema Factories', () => {
   describe('apiResponseSchema', () => {
     it('creates valid response schema', () => {
-      // Standard success envelope: {success:true, data: <report>}
+      //Standard success envelope: {success:true, data: <report>}
       const schema = apiResponseSchema(reportSchema)
       const valid = {
         success: true,
@@ -322,7 +312,7 @@ describe('Schema Factories', () => {
     })
 
     it('validates error response', () => {
-      // Error envelope: {success:false, error: message}; 'data' field is absent
+      //Error envelope: {success:false, error: message}; 'data' field is absent
       const schema = apiResponseSchema(reportSchema)
       const error = {
         success: false,
@@ -334,7 +324,7 @@ describe('Schema Factories', () => {
 
   describe('paginatedSchema', () => {
     it('validates paginated response', () => {
-      // Standard paginated list response: items array + pagination metadata
+      //Standard paginated list response: items array + pagination metadata
       const schema = paginatedSchema(reportSchema)
       const valid = {
         items: [],       // empty first page
@@ -347,7 +337,7 @@ describe('Schema Factories', () => {
     })
 
     it('rejects invalid pagination values', () => {
-      // Negative total or page=0 are nonsensical; must be caught
+      //Negative total or page=0 are nonsensical; must be caught
       const schema = paginatedSchema(reportSchema)
       expect(schema.safeParse({ items: [], total: -1, page: 1, pageSize: 10, hasMore: false }).success).toBe(false)
       expect(schema.safeParse({ items: [], total: 0, page: 0, pageSize: 10, hasMore: false }).success).toBe(false)
@@ -355,48 +345,42 @@ describe('Schema Factories', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// validateData — synchronous validation helper; returns data or null
-// ---------------------------------------------------------------------------
+//validateData -- synchronous validation helper; returns data or null
 describe('validateData', () => {
   it('returns parsed data for valid input', () => {
-    // Valid coordinates must be returned unchanged (no transformation applied)
+    //Valid coordinates must be returned unchanged (no transformation applied)
     const result = validateData({ lat: 51.5, lng: -0.1 }, schemas.coordinates)
     expect(result).toEqual({ lat: 51.5, lng: -0.1 })
   })
 
   it('returns null for invalid input', () => {
-    // lat=200 is out of range → validation fails → null returned (no throw)
+ //lat=200 is out of range -> validation fails -> null returned (no throw)
     const result = validateData({ lat: 200, lng: 0 }, schemas.coordinates)
     expect(result).toBeNull()
   })
 })
 
-// ---------------------------------------------------------------------------
-// matchesSchema — boolean quick-check against a schema
-// ---------------------------------------------------------------------------
+//matchesSchema -- boolean quick-check against a schema
 describe('matchesSchema', () => {
   it('returns true for matching data', () => {
-    // 'low' is in the severity enum → true
+ // 'low' is in the severity enum -> true
     expect(matchesSchema('low', schemas.severity)).toBe(true)
   })
 
   it('returns false for non-matching data', () => {
-    // 'extreme' is not in the severity enum → false
+ // 'extreme' is not in the severity enum -> false
     expect(matchesSchema('extreme', schemas.severity)).toBe(false)
   })
 })
 
-// ---------------------------------------------------------------------------
-// validatedFetch — fetch with automatic schema validation
-// ---------------------------------------------------------------------------
+//validatedFetch -- fetch with automatic schema validation
 describe('validatedFetch', () => {
   beforeEach(() => {
     vi.resetAllMocks() // clear any previous fetch mock before each test
   })
 
   it('returns validated data on success', async () => {
-    // Mock a successful 200 response with valid JSON
+    //Mock a successful 200 response with valid JSON
     const mockData = { lat: 51.5, lng: -0.1 }
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -410,7 +394,7 @@ describe('validatedFetch', () => {
   })
 
   it('returns error on validation failure', async () => {
-    // Server returns valid HTTP 200 but with data that fails the schema
+    //Server returns valid HTTP 200 but with data that fails the schema
     const invalidData = { lat: 200, lng: 0 } // lat=200 is out of range
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -424,7 +408,7 @@ describe('validatedFetch', () => {
   })
 
   it('handles HTTP errors', async () => {
-    // Server returns 404 → response.ok is false → must return an error result
+ //Server returns 404 -> response.ok is false -> must return an error result
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
@@ -438,8 +422,8 @@ describe('validatedFetch', () => {
   })
 
   it('rejects invalid Content-Type', async () => {
-    // Receiving HTML (e.g. a login redirect page) instead of JSON must be caught
-    // to prevent confusing parse errors later in the application
+    //Receiving HTML (e.g. a login redirect page) instead of JSON must be caught
+    //to prevent confusing parse errors later in the application
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'Content-Type': 'text/html' }),
@@ -452,7 +436,7 @@ describe('validatedFetch', () => {
   })
 
   it('handles network errors', async () => {
-    // fetch() itself throws (e.g. DNS failure, no internet) → must surface the error message
+ //fetch() itself throws (e.g. DNS failure, no internet) -> must surface the error message
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network failure'))
 
     const result = await validatedFetch('/api/network-error', schemas.coordinates)
@@ -461,12 +445,10 @@ describe('validatedFetch', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// validatedArrayFetch — like validatedFetch but for array responses
-// ---------------------------------------------------------------------------
+//validatedArrayFetch -- like validatedFetch but for array responses
 describe('validatedArrayFetch', () => {
   it('validates array responses', async () => {
-    // Server returns a JSON array; each item must be validated against the schema
+    //Server returns a JSON array; each item must be validated against the schema
     const mockData = [
       { lat: 51.5, lng: -0.1 },
       { lat: 48.8, lng: 2.3 },  // Paris coordinates

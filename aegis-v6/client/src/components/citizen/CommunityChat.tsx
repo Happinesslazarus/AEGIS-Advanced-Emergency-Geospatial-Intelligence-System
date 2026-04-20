@@ -162,7 +162,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
     }
   }, [])
 
-  // Close dropdown on click outside
+  //Close dropdown on click outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -173,7 +173,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Auto-clear success message
+  //Auto-clear success message
   useEffect(() => {
     if (successMsg) {
       const t = setTimeout(() => setSuccessMsg(''), 3000)
@@ -181,39 +181,39 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
     }
   }, [successMsg])
 
-  //  Real-time Socket Listeners for Likes & Comments
+  // Real-time Socket Listeners for Likes & Comments
   useEffect(() => {
     if (!parentSocket) return
 
-    // Listen for real-time like updates from other users
+    //Listen for real-time like updates from other users
     const handleLiked = (data: { postId: string; userId: string; liked: boolean; likes_count: number; likerName?: string }) => {
       setPosts(prev => prev.map(p =>
         p.id === data.postId
           ? {
               ...p,
               likes_count: data.likes_count,
-              // Update is_liked_by_user only if the event is about the current user
+              //Update is_liked_by_user only if the event is about the current user
               is_liked_by_user: data.userId === user?.id ? data.liked : p.is_liked_by_user,
             }
           : p
       ))
     }
 
-    // Listen for real-time comment updates from other users
+    //Listen for real-time comment updates from other users
     const handleCommented = (data: { postId: string; comment: Comment; comments_count: number }) => {
       setPosts(prev => prev.map(p =>
         p.id === data.postId ? { ...p, comments_count: data.comments_count } : p
       ))
-      // Add comment to local cache if we have comments loaded for this post
+      //Add comment to local cache if we have comments loaded for this post
       setComments(prev => {
         if (!prev[data.postId]) return prev
-        // Avoid duplicates
+        //Avoid duplicates
         if (prev[data.postId].some(c => c.id === data.comment.id)) return prev
         return { ...prev, [data.postId]: [...prev[data.postId], data.comment] }
       })
     }
 
-    // Listen for notifications about interactions on YOUR posts
+    //Listen for notifications about interactions on YOUR posts
     const handleNotification = (data: { type: string; postId: string; actorName: string; message: string }) => {
       setSuccessMsg(`${data.message}`)
     }
@@ -258,7 +258,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
         if (cancelled || Object.keys(translatedByText).length === 0) return
         setContentTranslations((prev) => ({ ...prev, ...translatedByText }))
       } catch {
-        // Keep original content if batch translation fails.
+        //Keep original content if batch translation fails.
       }
     })()
 
@@ -267,7 +267,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
     }
   }, [lang, posts, comments, contentTranslations])
 
-  // Filter posts
+  //Filter posts
   useEffect(() => {
     let filtered = [...posts]
     if (filterMode === 'hazards') {
@@ -292,7 +292,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
       const res = await fetch(`${API_BASE}/api/community/posts`, { headers: authHeaders() })
       if (res.ok) {
         const data = await res.json()
-        // Normalize counts — PostgreSQL returns COUNT as string
+        //Normalize counts -- PostgreSQL returns COUNT as string
         const normalized = (data.posts || []).map((p: any) => ({
           ...p,
           likes_count: Number(p.likes_count) || 0,
@@ -373,7 +373,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
     const post = posts.find(p => p.id === postId)
     const wasLiked = post?.is_liked_by_user || false
     setLikeAnimating(postId)
-    // Optimistic update
+    //Optimistic update
     setPosts(prev =>
       prev.map(p =>
         p.id === postId
@@ -385,7 +385,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
     try {
       const res = await fetch(`${API_BASE}/api/community/posts/${postId}/like`, { method: 'POST', headers: authHeaders() })
       if (!res.ok) {
-        // Revert optimistic update
+        //Revert optimistic update
         setPosts(prev =>
           prev.map(p =>
             p.id === postId
@@ -395,7 +395,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
         )
       } else {
         const data = await res.json()
-        // Update with server-confirmed count
+        //Update with server-confirmed count
         setPosts(prev =>
           prev.map(p =>
             p.id === postId
@@ -403,11 +403,11 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
               : p
           )
         )
-        // Show toast
+        //Show toast
         setSuccessMsg(data.liked ? t('communityChat.postLikedSuccess', lang) : t('communityChat.likeRemoved', lang))
       }
     } catch {
-      // Revert on network error
+      //Revert on network error
       setPosts(prev =>
         prev.map(p =>
           p.id === postId

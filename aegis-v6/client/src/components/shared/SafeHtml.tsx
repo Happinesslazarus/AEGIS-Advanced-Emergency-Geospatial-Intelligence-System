@@ -6,7 +6,7 @@
 
 import React from 'react'
 
-// Allowlists
+//Allowlists
 
 /* Tags whose entire subtree is stripped (tag + content). */
 const BLOCKED_TAGS = /^(script|style|iframe|object|embed|form|input|button|textarea|select|link|meta|base|applet|frame|frameset)$/i
@@ -14,7 +14,7 @@ const BLOCKED_TAGS = /^(script|style|iframe|object|embed|form|input|button|texta
 /* Attributes that must never appear on any element. */
 const BLOCKED_ATTRS = /^(on\w+|srcdoc|action|formaction|data|x-bind|v-on|ng-\w+)$/i
 
-// Sanitizer
+//Sanitizer
 
 /**
  * Lightweight HTML sanitizer that does NOT require DOMPurify.
@@ -23,7 +23,7 @@ const BLOCKED_ATTRS = /^(on\w+|srcdoc|action|formaction|data|x-bind|v-on|ng-\w+)
  */
 export function sanitizeHtml(dirty: string): string {
   if (typeof document === 'undefined') {
-    // SSR / test environment: strip all tags as a conservative fallback
+    //SSR / test environment: strip all tags as a conservative fallback
     return dirty.replace(/<[^>]*>/g, '')
   }
 
@@ -32,7 +32,7 @@ export function sanitizeHtml(dirty: string): string {
 
   walkAndClean(tpl.content)
 
-  // Serialize back to HTML string
+  //Serialize back to HTML string
   const div = document.createElement('div')
   div.appendChild(tpl.content.cloneNode(true))
   return div.innerHTML
@@ -46,13 +46,13 @@ function walkAndClean(node: Node): void {
       const el = child as Element
       const tag = el.tagName
 
-      // Remove the entire subtree for blocked tags
+      //Remove the entire subtree for blocked tags
       if (BLOCKED_TAGS.test(tag)) {
         node.removeChild(child)
         continue
       }
 
-      // Sanitize attributes on allowed tags
+      //Sanitize attributes on allowed tags
       const attrs = Array.from(el.attributes)
       for (const attr of attrs) {
         const name = attr.name.toLowerCase()
@@ -63,20 +63,20 @@ function walkAndClean(node: Node): void {
           continue
         }
 
-        // Strip javascript: and data: URIs from href/src/action
+        //Strip javascript: and data: URIs from href/src/action
         if ((name === 'href' || name === 'src') && /^(javascript|data|vbscript):/i.test(value)) {
           el.removeAttribute(attr.name)
           continue
         }
       }
 
-      // Recurse into safe children
+      //Recurse into safe children
       walkAndClean(child)
     }
   }
 }
 
-// Component
+//Component
 
 type HtmlTag = 'p' | 'div' | 'span' | 'section' | 'article' | 'aside' | 'li' | 'td' | 'th' | 'dd' | 'dt' | 'blockquote' | 'figcaption' | 'summary' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
 

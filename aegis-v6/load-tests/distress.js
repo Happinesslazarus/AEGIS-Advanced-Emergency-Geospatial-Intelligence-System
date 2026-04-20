@@ -10,7 +10,7 @@ const distressErrors = new Rate('distress_errors');
 
 export const options = {
   scenarios: {
-    // Distress HTTP endpoints stress test
+    //Distress HTTP endpoints stress test
     list_distress: {
       executor: 'constant-arrival-rate',
       rate: 10,

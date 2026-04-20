@@ -3,7 +3,6 @@ Fetches real hourly air quality measurements from the OpenAQ v3 public API
 and DEFRA UK-AIR to build INDEPENDENT environmental hazard labels.
 
 WHY THIS IS SCIENTIFICALLY DEFENSIBLE
-======================================
 Labels = real measured pollutant concentrations (AQI exceedances).
 Features = atmospheric dispersion conditions (wind, pressure, stability).
 The two are CAUSALLY related but come from ENTIRELY SEPARATE measurement
@@ -12,11 +11,10 @@ systems:
   - Features: ERA5 numerical weather prediction reanalysis
 
 This is NOT a tautology. The model must learn WHICH atmospheric conditions
-tend to trap pollutants — it cannot trivially read the label from its inputs.
+tend to trap pollutants -- it cannot trivially read the label from its inputs.
 
 DEFRA BAND THRESHOLDS (peer-reviewed basis)
-============================================
-DEFRA UK Air Quality Index (UKAQI) 2012 — High band (index 7+):
+DEFRA UK Air Quality Index (UKAQI) 2012 -- High band (index 7+):
   PM2.5  > 35.4 µg/m³  (WHO 2021 annual guideline 5 µg/m³; 24h 15 µg/m³)
   PM10   > 50.4 µg/m³
   NO2    > 200  µg/m³  (WHO 1h guideline)
@@ -50,15 +48,15 @@ _AI_ROOT = Path(__file__).resolve().parent.parent.parent
 _CACHE_DIR = _AI_ROOT / "data" / "cache" / "openaq"
 _CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-# DEFRA High-band thresholds (index >= 7) — exceedance = positive label
+# DEFRA High-band thresholds (index >= 7) -- exceedance = positive label
 DEFRA_THRESHOLDS = {
-    "pm25":  35.4,   # µg/m³  — PM2.5 High band
-    "pm10":  50.4,   # µg/m³  — PM10 High band
-    "no2":   200.0,  # µg/m³  — NO2 High band
-    "o3":    100.0,  # µg/m³  — O3 High band (8h equivalent hourly proxy)
+    "pm25":  35.4,   # µg/m³  -- PM2.5 High band
+    "pm10":  50.4,   # µg/m³  -- PM10 High band
+    "no2":   200.0,  # µg/m³  -- NO2 High band
+    "o3":    100.0,  # µg/m³  -- O3 High band (8h equivalent hourly proxy)
 }
 
-# OpenAQ v3 API — REQUIRES a free API key (as of 2025).
+# OpenAQ v3 API -- REQUIRES a free API key (as of 2025).
 # Register at https://openaq.org/register and set the environment variable:
 #   OPENAQ_API_KEY=your_key_here
 # Without a key every request returns HTTP 401 Unauthorized.
@@ -108,7 +106,7 @@ async def fetch_openaq_station_hours(
 
     if not _OPENAQ_API_KEY:
         logger.debug(
-            "  OPENAQ_API_KEY not set — OpenAQ v3 requires a free API key. "
+            "  OPENAQ_API_KEY not set -- OpenAQ v3 requires a free API key. "
             "Register at https://openaq.org/register then set env OPENAQ_API_KEY=<key>."
         )
         return pd.DataFrame(columns=["timestamp", "value"])
@@ -133,7 +131,7 @@ async def fetch_openaq_station_hours(
             ) as resp:
                 if resp.status == 401:
                     logger.warning(
-                        "  OpenAQ 401 Unauthorized — API key invalid or missing. "
+                        "  OpenAQ 401 Unauthorized -- API key invalid or missing. "
                         "Set OPENAQ_API_KEY env var with a valid key from openaq.org"
                     )
                     break
@@ -179,7 +177,7 @@ async def _fetch_all_stations(
 
     if not _OPENAQ_API_KEY:
         logger.warning(
-            "  OPENAQ_API_KEY env var not set — cannot fetch air quality data. "
+            "  OPENAQ_API_KEY env var not set -- cannot fetch air quality data. "
             "Register free at https://openaq.org/register and set the key:\n"
             "    set OPENAQ_API_KEY=your_key_here  (Windows)\n"
             "    export OPENAQ_API_KEY=your_key_here  (Linux/macOS)\n"
@@ -194,12 +192,12 @@ async def _fetch_all_stations(
             for param, threshold in DEFRA_THRESHOLDS.items():
                 df = await fetch_openaq_station_hours(loc_id, param, start_date, end_date, session)
                 if df.empty or len(df) < _MIN_READINGS:
-                    logger.debug(f"  {name}: {param} — {len(df)} readings (skip)")
+                    logger.debug(f"  {name}: {param} -- {len(df)} readings (skip)")
                     continue
                 station_rows[param] = df.set_index("timestamp")["value"]
 
             if not station_rows:
-                logger.warning(f"  {name}: no usable parameters — skipping station")
+                logger.warning(f"  {name}: no usable parameters -- skipping station")
                 continue
 
             # Merge parameters by timestamp
@@ -241,7 +239,7 @@ def build_openaq_label_df(
         logger.info(f"  Cached: {len(df)} station-hours, {df['label'].sum():.0f} positive")
         return df
 
-    logger.info(f"  Fetching OpenAQ measurements {start_date} → {end_date} ...")
+    logger.info(f"  Fetching OpenAQ measurements {start_date} -> {end_date} ...")
     # Use nest_asyncio so asyncio.run() works inside an already-running event loop
     # (the training pipeline itself is async).
     try:
@@ -252,7 +250,7 @@ def build_openaq_label_df(
     raw = asyncio.run(_fetch_all_stations(start_date, end_date))
 
     if raw.empty:
-        logger.warning("  OpenAQ returned no data — returning empty label DataFrame")
+        logger.warning("  OpenAQ returned no data -- returning empty label DataFrame")
         return pd.DataFrame(columns=["timestamp", "station_id", "label"])
 
     # Apply DEFRA thresholds: positive if ANY parameter exceeds its threshold

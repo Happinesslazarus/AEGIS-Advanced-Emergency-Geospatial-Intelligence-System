@@ -54,7 +54,7 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
   const abortRef = useRef<AbortController | null>(null)
 
   const fetchPredictions = useCallback(async (retries = 2) => {
-    // Cancel any in-flight request before starting a new one
+    //Cancel any in-flight request before starting a new one
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
@@ -103,7 +103,7 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
     return () => { abortRef.current?.abort() }
   }, [fetchPredictions])
 
-  // Auto-play animation
+  //Auto-play animation
   useEffect(() => {
     if (isPlaying) {
       playIntervalRef.current = setInterval(() => {
@@ -121,7 +121,7 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
     }
   }, [isPlaying])
 
-  // Notify parent of time changes
+  //Notify parent of time changes
   useEffect(() => {
     if (!onTimeChange) return
     const extents: any[] = []
@@ -142,7 +142,7 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
     if (idx > 0) setSelectedHour(timePoints[idx - 1])
   }
 
-  // Aggregate stats for selected time
+  //Aggregate stats for selected time
   const currentStats = predictions.reduce((acc, river) => {
     const pred = river.predictions?.find(p => p.hoursAhead === selectedHour) ||
       (selectedHour === 0 ? { predictedLevel: river.currentLevel, predictedStatus: river.currentStatus, confidence: 100, affectedProperties: 0, affectedPeople: 0 } : null)
@@ -160,7 +160,7 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
 
   return (
     <div className={`bg-white dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-2xl overflow-hidden ${className}`}>
-      {/* Header — collapsible */}
+      {/* Header -- collapsible */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="w-full px-4 py-2.5 border-b border-gray-200 dark:border-gray-700/40 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
@@ -175,7 +175,7 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
         <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-300 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`} />
       </button>
 
-      {/* Body — hidden when collapsed */}
+      {/* Body -- hidden when collapsed */}
       {!collapsed && (
         <>
       {/* Timeline slider */}

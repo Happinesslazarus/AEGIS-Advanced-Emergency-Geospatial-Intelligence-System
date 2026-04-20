@@ -50,14 +50,14 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
   const dateLocale = LOCALE_MAP[lang] || 'en-GB'
   const todayStr = new Date().toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
-  // Live clock
+  //Live clock
   const [clockStr, setClockStr] = useState(() => new Date().toLocaleTimeString(LOCALE_MAP[lang] || 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
   useEffect(() => {
     const id = setInterval(() => setClockStr(new Date().toLocaleTimeString(LOCALE_MAP[lang] || 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })), 1000)
     return () => clearInterval(id)
   }, [lang])
 
-  // Weather data
+  //Weather data
   const [weather, setWeather] = useState<{ temp?: number; windSpeed?: number; humidity?: number; description?: string } | null>(null)
   useEffect(() => {
     apiFetch<any>('/api/weather/current')
@@ -87,7 +87,7 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
     return key ? t(key, lang) : status
   }
 
-  // Keyboard shortcuts
+  //Keyboard shortcuts
   const [showKeyboard, setShowKeyboard] = useState(false)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -136,7 +136,7 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
             <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/15 rounded-xl px-4 py-2">
               <Thermometer className="w-4 h-4 text-amber-300 flex-shrink-0" />
               <div className="text-left">
-                <span className="text-sm font-black tabular-nums">{weather.temp != null ? `${Math.round(weather.temp)}°C` : '—'}</span>
+                <span className="text-sm font-black tabular-nums">{weather.temp != null ? `${Math.round(weather.temp)}°C` : '--'}</span>
                 <div className="flex items-center gap-2 text-[9px] text-white/60 font-medium">
                   {weather.windSpeed != null && <span className="flex items-center gap-0.5"><Wind className="w-2.5 h-2.5" />{Math.round(weather.windSpeed)} m/s</span>}
                   {weather.humidity != null && <span className="flex items-center gap-0.5"><Droplets className="w-2.5 h-2.5" />{weather.humidity}%</span>}
@@ -357,7 +357,7 @@ function StatCard({ icon: Icon, label, value, color, onClick, pulse, gauge }: { 
     cyan: 'from-cyan-500 to-teal-600',
   }
 
-  // Animated counter for numeric values
+  //Animated counter for numeric values
   const numericValue = typeof value === 'number' ? value : null
   const [displayVal, setDisplayVal] = useState(0)
   const mounted = useRef(false)

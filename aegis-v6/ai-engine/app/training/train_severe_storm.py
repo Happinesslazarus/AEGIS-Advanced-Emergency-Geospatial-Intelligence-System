@@ -36,7 +36,7 @@ class SevereStormPipeline(BaseHazardPipeline):
     LABEL_STRATEGY = (
         "Proxy labels from weather thresholds: storm=1 when "
         "wind_speed > 20 m/s OR 3-hour pressure drop > 5 hPa. "
-        "No verified storm observations used — WEAKLY SUPERVISED."
+        "No verified storm observations used -- WEAKLY SUPERVISED."
     )
     KNOWN_LIMITATIONS = (
         "Labels are derived from the same features used for prediction, "
@@ -80,7 +80,7 @@ class SevereStormPipeline(BaseHazardPipeline):
         # 3-hour temperature gradient
         df["temperature_gradient"] = df.groupby("location_id")["temperature"].diff(3).fillna(0)
 
-        # Seasonal encoding (month-of-year → sin/cos)
+ # Seasonal encoding (month-of-year -> sin/cos)
         month = df.index.month if hasattr(df.index, "month") else pd.to_datetime(df.index).month
         df["season_sin"] = np.sin(2 * math.pi * month / 12)
         df["season_cos"] = np.cos(2 * math.pi * month / 12)

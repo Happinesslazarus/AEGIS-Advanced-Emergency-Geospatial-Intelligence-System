@@ -1,5 +1,5 @@
 ﻿/**
- * Multi-channel notification dispatcher — initialises and manages SMTP email
+ * Multi-channel notification dispatcher -- initialises and manages SMTP email
  * (nodemailer), SMS/WhatsApp (Twilio), Telegram Bot API, and Web Push (VAPID)
  * with graceful degradation when credentials are not configured.
  *
@@ -13,7 +13,7 @@ import twilio from 'twilio'
 import webPush from 'web-push'
 import { logger } from './logger.js'
 
-// Configuration
+//Configuration
 
 const SMTP_CONFIG = {
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -47,12 +47,12 @@ const EMAIL_FROM_NAME = process.env.SMTP_FROM_NAME || 'AEGIS Alert System'
 const EMAIL_REPLY_TO = process.env.SMTP_REPLY_TO || process.env.SUPPORT_EMAIL || EMAIL_FROM
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || EMAIL_REPLY_TO
 
-// Clients
+//Clients
 
 let emailTransporter: nodemailer.Transporter | null = null
 let twilioClient: twilio.Twilio | null = null
 
-// Initialize email transporter
+//Initialize email transporter
 if (SMTP_CONFIG.auth.user && SMTP_CONFIG.auth.pass) {
   emailTransporter = nodemailer.createTransport(SMTP_CONFIG)
   logger.info('Email transporter initialized')
@@ -60,7 +60,7 @@ if (SMTP_CONFIG.auth.user && SMTP_CONFIG.auth.pass) {
   logger.warn('SMTP credentials not configured - email alerts disabled')
 }
 
-// Initialize Twilio client
+//Initialize Twilio client
 if (TWILIO_CONFIG.accountSid && TWILIO_CONFIG.accountSid.startsWith('AC') && TWILIO_CONFIG.authToken) {
   twilioClient = twilio(TWILIO_CONFIG.accountSid, TWILIO_CONFIG.authToken)
   logger.info('Twilio client initialized')
@@ -68,7 +68,7 @@ if (TWILIO_CONFIG.accountSid && TWILIO_CONFIG.accountSid.startsWith('AC') && TWI
   logger.warn('Twilio credentials not configured - SMS/WhatsApp alerts disabled')
 }
 
-// Telegram Bot API base URL
+//Telegram Bot API base URL
 const TELEGRAM_API_BASE = `https://api.telegram.org/bot${TELEGRAM_CONFIG.botToken}`
 
 if (TELEGRAM_CONFIG.botToken) {
@@ -77,7 +77,7 @@ if (TELEGRAM_CONFIG.botToken) {
   logger.warn('Telegram bot token not configured - Telegram alerts disabled')
 }
 
-// Initialize Web Push (VAPID)
+//Initialize Web Push (VAPID)
 if (!VAPID_CONFIG.publicKey || !VAPID_CONFIG.privateKey) {
   if (process.env.NODE_ENV !== 'production') {
     const generated = webPush.generateVAPIDKeys()
@@ -101,7 +101,7 @@ if (VAPID_CONFIG.publicKey && VAPID_CONFIG.privateKey) {
   logger.warn('VAPID keys not configured - Web Push alerts disabled')
 }
 
-// Alert Types & Interfaces
+//Alert Types & Interfaces
 
 export interface Alert {
   id: string
@@ -158,13 +158,13 @@ export interface DeliveryResult {
   timestamp: Date
 }
 
-// Simple E.164 validator
+//Simple E.164 validator
 function isValidE164Number(v: string | undefined) {
   if (!v) return false
   return /^\+[1-9]\d{1,14}$/.test(v)
 }
 
-// Simple retry helper for transient failures
+//Simple retry helper for transient failures
 async function retry<T>(fn: () => Promise<T>, attempts?: number, baseDelayMs?: number): Promise<T> {
   const maxAttempts = attempts ?? parseInt(process.env.NOTIFICATION_RETRY_ATTEMPTS || '3')
   const baseDelay = baseDelayMs ?? parseInt(process.env.NOTIFICATION_RETRY_BASE_MS || '500')
@@ -183,7 +183,7 @@ async function retry<T>(fn: () => Promise<T>, attempts?: number, baseDelayMs?: n
   throw lastErr
 }
 
-// Email Delivery
+//Email Delivery
 
 export async function sendEmailAlert(
   recipient: string,
@@ -243,9 +243,9 @@ export async function sendEmailAlert(
  * Converts the structured plain-text alert message into clean HTML.
  *
  * alert.message is a SINGLE LINE string (no real newlines) using these inline conventions:
- *   --- SECTION NAME ---   → appears as delimiter between sections
- *   1. text 2. text 3.     → numbered items separated only by spaces
- *   - text - text - text   → bullet items separated only by " - "
+ * --- SECTION NAME --- -> appears as delimiter between sections
+ * 1. text 2. text 3. -> numbered items separated only by spaces
+ * - text - text - text -> bullet items separated only by " - "
  *
  * The preamble before the first --- (duplicates info in the header table) is stripped.
  */
@@ -261,12 +261,12 @@ function formatAlertMessageHTML(message: string, accentColor: string): string {
     'CONTEXT':                 '#4b5563',
   }
 
-  // Strip everything before the first section marker — that preamble just
-  // repeats location / severity / ref which are already in the header table.
+  //Strip everything before the first section marker -- that preamble just
+  //repeats location / severity / ref which are already in the header table.
   const firstMarker = message.indexOf('---')
   const body = firstMarker > 0 ? message.substring(firstMarker) : message
 
-  // Split on --- SECTION NAME --- tokens (keep the markers via capture group)
+  //Split on --- SECTION NAME --- tokens (keep the markers via capture group)
   const parts = body.split(/(---[^-]+---)/g)
   const html: string[] = []
 
@@ -274,7 +274,7 @@ function formatAlertMessageHTML(message: string, accentColor: string): string {
     const trimmed = part.trim()
     if (!trimmed) continue
 
-    // --- SECTION HEADING ---
+    //SECTION HEADING
     const sectionMatch = trimmed.match(/^---\s*(.+?)\s*---$/)
     if (sectionMatch) {
       const label = sectionMatch[1].trim()
@@ -289,8 +289,8 @@ function formatAlertMessageHTML(message: string, accentColor: string): string {
       continue
     }
 
-    // CONTENT BLOCK — the text between section markers.
-    // It is a single line; parse in priority order: numbered list → bullet list → paragraph.
+    //CONTENT BLOCK -- the text between section markers.
+ //It is a single line; parse in priority order: numbered list -> bullet list -> paragraph.
     html.push(renderInlineContent(trimmed))
   }
 
@@ -301,21 +301,21 @@ function formatAlertMessageHTML(message: string, accentColor: string): string {
 /**
  * Renders a single content block as HTML, handling three inline formats:
  *
- * Numbered list  – "1. text 2. text 3. text"
+ * Numbered list  - "1. text 2. text 3. text"
  *   split on whitespace immediately before a lone digit+dot/paren+space
  *
- * Bullet list    – "- text - text - text"  (starts with "- ")
+ * Bullet list    - "- text - text - text"  (starts with "- ")
  *   split on " - " (space-hyphen-space)
  *
- * Paragraph      – everything else, rendered as a single <p>
+ * Paragraph      - everything else, rendered as a single <p>
  */
 function renderInlineContent(text: string): string {
   const t = text.trim()
   if (!t) return ''
 
-  // ── Numbered list ────────────────────────────────────────────────────────
-  // Match "1. text 2. text …" — split just before each new "N. " or "N) "
-  // The lookbehind (?<!\d) prevents splitting inside numbers like "2-10km"
+  //Numbered list
+  //Match "1. text 2. text ..." -- split just before each new "N. " or "N) "
+  //The lookbehind (?<!\d) prevents splitting inside numbers like "2-10km"
   const numParts = t.split(/\s+(?=\d+[.)]\s)/).map(s => s.trim()).filter(Boolean)
   const numItems = numParts.filter(s => /^\d+[.)]\s/.test(s))
   if (numItems.length >= 2) {
@@ -331,10 +331,10 @@ function renderInlineContent(text: string): string {
     return lines.join('\n')
   }
 
-  // ── Bullet list ─────────────────────────────────────────────────────────
-  // Convention: section content starts with "- item - item - item"
+  //Bullet list
+  //Convention: section content starts with "- item - item - item"
   if (t.startsWith('- ')) {
-    // Split on " - " (space-hyphen-space); the first chunk starts with "- " so strip it
+    //Split on " - " (space-hyphen-space); the first chunk starts with "- " so strip it
     const bParts = t.split(/ - /).map(s => s.replace(/^-\s*/, '').trim()).filter(Boolean)
     if (bParts.length >= 2) {
       const lines: string[] = []
@@ -345,11 +345,11 @@ function renderInlineContent(text: string): string {
     }
   }
 
-  // ── Plain paragraph ──────────────────────────────────────────────────────
+  //Plain paragraph
   return `<p style="font-size:13px;color:#374151;line-height:1.7;margin:0 0 12px 0">${escapeHtml(t)}</p>`
 }
 
-/** Minimal HTML entity escaping — prevent XSS in email body */
+/** Minimal HTML entity escaping -- prevent XSS in email body */
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -495,24 +495,24 @@ To unsubscribe, reply with "unsubscribe".
   `.trim()
 }
 
-// ─── Plain-text / channel-specific message formatters ────────────────────────
+//Plain-text / channel-specific message formatters
 
 /**
  * Formats the raw alert.message string for plain-text channels (SMS, WhatsApp,
  * email plain-text fallback).
  *
  * The raw message is a single line containing inline markers:
- *   "--- SECTION NAME ---"  → section header
- *   "1. text 2. text …"    → numbered list (space-separated)
- *   "- item - item …"      → bullet list (' - ' separated)
+ * "--- SECTION NAME ---" -> section header
+ * "1. text 2. text ..." -> numbered list (space-separated)
+ * "- item - item ..." -> bullet list (' - ' separated)
  *   text before first '---' = preamble (stripped)
  */
 function formatAlertMessagePlainText(message: string): string {
-  // Strip preamble before first --- marker
+  //Strip preamble before first --- marker
   const firstMarker = message.indexOf('---')
   const body = firstMarker >= 0 ? message.slice(firstMarker) : message
 
-  // Split on --- SECTION NAME --- delimiters
+  //Split on --- SECTION NAME --- delimiters
   const parts = body.split(/(---[^-]+---)/)
 
   const lines: string[] = []
@@ -522,13 +522,13 @@ function formatAlertMessagePlainText(message: string): string {
     const part = parts[i].trim()
     if (!part) continue
 
-    // Section header
+    //Section header
     const sectionMatch = part.match(/^---\s*(.+?)\s*---$/)
     if (sectionMatch) {
       const sectionName = sectionMatch[1].trim()
       if (sectionName === 'END OF ALERT') break
       if (inSection) lines.push('')
-      lines.push(`— ${sectionName} —`)
+      lines.push(`-- ${sectionName} --`)
       inSection = true
       continue
     }
@@ -536,7 +536,7 @@ function formatAlertMessagePlainText(message: string): string {
     const text = part.trim()
     if (!text) continue
 
-    // Detect inline numbered list: "1. text 2. text 3. text"
+    //Detect inline numbered list: "1. text 2. text 3. text"
     if (/\d+[.)]\s/.test(text)) {
       const items = text.split(/\s+(?=\d+[.)]\s)/).filter(Boolean)
       if (items.length > 1) {
@@ -545,12 +545,12 @@ function formatAlertMessagePlainText(message: string): string {
       }
     }
 
-    // Detect inline bullet list: "- item - item" or "item - item - item"
+    //Detect inline bullet list: "- item - item" or "item - item - item"
     if (text.startsWith('- ') || text.split(' - ').length > 2) {
       const items = text.split(' - ')
       for (const item of items) {
         const trimmed = item.trim()
-        if (trimmed) lines.push(`• ${trimmed}`)
+        if (trimmed) lines.push(`- ${trimmed}`)
       }
       continue
     }
@@ -571,7 +571,7 @@ function formatAlertMessageTelegram(message: string): string {
   return plain
     .split('\n')
     .map(line => {
-      if (line.startsWith('— ') && line.endsWith(' —')) {
+      if (line.startsWith('-- ') && line.endsWith(' --')) {
         return `*${escapeMdV2(line)}*`
       }
       return escapeMdV2(line)
@@ -585,10 +585,10 @@ function formatAlertMessageTelegram(message: string): string {
  */
 function extractAlertSummary(message: string, maxLen = 120): string {
   const clean = message.replace(/---[^-]+---/g, ' ').replace(/\s+/g, ' ').trim()
-  return clean.length > maxLen ? clean.substring(0, maxLen - 1) + '…' : clean
+  return clean.length > maxLen ? clean.substring(0, maxLen - 1) + '...' : clean
 }
 
-// SMS Delivery (Twilio)
+//SMS Delivery (Twilio)
 
 export async function sendSMSAlert(
   recipient: string,
@@ -635,7 +635,7 @@ export async function sendSMSAlert(
     }
   } catch (error: any) {
     logger.error({ recipient, err: error }, 'SMS delivery failed')
-    // Helpful hint for Twilio trial accounts
+    //Helpful hint for Twilio trial accounts
     const hint = (error?.message || '').includes('Invalid') ? ' (check E.164 format or Twilio trial restrictions)' : ''
     return {
       channel: 'sms',
@@ -655,7 +655,7 @@ function generateSMSText(alert: Alert): string {
   return `AEGIS ${alert.severity.toUpperCase()} ALERT\n${name}${alert.title}\n${recipient.line}\nLocation: ${alert.area}\nType: ${alert.type.replace(/_/g, ' ')}\n${ts} | Ref: ${refId}\n\n${formatAlertMessagePlainText(alert.message)}${alert.actionRequired ? `\n\nACTION: ${alert.actionRequired}` : ''}${alert.expiresAt ? `\nExpires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}` : ''}`
 }
 
-// WhatsApp Delivery (Twilio)
+//WhatsApp Delivery (Twilio)
 
 export async function sendWhatsAppAlert(
   recipient: string,
@@ -673,7 +673,7 @@ export async function sendWhatsAppAlert(
   }
 
   try {
-    // WhatsApp requires recipient in whatsapp:+E164 format
+    //WhatsApp requires recipient in whatsapp:+E164 format
     const rawRecipient = recipient.startsWith('whatsapp:') ? recipient.replace('whatsapp:', '') : recipient
     if (!isValidE164Number(rawRecipient)) {
       return {
@@ -738,7 +738,7 @@ Stay safe and follow official guidance.
 _AEGIS Emergency Management System_`
 }
 
-// Telegram Delivery (Bot API)
+//Telegram Delivery (Bot API)
 
 export async function sendTelegramAlert(
   chatId: string,
@@ -758,13 +758,13 @@ export async function sendTelegramAlert(
   try {
     const telegramText = generateTelegramText(alert)
 
-    // If a username (@name) is provided, attempt to resolve it to a numeric id first
+    //If a username (@name) is provided, attempt to resolve it to a numeric id first
     let sendTo: string | number = chatId
     if (typeof chatId === 'string' && chatId.startsWith('@')) {
       const username = chatId.slice(1).toLowerCase()
       let resolved = false
 
-      // Method 1: Try getChat (works for public channels/groups)
+      //Method 1: Try getChat (works for public channels/groups)
       try {
         const g = await fetch(`${TELEGRAM_API_BASE}/getChat?chat_id=${encodeURIComponent(chatId)}`)
         const gd = await g.json()
@@ -774,7 +774,7 @@ export async function sendTelegramAlert(
         }
       } catch { /* continue to fallback */ }
 
-      // Method 2: Scan recent bot updates for a matching username (works for private chats)
+      //Method 2: Scan recent bot updates for a matching username (works for private chats)
       if (!resolved) {
         try {
           const u = await fetch(`${TELEGRAM_API_BASE}/getUpdates?limit=100`)
@@ -794,7 +794,7 @@ export async function sendTelegramAlert(
       }
 
       if (!resolved) {
-        // keep username; sendMessage will fail but error message will be clear
+        //keep username; sendMessage will fail but error message will be clear
         sendTo = chatId
       }
     }
@@ -875,7 +875,7 @@ function generateTelegramText(alert: Alert): string {
   return text
 }
 
-// Web Push Delivery (VAPID)
+//Web Push Delivery (VAPID)
 
 export async function sendWebPushAlert(
   subscription: webPush.PushSubscription,
@@ -903,7 +903,7 @@ export async function sendWebPushAlert(
 
     const payload = JSON.stringify({
       title: `AEGIS ${severityLabel}: ${alert.title}`,
-      body: `${namePrefix}${alert.area} — ${alert.type.replace(/_/g, ' ')} — ${issuedAt.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}\n${extractAlertSummary(alert.message)}${alert.actionRequired ? ' | ' + alert.actionRequired : ''}`,
+      body: `${namePrefix}${alert.area} -- ${alert.type.replace(/_/g, ' ')} -- ${issuedAt.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}\n${extractAlertSummary(alert.message)}${alert.actionRequired ? ' | ' + alert.actionRequired : ''}`,
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-96x96.png',
       tag: alert.id,
@@ -929,7 +929,7 @@ export async function sendWebPushAlert(
     }
   } catch (error: any) {
     logger.error({ err: error }, 'Web Push delivery failed')
-    // Detect expired/unregistered subscriptions (410 Gone, 404 Not Found)
+    //Detect expired/unregistered subscriptions (410 Gone, 404 Not Found)
     const statusCode = error?.statusCode as number | undefined
     const expired = statusCode === 410 || statusCode === 404
     return {
@@ -943,7 +943,7 @@ export async function sendWebPushAlert(
   }
 }
 
-// Multi-Channel Delivery
+//Multi-Channel Delivery
 
 export async function sendMultiChannelAlert(
   recipient: AlertRecipient,
@@ -953,7 +953,7 @@ export async function sendMultiChannelAlert(
   const results: DeliveryResult[] = []
   const promises: Promise<DeliveryResult>[] = []
 
-  // Send to all requested channels in parallel
+  //Send to all requested channels in parallel
   if (channels.includes('email') && recipient.email) {
     promises.push(sendEmailAlert(recipient.email, alert))
   }
@@ -974,10 +974,10 @@ export async function sendMultiChannelAlert(
     promises.push(sendWebPushAlert(recipient.web_push_subscription, alert))
   }
 
-  // Wait for all deliveries
+  //Wait for all deliveries
   const deliveryResults = await Promise.allSettled(promises)
 
-  // Collect results
+  //Collect results
   for (const result of deliveryResults) {
     if (result.status === 'fulfilled') {
       results.push(result.value)
@@ -991,7 +991,7 @@ export async function sendMultiChannelAlert(
     }
   }
 
-  // Log summary
+  //Log summary
   const successful = results.filter(r => r.success).length
   const failed = results.length - successful
   logger.info({ alertId: alert.id, successful, failed }, 'Alert delivery summary')
@@ -999,7 +999,7 @@ export async function sendMultiChannelAlert(
   return results
 }
 
-// Subscription Matching & Batch Delivery
+//Subscription Matching & Batch Delivery
 
  /*
  * Broadcast an alert to all subscribers with concurrency-limited parallel delivery.
@@ -1018,7 +1018,7 @@ export async function sendAlertToSubscribers(
 
   const allResults: DeliveryResult[] = []
 
-  // Process in batches of `concurrency` to avoid exhausting OS socket limits
+  //Process in batches of `concurrency` to avoid exhausting OS socket limits
   for (let i = 0; i < subscriptions.length; i += concurrency) {
     const batch = subscriptions.slice(i, i + concurrency)
 
@@ -1061,7 +1061,7 @@ export async function sendAlertToSubscribers(
   }
 }
 
-// Health Check
+//Health Check
 
 export function getNotificationServiceStatus() {
   return {

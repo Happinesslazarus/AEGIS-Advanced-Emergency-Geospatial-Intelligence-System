@@ -8,7 +8,7 @@ import { Router, Request, Response } from 'express'
 import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 
 export function setupLandslideRoutes(router: Router): void {
-  // GET /risk-zones — landslide risk zones
+  //GET /risk-zones -- landslide risk zones
   router.get('/risk-zones', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
@@ -23,7 +23,7 @@ export function setupLandslideRoutes(router: Router): void {
     }
   })
 
-  // GET /soil-moisture — soil moisture levels
+  //GET /soil-moisture -- soil moisture levels
   router.get('/soil-moisture', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
@@ -38,7 +38,7 @@ export function setupLandslideRoutes(router: Router): void {
     }
   })
 
-  // GET /rainfall-accumulation — recent rainfall accumulation
+  //GET /rainfall-accumulation -- recent rainfall accumulation
   router.get('/rainfall-accumulation', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)

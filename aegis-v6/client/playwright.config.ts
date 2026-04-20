@@ -8,9 +8,9 @@
  *
  * Key settings:
  * - baseURL: http://localhost:5173 (dev server) or E2E_BASE_URL env var
- * - trace: on-first-retry    — captures Playwright trace on flaky retries
- * - screenshot: only-on-failure — saves screenshots when a test fails
- * - webServer              — in CI, starts `npm run preview` on port 4173
+ * - trace: on-first-retry    -- captures Playwright trace on flaky retries
+ * - screenshot: only-on-failure -- saves screenshots when a test fails
+ * - webServer              -- in CI, starts `npm run preview` on port 4173
  *
  * How it connects:
  * - Run with: npx playwright test (from aegis-v6/client/)

@@ -44,7 +44,7 @@ HAZARD_LABELS = [
     "tsunami", "heatwave", "other",
 ]
 
-# Data loading — works with or without HuggingFace `datasets` library
+# Data loading -- works with or without HuggingFace `datasets` library
 
 def _download_humaid() -> pd.DataFrame:
     """
@@ -66,7 +66,7 @@ def _download_humaid() -> pd.DataFrame:
         logger.success(f"HumAID loaded from local CSV: {len(df)} rows")
         return df
 
-    logger.warning("HumAID not available — no synthetic fallback, skipping")
+    logger.warning("HumAID not available -- no synthetic fallback, skipping")
     return pd.DataFrame()
 
 def _download_crisislex() -> pd.DataFrame:
@@ -89,7 +89,7 @@ def _download_crisislex() -> pd.DataFrame:
         logger.success(f"CrisisLex loaded from local CSV: {len(df)} rows")
         return df
 
-    logger.warning("CrisisLex not available — skipping")
+    logger.warning("CrisisLex not available -- skipping")
     return pd.DataFrame()
 
 def _download_crisisnlp_crowdflower() -> pd.DataFrame:
@@ -112,7 +112,7 @@ def _download_crisisnlp_crowdflower() -> pd.DataFrame:
         logger.success(f"CrisisNLP Crowdflower loaded from local CSV: {len(df)} rows")
         return df
 
-    logger.warning("CrisisNLP Crowdflower not available — skipping")
+    logger.warning("CrisisNLP Crowdflower not available -- skipping")
     return pd.DataFrame()
 
 def _download_crisisbench() -> pd.DataFrame:
@@ -135,13 +135,13 @@ def _download_crisisbench() -> pd.DataFrame:
         logger.success(f"CrisisBench loaded from local CSV: {len(df)} rows")
         return df
 
-    logger.warning("CrisisBench not available — skipping")
+    logger.warning("CrisisBench not available -- skipping")
     return pd.DataFrame()
 
 def _load_aegis_db_reports() -> pd.DataFrame:
     """
     Load real disaster report text from the AEGIS PostgreSQL database.
-    These are verified citizen reports — the highest-quality training data.
+    These are verified citizen reports -- the highest-quality training data.
     """
     import asyncio
 
@@ -454,7 +454,7 @@ def main():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"=== AEGIS Crisis NLP Fine-Tuning: {args.task} ===")
-    logger.info("Policy: REAL DATA ONLY — no synthetic generation, no fallbacks")
+    logger.info("Policy: REAL DATA ONLY -- no synthetic generation, no fallbacks")
 
     # Load data from ALL available real sources
     dfs = []
@@ -477,10 +477,10 @@ def main():
     if not dfs:
         error_msg = (
             "TRAINING ABORTED: No real datasets available.\n\n"
-            "AEGIS requires REAL training data — no synthetic fallback is permitted.\n\n"
+            "AEGIS requires REAL training data -- no synthetic fallback is permitted.\n\n"
             "To obtain training data, do one or more of the following:\n"
             "  1. Install HuggingFace datasets: pip install datasets\n"
-            "     Then re-run — HumAID (77K) and CrisisLex (60K) will download automatically.\n"
+            "     Then re-run -- HumAID (77K) and CrisisLex (60K) will download automatically.\n"
             "  2. Place CSV files in: {data_dir}\n"
             "     Expected files: humaid_train.csv, crisislex_train.csv, crisisnlp_crowdflower.csv\n"
             "  3. Populate the AEGIS database with verified citizen reports.\n"
@@ -509,7 +509,7 @@ def main():
         )
         logger.success(f"Training complete. Results: {json.dumps({k:v for k,v in result.items() if k != 'classification_report'}, indent=2, default=str)}")
     else:
-        logger.warning(f"Task '{args.task}' not yet implemented — sentiment is the recommended starting point")
+        logger.warning(f"Task '{args.task}' not yet implemented -- sentiment is the recommended starting point")
 
 if __name__ == "__main__":
     main()

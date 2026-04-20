@@ -5,7 +5,7 @@ _fix_severity_labels AI engine module.
 import os
 """
 Fix severity labels in training data so they match text content.
-The original seed data randomly assigned severities â€” a 'minor puddle' report
+The original seed data randomly assigned severities â€" a 'minor puddle' report
 could be labeled 'critical'. This makes it impossible for ML to learn patterns.
 
 This script:
@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 
 DB_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
-# â”€â”€ Severity keyword banks with weights â”€â”€
+# â"€â"€ Severity keyword banks with weights â"€â"€
 CRITICAL_KEYWORDS = {
     'catastrophic': 5, 'devastating': 5, 'life-threatening': 5, 'mass casualty': 5,
     'multiple deaths': 5, 'fatalities': 5, 'dam breach': 5, 'bridge collapse': 5,
@@ -96,11 +96,11 @@ def compute_severity(text: str) -> str:
     return best
 
 
-# â”€â”€ NEW reports with severity-appropriate descriptions â”€â”€
+# â"€â"€ NEW reports with severity-appropriate descriptions â"€â"€
 # Each tuple: (category, display_type, description, CORRECT_severity)
 
 NEW_REPORTS = [
-    # â•â•â•â•â•â• CRITICAL â•â•â•â•â•â•
+    # â-â-â-â-â-â- CRITICAL â-â-â-â-â-â-
     ("natural_disaster", "Flood", "EMERGENCY DECLARED: Catastrophic flooding across Perth city centre. River Tay at highest level in 200 years. Multiple properties completely submerged. Mass evacuation of 3,000 residents underway. Life-threatening conditions. Emergency shelters at capacity.", "critical"),
     ("natural_disaster", "Flood", "Dam breach at Loch Faskally near Pitlochry. Devastating wall of water moving downstream. All residents within 5km must evacuate immediately. Multiple fatalities feared. Air ambulance and military deployed.", "critical"),
     ("natural_disaster", "Flood", "Bridge collapse on A9 at Dunkeld due to catastrophic flood waters. Multiple vehicles swept into river. Emergency rescue operations underway. Structural collapse of adjacent buildings reported. Mass casualty incident declared.", "critical"),
@@ -116,7 +116,7 @@ NEW_REPORTS = [
     ("public_safety", "Public Safety", "Chemical plant explosion at Grangemouth. Massive toxic plume spreading east. Emergency declared. Mass evacuation of 10,000 residents. Multiple casualties. Hazmat teams overwhelmed. Life-threatening air quality.", "critical"),
     ("public_safety", "Public Safety", "Gas main rupture causes explosion in Coatbridge residential street. Multiple houses destroyed. Confirmed fatalities. Air ambulance and multiple emergency crews on scene. Structural collapse ongoing.", "critical"),
 
-    # â•â•â•â•â•â• HIGH â•â•â•â•â•â•
+    # â-â-â-â-â-â- HIGH â-â-â-â-â-â-
     ("natural_disaster", "Flood", "River Tay burst its banks near Perth city centre. Water level rising rapidly with several streets submerged. Emergency services responding to trapped residents. Evacuations underway for riverside properties.", "high"),
     ("natural_disaster", "Flood", "Severe flooding on A9 near Inverness. Road completely impassable with multiple vehicles stranded. Rising water threatening adjacent properties. Emergency services deploying rescue boats.", "high"),
     ("natural_disaster", "Flood", "Severe flood damage in Ballater. River Dee breached flood defences on east bank. Multiple properties inundated. Emergency evacuation of care home underway. Significant structural damage to buildings.", "high"),
@@ -146,7 +146,7 @@ NEW_REPORTS = [
     ("public_safety", "Public Safety", "Building deemed structurally unsafe after survey in Aberdeen. Emergency evacuation of 40 tenants. Adjacent buildings assessed for structural risk. Significant cordon in city centre.", "high"),
     ("environmental", "Environmental Hazard", "Significant oil spill in Firth of Clyde. SEPA deploying emergency containment booms. Marine wildlife rescue operations. Beach closures across three kilometres. Fishing ban imposed.", "high"),
 
-    # â•â•â•â•â•â• MEDIUM â•â•â•â•â•â•
+    # â-â-â-â-â-â- MEDIUM â-â-â-â-â-â-
     ("natural_disaster", "Flood", "Coastal flooding at Stonehaven harbour. Storm surge combined with high tide causing localised inundation. Harbour area affected. Some road closures. Council monitoring situation.", "medium"),
     ("natural_disaster", "Flood", "Surface water flooding across Glasgow southside. Drainage systems struggling with sustained heavy rain. Some localised ponding on roads. Council teams deploying.", "medium"),
     ("natural_disaster", "Flood", "Agricultural flooding near Stirling. Several farms reporting waterlogged fields. Livestock moved to higher ground as precaution. No residential properties affected.", "medium"),
@@ -181,7 +181,7 @@ NEW_REPORTS = [
     ("environmental", "Environmental Hazard", "Air quality advisory for Glasgow due to temperature inversion. Asthma sufferers advised to carry inhalers. Situation expected to clear within 24 hours.", "medium"),
     ("environmental", "Environmental Hazard", "Chemical drums washed up on beach near Dunbar. SEPA and coastguard investigating. Beach section closed as precaution. No contamination confirmed.", "medium"),
 
-    # â•â•â•â•â•â• LOW â•â•â•â•â•â•
+    # â-â-â-â-â-â- LOW â-â-â-â-â-â-
     ("natural_disaster", "Flood", "Minor surface water on side roads near Linlithgow. No properties affected. Water self-draining through existing drainage. No action required.", "low"),
     ("natural_disaster", "Flood", "Small burn slightly above normal level near Crieff. Well within banks. Monitoring only. No risk to properties. No action required.", "low"),
     ("natural_disaster", "Flood", "Puddle accumulation on A71 near Bathgate. No lane closures needed. Drivers advised of minor spray. Self-clearing as rain stops.", "low"),
@@ -227,7 +227,7 @@ names = ["A. Smith", "B. Jones", "C. Brown", "D. Wilson", "E. Taylor",
 async def main():
     conn = await asyncpg.connect(DB_URL)
 
-    # â”€â”€ Step 1: Re-label existing reports based on text content â”€â”€
+    # â"€â"€ Step 1: Re-label existing reports based on text content â"€â"€
     print("Step 1: Re-labeling existing reports based on text content...")
     rows = await conn.fetch("""
         SELECT id, description, severity::text as severity
@@ -244,7 +244,7 @@ async def main():
             relabeled += 1
     print(f"  Re-labeled {relabeled}/{len(rows)} reports")
 
-    # â”€â”€ Step 2: Insert new severity-correct reports â”€â”€
+    # â"€â"€ Step 2: Insert new severity-correct reports â"€â"€
     print(f"Step 2: Inserting {len(NEW_REPORTS)} new severity-correct reports...")
     random.seed(123)
     base_time = datetime(2026, 2, 1)
@@ -277,7 +277,7 @@ async def main():
         except Exception as e:
             print(f"  Error: {e}")
 
-    # â”€â”€ Step 3: Show distribution â”€â”€
+    # â"€â"€ Step 3: Show distribution â"€â"€
     total = await conn.fetchval("SELECT count(*) FROM reports WHERE deleted_at IS NULL")
     rows = await conn.fetch("""
         SELECT severity::text as sev, count(*) as c

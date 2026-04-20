@@ -6,17 +6,17 @@
  *
  * AEGIS incident system overview:
  *   The server exposes a versioned REST API at /api/v1/incidents/.
- *   Each incident type (flood, fire, earthquake…) has its own sub-routes:
- *     /api/v1/incidents/registry         — list all registered incident types
- *     /api/v1/incidents/all/dashboard    — aggregated counts across all types
- *     /api/v1/incidents/<type>/active    — live reports for one type
- *     /api/v1/incidents/<type>/predictions — ML-generated risk forecasts
- *     /api/v1/incidents/<type>/alerts    — official alerts (SEPA, Met Office, etc.)
- *     /api/v1/incidents/<type>/map       — GeoJSON markers for the map layer
- *     /api/v1/incidents/<type>/history   — historical data (last N days)
- *     /api/v1/incidents/<type>/report    — citizen report submission (POST)
- *     /api/v1/incidents/flood/threat     — curent flood threat level
- *     /api/v1/incidents/flood/evacuation-route — suggested evacuation path
+ *   Each incident type (flood, fire, earthquake...) has its own sub-routes:
+ *     /api/v1/incidents/registry         -- list all registered incident types
+ *     /api/v1/incidents/all/dashboard    -- aggregated counts across all types
+ *     /api/v1/incidents/<type>/active    -- live reports for one type
+ *     /api/v1/incidents/<type>/predictions -- ML-generated risk forecasts
+ *     /api/v1/incidents/<type>/alerts    -- official alerts (SEPA, Met Office, etc.)
+ *     /api/v1/incidents/<type>/map       -- GeoJSON markers for the map layer
+ *     /api/v1/incidents/<type>/history   -- historical data (last N days)
+ *     /api/v1/incidents/<type>/report    -- citizen report submission (POST)
+ *     /api/v1/incidents/flood/threat     -- curent flood threat level
+ *     /api/v1/incidents/flood/evacuation-route -- suggested evacuation path
  *
  * Glossary:
  *   global.fetch            = replaced with a vi.fn() mock so tests never make real HTTP calls
@@ -26,8 +26,8 @@
  *   mockFetch.mockResolvedValue() = makes the mock return a resolved Promise with the given value
  *   mockFetch.mockRejectedValue() = makes the mock return a rejected Promise (simulates error)
  *   vi.clearAllMocks()      = resets call counts / implementations before each test
- *   expect.stringContaining() = partial URL match — URL structure not exact
- *   expect.objectContaining() = partial object match — extra keys are allowed
+ *   expect.stringContaining() = partial URL match -- URL structure not exact
+ *   expect.objectContaining() = partial object match -- extra keys are allowed
  *   ok: true/false          = fetch Response property; false means HTTP 4xx/5xx
  *   Bearer token            = Authorization: Bearer <jwt> header appended to all requests
  *   getToken()              = returns the stored staff JWT
@@ -40,7 +40,7 @@
  *   IncidentDashboardSummary = aggregated counts (totalAlerts, totalPredictions) + per-type breakdown
  *   aiTier                  = level of AI used: 'ml' (trained model), 'statistical', 'rule_based'
  *   operationalStatus       = 'fully_operational' | 'degraded' | 'offline'
- *   confidence              = 0–1 probability that the prediction is accurate
+ *   confidence              = 0-1 probability that the prediction is accurate
  *   confidenceSource        = who calculated the confidence ('ml_model' | 'statistical' | 'rule_based')
  *   severity                = 'low' | 'medium' | 'high' | 'critical'
  *   region                  = geographic filter string, e.g. 'scotland', 'edinburgh'
@@ -51,23 +51,21 @@
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// ---------------------------------------------------------------------------
-// Mock setup — must come before imports so hoisting takes effect
-// ---------------------------------------------------------------------------
+//Mock setup -- must come before imports so hoisting takes effect
 
-// Replace the global fetch with a mock so no real HTTP requests are made
+//Replace the global fetch with a mock so no real HTTP requests are made
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
-// api module: getToken returns a dummy staff JWT
+//api module: getToken returns a dummy staff JWT
 vi.mock('../utils/api', () => ({
   getToken: vi.fn(() => 'test-token-123'),
 }))
 
-// Set the base URL environment variable that incidentApi reads from import.meta.env
+//Set the base URL environment variable that incidentApi reads from import.meta.env
 vi.stubEnv('VITE_API_BASE_URL', 'http://localhost:3000')
 
-// Import after mocking so the mocked versions are resolved at module init time
+//Import after mocking so the mocked versions are resolved at module init time
 import {
   apiGetIncidentRegistry,
   apiGetIncidentDashboard,
@@ -90,9 +88,7 @@ import {
   type IncidentDashboardSummary,
 } from '../utils/incidentApi'
 
-// ---------------------------------------------------------------------------
-// incidentApi function tests
-// ---------------------------------------------------------------------------
+//incidentApi function tests
 describe('incidentApi', () => {
   beforeEach(() => {
     vi.clearAllMocks() // reset call counts and mock implementations
@@ -103,12 +99,10 @@ describe('incidentApi', () => {
     vi.restoreAllMocks() // undo any spy wrappers added during the test
   })
 
-  // ---------------------------------------------------------------------------
-  // apiGetIncidentRegistry — fetch the list of supported incident types
-  // ---------------------------------------------------------------------------
+  //apiGetIncidentRegistry -- fetch the list of supported incident types
   describe('apiGetIncidentRegistry', () => {
     test('fetches registry successfully', async () => {
-      // Mock a valid server response with one flood module
+      //Mock a valid server response with one flood module
       const mockRegistry = {
         modules: [
           {
@@ -130,7 +124,7 @@ describe('incidentApi', () => {
       
       const result = await apiGetIncidentRegistry()
       
-      // Verify the function builds the correct URL with /registry suffix
+      //Verify the function builds the correct URL with /registry suffix
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/api/v1/incidents/registry'),
         expect.objectContaining({
@@ -144,15 +138,15 @@ describe('incidentApi', () => {
     })
 
     test('handles network error', async () => {
-      // Simulate complete network failure (DNS error, no internet, etc.)
+      //Simulate complete network failure (DNS error, no internet, etc.)
       mockFetch.mockRejectedValue(new Error('Network error'))
       
-      // incidentApi wraps the error in a user-friendly message
+      //incidentApi wraps the error in a user-friendly message
       await expect(apiGetIncidentRegistry()).rejects.toThrow('Cannot connect to incident API.')
     })
 
     test('handles non-ok response', async () => {
-      // Simulate a 500 Internal Server Error from the backend
+      //Simulate a 500 Internal Server Error from the backend
       mockFetch.mockResolvedValue({
         ok: false,          // HTTP 5xx
         status: 500,
@@ -163,11 +157,9 @@ describe('incidentApi', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // apiGetIncidentDashboard — aggregated summary across all incident types
-  // ---------------------------------------------------------------------------
+  //apiGetIncidentDashboard -- aggregated summary across all incident types
   describe('apiGetIncidentDashboard', () => {
-    // Reusable mock response shape matching IncidentDashboardSummary
+    //Reusable mock response shape matching IncidentDashboardSummary
     const mockDashboard: IncidentDashboardSummary = {
       region: 'scotland',
       generatedAt: '2024-01-15T10:00:00Z',
@@ -189,7 +181,7 @@ describe('incidentApi', () => {
     }
 
     test('fetches dashboard without region filter', async () => {
-      // When no region arg is passed, URL should not include ?region=
+      //When no region arg is passed, URL should not include ?region
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockDashboard),
@@ -205,7 +197,7 @@ describe('incidentApi', () => {
     })
 
     test('fetches dashboard with region filter', async () => {
-      // Passing 'scotland' adds ?region=scotland to the query string
+      //Passing 'scotland' adds ?region=scotland to the query string
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockDashboard),
@@ -220,9 +212,7 @@ describe('incidentApi', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // apiGetAllIncidentPredictions — ML forecasts for all incident types combined
-  // ---------------------------------------------------------------------------
+  //apiGetAllIncidentPredictions -- ML forecasts for all incident types combined
   describe('apiGetAllIncidentPredictions', () => {
     test('fetches all predictions', async () => {
       const mockPredictions = {
@@ -254,9 +244,7 @@ describe('incidentApi', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // apiGetAllIncidentAlerts — official warnings from SEPA / Met Office etc.
-  // ---------------------------------------------------------------------------
+  //apiGetAllIncidentAlerts -- official warnings from SEPA / Met Office etc.
   describe('apiGetAllIncidentAlerts', () => {
     test('fetches all alerts', async () => {
       const mockAlerts = {
@@ -288,9 +276,7 @@ describe('incidentApi', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // apiGetAllIncidentMapData — GeoJSON pins for all incident types
-  // ---------------------------------------------------------------------------
+  //apiGetAllIncidentMapData -- GeoJSON pins for all incident types
   describe('apiGetAllIncidentMapData', () => {
     test('fetches map data for all incidents', async () => {
       const mockMapData = {
@@ -326,12 +312,10 @@ describe('incidentApi', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // apiGetIncidentActive — live citizen/sensor reports for a single type
-  // ---------------------------------------------------------------------------
+  //apiGetIncidentActive -- live citizen/sensor reports for a single type
   describe('apiGetIncidentActive', () => {
     test('fetches active incidents for type', async () => {
-      // URL should include /<type>/active
+      //URL should include /<type>/active
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ reports: [{ id: '1' }] }),
@@ -347,7 +331,7 @@ describe('incidentApi', () => {
     })
 
     test('includes region parameter when provided', async () => {
-      // Regional filter scopes results to one geographic area
+      //Regional filter scopes results to one geographic area
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ reports: [] }),
@@ -362,9 +346,7 @@ describe('incidentApi', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // apiGetIncidentPredictions — ML forecasts for a specific incident type
-  // ---------------------------------------------------------------------------
+  //apiGetIncidentPredictions -- ML forecasts for a specific incident type
   describe('apiGetIncidentPredictions', () => {
     test('fetches predictions for specific type', async () => {
       mockFetch.mockResolvedValue({
@@ -381,9 +363,7 @@ describe('incidentApi', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // apiGetIncidentAlerts — official alerts for a specific incident type
-  // ---------------------------------------------------------------------------
+  //apiGetIncidentAlerts -- official alerts for a specific incident type
   describe('apiGetIncidentAlerts', () => {
     test('fetches alerts for specific type', async () => {
       mockFetch.mockResolvedValue({
@@ -400,9 +380,7 @@ describe('incidentApi', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // apiGetIncidentMapData — map markers for a single incident type
-  // ---------------------------------------------------------------------------
+  //apiGetIncidentMapData -- map markers for a single incident type
   describe('apiGetIncidentMapData', () => {
     test('fetches map data for specific type', async () => {
       mockFetch.mockResolvedValue({
@@ -419,12 +397,10 @@ describe('incidentApi', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // apiGetIncidentHistory — historical trend data for charts
-  // ---------------------------------------------------------------------------
+  //apiGetIncidentHistory -- historical trend data for charts
   describe('apiGetIncidentHistory', () => {
     test('fetches history with default days', async () => {
-      // Default window is 30 days; added as ?days=30 query param
+      //Default window is 30 days; added as ?days=30 query param
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ history: [] }),
@@ -439,7 +415,7 @@ describe('incidentApi', () => {
     })
 
     test('fetches history with custom days', async () => {
-      // Caller can narrow the window to 7 days for a weekly view
+      //Caller can narrow the window to 7 days for a weekly view
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ history: [] }),
@@ -454,12 +430,10 @@ describe('incidentApi', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // apiSubmitIncidentReport — citizen posts a new incident report (POST)
-  // ---------------------------------------------------------------------------
+  //apiSubmitIncidentReport -- citizen posts a new incident report (POST)
   describe('apiSubmitIncidentReport', () => {
     test('submits report with POST', async () => {
-      // The report body is serialised as JSON and sent as POST body (not query string)
+      //The report body is serialised as JSON and sent as POST body (not query string)
       const reportData = {
         lat: 55.95,
         lng: -3.19,
@@ -486,9 +460,7 @@ describe('incidentApi', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // apiGetFloodThreat — current threat level for the flood module
-  // ---------------------------------------------------------------------------
+  //apiGetFloodThreat -- current threat level for the flood module
   describe('apiGetFloodThreat', () => {
     test('fetches flood threat level', async () => {
       mockFetch.mockResolvedValue({
@@ -506,12 +478,10 @@ describe('incidentApi', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // apiGetFloodEvacuationRoute — suggested evacuation path from a given position
-  // ---------------------------------------------------------------------------
+  //apiGetFloodEvacuationRoute -- suggested evacuation path from a given position
   describe('apiGetFloodEvacuationRoute', () => {
     test('fetches evacuation route', async () => {
-      // loc params (lat/lng) plus severity are all sent as query string parameters
+      //loc params (lat/lng) plus severity are all sent as query string parameters
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ route: [], safeZones: [] }),
@@ -535,14 +505,12 @@ describe('incidentApi', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// TypeScript interface shape validation
-// Values are assigned to typed variables — TypeScript compiler enforces shapes
-// ---------------------------------------------------------------------------
+//TypeScript interface shape validation
+//Values are assigned to typed variables -- TypeScript compiler enforces shapes
 describe('Type interfaces', () => {
   describe('IncidentRegistryEntry', () => {
     test('validates full structure', () => {
-      // If any required field is missing or wrong type, TypeScript compilation fails
+      //If any required field is missing or wrong type, TypeScript compilation fails
       const entry: IncidentRegistryEntry = {
         id: 'flood',
         name: 'Flood Monitoring',
@@ -565,7 +533,7 @@ describe('Type interfaces', () => {
 
   describe('IncidentPrediction', () => {
     test('validates severity levels', () => {
-      // Each severity string is a valid union member; TypeScript would reject anything else
+      //Each severity string is a valid union member; TypeScript would reject anything else
       const severities: Array<'low' | 'medium' | 'high' | 'critical'> = 
         ['low', 'medium', 'high', 'critical']
       
@@ -585,7 +553,7 @@ describe('Type interfaces', () => {
     })
 
     test('validates confidence sources', () => {
-      // confidenceSource must be one of three allowed strings
+      //confidenceSource must be one of three allowed strings
       const sources: Array<'ml_model' | 'statistical' | 'rule_based'> = 
         ['ml_model', 'statistical', 'rule_based']
       
@@ -621,7 +589,7 @@ describe('Type interfaces', () => {
       }
       
       expect(alert.acknowledged).toBe(false)
-      expect(alert.location?.name).toBe('Edinburgh') // optional chaining (?.) — location may be absent
+      expect(alert.location?.name).toBe('Edinburgh') // optional chaining (?.) -- location may be absent
     })
   })
 
@@ -639,7 +607,7 @@ describe('Type interfaces', () => {
       }
       
       expect(marker.source).toBe('report')
-      // Union check: source must be one of the four allowed strings
+      //Union check: source must be one of the four allowed strings
       expect(['report', 'sensor', 'prediction', 'alert']).toContain(marker.source)
     })
   })

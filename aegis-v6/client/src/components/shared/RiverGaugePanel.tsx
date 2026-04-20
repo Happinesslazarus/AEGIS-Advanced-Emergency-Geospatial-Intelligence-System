@@ -65,18 +65,18 @@ export default function RiverGaugePanel(): JSX.Element {
 
   useEffect(() => { refresh() }, [activeLocation, userLat, userLng])
 
-  // Auto-refresh every 5 minutes
+  //Auto-refresh every 5 minutes
   useEffect(() => {
     const id = setInterval(refresh, 300000)
     return () => clearInterval(id)
   }, [activeLocation, userLat, userLng])
 
-  // Sort by severity
+  //Sort by severity
   const sorted = useMemo(() =>
     [...gauges].sort((a, b) => (STATUS_ORDER[a.status] ?? 4) - (STATUS_ORDER[b.status] ?? 4)),
   [gauges])
 
-  // Analytics
+  //Analytics
   const stats = useMemo(() => {
     const alertCount = gauges.filter(g => g.status === 'alert').length
     const warnCount = gauges.filter(g => g.status === 'warning').length
@@ -122,7 +122,7 @@ export default function RiverGaugePanel(): JSX.Element {
             </div>
             <p className="text-[10px] text-gray-500 dark:text-gray-400">
               {stats.total} station{stats.total !== 1 ? 's' : ''} monitored
-              {lastUpdated && <> · {Math.round((Date.now() - lastUpdated.getTime()) / 60000)}m ago</>}
+              {lastUpdated && <> - {Math.round((Date.now() - lastUpdated.getTime()) / 60000)}m ago</>}
             </p>
           </div>
         </div>
@@ -331,7 +331,7 @@ export default function RiverGaugePanel(): JSX.Element {
           {lastUpdated && (
             <div className="px-4 py-2 border-t border-gray-200/50 dark:border-gray-700/30 flex items-center justify-between">
               <p className="text-[9px] text-gray-400 dark:text-gray-500">
-                Sources: SEPA + Environment Agency · Auto-refreshes every 5 min
+                Sources: SEPA + Environment Agency - Auto-refreshes every 5 min
               </p>
               <p className="text-[9px] text-gray-400 dark:text-gray-500">
                 {lastUpdated.toLocaleTimeString()}

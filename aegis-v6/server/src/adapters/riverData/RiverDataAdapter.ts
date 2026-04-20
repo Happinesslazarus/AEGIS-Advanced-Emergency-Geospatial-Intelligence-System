@@ -2,7 +2,7 @@
  * Interface contract and shared types for all river-level data adapters
  * (SEPA, Open-Meteo, EA). Defines RiverReading (current gauge snapshot) and
  * RiverHistory (time-series of past readings) so route handlers can stay
- * broker-agnostic — swapping the underlying data source only requires a
+ * broker-agnostic -- swapping the underlying data source only requires a
  * different adapter instance.
  *
  * - Implemented by SEPAAdapter and OpenMeteoAdapter

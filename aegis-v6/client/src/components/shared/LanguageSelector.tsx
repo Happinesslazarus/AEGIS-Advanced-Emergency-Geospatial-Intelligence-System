@@ -1,6 +1,6 @@
 /**
  * Compact globe-icon dropdown that lists the 9 language codes (en, es,
- * fr, ar, …). Changing the selection calls i18n.changeLanguage() and
+ * fr, ar, ...). Changing the selection calls i18n.changeLanguage() and
  * persists the choice in localStorage.
  */
 
@@ -47,7 +47,7 @@ export default function LanguageSelector({ darkNav = false, className = '' }: La
             await loadLanguage(next)
             await i18n.changeLanguage(next)
           } catch {
-            // Keep UI responsive even if i18n backend fails.
+            //Keep UI responsive even if i18n backend fails.
           }
           localStorage.setItem('aegis_lang_chosen', next)
           localStorage.setItem('aegis-language', next)

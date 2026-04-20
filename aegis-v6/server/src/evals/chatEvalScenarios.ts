@@ -5,7 +5,7 @@
  * - Tests cover anonymous, citizen, and operator auth modes
  * - Checks verify content relevance, safety (no leaked reasoning), and personalization * */
 
-// Which auth level the test scenario runs under
+//Which auth level the test scenario runs under
 export type ChatEvalAuthMode = 'anonymous' | 'citizen' | 'operator'
 
 export interface ChatEvalTurn {

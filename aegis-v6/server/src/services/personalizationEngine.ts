@@ -1,5 +1,5 @@
 ﻿/**
- * Citizen personalisation engine — provides cross-session memory for chat
+ * Citizen personalisation engine -- provides cross-session memory for chat
  * interactions: loads past memories from citizen_chat_memory, extracts new
  * ones via pattern matching, and uses LLM completions to tailor messaging
  * to individual user profiles.
@@ -66,7 +66,7 @@ export async function extractAndSaveMemories(
 
   for (const mem of memories) {
     try {
-      // Check for duplicates - don't store the same memory twice
+      //Check for duplicates - don't store the same memory twice
       const { rows: existing } = await pool.query(
         `SELECT id FROM citizen_chat_memory
          WHERE citizen_id = $1 AND memory_type = $2
@@ -75,7 +75,7 @@ export async function extractAndSaveMemories(
         [citizenId, mem.type, `%${mem.content.slice(0, 50)}%`],
       )
       if (existing.length > 0) {
-        // Bump use count and update timestamp on existing memory
+        //Bump use count and update timestamp on existing memory
         await pool.query(
           `UPDATE citizen_chat_memory
            SET use_count = use_count + 1, last_used_at = NOW(), updated_at = NOW()
@@ -106,7 +106,7 @@ function extractMemoriesFromText(text: string): ExtractedMemory[] {
   const memories: ExtractedMemory[] = []
   const lower = text.toLowerCase()
 
-  // Location mentions - "I live in X", "I'm in X", "my home is in X"
+  //Location mentions - "I live in X", "I'm in X", "my home is in X"
   const locationPatterns = [
     /(?:i\s+live\s+(?:in|at|near|on)\s+)([A-Z][a-zA-Z\s,]+)/i,
     /(?:my\s+(?:home|house|flat|address)\s+is\s+(?:in|at|on)\s+)([A-Z][a-zA-Z\s,]+)/i,
@@ -123,7 +123,7 @@ function extractMemoriesFromText(text: string): ExtractedMemory[] {
     }
   }
 
-  // Vulnerability mentions
+  //Vulnerability mentions
   const vulnerabilityPatterns: Array<{ pattern: RegExp; content: string; importance: number }> = [
     { pattern: /elderl[y]|aged?\s+parent|grandmother|grandfather|grandparent/i, content: 'Has elderly family member(s) requiring care', importance: 8 },
     { pattern: /wheelchair|mobility|disab[il]|can'?t\s+walk|walking\s+frame/i, content: 'Mobility impairment in household', importance: 9 },
@@ -141,7 +141,7 @@ function extractMemoriesFromText(text: string): ExtractedMemory[] {
     }
   }
 
-  // Family/household info
+  //Family/household info
   const familyPatterns = [
     { pattern: /(?:i\s+have\s+)(\d+)\s+(?:children|kids|family\s+members)/i, extract: (m: RegExpMatchArray) => `Household has ${m[1]} children/family members` },
     { pattern: /(?:my\s+(?:partner|wife|husband|spouse)\s+)(?:is\s+called\s+|named?\s+)?([A-Z][a-z]+)/i, extract: (m: RegExpMatchArray) => `Partner's name: ${m[1]}` },
@@ -153,12 +153,12 @@ function extractMemoriesFromText(text: string): ExtractedMemory[] {
     }
   }
 
-  // Flood zone / property info
+  //Flood zone / property info
   if (/flood\s+(?:zone|risk|area|prone)|flooded\s+before|previous\s+flood/i.test(lower)) {
     memories.push({ type: 'context', content: 'Property has flood history or is in flood-risk area', importance: 8 })
   }
 
-  // Communication preferences
+  //Communication preferences
   if (/(?:keep\s+it\s+)(?:short|brief|simple)|(?:i\s+prefer\s+)(?:short|brief|bullet)/i.test(lower)) {
     memories.push({ type: 'preference', content: 'Prefers brief, concise responses', importance: 4 })
   }
@@ -275,7 +275,7 @@ export function buildBehaviorContext(profile: BehaviorProfile | null): string {
 
   const instructions: string[] = []
 
-  // Detail level calibration
+  //Detail level calibration
   if (profile.preferredDetailLevel === 'brief') {
     instructions.push('This user prefers BRIEF responses. Keep answers under 150 words. Use bullet points. Skip preamble.')
   } else if (profile.preferredDetailLevel === 'detailed') {
@@ -284,7 +284,7 @@ export function buildBehaviorContext(profile: BehaviorProfile | null): string {
     instructions.push('This user has EXPERT-LEVEL understanding. Use technical terminology. Include raw data and statistics.')
   }
 
-  // Tone calibration
+  //Tone calibration
   if (profile.preferredTone === 'empathetic') {
     instructions.push('Adopt a warm, supportive tone. Acknowledge feelings. Use empathetic language.')
   } else if (profile.preferredTone === 'direct') {
@@ -293,36 +293,36 @@ export function buildBehaviorContext(profile: BehaviorProfile | null): string {
     instructions.push('Use professional emergency management terminology. Include coordinates and data references.')
   }
 
-  // Format preference
+  //Format preference
   if (profile.responseFormatPref === 'bullets') {
     instructions.push('Format responses primarily with bullet points and short lines.')
   } else if (profile.responseFormatPref === 'numbered') {
     instructions.push('Format responses with numbered steps when providing instructions.')
   }
 
-  // Risk-aware context
+  //Risk-aware context
   if (profile.riskLevel === 'elevated' || profile.riskLevel === 'high' || profile.riskLevel === 'critical') {
     instructions.push(`?? This user is in a ${profile.riskLevel.toUpperCase()} risk area. Prioritize safety information and proactive warnings.`)
   }
 
-  // Vulnerability-aware guidance
+  //Vulnerability-aware guidance
   if (profile.knownVulnerabilities.length > 0) {
     instructions.push(`Known vulnerabilities: ${profile.knownVulnerabilities.join(', ')}. Tailor evacuation and safety advice accordingly.`)
   }
 
-  // Engagement level
+  //Engagement level
   if (profile.totalSessions > 20) {
     instructions.push(`Power user (${profile.totalSessions} sessions, ${profile.totalMessages} messages). Skip basic explanations they already know.`)
   } else if (profile.totalSessions > 5) {
     instructions.push(`Returning user (${profile.totalSessions} sessions). They know the AEGIS platform basics.`)
   }
 
-  // Primary interests
+  //Primary interests
   if (profile.primaryTopics.length > 0) {
     instructions.push(`Primary interests: ${profile.primaryTopics.slice(0, 5).join(', ')}. Proactively relate answers to these domains.`)
   }
 
-  // Known locations for proactive context
+  //Known locations for proactive context
   if (profile.knownLocations.length > 0) {
     const locs = profile.knownLocations.map(l => `${l.name}${l.type ? ` (${l.type})` : ''}`).join(', ')
     instructions.push(`Known locations: ${locs}. Reference these when discussing local conditions.`)
@@ -347,7 +347,7 @@ export async function updateBehaviorProfile(
   },
 ): Promise<void> {
   try {
-    // Upsert behavior profile
+    //Upsert behavior profile
     await pool.query(
       `INSERT INTO citizen_behavior_profile (citizen_id, total_sessions, total_messages, primary_topics, preferred_language)
        VALUES ($1, 1, $2, $3, $4)
@@ -370,7 +370,7 @@ export async function updateBehaviorProfile(
       [citizenId, sessionStats.messageCount, sessionStats.topics, sessionStats.detectedLanguage],
     )
 
-    // Update known locations if new ones found
+    //Update known locations if new ones found
     if (sessionStats.locations.length > 0) {
       await pool.query(
         `UPDATE citizen_behavior_profile
@@ -509,7 +509,7 @@ export async function generateAndSaveSummary(
   if (!citizenId && !operatorId) return
 
   try {
-    // Get all messages from the session
+    //Get all messages from the session
     const { rows: messages } = await pool.query(
       `SELECT role, content FROM chat_messages
        WHERE session_id = $1 ORDER BY created_at ASC`,
@@ -518,7 +518,7 @@ export async function generateAndSaveSummary(
 
     if (messages.length < 3) return // Skip very short conversations
 
-    // Extract key information
+    //Extract key information
     const userMessages = messages.filter((m: any) => m.role === 'user').map((m: any) => m.content)
     const botMessages = messages.filter((m: any) => m.role === 'assistant').map((m: any) => m.content)
 
@@ -526,22 +526,22 @@ export async function generateAndSaveSummary(
     const topics = extractTopicsFromText(allText)
     const entities = extractEntitiesFromText(allText)
 
-    // Detect unresolved questions (questions in last bot message)
+    //Detect unresolved questions (questions in last bot message)
     const lastBot = botMessages[botMessages.length - 1] || ''
     const unresolvedQuestions = extractQuestions(lastBot)
 
-    // Detect action items
+    //Detect action items
     const actionItems = extractActionItems(botMessages.join(' '))
 
-    // Detect sentiment
+    //Detect sentiment
     const sentiment = detectOverallSentiment(userMessages)
 
-    // Tier 1: LLM-based semantic summarization
+    //Tier 1: LLM-based semantic summarization
     let summary = ''
     let usedLLM = false
 
     try {
-      // Build a condensed transcript (trim each message to avoid huge prompts)
+      //Build a condensed transcript (trim each message to avoid huge prompts)
       const maxTranscriptTokens = 2000
       let transcript = ''
       let charBudget = maxTranscriptTokens * 4 // rough chars-to-tokens
@@ -551,10 +551,10 @@ export async function generateAndSaveSummary(
         transcript += line
       }
 
-      // For long conversations, use hierarchical compression: split into phases
+      //For long conversations, use hierarchical compression: split into phases
       let summarizationPrompt: string
       if (messages.length > 20) {
-        // Split into 3 phases: opening, middle, closing
+        //Split into 3 phases: opening, middle, closing
         const third = Math.floor(messages.length / 3)
         const phases = [
           messages.slice(0, third),
@@ -582,7 +582,7 @@ export async function generateAndSaveSummary(
           `Cover: what the user asked about, key advice given, and any unresolved questions. Be concise.`
       }
 
-      // Check for prior summaries - enable cross-session synthesis
+      //Check for prior summaries - enable cross-session synthesis
       let crossSessionContext = ''
       if (citizenId) {
         const { rows: priorSummaries } = await pool.query(
@@ -617,7 +617,7 @@ export async function generateAndSaveSummary(
       logger.debug({ err }, '[Personalization] LLM summarization unavailable, using extractive fallback')
     }
 
-    // Tier 3: Extractive fallback
+    //Tier 3: Extractive fallback
     if (!summary) {
       const summaryParts: string[] = []
       if (userMessages.length > 0) {
@@ -648,7 +648,7 @@ export async function generateAndSaveSummary(
       ],
     )
 
-    // Mark session as summarized
+    //Mark session as summarized
     await pool.query(
       `UPDATE chat_sessions SET is_summarized = true, session_summary = $2 WHERE id = $1`,
       [sessionId, summary],
@@ -687,7 +687,7 @@ function extractTopicsFromText(text: string): string[] {
 function extractEntitiesFromText(text: string): Record<string, string[]> {
   const entities: Record<string, string[]> = { locations: [], hazards: [], actions_taken: [] }
 
-  // Locations
+  //Locations
   const locationPattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+(?:Road|Street|River|Bridge|Park|Hill|Valley))?)\b/g
   let match: RegExpExecArray | null
   const nonLocations = new Set(['The', 'You', 'We', 'They', 'AEGIS', 'Monday', 'Tuesday', 'Wednesday',
@@ -778,7 +778,7 @@ export function generateSmartSuggestions(opts: {
     return generateAdminSuggestions(opts)
   }
 
-  // Emergency-specific suggestions - immediate action oriented
+  //Emergency-specific suggestions - immediate action oriented
   if (opts.isEmergency) {
     suggestions.push(
       { text: 'Share my location for help', category: 'quick_action', icon: 'MapPin', priority: 10 },
@@ -788,12 +788,12 @@ export function generateSmartSuggestions(opts: {
     return suggestions.slice(0, 4)
   }
 
-  // Dynamic Context Parsing from Last Bot Message
-  // Extract topics, entities, and actionable items from what the bot just said
+  //Dynamic Context Parsing from Last Bot Message
+  //Extract topics, entities, and actionable items from what the bot just said
   const botMsg = (opts.lastBotMessage || '').toLowerCase()
   const contextSuggestions: SmartSuggestion[] = []
 
-  // Detect what the bot talked about and offer natural next steps
+  //Detect what the bot talked about and offer natural next steps
   const contextPatterns: Array<{ pattern: RegExp; suggestions: SmartSuggestion[] }> = [
     { pattern: /\b(flood|water level|river|gauge)\b/,
       suggestions: [
@@ -857,10 +857,10 @@ export function generateSmartSuggestions(opts: {
     }
   }
 
-  // Add context-based suggestions first (they're most relevant)
+  //Add context-based suggestions first (they're most relevant)
   suggestions.push(...contextSuggestions)
 
-  // Proactive suggestions based on active alerts
+  //Proactive suggestions based on active alerts
   if (opts.currentAlerts && opts.currentAlerts > 0) {
     suggestions.push({
       text: `Check ${opts.currentAlerts} active alert${opts.currentAlerts > 1 ? 's' : ''} in my area`,
@@ -870,7 +870,7 @@ export function generateSmartSuggestions(opts: {
     })
   }
 
-  // Personalized suggestions based on profile
+  //Personalized suggestions based on profile
   if (opts.profile) {
     if (opts.profile.knownLocations.length > 0) {
       const loc = opts.profile.knownLocations[0]
@@ -896,7 +896,7 @@ export function generateSmartSuggestions(opts: {
     }
   }
 
-  // Memory-based suggestions
+  //Memory-based suggestions
   if (opts.memories.length > 0) {
     const hasFloodMemory = opts.memories.some(m => m.content.toLowerCase().includes('flood'))
     if (hasFloodMemory && !suggestions.some(s => s.text.includes('flood'))) {
@@ -904,7 +904,7 @@ export function generateSmartSuggestions(opts: {
     }
   }
 
-  // Default suggestions for authenticated users - only if we don't have enough context-driven ones
+  //Default suggestions for authenticated users - only if we don't have enough context-driven ones
   if (opts.isAuthenticated && suggestions.length < 3) {
     suggestions.push(
       { text: 'What alerts are active near me?', category: 'quick_action', icon: 'Bell', priority: 4 },
@@ -913,7 +913,7 @@ export function generateSmartSuggestions(opts: {
     )
   }
 
-  // Default suggestions for anonymous users
+  //Default suggestions for anonymous users
   if (!opts.isAuthenticated && suggestions.length < 3) {
     suggestions.push(
       { text: 'What should I do in a flood?', category: 'topic_suggestion', icon: 'Droplets', priority: 3 },
@@ -922,7 +922,7 @@ export function generateSmartSuggestions(opts: {
     )
   }
 
-  // Deduplicate by text, sort by priority, return top 4
+  //Deduplicate by text, sort by priority, return top 4
   const seen = new Set<string>()
   return suggestions
     .filter(s => { if (seen.has(s.text)) return false; seen.add(s.text); return true })
@@ -956,7 +956,7 @@ export async function logSuggestionClick(
       [sessionId || null, citizenId || null, suggestionText, category],
     )
   } catch {
-    // Best-effort logging
+    //Best-effort logging
   }
 }
 
@@ -1054,7 +1054,7 @@ export async function extractEpisodicEvents(
 ): Promise<void> {
   const lowerMsg = message.toLowerCase()
 
-  // Patterns that indicate the citizen is experiencing/reporting a real incident
+  //Patterns that indicate the citizen is experiencing/reporting a real incident
   const episodePatterns: Array<{ pattern: RegExp; type: string; severity: string }> = [
     { pattern: /(?:my (?:home|house|street|road|garden|basement|flat) is (?:flooding|flooded|underwater))/i, type: 'flood_personal', severity: 'high' },
     { pattern: /(?:water (?:is )?coming (?:in|into|through))/i, type: 'flood_personal', severity: 'high' },

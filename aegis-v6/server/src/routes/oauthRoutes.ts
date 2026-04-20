@@ -8,9 +8,9 @@
  * - Logs in existing citizens and links Google ID when needed
  * - Returns JWT + refresh token like the regular login flow
  *
- * GET  /api/auth/google          — Redirect to Google consent
- * GET  /api/auth/google/callback — Google callback handler
- * POST /api/auth/oauth/exchange  — Exchange code for JWT
+ * GET  /api/auth/google          -- Redirect to Google consent
+ * GET  /api/auth/google/callback -- Google callback handler
+ * POST /api/auth/oauth/exchange  -- Exchange code for JWT
  * */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -27,7 +27,7 @@ import { logger } from '../services/logger.js'
 const router = Router()
 
 /**
- * Short-lived map: OAuth state → return base URL
+ * Short-lived map: OAuth state -> return base URL
  * Allows OAuth flows initiated from a LAN IP (e.g. phone via Vite proxy)
  * to redirect back to that LAN IP after auth completes.
  */
@@ -35,8 +35,8 @@ const pendingReturnUrls = new Map<string, string>()
 setInterval(() => {
   const now = Date.now()
   for (const [k, v] of pendingReturnUrls) {
-    // Entries are keyed to a state that lasts ~2 min at most
-    // We don't store expiry separately; just keep max 200 entries
+    //Entries are keyed to a state that lasts ~2 min at most
+    //We don't store expiry separately; just keep max 200 entries
     if (pendingReturnUrls.size > 200) pendingReturnUrls.delete(k)
     else break
   }
@@ -56,8 +56,8 @@ function isAllowedOrigin(url: string): boolean {
   } catch { return false }
 }
 
-// Secure token exchange storage (short-lived, one-time codes)
-// In production with multiple instances, use Redis instead
+//Secure token exchange storage (short-lived, one-time codes)
+//In production with multiple instances, use Redis instead
 interface PendingOAuthExchange {
   userId: string
   email: string
@@ -68,7 +68,7 @@ interface PendingOAuthExchange {
 }
 const pendingExchanges = new Map<string, PendingOAuthExchange>()
 
-// Clean expired codes every 30 seconds
+//Clean expired codes every 30 seconds
 setInterval(() => {
   const now = Date.now()
   for (const [code, data] of pendingExchanges) {
@@ -85,7 +85,7 @@ function generateOAuthCode(): string {
   return crypto.randomBytes(32).toString('base64url')
 }
 
-// Configure Passport Google Strategy (only when env vars present)
+//Configure Passport Google Strategy (only when env vars present)
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
@@ -118,7 +118,7 @@ if (oauthEnabled) {
           const displayName = profile.displayName || email.split('@')[0]
           const avatarUrl = profile.photos?.[0]?.value || null
 
-          // 1. Check if a user already exists (by google_id or email)
+          //1. Check if a user already exists (by google_id or email)
           let result = await pool.query(
             `SELECT id, email, display_name, role, avatar_url, preferred_region,
                     email_verified, is_active, google_id, deleted_at
@@ -130,32 +130,32 @@ if (oauthEnabled) {
 
           const citizen = result.rows[0]
 
-          // No account found — require manual registration first.
-          // Redirect to registration page with email pre-filled.
+          //No account found -- require manual registration first.
+          //Redirect to registration page with email pre-filled.
           if (!citizen) {
             return done(null, false, { code: 'ACCOUNT_NOT_FOUND', email })
           }
 
-          // Account exists but soft-deleted or inactive — reject.
+          //Account exists but soft-deleted or inactive -- reject.
           if (!citizen.is_active || citizen.deleted_at) {
             return done(null, false, { code: 'ACCOUNT_NOT_FOUND', email })
           }
 
-          // Link Google ID if not yet linked (user registered first, now signing in with Google)
+          //Link Google ID if not yet linked (user registered first, now signing in with Google)
           if (!citizen.google_id) {
             await pool.query(
               `UPDATE citizens SET google_id = $1, oauth_provider = 'google', email_verified = true WHERE id = $2`,
               [googleId, citizen.id],
             )
           }
-          // Update avatar if missing
+          //Update avatar if missing
           if (!citizen.avatar_url && avatarUrl) {
             await pool.query(
               `UPDATE citizens SET avatar_url = $1 WHERE id = $2`,
               [avatarUrl, citizen.id],
             )
           }
-          // Update last login
+          //Update last login
           await pool.query(
             `UPDATE citizens SET last_login = NOW(), login_count = login_count + 1 WHERE id = $1`,
             [citizen.id],
@@ -169,12 +169,12 @@ if (oauthEnabled) {
     ),
   )
 
-  // Serialize / deserialize (session-less — we use JWT)
+  //Serialize / deserialize (session-less -- we use JWT)
   passport.serializeUser((user: any, done) => done(null, user))
   passport.deserializeUser((user: any, done) => done(null, user))
 }
 
-// Middleware guard — returns 501 when OAuth is not configured
+//Middleware guard -- returns 501 when OAuth is not configured
 
 function requireOAuthConfigured(_req: Request, res: Response, next: NextFunction): void {
   if (!oauthEnabled) {
@@ -187,10 +187,10 @@ function requireOAuthConfigured(_req: Request, res: Response, next: NextFunction
   next()
 }
 
-// GET /api/auth/google — Initiate Google OAuth flow
-// Optional ?next=<url> param: if the request comes from a LAN IP (e.g. a phone
-// on the local network), pass the current page URL so the OAuth callback can
-// redirect back to that LAN address rather than hardcoded localhost:5173.
+//GET /api/auth/google -- Initiate Google OAuth flow
+//Optional ?next=<url> param: if the request comes from a LAN IP (e.g. a phone
+//on the local network), pass the current page URL so the OAuth callback can
+//redirect back to that LAN address rather than hardcoded localhost:5173.
 
 router.get(
   '/google',
@@ -205,7 +205,7 @@ router.get(
           customState = crypto.randomBytes(16).toString('hex')
           pendingReturnUrls.set(customState, origin)
         }
-      } catch { /* invalid URL — ignore */ }
+      } catch { /* invalid URL -- ignore */ }
     }
     passport.authenticate('google', {
       scope: ['profile', 'email'],
@@ -216,7 +216,7 @@ router.get(
   },
 )
 
-// GET /api/auth/google/callback — Handle Google redirect
+//GET /api/auth/google/callback -- Handle Google redirect
 
 router.get(
   '/google/callback',
@@ -236,15 +236,15 @@ router.get(
         return res.redirect(`${CLIENT_URL}/citizen/login?error=oauth_failed`)
       }
 
-      // Generate JWT tokens (same pattern as regular login)
+      //Generate JWT tokens (same pattern as regular login)
       const token = generateToken({
         id: user.id,
         email: user.email,
         role: user.role || 'citizen',
         displayName: user.display_name,
       })
-      // Generate secure one-time exchange code (NEVER put tokens in URLs)
-      // Code expires in 60 seconds and can only be used once
+      //Generate secure one-time exchange code (NEVER put tokens in URLs)
+      //Code expires in 60 seconds and can only be used once
       const exchangeCode = generateOAuthCode()
       pendingExchanges.set(exchangeCode, {
         userId: user.id,
@@ -255,15 +255,15 @@ router.get(
         expiresAt: Date.now() + 60 * 1000, // 60 second expiry
       })
 
-      // Redirect to client with code (client exchanges for token via POST)
-      // This is secure because:
-      // 1. Code is one-time use (deleted after exchange)
-      // 2. Code expires in 60 seconds
-      // 3. Token is returned via POST response body, not URL
+      //Redirect to client with code (client exchanges for token via POST)
+      //This is secure because:
+      //1. Code is one-time use (deleted after exchange)
+      //2. Code expires in 60 seconds
+      //3. Token is returned via POST response body, not URL
 
-      // Use LAN-aware redirect base: if this OAuth flow was started with a
+      //Use LAN-aware redirect base: if this OAuth flow was started with a
       // ?next=<lan-url> param (e.g. from a phone on the same WiFi), redirect
-      // back to that address so the phone can receive the exchange callback.
+      //back to that address so the phone can receive the exchange callback.
       const returnedState = req.query.state as string | undefined
       const lanOrigin = returnedState ? pendingReturnUrls.get(returnedState) : undefined
       if (returnedState && lanOrigin) pendingReturnUrls.delete(returnedState)
@@ -274,8 +274,8 @@ router.get(
   },
 )
 
-// POST /api/auth/oauth/exchange — Exchange one-time code for JWT tokens
-// This is the secure token exchange endpoint
+//POST /api/auth/oauth/exchange -- Exchange one-time code for JWT tokens
+//This is the secure token exchange endpoint
 
 router.post('/oauth/exchange', async (req: Request, res: Response) => {
   const { code } = req.body
@@ -298,10 +298,10 @@ router.post('/oauth/exchange', async (req: Request, res: Response) => {
     return
   }
   
-  // Delete code immediately (one-time use)
+  //Delete code immediately (one-time use)
   pendingExchanges.delete(code)
   
-  // Check expiry
+  //Check expiry
   if (Date.now() > pending.expiresAt) {
     res.status(400).json({
       success: false,
@@ -310,7 +310,7 @@ router.post('/oauth/exchange', async (req: Request, res: Response) => {
     return
   }
   
-  // Generate tokens (same as regular login)
+  //Generate tokens (same as regular login)
   const token = generateToken({
     id: pending.userId,
     email: pending.email,
@@ -319,7 +319,7 @@ router.post('/oauth/exchange', async (req: Request, res: Response) => {
   })
   const refreshToken = generateRefreshToken({ id: pending.userId, role: pending.role })
   
-  // Store session in DB so refresh tokens can be validated later
+  //Store session in DB so refresh tokens can be validated later
   await createSession({
     userId: pending.userId,
     userType: 'citizen',
@@ -329,7 +329,7 @@ router.post('/oauth/exchange', async (req: Request, res: Response) => {
     ttlDays: 7,
   })
   
-  // Set refresh cookie
+  //Set refresh cookie
   res.cookie('aegis_refresh', refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -338,7 +338,7 @@ router.post('/oauth/exchange', async (req: Request, res: Response) => {
     path: '/api/citizen-auth',
   })
   
-  // Return access token in response body (secure - not in URL)
+  //Return access token in response body (secure - not in URL)
   res.json({
     success: true,
     data: {
@@ -356,12 +356,12 @@ router.post('/oauth/exchange', async (req: Request, res: Response) => {
   logger.info({ userId: pending.userId }, '[OAuth] Token exchange successful')
 })
 
-// GET /api/auth/status — Check which OAuth providers are enabled
+//GET /api/auth/status -- Check which OAuth providers are enabled
 
 router.get('/status', (_req: Request, res: Response) => {
   res.json({
     google: oauthEnabled,
-    // Future: facebook, github, apple
+    //Future: facebook, github, apple
   })
 })
 

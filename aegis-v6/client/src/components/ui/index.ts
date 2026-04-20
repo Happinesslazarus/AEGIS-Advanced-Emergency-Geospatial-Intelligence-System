@@ -1,12 +1,9 @@
 /**
- * Index UI primitive (low-level UI building block).
- *
- * How it connects:
- * - Consumed via `import { Button, Modal, ... } from '@/components/ui'`
- * Simple explanation:
- * Single import point for every reusable UI primitive. */
+ * Barrel export for every reusable UI primitive.
+ * Consumed via `import { Button, Modal, ... } from '@/components/ui'`
+ */
 
-// LOADING STATES
+//LOADING STATES
 
 export {
   Spinner,
@@ -20,7 +17,7 @@ export {
   LoadingDots,
 } from './LoadingStates'
 
-// ERROR STATES
+//ERROR STATES
 
 export {
   ErrorBoundary,
@@ -33,7 +30,7 @@ export {
   AccessDenied,
 } from './ErrorStates'
 
-// TOAST
+//TOAST
 
 export {
   ToastProvider,
@@ -49,7 +46,7 @@ export type {
   ToastAction,
 } from './Toast'
 
-// FORM ELEMENTS
+//FORM ELEMENTS
 
 export {
   FormField,
@@ -64,7 +61,7 @@ export {
   Fieldset,
 } from './FormElements'
 
-// BUTTON
+//BUTTON
 
 export {
   Button,
@@ -73,7 +70,7 @@ export {
   CloseButton,
 } from './Button'
 
-// SKIP LINKS
+//SKIP LINKS
 
 export {
   SkipLinks,
@@ -83,7 +80,7 @@ export {
 
 export type { SkipLink } from './SkipLinks'
 
-// MODAL
+//MODAL
 
 export {
   Modal,
@@ -93,7 +90,7 @@ export {
   AlertDialog,
 } from './Modal'
 
-// NAVIGATION
+//NAVIGATION
 
 export {
   Navbar,

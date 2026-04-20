@@ -28,12 +28,12 @@ export function useDebounce<T>(value: T, delay = 300): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value)
 
   useEffect(() => {
-    // Set up timeout to update debounced value after delay
+    //Set up timeout to update debounced value after delay
     const timer = setTimeout(() => {
       setDebouncedValue(value)
     }, delay)
 
-    // Cleanup: clear timeout if value changes or component unmounts
+    //Cleanup: clear timeout if value changes or component unmounts
     return () => {
       clearTimeout(timer)
     }
@@ -65,7 +65,7 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => void>(
   const [timer, setTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    // Cleanup on unmount
+    //Cleanup on unmount
     return () => {
       if (timer) clearTimeout(timer)
     }

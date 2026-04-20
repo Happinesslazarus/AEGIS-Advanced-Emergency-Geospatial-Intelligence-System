@@ -58,7 +58,7 @@ export class WildfireAIClient {
       }]
     } catch (error) {
       logger.error({ err: error }, '[Wildfire/AIClient] Prediction failed')
-      // Return fallback prediction
+      //Return fallback prediction
       return [{
         incidentType: 'wildfire',
         severity: 'Low',

@@ -8,10 +8,10 @@
  * test runner exits cleanly even if pg.Pool connections are left open.
  *
  * Key settings:
- * - preset: ts-jest        — compiles TypeScript before running tests
- * - testEnvironment: node  — no DOM emulation needed (server tests only)
- * - testTimeout: 30s       — allows for real database connections in CI
- * - coverage threshold     — minimum 18% lines/statements (incremental)
+ * - preset: ts-jest        -- compiles TypeScript before running tests
+ * - testEnvironment: node  -- no DOM emulation needed (server tests only)
+ * - testTimeout: 30s       -- allows for real database connections in CI
+ * - coverage threshold     -- minimum 18% lines/statements (incremental)
  *
  * How it connects:
  * - Run with: npm test (from aegis-v6/server/)
@@ -27,20 +27,20 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.ts'],
   moduleNameMapper: { '^(\\.{1,2}/.*)\\.js$': '$1' },
 
-  // Run tests sequentially to avoid PostgreSQL deadlocks from parallel TRUNCATEs
+  //Run tests sequentially to avoid PostgreSQL deadlocks from parallel TRUNCATEs
   maxWorkers: 1,
 
-  // Prevent jest from hanging when DB pools are left open
+  //Prevent jest from hanging when DB pools are left open
   forceExit: true,
 
-  // Give integration tests time to connect to Postgres
+  //Give integration tests time to connect to Postgres
   testTimeout: 30_000,
 
   collectCoverage: true,
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'text-summary', 'lcov', 'html'],
 
-  // Only measure coverage on route / service / middleware files
+  //Only measure coverage on route / service / middleware files
   collectCoverageFrom: [
     'src/routes/aiRoutes.ts',
     'src/routes/chatRoutes.ts',

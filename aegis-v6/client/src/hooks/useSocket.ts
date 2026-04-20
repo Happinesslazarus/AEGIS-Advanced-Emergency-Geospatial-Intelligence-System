@@ -9,18 +9,18 @@ import { io, Socket } from 'socket.io-client'
 import { getToken, getAnyToken, clearToken } from '../utils/api'
 import { getCitizenToken } from '../contexts/CitizenAuthContext'
 
-// Resolve Socket.IO server URL from env or fall back to backend default.
-// VITE_SOCKET_URL must point to the Express server (port 3001), NOT the Vite
-// dev server (port 5173) which doesn't run a Socket.IO endpoint.
+//Resolve Socket.IO server URL from env or fall back to backend default.
+//VITE_SOCKET_URL must point to the Express server (port 3001), NOT the Vite
+//dev server (port 5173) which doesn't run a Socket.IO endpoint.
 export const SOCKET_URL = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SOCKET_URL)
   || 'http://localhost:3001'
-// Maximum times Socket.IO will auto-reconnect before giving up and showing
-// an offline error to the user.
+//Maximum times Socket.IO will auto-reconnect before giving up and showing
+//an offline error to the user.
 const MAX_RECONNECT_ATTEMPTS = 10
 
-// Types
+//Types
 
-// Message queue for offline messages
+//Message queue for offline messages
 interface QueuedMessage {
   threadId: string
   content: string
@@ -102,7 +102,7 @@ export interface SocketState {
   loadThreadMessages: (threadId: string) => void
 }
 
-// Hook
+//Hook
 
 export function useSocket(): SocketState {
   const socketRef = useRef<Socket | null>(null)
@@ -114,7 +114,7 @@ export function useSocket(): SocketState {
   const [adminThreads, setAdminThreads] = useState<ChatThread[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   
-  // Advanced features
+  //Advanced features
   const messageQueueRef = useRef<QueuedMessage[]>([])
   const reconnectAttemptsRef = useRef(0)
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -123,25 +123,25 @@ export function useSocket(): SocketState {
   const connectionQualityRef = useRef<'excellent' | 'good' | 'fair' | 'poor'>('good')
   const seenMessageIdsRef = useRef<Set<string>>(new Set())
 
-  // Track all registered socket event names for proper cleanup
+  //Track all registered socket event names for proper cleanup
   const registeredEventsRef = useRef<string[]>([])
 
-  // Debounce guard for fetchCitizenThreads - prevent render-loop flooding
+  //Debounce guard for fetchCitizenThreads - prevent render-loop flooding
   const fetchThreadsPendingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Active thread ref - updated synchronously to avoid race conditions
+  //Active thread ref - updated synchronously to avoid race conditions
   const activeThreadRef = useRef<ChatThread | null>(null)
   useEffect(() => { activeThreadRef.current = activeThread }, [activeThread])
 
-  // Wrap setActiveThread - update ref synchronously + clear messages when switching threads
+  //Wrap setActiveThread - update ref synchronously + clear messages when switching threads
   const setActiveThreadFn = useCallback((thread: ChatThread | null) => {
     const currentId = activeThreadRef.current?.id
     const newId = thread?.id
     
     // // console.log('[Socket] setActiveThread called - current:', currentId, 'new:', newId)
     
-    // Only clear messages when ACTUALLY switching to a different thread
-    // Don't clear if: going from null → thread, or same thread ID
+    //Only clear messages when ACTUALLY switching to a different thread
+ //Don't clear if: going from null -> thread, or same thread ID
     if (currentId && newId && currentId !== newId) {
       // // console.log('[Socket] Switching threads - clearing messages')
       setMessages([])
@@ -151,7 +151,7 @@ export function useSocket(): SocketState {
     setActiveThread(thread)
   }, [])
 
-  // Process queued messages when connection is restored
+  //Process queued messages when connection is restored
   const processMessageQueue = useCallback(() => {
     if (!socketRef.current?.connected || messageQueueRef.current.length === 0) return
     
@@ -168,7 +168,7 @@ export function useSocket(): SocketState {
       }, (ack: any) => {
         if (!ack?.success) {
           console.error('[Socket] Failed to send queued message, re-queuing...')
-          // Re-queue with incremented retry count
+          //Re-queue with incremented retry count
           if (queuedMsg.retryCount < 3) {
             messageQueueRef.current.push({
               ...queuedMsg,
@@ -180,18 +180,18 @@ export function useSocket(): SocketState {
     })
   }, [])
 
-  // Track which token the socket is authenticated with
+  //Track which token the socket is authenticated with
   const currentTokenRef = useRef<string | null>(null)
 
-  // Connect to Socket.IO with JWT - Advanced connection management
+  //Connect to Socket.IO with JWT - Advanced connection management
   const connect = useCallback((token: string) => {
     if (socketRef.current?.connected) {
-      // If already connected with the same token, skip
+      //If already connected with the same token, skip
       if (currentTokenRef.current === token) {
         console.log('[Socket] Already connected with same token, skipping')
         return
       }
-      // Different token — clean up old listeners and reconnect
+      //Different token -- clean up old listeners and reconnect
       console.log('[Socket] Reconnecting with different token...')
       registeredEventsRef.current.forEach(evt => socketRef.current?.off(evt))
       registeredEventsRef.current = []
@@ -211,7 +211,7 @@ export function useSocket(): SocketState {
 
     console.log('[Socket] Connecting to:', SOCKET_URL)
     
-    // Calculate exponential backoff delay based on previous attempts
+    //Calculate exponential backoff delay based on previous attempts
     const baseDelay = 1000
     const maxDelay = 30000
     const backoffMultiplier = 1.5
@@ -242,10 +242,10 @@ export function useSocket(): SocketState {
       setConnected(true)
       reconnectAttemptsRef.current = 0
 
-      // Process any queued messages
+      //Process any queued messages
       processMessageQueue()
 
-      // On reconnect, re-fetch thread history to avoid stale data from missed events
+      //On reconnect, re-fetch thread history to avoid stale data from missed events
       if (isReconnect) {
         const isAdmin = !!getToken()
         if (isAdmin) {
@@ -253,7 +253,7 @@ export function useSocket(): SocketState {
         } else {
           socket.emit('citizen:get_threads')
         }
-        // Also re-fetch messages for any active thread
+        //Also re-fetch messages for any active thread
         if (activeThreadRef.current?.id) {
           socket.emit('chat:get_messages', { threadId: activeThreadRef.current.id })
         }
@@ -264,7 +264,7 @@ export function useSocket(): SocketState {
       console.log('[Socket] [WARN] Disconnected:', reason)
       setConnected(false)
       
-      // Clear heartbeat interval
+      //Clear heartbeat interval
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current)
         heartbeatIntervalRef.current = null
@@ -274,12 +274,12 @@ export function useSocket(): SocketState {
     socket.on('connect_error', (err) => {
       console.error('[Socket] [ERR] Connection error:', err.message)
       
-      // Check if it's an auth error
+      //Check if it's an auth error
       if (err.message.includes('Invalid token') || err.message.includes('authentication')) {
         console.warn('[Socket] Authentication failed - clearing token')
         clearToken()
         
-        // Redirect to login if not already there
+        //Redirect to login if not already there
         if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/auth')) {
           console.log('[Socket] Redirecting to login...')
           setTimeout(() => {
@@ -291,9 +291,9 @@ export function useSocket(): SocketState {
       setConnected(false)
     })
 
-    // Advanced Connection Management
+    //Advanced Connection Management
     
-    // Reconnection attempts tracking
+    //Reconnection attempts tracking
     socket.on('reconnect_attempt', (attemptNumber) => {
       reconnectAttemptsRef.current = attemptNumber
       console.log(`[Socket] Reconnection attempt ${attemptNumber}/${MAX_RECONNECT_ATTEMPTS}`)
@@ -304,7 +304,7 @@ export function useSocket(): SocketState {
       reconnectAttemptsRef.current = 0
       setConnected(true)
       
-      // Process queued messages after reconnection
+      //Process queued messages after reconnection
       processMessageQueue()
     })
     
@@ -312,7 +312,7 @@ export function useSocket(): SocketState {
       console.error('[Socket] [ERR] Reconnection failed after', MAX_RECONNECT_ATTEMPTS, 'attempts')
       setConnected(false)
       
-      // Alert user if there are queued messages
+      //Alert user if there are queued messages
       if (messageQueueRef.current.length > 0) {
         console.warn('[Socket] [WARN]', messageQueueRef.current.length, 'messages queued, waiting for connection')
       }
@@ -322,7 +322,7 @@ export function useSocket(): SocketState {
       console.error('[Socket] [WARN] Reconnection error:', err.message)
     })
     
-    // Heartbeat monitoring with custom intervals — clear any previous interval first
+    //Heartbeat monitoring with custom intervals -- clear any previous interval first
     if (heartbeatIntervalRef.current) {
       clearInterval(heartbeatIntervalRef.current)
       heartbeatIntervalRef.current = null
@@ -332,7 +332,7 @@ export function useSocket(): SocketState {
         const now = Date.now()
         const timeSinceLastPing = now - lastPingRef.current
         
-        // If no ping in last 30 seconds, connection might be stale
+        //If no ping in last 30 seconds, connection might be stale
         if (timeSinceLastPing > 30000) {
           console.warn('[Socket] [WARN] No heartbeat for 30s, connection may be stale')
         }
@@ -346,16 +346,16 @@ export function useSocket(): SocketState {
     socket.on('pong', (latency) => {
       lastPingRef.current = Date.now()
       
-      // Track latency history (keep last 10 measurements)
+      //Track latency history (keep last 10 measurements)
       latencyHistoryRef.current.push(latency)
       if (latencyHistoryRef.current.length > 10) {
         latencyHistoryRef.current.shift()
       }
       
-      // Calculate average latency
+      //Calculate average latency
       const avgLatency = latencyHistoryRef.current.reduce((a, b) => a + b, 0) / latencyHistoryRef.current.length
       
-      // Determine connection quality
+      //Determine connection quality
       let quality: 'excellent' | 'good' | 'fair' | 'poor'
       if (avgLatency < 50) quality = 'excellent'
       else if (avgLatency < 150) quality = 'good'
@@ -363,23 +363,23 @@ export function useSocket(): SocketState {
       else quality = 'poor'
       
       if (connectionQualityRef.current !== quality) {
-        console.log('[Socket] Connection quality changed:', connectionQualityRef.current, '→', quality)
+ console.log('[Socket] Connection quality changed:', connectionQualityRef.current, '->', quality)
         connectionQualityRef.current = quality
       }
       
       console.log('[Socket] Latency:', latency, 'ms | Avg:', avgLatency.toFixed(0), 'ms | Quality:', quality)
     })
 
-    // Message Events
+    //Message Events
 
     socket.on('message:new', (msg: ChatMessage) => {
-      // Advanced deduplication - check if we've already processed this message
+      //Advanced deduplication - check if we've already processed this message
       if (seenMessageIdsRef.current.has(msg.id)) {
         console.log('[Socket] Duplicate message detected, skipping:', msg.id)
         return
       }
       
-      // Add to seen messages (keep last 1000 to prevent memory bloat)
+      //Add to seen messages (keep last 1000 to prevent memory bloat)
       seenMessageIdsRef.current.add(msg.id)
       if (seenMessageIdsRef.current.size > 1000) {
         const firstId = seenMessageIdsRef.current.values().next().value
@@ -390,7 +390,7 @@ export function useSocket(): SocketState {
       
       console.log('[Socket] New message:', msg.id, 'Thread:', msg.thread_id)
       
-      // Always update messages if viewing this thread (even if ref not set yet)
+      //Always update messages if viewing this thread (even if ref not set yet)
       const currentThreadId = activeThreadRef.current?.id
       if (currentThreadId === msg.thread_id) {
         setMessages(prev => {
@@ -403,7 +403,7 @@ export function useSocket(): SocketState {
           return [...withoutOptimistic, msg]
         })
       }
-      // Update and sort citizen threads
+      //Update and sort citizen threads
       setThreads(prev => {
         const updated = prev.map(t =>
           t.id === msg.thread_id
@@ -416,7 +416,7 @@ export function useSocket(): SocketState {
           new Date(a.last_message_at || a.created_at).getTime()
         )
       })
-      // Update and sort admin threads
+      //Update and sort admin threads
       setAdminThreads(prev => {
         const updated = prev.map(t =>
           t.id === msg.thread_id
@@ -437,7 +437,7 @@ export function useSocket(): SocketState {
       ))
     })
 
-    // Thread Events
+    //Thread Events
 
     socket.on('thread:created', (thread: ChatThread) => {
       setThreads(prev => {
@@ -458,7 +458,7 @@ export function useSocket(): SocketState {
       // // console.log('[Socket] admin:new_thread received:', thread.id)
       setAdminThreads(prev => {
         if (prev.some(t => t.id === thread.id)) return prev
-        // Add to top and sort by created_at
+        //Add to top and sort by created_at
         return [thread, ...prev].sort((a, b) => 
           new Date(b.last_message_at || b.created_at).getTime() - 
           new Date(a.last_message_at || a.created_at).getTime()
@@ -466,7 +466,7 @@ export function useSocket(): SocketState {
       })
       setThreads(prev => {
         if (prev.some(t => t.id === thread.id)) return prev
-        // Add to top and sort by created_at
+        //Add to top and sort by created_at
         return [thread, ...prev].sort((a, b) => 
           new Date(b.last_message_at || b.created_at).getTime() - 
           new Date(a.last_message_at || a.created_at).getTime()
@@ -476,11 +476,11 @@ export function useSocket(): SocketState {
 
     socket.on('admin:new_message', ({ threadId, message }: any) => {
       // // console.log('[Socket] admin:new_message received for thread:', threadId)
-      // Only update metadata + unread if NOT currently viewing this thread
+      //Only update metadata + unread if NOT currently viewing this thread
       // (message:new already handles it when admin is in the thread room)
       const inThreadRoom = activeThreadRef.current?.id === threadId
       
-      // Update adminThreads and re-sort
+      //Update adminThreads and re-sort
       setAdminThreads(prev => {
         const updated = prev.map(t =>
           t.id === threadId
@@ -489,14 +489,14 @@ export function useSocket(): SocketState {
                 updated_at: message.created_at }
             : t
         )
-        // Sort by last_message_at to bring updated thread to top
+        //Sort by last_message_at to bring updated thread to top
         return updated.sort((a, b) => 
           new Date(b.last_message_at || b.created_at).getTime() - 
           new Date(a.last_message_at || a.created_at).getTime()
         )
       })
       
-      // Update threads (for compatibility) and re-sort
+      //Update threads (for compatibility) and re-sort
       setThreads(prev => {
         const updated = prev.map(t =>
           t.id === threadId
@@ -505,7 +505,7 @@ export function useSocket(): SocketState {
                 updated_at: message.created_at }
             : t
         )
-        // Sort by last_message_at to bring updated thread to top
+        //Sort by last_message_at to bring updated thread to top
         return updated.sort((a, b) => 
           new Date(b.last_message_at || b.created_at).getTime() - 
           new Date(a.last_message_at || a.created_at).getTime()
@@ -519,7 +519,7 @@ export function useSocket(): SocketState {
       setThreads(threadList)
     })
 
-    // Typing Events
+    //Typing Events
 
     socket.on('typing:start', ({ threadId, userId, displayName, role }: any) => {
       setTypingUsers(prev => {
@@ -532,7 +532,7 @@ export function useSocket(): SocketState {
       setTypingUsers(prev => prev.filter(t => !(t.userId === userId && t.threadId === threadId)))
     })
 
-    // Messages loaded
+    //Messages loaded
 
     socket.on('thread:messages', ({ threadId, messages: msgs }: any) => {
       const current = activeThreadRef.current
@@ -548,9 +548,9 @@ export function useSocket(): SocketState {
       })
     })
 
-    // Citizen thread list
+    //Citizen thread list
 
-    // Admin: Thread assigned
+    //Admin: Thread assigned
     socket.on('admin:thread_assigned', ({ threadId, operatorName }: any) => {
       // // console.log('[Socket] Thread assigned:', threadId, 'to', operatorName)
       setThreads(prev => prev.map(t =>
@@ -559,14 +559,14 @@ export function useSocket(): SocketState {
       setAdminThreads(prev => prev.map(t =>
         t.id === threadId ? { ...t, status: 'in_progress', assigned_operator_id: operatorName } : t
       ))
-      // Update active thread if viewing it
+      //Update active thread if viewing it
       const current = activeThreadRef.current
       if (current?.id === threadId) {
         setActiveThread({ ...current, status: 'in_progress' } as ChatThread)
       }
     })
 
-    // Admin: Thread resolved
+    //Admin: Thread resolved
     socket.on('admin:thread_resolved', ({ threadId }: any) => {
       // // console.log('[Socket] Thread resolved:', threadId)
       setThreads(prev => prev.map(t =>
@@ -581,7 +581,7 @@ export function useSocket(): SocketState {
       }
     })
 
-    // Thread resolved (for citizens in thread room)
+    //Thread resolved (for citizens in thread room)
     socket.on('thread:resolved', ({ threadId }: any) => {
       setThreads(prev => prev.map(t =>
         t.id === threadId ? { ...t, status: 'resolved' } : t
@@ -598,10 +598,10 @@ export function useSocket(): SocketState {
       setThreads(threadList)
     })
 
-    // Citizen: Admin reply notification
+    //Citizen: Admin reply notification
     socket.on('citizen:new_reply', ({ threadId, message }: any) => {
       console.log('[Socket] citizen:new_reply received for thread:', threadId)
-      // Update thread list with new reply info and re-sort
+      //Update thread list with new reply info and re-sort
       setThreads(prev => {
         const updated = prev.map(t =>
           t.id === threadId
@@ -609,13 +609,13 @@ export function useSocket(): SocketState {
                 citizen_unread: (t.citizen_unread || 0) + 1, updated_at: message.created_at }
             : t
         )
-        // Sort by last_message_at to bring updated thread to top
+        //Sort by last_message_at to bring updated thread to top
         return updated.sort((a, b) => 
           new Date(b.last_message_at || b.created_at).getTime() - 
           new Date(a.last_message_at || a.created_at).getTime()
         )
       })
-      // If viewing this thread, add the message (dedup with message:new)
+      //If viewing this thread, add the message (dedup with message:new)
       if (activeThreadRef.current?.id === threadId) {
         setMessages(prev => {
           if (prev.some(m => m.id === message.id)) return prev
@@ -624,12 +624,12 @@ export function useSocket(): SocketState {
       }
     })
 
-    // Citizen: Authoritative unread count from server
+    //Citizen: Authoritative unread count from server
     socket.on('citizen:unread_count', ({ total }: { total: number }) => {
       setUnreadCount(total)
     })
 
-    // Track all event names for proper cleanup
+    //Track all event names for proper cleanup
     registeredEventsRef.current = [
       'connect', 'disconnect', 'connect_error',
       'reconnect_attempt', 'reconnect', 'reconnect_failed', 'reconnect_error',
@@ -645,17 +645,17 @@ export function useSocket(): SocketState {
     socketRef.current = socket
   }, [processMessageQueue])
 
-  // Disconnect with cleanup
+  //Disconnect with cleanup
   const disconnect = useCallback(() => {
     console.log('[Socket] Disconnecting...')
 
-    // Clear heartbeat interval
+    //Clear heartbeat interval
     if (heartbeatIntervalRef.current) {
       clearInterval(heartbeatIntervalRef.current)
       heartbeatIntervalRef.current = null
     }
 
-    // Remove all event listeners
+    //Remove all event listeners
     registeredEventsRef.current.forEach(evt => socketRef.current?.off(evt))
     registeredEventsRef.current = []
 
@@ -670,7 +670,7 @@ export function useSocket(): SocketState {
     activeThreadRef.current = null
   }, [])
 
-  // Send message (with optional attachment)
+  //Send message (with optional attachment)
   const sendMessage = useCallback((threadId: string, content: string, attachmentUrl?: string) => {
     const trimmed = content.trim()
     if (!trimmed && !attachmentUrl) return
@@ -680,14 +680,14 @@ export function useSocket(): SocketState {
     const citizenToken = getCitizenToken()
     const isAdminUser = !!adminToken && !citizenToken
 
-    // Get real user ID for proper message alignment
+    //Get real user ID for proper message alignment
     let realUserId = 'me'
     try {
       if (isAdminUser) {
         const stored = localStorage.getItem('aegis-user')
         if (stored) realUserId = JSON.parse(stored).id || 'me'
       } else {
-        // Decode citizen token to get user ID (validate JWT format first)
+        //Decode citizen token to get user ID (validate JWT format first)
         const tk = getCitizenToken()
         if (tk && tk.split('.').length === 3) {
           const payload = JSON.parse(atob(tk.split('.')[1]))
@@ -722,7 +722,7 @@ export function useSocket(): SocketState {
       t.id === threadId ? { ...t, last_message: threadPreview, last_message_at: now, updated_at: now } : t
     ))
 
-    // Queue message if offline
+    //Queue message if offline
     if (!socketRef.current?.connected) {
       console.warn('[Socket] Offline - queueing message for later delivery')
       messageQueueRef.current.push({
@@ -735,14 +735,14 @@ export function useSocket(): SocketState {
       return
     }
 
-    // Send message with enhanced error handling
+    //Send message with enhanced error handling
     socketRef.current?.emit('message:send', { threadId, content: trimmed, attachmentUrl }, (ack: any) => {
       if (ack?.success && ack?.message) {
         console.log('[Socket] [OK] Message sent successfully')
         setMessages(prev => prev.map(m => (m.id === optimisticId ? ack.message : m)))
       } else {
         console.error('[Socket] [ERR] Message send failed:', ack?.error)
-        // Queue for retry
+        //Queue for retry
         messageQueueRef.current.push({
           threadId,
           content: trimmed,
@@ -750,7 +750,7 @@ export function useSocket(): SocketState {
           timestamp: Date.now(),
           retryCount: 0
         })
-        // Remove optimistic message
+        //Remove optimistic message
         setMessages(prev => prev.filter(m => m.id !== optimisticId))
       }
     })
@@ -758,7 +758,7 @@ export function useSocket(): SocketState {
 
   const createThread = useCallback((subject: string, category: string, initialMessage: string) => {
     socketRef.current?.emit('thread:create', { subject, category, message: initialMessage, isEmergency: false }, (ack: any) => {
-      // Add the new thread to list immediately via ack
+      //Add the new thread to list immediately via ack
       if (ack?.success && ack?.thread) {
         setThreads(prev => {
           if (prev.some(t => t.id === ack.thread.id)) return prev
@@ -774,15 +774,15 @@ export function useSocket(): SocketState {
   }, [])
 
   const loadThreadMessages = useCallback(async (threadId: string) => {
-    // Use REST API only — socket 'thread:join' already triggers 'thread:messages' event
-    // This eliminates the race condition of dual REST + socket fetch (#21)
+    //Use REST API only -- socket 'thread:join' already triggers 'thread:messages' event
+    //This eliminates the race condition of dual REST + socket fetch (#21)
     try {
       const citizenToken = getCitizenToken()
       const operatorToken = getToken()
       const token = citizenToken || operatorToken
       if (!token) return
       
-      // Use admin endpoint if operator token, citizen endpoint if citizen token
+      //Use admin endpoint if operator token, citizen endpoint if citizen token
       const endpoint = operatorToken && !citizenToken 
         ? `/api/admin/messages/${threadId}`
         : `/api/citizen/threads/${threadId}`
@@ -819,20 +819,20 @@ export function useSocket(): SocketState {
   }, [])
 
   const fetchCitizenThreads = useCallback(async () => {
-    // Guard: skip if no auth token available (e.g. after logout)
+    //Guard: skip if no auth token available (e.g. after logout)
     const token = getCitizenToken() || getToken()
     if (!token) return
 
-    // Debounce: cancel any pending REST fallback from a previous call
+    //Debounce: cancel any pending REST fallback from a previous call
     if (fetchThreadsPendingRef.current) {
       clearTimeout(fetchThreadsPendingRef.current)
       fetchThreadsPendingRef.current = null
     }
 
-    // Primary: use socket (real-time); fallback: REST after 2s delay
+    //Primary: use socket (real-time); fallback: REST after 2s delay
     socketRef.current?.emit('citizen:get_threads')
 
-    // Delayed REST fallback only if socket didn't deliver
+    //Delayed REST fallback only if socket didn't deliver
     fetchThreadsPendingRef.current = setTimeout(async () => {
       fetchThreadsPendingRef.current = null
       try {
@@ -847,7 +847,7 @@ export function useSocket(): SocketState {
 
         const data = await res.json()
         const threadList: ChatThread[] = Array.isArray(data) ? data : (Array.isArray(data?.threads) ? data.threads : [])
-        // Only apply REST data if socket hasn't already populated threads
+        //Only apply REST data if socket hasn't already populated threads
         setThreads(prev => {
           if (prev.length === 0 && threadList.length > 0) return threadList
           return prev
@@ -866,34 +866,34 @@ export function useSocket(): SocketState {
     socketRef.current?.emit('admin:resolve_thread', { threadId })
   }, [])
 
-  // bfcache (back/forward cache) handling for mobile browsers
-  // Properly close socket on pagehide and reconnect on pageshow
+  //bfcache (back/forward cache) handling for mobile browsers
+  //Properly close socket on pagehide and reconnect on pageshow
   useEffect(() => {
     const handlePageHide = (e: PageTransitionEvent) => {
-      // If page might be restored from bfcache, close socket cleanly
+      //If page might be restored from bfcache, close socket cleanly
       if (e.persisted || (typeof (e as any).persisted === 'undefined')) {
         console.log('[Socket] pagehide - closing for potential bfcache')
         
-        // Clear heartbeat to prevent stale checks
+        //Clear heartbeat to prevent stale checks
         if (heartbeatIntervalRef.current) {
           clearInterval(heartbeatIntervalRef.current)
           heartbeatIntervalRef.current = null
         }
         
-        // Disconnect socket (but don't clear state - we'll restore)
+        //Disconnect socket (but don't clear state - we'll restore)
         socketRef.current?.disconnect()
       }
     }
     
     const handlePageShow = (e: PageTransitionEvent) => {
-      // If restored from bfcache, reconnect with stored token
+      //If restored from bfcache, reconnect with stored token
       if (e.persisted) {
         console.log('[Socket] pageshow - restored from bfcache, reconnecting...')
         
-        // Get stored token and reconnect
+        //Get stored token and reconnect
         const token = getAnyToken()
         if (token && currentTokenRef.current) {
-          // Short delay to let browser settle
+          //Short delay to let browser settle
           setTimeout(() => {
             connect(currentTokenRef.current!)
           }, 100)
@@ -910,31 +910,31 @@ export function useSocket(): SocketState {
     }
   }, [connect])
 
-  // Cleanup on unmount
+  //Cleanup on unmount
   useEffect(() => {
     return () => {
       console.log('[Socket] Cleanup on unmount')
 
-      // Clear heartbeat interval
+      //Clear heartbeat interval
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current)
         heartbeatIntervalRef.current = null
       }
 
-      // Cancel pending REST fallback
+      //Cancel pending REST fallback
       if (fetchThreadsPendingRef.current) {
         clearTimeout(fetchThreadsPendingRef.current)
         fetchThreadsPendingRef.current = null
       }
 
-      // Remove all registered event listeners before disconnecting
+      //Remove all registered event listeners before disconnecting
       registeredEventsRef.current.forEach(evt => socketRef.current?.off(evt))
       registeredEventsRef.current = []
 
-      // Disconnect socket
+      //Disconnect socket
       socketRef.current?.disconnect()
 
-      // Clear message queue if user is logging out
+      //Clear message queue if user is logging out
       if (messageQueueRef.current.length > 0) {
         console.warn('[Socket] [WARN] Discarding', messageQueueRef.current.length, 'queued messages on unmount')
       }

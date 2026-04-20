@@ -1,7 +1,7 @@
 """
 Core flood predictor that combines river discharge readings, rainfall
-intensity, and soil saturation into a 0–1 risk score.  This is the most
-mature model in the system — it has the longest training history and the
+intensity, and soil saturation into a 0-1 risk score.  This is the most
+mature model in the system -- it has the longest training history and the
 most real-world validation data from EM-DAT flood events.
 
 Also exposes an explain() helper that returns the top SHAP feature
@@ -76,7 +76,7 @@ class FloodPredictor:
         
         start_time = datetime.utcnow()
         
-        # Step 1: Extract features — pass any real observed values supplied by caller
+        # Step 1: Extract features -- pass any real observed values supplied by caller
         features = await self.feature_store.get_all_features(
             request.latitude,
             request.longitude,
@@ -109,7 +109,7 @@ class FloodPredictor:
         if model_metadata:
             logger.info(f"Using model: {model_metadata.name} v{model_metadata.version}")
 
-            # Load actual model — use the region that owns the model file,
+            # Load actual model -- use the region that owns the model file,
             # which may differ from request.region_id when we fell back to uk-default
             model = await self.model_registry.get_model(
                 self.hazard_type.value,
@@ -248,11 +248,11 @@ class FloodPredictor:
                     return float(features.get(base, 0.0))
                 # Rate features (river_level_rate_1h, river_level_rate_3h)
                 if "_rate_" in fname:
-                    return 0.0  # Unknown rate → neutral
+                    return 0.0  # Unknown rate -> neutral
                 # Saturation index
                 if fname == "saturation_index":
                     return float(features.get("soil_moisture", 0.5))
-                # Rolling mean/std/min/max — use base value
+                # Rolling mean/std/min/max -- use base value
                 for stat in ("_rolling_mean_", "_rolling_std_", "_rolling_min_", "_rolling_max_"):
                     if stat in fname:
                         base = fname.split(stat)[0]
@@ -273,7 +273,7 @@ class FloodPredictor:
                     parts = fname.split("_DIV_", 1)
                     denom = float(features.get(parts[1], 1.0))
                     return float(features.get(parts[0], 0.0)) / denom if denom != 0 else 0.0
-                # Unknown feature — neutral zero
+                # Unknown feature -- neutral zero
                 return 0.0
 
             feature_vector = np.array([
@@ -298,14 +298,14 @@ class FloodPredictor:
             # Models trained with Platt calibration use a threshold derived via
             # a cost sweep on the val set (FN_WEIGHT=10: missing a real event
             # costs 10x a false alarm).  This threshold is scientifically derived
-            # and should be used for binary alert decisions — NOT 0.5.
+            # and should be used for binary alert decisions -- NOT 0.5.
             # The raw probability is preserved for ranking/sorting/UI display.
             optimal_threshold = float(
                 (metadata.extra_metadata or {}).get('optimal_threshold', 0.5)
             )
             # Normalise probability relative to threshold so downstream risk
-            # banding (probability >= 0.55 → high, etc.) stays meaningful:
-            # rescale [0, threshold] → [0, 0.5] and [threshold, 1] → [0.5, 1].
+            # banding (probability >= 0.55 -> high, etc.) stays meaningful:
+            # rescale [0, threshold] -> [0, 0.5] and [threshold, 1] -> [0.5, 1].
             if optimal_threshold > 0.0 and optimal_threshold < 1.0 and optimal_threshold != 0.5:
                 if probability < optimal_threshold:
                     probability = probability / optimal_threshold * 0.5

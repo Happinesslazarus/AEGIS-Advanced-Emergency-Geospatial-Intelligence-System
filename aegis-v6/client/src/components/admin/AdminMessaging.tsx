@@ -28,7 +28,7 @@ import { useLanguage } from '../../hooks/useLanguage'
 
 type FilterMode = 'all' | 'emergency' | 'open' | 'in_progress' | 'resolved' | 'mine'
 
-// Message grouping helpers
+//Message grouping helpers
 
 function formatDateSeparator(dateStr: string, lang: string): string {
   const d = new Date(dateStr)
@@ -52,7 +52,7 @@ function isMsgConsecutive(msgs: ChatMessage[], idx: number): boolean {
   return new Date(curr.created_at).getTime() - new Date(prev.created_at).getTime() < 120000
 }
 
-// timeAgo, API_BASE, MessageStatusIcon imported from shared modules
+//timeAgo, API_BASE, MessageStatusIcon imported from shared modules
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string }> = {
@@ -81,7 +81,7 @@ export default function AdminMessaging(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [loadingThreads, setLoadingThreads] = useState(true)
 
-  // Quick reply templates for common responses
+  //Quick reply templates for common responses
   const QUICK_REPLIES = [
     { label: 'Acknowledged', text: 'Thank you for reaching out. We have received your message and are looking into it.', Icon: CheckCircle },
     { label: 'On It', text: 'Our team is actively working on this. We will update you as soon as we have more information.', Icon: Zap },
@@ -95,7 +95,7 @@ export default function AdminMessaging(): JSX.Element {
   const [previewUrl, setPreviewUrl] = useState('')
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showAssignDropdown, setShowAssignDropdown] = useState(false)
-  // Translation state
+  //Translation state
   const [translations, setTranslations] = useState<Record<string, string>>({})
   const [translatingId, setTranslatingId] = useState<string | null>(null)
   const [targetLang, setTargetLang] = useState(() => getLanguage() || 'en')
@@ -112,7 +112,7 @@ export default function AdminMessaging(): JSX.Element {
     assignThread, resolveThread, setActiveThread
   } = socket
 
-  // Connect on mount with operator token; reconnect if socket drops
+  //Connect on mount with operator token; reconnect if socket drops
   useEffect(() => {
     const token = getToken()
     if (token && !connected) {
@@ -122,29 +122,29 @@ export default function AdminMessaging(): JSX.Element {
       console.warn('[AdminMessaging] No admin token found in localStorage')
     }
     return () => {
-      // Don't disconnect — shared across admin page
+      //Don't disconnect -- shared across admin page
     }
   }, [connected, connect])
 
-  // Fetch admin threads when connected
+  //Fetch admin threads when connected
   useEffect(() => {
     if (connected) {
       setLoadingThreads(true)
       fetchAdminThreads()
-      // Once threads arrive, loading will clear
+      //Once threads arrive, loading will clear
       const loadingTimer = setTimeout(() => setLoadingThreads(false), 1500)
-      // Refresh every 30 seconds
+      //Refresh every 30 seconds
       const interval = setInterval(() => fetchAdminThreads(), 30000)
       return () => { clearInterval(interval); clearTimeout(loadingTimer) }
     }
   }, [connected, fetchAdminThreads])
 
-  // Clear loadingThreads when threads actually arrive
+  //Clear loadingThreads when threads actually arrive
   useEffect(() => {
     if (threads.length > 0) setLoadingThreads(false)
   }, [threads])
 
-  // Auto-dismiss error toast
+  //Auto-dismiss error toast
   useEffect(() => {
     if (error) {
       const errorTimer = setTimeout(() => setError(null), 5000)
@@ -152,19 +152,19 @@ export default function AdminMessaging(): JSX.Element {
     }
   }, [error])
 
-  // Scroll to bottom on messages change
+  //Scroll to bottom on messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Mark messages as read when viewing thread
+  //Mark messages as read when viewing thread
   useEffect(() => {
     if (activeThread) {
       markRead(activeThread.id, [])
     }
   }, [activeThread?.id, messages.length])
 
-  // Close lang picker on outside click
+  //Close lang picker on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (langPickerRef.current && !langPickerRef.current.contains(e.target as Node)) setShowLangPicker(false)
@@ -173,7 +173,7 @@ export default function AdminMessaging(): JSX.Element {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Per-message translate handler
+  //Per-message translate handler
   const handleTranslateMsg = async (msgId: string, text: string) => {
     if (translations[msgId]) {
       setTranslations(prev => { const n = { ...prev }; delete n[msgId]; return n })
@@ -185,13 +185,13 @@ export default function AdminMessaging(): JSX.Element {
       if (result.translatedText && result.translatedText !== text) {
         setTranslations(prev => ({ ...prev, [msgId]: result.translatedText }))
       } else {
-        setTranslations(prev => ({ ...prev, [msgId]: `✓ ${text}` }))
+        setTranslations(prev => ({ ...prev, [msgId]: ` ${text}` }))
       }
     } catch { /* skip */ }
     setTranslatingId(null)
   }
 
-  // Auto-translate incoming messages
+  //Auto-translate incoming messages
   useEffect(() => {
     if (!autoTranslate) return
     const untranslated = messages.filter((m: ChatMessage) => m.content && !translations[m.id])
@@ -218,14 +218,14 @@ export default function AdminMessaging(): JSX.Element {
           return next
         })
       } catch {
-        // Skip batch failures.
+        //Skip batch failures.
       }
     })()
 
     return () => { cancelled = true }
   }, [autoTranslate, targetLang, messages, translations])
 
-  // When target language changes, clear cached translations and re-translate
+  //When target language changes, clear cached translations and re-translate
   const handleLangChange = (code: string) => {
     setTargetLang(code)
     clearTranslationCache()
@@ -242,18 +242,18 @@ export default function AdminMessaging(): JSX.Element {
     }
   }, [lang])
 
-  // Sort and filter threads
+  //Sort and filter threads
   const filteredThreads = useMemo(() => {
     let list = [...threads]
 
-    // Filter
+    //Filter
     if (filter === 'emergency') list = list.filter(t => t.is_emergency)
     else if (filter === 'open') list = list.filter(t => t.status === 'open')
     else if (filter === 'in_progress') list = list.filter(t => t.status === 'in_progress')
     else if (filter === 'resolved') list = list.filter(t => t.status === 'resolved')
     else if (filter === 'mine') list = list.filter(t => (t as any).assigned_to === user?.id || t.assigned_operator_id === user?.id)
 
-    // Search
+    //Search
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase()
       list = list.filter(t =>
@@ -263,7 +263,7 @@ export default function AdminMessaging(): JSX.Element {
       )
     }
 
-    // Sort: emergency first, then vulnerable, then by updated_at
+    //Sort: emergency first, then vulnerable, then by updated_at
     list.sort((a, b) => {
       if (a.is_emergency && !b.is_emergency) return -1
       if (!a.is_emergency && b.is_emergency) return 1
@@ -280,7 +280,7 @@ export default function AdminMessaging(): JSX.Element {
     joinThread(thread.id)
     loadThreadMessages(thread.id)
     
-    // Mark thread as read to clear unread badge - use admin endpoint
+    //Mark thread as read to clear unread badge - use admin endpoint
     const token = getToken()
     if (token) {
       const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
@@ -376,7 +376,7 @@ export default function AdminMessaging(): JSX.Element {
   const openCount = threads.filter(t => t.status === 'open').length
   const inProgressCount = threads.filter(t => t.status === 'in_progress').length
 
-  // Keyboard shortcuts
+  //Keyboard shortcuts
   const [showKeyboard, setShowKeyboard] = useState(false)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -393,7 +393,7 @@ export default function AdminMessaging(): JSX.Element {
     return () => document.removeEventListener('keydown', handler)
   }, [activeThread])
 
-  // PROFESSIONAL SPLIT LAYOUT
+  //PROFESSIONAL SPLIT LAYOUT
 
   return (
     <>

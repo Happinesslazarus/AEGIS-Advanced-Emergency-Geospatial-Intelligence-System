@@ -24,13 +24,13 @@ Glossary:
   cost          = edge traversal time in minutes (derived from OSM speed tags
                   or road class defaults)
   Overpass API  = query API for OpenStreetMap data at overpass-api.de
-  osm2pgrouting = C++ converter from OSM XML → pgRouting-ready tables
+ osm2pgrouting = C++ converter from OSM XML -> pgRouting-ready tables
                   (alternative if you have large datasets)
 
-  Reads from  ← .env or environment variables for DB connection
-             ← Overpass API (downloads UK road network)
-  Writes to  → road_network table (PostGIS + pgRouting)
-  Used by    ← app/services/spatial_analytics.py (pgRouting queries)
+ Reads from <- .env or environment variables for DB connection
+ <- Overpass API (downloads UK road network)
+ Writes to -> road_network table (PostGIS + pgRouting)
+ Used by <- app/services/spatial_analytics.py (pgRouting queries)
 
 Usage:
   python scripts/setup/setup_pgrouting.py
@@ -84,7 +84,7 @@ OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 # UK bounding box (south,west,north,east)
 DEFAULT_UK_BBOX = "49.5,-8.5,61.0,2.0"
 
-# Road type → default speed (km/h) for travel-time cost calculation
+# Road type -> default speed (km/h) for travel-time cost calculation
 ROAD_SPEEDS: dict[str, int] = {
     "motorway":      120,
     "trunk":         100,
@@ -278,7 +278,7 @@ def build_topology(conn) -> None:
             "SELECT pgr_createTopology('road_network', 0.00001, 'geom', 'id')"
         )
         conn.commit()
-    print("  Topology built — source/target columns populated.")
+    print("  Topology built -- source/target columns populated.")
 
 
 def verify_topology(conn) -> None:
@@ -310,10 +310,10 @@ def main() -> None:
     if args.db_url:
         DB_URL = args.db_url
 
-    print("[1/5] Connecting to database …")
+    print("[1/5] Connecting to database ...")
     conn = get_db_conn()
 
-    print("[2/5] Checking pgRouting availability …")
+    print("[2/5] Checking pgRouting availability ...")
     if not check_pgrouting(conn):
         print("  pgRouting not available in pg_available_extensions.")
         print("  Install with: apt install postgresql-16-pgrouting (Ubuntu)")
@@ -322,12 +322,12 @@ def main() -> None:
         conn.close()
         return
 
-    print("[3/5] Installing pgRouting extension …")
+    print("[3/5] Installing pgRouting extension ...")
     pgrouting_ok = install_pgrouting(conn)
     create_road_network_table(conn)
 
     if not args.only_topology:
-        print("[4/5] Downloading OSM road network …")
+        print("[4/5] Downloading OSM road network ...")
         try:
             ways = fetch_osm_roads(args.bbox)
             if ways:
@@ -341,7 +341,7 @@ def main() -> None:
         print("[4/5] Skipping OSM download (--only-topology).")
 
     if pgrouting_ok and not args.skip_topology:
-        print("[5/5] Building routing topology …")
+        print("[5/5] Building routing topology ...")
         try:
             build_topology(conn)
             verify_topology(conn)

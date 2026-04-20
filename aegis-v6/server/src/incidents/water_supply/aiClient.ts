@@ -15,7 +15,7 @@ export class WaterSupplyAIClient {
    */
   static async getPredictions(region: string): Promise<IncidentPrediction[]> {
     try {
-      // Analyze recent reports
+      //Analyze recent reports
       const result = await pool.query(
         `SELECT COUNT(*) as count,
                 COUNT(*) FILTER (WHERE custom_fields->>'waterQualityIssue' = 'true') as contamination_count,
@@ -31,7 +31,7 @@ export class WaterSupplyAIClient {
       const contaminationCount = parseInt(result.rows[0]?.contamination_count || '0')
       const noWaterCount = parseInt(result.rows[0]?.no_water_count || '0')
       
-      // Rule-based scoring
+      //Rule-based scoring
       let probability = Math.min(0.95, reportCount / 20)
       if (contaminationCount > 0) probability += 0.3 // Contamination is critical
       if (noWaterCount >= 5) probability += 0.2

@@ -23,7 +23,7 @@ interface Props {
   onComplete: (user: Operator) => void
 }
 
-// Password strength indicator helper
+//Password strength indicator helper
 function calcStrength(pw: string): { score: number; label: string; color: string } {
   let s = 0
   if (pw.length >= 12) s++
@@ -85,7 +85,7 @@ export default function FirstAdminSetup({ onComplete }: Props) {
         return
       }
 
-      // Store token and user the same way LoginPage does
+      //Store token and user the same way LoginPage does
       setToken(data.token)
       setUser(data.user)
       setDone(true)
@@ -105,7 +105,7 @@ export default function FirstAdminSetup({ onComplete }: Props) {
             <CheckCircle2 className="w-10 h-10" />
           </div>
           <h2 className="text-2xl font-bold">Account created!</h2>
-          <p className="text-white/70">Taking you to the setup wizard…</p>
+          <p className="text-white/70">Taking you to the setup wizard...</p>
         </div>
       </div>
     )
@@ -125,7 +125,7 @@ export default function FirstAdminSetup({ onComplete }: Props) {
           </p>
           <div className="mt-3 inline-flex items-center gap-2 bg-amber-500/15 border border-amber-500/30 rounded-xl px-3.5 py-2 text-xs text-amber-300">
             <Lock className="w-3.5 h-3.5 flex-shrink-0" />
-            This page is only shown once — it disappears after your account is created.
+            This page is only shown once -- it disappears after your account is created.
           </div>
         </div>
 
@@ -204,7 +204,7 @@ export default function FirstAdminSetup({ onComplete }: Props) {
                   </div>
                   <p className="text-[11px] text-white/50">
                     Strength: <span className="font-semibold text-white/70">{strength.label}</span>
-                    {' · '}Min 12 chars · uppercase · number · symbol
+                    {' - '}Min 12 chars - uppercase - number - symbol
                   </p>
                 </div>
               )}
@@ -242,7 +242,7 @@ export default function FirstAdminSetup({ onComplete }: Props) {
               className="w-full bg-aegis-600 hover:bg-aegis-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg shadow-aegis-900/40 mt-2"
             >
               {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Creating account…</>
+                <><Loader2 className="w-4 h-4 animate-spin" /> Creating account...</>
               ) : (
                 <><Shield className="w-4 h-4" /> Create admin account</>
               )}
@@ -251,7 +251,7 @@ export default function FirstAdminSetup({ onComplete }: Props) {
         </div>
 
         <p className="text-center text-white/30 text-xs mt-6">
-          AEGIS · Advanced Emergency Geospatial Intelligence System
+          AEGIS - Advanced Emergency Geospatial Intelligence System
         </p>
       </div>
     </div>

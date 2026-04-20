@@ -67,7 +67,7 @@ export default function AccessibilityPage(): JSX.Element {
     return { title, paragraphs, listItems, icon: SECTION_ICONS[i] || Shield }
   })
 
-  // Language badges
+  //Language badges
   const supportedLangs = [
     { code: 'gb', label: 'English' },
     { code: 'es', label: 'Español' },

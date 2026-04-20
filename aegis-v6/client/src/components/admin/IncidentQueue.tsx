@@ -3,7 +3,7 @@
  *
  * - Rendered inside AdminPage.tsx based on active view */
 
-/* IncidentQueue.tsx — Incident Assignment / Response Queue for admin dashboard */
+/* IncidentQueue.tsx -- Incident Assignment / Response Queue for admin dashboard */
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import {
@@ -60,7 +60,7 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
   const [operators, setOperators] = useState<Array<{ id: string; displayName: string; role: string }>>([])
   const [assignDropdown, setAssignDropdown] = useState<string | null>(null) // reportId with open dropdown
 
-  // Fetch real operators for assignment
+  //Fetch real operators for assignment
   useEffect(() => {
     apiFetch<any>('/api/users?limit=50')
       .then(data => {
@@ -72,12 +72,12 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
         })).filter((u: any) => u.displayName))
       })
       .catch(() => {
-        // Fallback: at least include current user
+        //Fallback: at least include current user
         setOperators([{ id: currentUser.id || 'self', displayName: currentUser.displayName, role: 'operator' }])
       })
   }, [currentUser?.id])
 
-  // Close dropdown on outside click
+  //Close dropdown on outside click
   const queueRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!assignDropdown) return
@@ -90,12 +90,12 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
     return () => document.removeEventListener('mousedown', handler)
   }, [assignDropdown])
 
-  // Persist assignments to localStorage
+  //Persist assignments to localStorage
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(assignments)) } catch {}
   }, [assignments])
 
-  // Build queue items from reports
+  //Build queue items from reports
   const queueItems: QueueItem[] = useMemo(() => {
     const actionable = reports.filter(r => r.status !== 'Resolved' && r.status !== 'Archived' && r.status !== 'False_Report')
     return actionable.map(report => {
@@ -107,11 +107,11 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
         lastUpdated: report.updatedAt || report.timestamp,
       }
     }).sort((a, b) => {
-      // Priority: escalated > unassigned urgent > unassigned > in_progress > assigned > resolved
+      //Priority: escalated > unassigned urgent > unassigned > in_progress > assigned > resolved
       const priority: Record<QueueStatus, number> = { escalated: 5, unassigned: 4, in_progress: 3, assigned: 2, resolved: 1 }
       const pDiff = (priority[b.queueStatus] || 0) - (priority[a.queueStatus] || 0)
       if (pDiff !== 0) return pDiff
-      // Within same status, sort by severity then date
+      //Within same status, sort by severity then date
       const sevMap: Record<string, number> = { High: 3, Medium: 2, Low: 1 }
       const sDiff = (sevMap[b.report.severity] || 0) - (sevMap[a.report.severity] || 0)
       if (sDiff !== 0) return sDiff
@@ -124,7 +124,7 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
     return queueItems.filter(item => item.queueStatus === statusFilter)
   }, [queueItems, statusFilter])
 
-  // Stats
+  //Stats
   const counts = useMemo(() => {
     const c: Record<string, number> = { unassigned: 0, assigned: 0, in_progress: 0, escalated: 0, resolved: 0 }
     queueItems.forEach(item => { c[item.queueStatus] = (c[item.queueStatus] || 0) + 1 })

@@ -48,20 +48,20 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const watchIdRef = useRef<number | null>(null)
 
-  // Refs that hold the latest GPS coordinates.  Using refs (not state) here
-  // prevents a stale closure problem: `activateSOS` is memoised with useCallback
-  // but it reads GPS values that change over time.  Refs always give the latest
-  // value without needing to be listed as dependencies.
+  //Refs that hold the latest GPS coordinates.  Using refs (not state) here
+  //prevents a stale closure problem: `activateSOS` is memoised with useCallback
+  //but it reads GPS values that change over time.  Refs always give the latest
+  //value without needing to be listed as dependencies.
   const latRef = useRef<number | null>(null)
   const lngRef = useRef<number | null>(null)
 
-  // startCountdown: gives the user 5 seconds to change their mind before
-  // sending the SOS signal.  This prevents accidental activations and mirrors
-  // the confirmation delay used by smartphone emergency SOS features.
+  //startCountdown: gives the user 5 seconds to change their mind before
+  //sending the SOS signal.  This prevents accidental activations and mirrors
+  //the confirmation delay used by smartphone emergency SOS features.
   const startCountdown = useCallback(() => {
     setState(prev => ({ ...prev, status: 'countdown', countdownSeconds: 5, error: null }))
 
-    // Get initial GPS position
+    //Get initial GPS position
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -94,7 +94,7 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     }, 1000)
   }, [])
 
-  // Cancel countdown
+  //Cancel countdown
   const cancelCountdown = useCallback(() => {
     if (countdownRef.current) {
       clearInterval(countdownRef.current)
@@ -103,14 +103,14 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     setState(prev => ({ ...prev, status: 'idle', countdownSeconds: 0 }))
   }, [])
 
-  // Activate SOS
+  //Activate SOS
   const activateSOS = useCallback(() => {
     if (!socket) {
       setState(prev => ({ ...prev, error: 'No connection', status: 'idle' }))
       return
     }
 
-    // Read latest GPS coords from ref to avoid stale closure
+    //Read latest GPS coords from ref to avoid stale closure
     const lat = latRef.current
     const lng = lngRef.current
 
@@ -143,10 +143,10 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     })
   }, [socket, onActivated])
 
-  // startGPSTracking: uses `watchPosition` (continuous updates) rather than
+  //startGPSTracking: uses `watchPosition` (continuous updates) rather than
   // `getCurrentPosition` (one-shot) so the operator dashboard sees the citizen
-  // moving in real time.  maximumAge:5000 allows a cached position up to 5s
-  // old to reduce battery drain; enableHighAccuracy tries to use GPS chips.
+  //moving in real time.  maximumAge:5000 allows a cached position up to 5s
+  //old to reduce battery drain; enableHighAccuracy tries to use GPS chips.
   const startGPSTracking = useCallback((distressId: string) => {
     if (!navigator.geolocation || !socket) return
 
@@ -171,9 +171,9 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     )
   }, [socket])
 
-  // startHeartbeat: a "dead-man switch" that emits a ping every 30 seconds.
-  // The server can detect when the pings stop (e.g. app closed, phone off)
-  // and escalate the distress incident to operators automatically.
+  //startHeartbeat: a "dead-man switch" that emits a ping every 30 seconds.
+  //The server can detect when the pings stop (e.g. app closed, phone off)
+  //and escalate the distress incident to operators automatically.
   const startHeartbeat = useCallback((distressId: string) => {
     heartbeatRef.current = setInterval(() => {
       if (socket) {
@@ -182,7 +182,7 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     }, 30000)
   }, [socket])
 
-  // Cancel SOS
+  //Cancel SOS
   const cancelSOS = useCallback(() => {
     if (!socket || !state.distressId) return
 
@@ -199,7 +199,7 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     })
   }, [socket, state.distressId])
 
-  // Cleanup
+  //Cleanup
   const cleanup = useCallback(() => {
     if (watchIdRef.current != null) {
       navigator.geolocation.clearWatch(watchIdRef.current)
@@ -215,13 +215,13 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     }
   }, [])
 
-  // Socket listeners
+  //Socket listeners
   useEffect(() => {
     if (!socket) return
 
     const onAck = (data: any) => {
-      // Only process if this event is for OUR distress call (multiple tabs may
-      // be open, so we filter by distressId).
+      //Only process if this event is for OUR distress call (multiple tabs may
+      //be open, so we filter by distressId).
       if (data.distressId === state.distressId) {
         setState(prev => ({
           ...prev,
@@ -255,12 +255,12 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     }
   }, [socket, state.distressId, onAcknowledged, onResolved, cleanup])
 
-  // Cleanup on unmount
+  //Cleanup on unmount
   useEffect(() => {
     return () => { cleanup() }
   }, [cleanup])
 
-  // Retry activation after error
+  //Retry activation after error
   const retryActivation = useCallback(() => {
     if (state.status !== 'idle' || !state.error) return
     setState(prev => ({ ...prev, error: null }))

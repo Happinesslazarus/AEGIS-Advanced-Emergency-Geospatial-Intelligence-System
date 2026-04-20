@@ -18,21 +18,21 @@ export class SevereStormAIClient {
       const rainfall = Number(weatherData.rainfall || 0)
       const pressure = Number(weatherData.pressure || 1013)
       
-      // Statistical scoring based on weather parameters
+      //Statistical scoring based on weather parameters
       let riskScore = 0
       
-      // Wind speed contribution
+      //Wind speed contribution
       if (windSpeed >= 100) riskScore += 0.4
       else if (windSpeed >= 75) riskScore += 0.3
       else if (windSpeed >= 50) riskScore += 0.2
       else if (windSpeed >= 30) riskScore += 0.1
       
-      // Rainfall contribution
+      //Rainfall contribution
       if (rainfall >= 50) riskScore += 0.3
       else if (rainfall >= 30) riskScore += 0.2
       else if (rainfall >= 15) riskScore += 0.1
       
-      // Pressure contribution (low pressure = storms)
+      //Pressure contribution (low pressure = storms)
       if (pressure < 990) riskScore += 0.3
       else if (pressure < 1000) riskScore += 0.2
       else if (pressure < 1010) riskScore += 0.1

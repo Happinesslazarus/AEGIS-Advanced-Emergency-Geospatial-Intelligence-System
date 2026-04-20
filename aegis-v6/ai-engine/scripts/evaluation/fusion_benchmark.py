@@ -3,26 +3,26 @@ End-to-end benchmark for the MultimodalFusionService.  Replays 50 realistic
 synthetic incident scenarios (known ground-truth hazard type) through the
 fusion pipeline and measures:
 
-  1. End-to-end latency        — p50, p95, p99 wall-clock time in ms
-  2. Hazard classification      — overall accuracy + per-hazard precision/recall
-  3. Confidence calibration     — ECE (Expected Calibration Error); measures
+  1. End-to-end latency        -- p50, p95, p99 wall-clock time in ms
+  2. Hazard classification      -- overall accuracy + per-hazard precision/recall
+  3. Confidence calibration     -- ECE (Expected Calibration Error); measures
                                   whether "80% confidence" actually means 80%
-  4. Signal contribution        — how much each signal (ML, CLIP, NLP) shifted
+  4. Signal contribution        -- how much each signal (ML, CLIP, NLP) shifted
                                   the final prediction vs. the others
 
 Test cases include:
-  • ML only (no image, no text)
-  • Text only (no features, no image)
-  • Image + text (no ML features)
-  • All three signals present
-  • Conflicting signals (ML says flood, NLP says fire) — tests robustness
+  - ML only (no image, no text)
+  - Text only (no features, no image)
+  - Image + text (no ML features)
+  - All three signals present
+  - Conflicting signals (ML says flood, NLP says fire) -- tests robustness
 
 Output:
   reports/fusion_benchmark.csv
-  reports/fusion_calibration.pdf   — reliability diagram
+  reports/fusion_calibration.pdf   -- reliability diagram
 
-  Uses ← app/services/multimodal_fusion.py
-  Writes to → reports/
+  Uses <- app/services/multimodal_fusion.py
+  Writes to -> reports/
 
 Usage:
   python scripts/evaluation/fusion_benchmark.py
@@ -62,12 +62,12 @@ _AI_ROOT   = Path(__file__).resolve().parents[2]
 REPORT_DIR = _AI_ROOT / "reports"
 sys.path.insert(0, str(_AI_ROOT))
 
-# ─── Synthetic test cases ─────────────────────────────────────────────────────
+# Synthetic test cases
 
 # Each case has ground-truth hazard and whichever signals are available.
-# ML feature values are normalised (0–1 range approximately).
+# ML feature values are normalised (0-1 range approximately).
 TEST_CASES = [
-    # ── ML only ───────────────────────────────────────────────────────
+    # ML only
     {"hazard": "flood", "ml_features": {"rainfall_6h": 0.9, "soil_moisture": 0.85,
                                          "rainfall_7d": 0.8, "temperature": 0.3}},
     {"hazard": "drought", "ml_features": {"rainfall_1h": 0.0, "temperature": 0.95,
@@ -78,27 +78,27 @@ TEST_CASES = [
                                                 "rainfall_6h": 0.6}},
     {"hazard": "heatwave", "ml_features": {"temperature": 0.97, "humidity": 0.12,
                                             "seasonal_anomaly": 0.9}},
-    # ── Text only ─────────────────────────────────────────────────────
+    # Text only
     {"hazard": "flood",    "text": "Major flooding on the A303. Roads submerged. Evacuations underway."},
     {"hazard": "wildfire", "text": "Wildfire spreading rapidly. Smoke visible 20 miles away."},
     {"hazard": "severe_storm", "text": "Storm force gale. Trees down across the A30. Dangerous conditions."},
     {"hazard": "power_outage", "text": "Power cut across the whole estate. Blackout since midnight."},
     {"hazard": "landslide", "text": "Mudslide blocking the B4560. Road closed. Debris on carriageway."},
-    # ── ML + Text ─────────────────────────────────────────────────────
+    # ML + Text
     {"hazard": "flood",
      "ml_features": {"rainfall_6h": 0.85, "soil_moisture": 0.9},
      "text": "Flooding on the high street. Water up to doorknobs."},
     {"hazard": "drought",
      "ml_features": {"rainfall_1h": 0.0, "temperature": 0.92},
      "text": "Hosepipe bans in effect. River at record low."},
-    # ── Conflicting signals ────────────────────────────────────────────
+    # Conflicting signals
     {"hazard": "flood",
-     "ml_features": {"rainfall_6h": 0.9, "rainfall_7d": 0.9},        # ML → flood
-     "text": "Wildfire near the forest."},                              # NLP → wildfire
+     "ml_features": {"rainfall_6h": 0.9, "rainfall_7d": 0.9},        # ML -> flood
+     "text": "Wildfire near the forest."},                              # NLP -> wildfire
     {"hazard": "severe_storm",
-     "ml_features": {"wind_speed": 0.95},                              # ML → storm
-     "text": "Minor flooding on the local park."},                     # NLP → flood
-    # ── Edge cases ────────────────────────────────────────────────────
+     "ml_features": {"wind_speed": 0.95},                              # ML -> storm
+     "text": "Minor flooding on the local park."},                     # NLP -> flood
+    # Edge cases
     {"hazard": "unknown", "ml_features": {}, "text": ""},              # no signal
     {"hazard": "flood",
      "ml_features": {"rainfall_6h": 0.5}},                            # weak ML signal
@@ -107,7 +107,7 @@ TEST_CASES = [
 
 def compute_ece(confidences: list[float], correct: list[int], n_bins: int = 10) -> float:
     """
-    Expected Calibration Error — measures reliability of confidence scores.
+    Expected Calibration Error -- measures reliability of confidence scores.
     ECE = Σ |bin_weight| × |accuracy(bin) - confidence(bin)|
     Lower is better; 0.05 is considered well-calibrated.
     """
@@ -139,7 +139,7 @@ def plot_calibration(confidences: list[float], correct: list[int], out: Path) ->
     plt.tight_layout()
     plt.savefig(str(out), dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"  Calibration diagram → {out}")
+    print(f"  Calibration diagram -> {out}")
 
 
 def run_benchmark(n_cases: int) -> pd.DataFrame:
@@ -184,7 +184,7 @@ def run_benchmark(n_cases: int) -> pd.DataFrame:
 
     df = pd.DataFrame(rows)
 
-    # ── Summary stats ──────────────────────────────────────────────────────
+    # Summary stats
     valid = df[df["true_hazard"] != "unknown"]
     acc   = accuracy_score(valid["true_hazard"], valid["pred_hazard"]) if len(valid) else 0
     ece   = compute_ece(confidences, correct_flags)
@@ -200,7 +200,7 @@ def run_benchmark(n_cases: int) -> pd.DataFrame:
     df.attrs["latency_p50"] = np.percentile(latencies, 50)
     df.attrs["latency_p95"] = np.percentile(latencies, 95)
 
-    # ── Calibration plot ──────────────────────────────────────────────────
+    # Calibration plot
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     plot_calibration(confidences, correct_flags, REPORT_DIR / "fusion_calibration.pdf")
 
@@ -210,21 +210,21 @@ def run_benchmark(n_cases: int) -> pd.DataFrame:
 def main(args: argparse.Namespace) -> None:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
-    print(f"[1/2] Running {args.cases} fusion benchmark cases …")
+    print(f"[1/2] Running {args.cases} fusion benchmark cases ...")
     df = run_benchmark(args.cases)
 
-    print("[2/2] Writing outputs …")
+    print("[2/2] Writing outputs ...")
     df.to_csv(str(REPORT_DIR / "fusion_benchmark.csv"), index=False)
-    print(f"  CSV → {REPORT_DIR / 'fusion_benchmark.csv'}")
+    print(f"  CSV -> {REPORT_DIR / 'fusion_benchmark.csv'}")
 
-    # ── Classification report ────────────────────────────────────────────
+    # Classification report
     valid = df[df["true_hazard"] != "unknown"]
     if len(valid) > 0:
         print("\n" + classification_report(
             valid["true_hazard"], valid["pred_hazard"], zero_division=0
         ))
 
-    # ── Summary markdown ─────────────────────────────────────────────────
+    # Summary markdown
     summary_md = (
         "# AEGIS Fusion Engine Benchmark\n\n"
         f"| Metric | Value |\n|---|---|\n"
@@ -235,7 +235,7 @@ def main(args: argparse.Namespace) -> None:
         f"| Test cases | {len(df)} |\n"
     )
     (REPORT_DIR / "fusion_benchmark_summary.md").write_text(summary_md)
-    print(f"  Summary → {REPORT_DIR / 'fusion_benchmark_summary.md'}")
+    print(f"  Summary -> {REPORT_DIR / 'fusion_benchmark_summary.md'}")
 
 
 def parse_args() -> argparse.Namespace:

@@ -1,5 +1,5 @@
 ﻿/**
- * Enterprise cache abstraction — namespace-scoped, versioned keys with
+ * Enterprise cache abstraction -- namespace-scoped, versioned keys with
  * stale-while-revalidate grace periods and LRU eviction (5000 entries).
  * Full Prometheus instrumentation via cacheMetrics. Exports the shared
  * Redis instance and redisReady flag for other services.
@@ -24,7 +24,7 @@ import {
   cacheNamespaceMissesTotal,
 } from './cacheMetrics.js'
 
-// Configuration
+//Configuration
 
 const REDIS_URL = process.env.REDIS_URL || ''
 const REDIS_ENABLED = (process.env.REDIS_ENABLED ?? 'true') !== 'false'
@@ -36,7 +36,7 @@ const OP_TIMEOUT_MS = 2000 // Internal per-operation timeout
 /* Version prefix for cache key schema evolution */
 const KEY_VERSION = 'v1'
 
-// Redis connection
+//Redis connection
 
 let redis: Redis | null = null
 let redisReady = false
@@ -78,7 +78,7 @@ if (REDIS_URL && REDIS_ENABLED) {
   auditLog('cache', REDIS_ENABLED ? 'No REDIS_URL - using in-memory fallback' : 'Redis disabled via REDIS_ENABLED=false')
 }
 
-// In-memory fallback (LRU-style eviction at 5000 entries)
+//In-memory fallback (LRU-style eviction at 5000 entries)
 
 interface MemEntry {
   value: string
@@ -93,11 +93,11 @@ const memStore = new Map<string, MemEntry>()
 function pruneMemStore(): void {
   if (memStore.size <= MEM_MAX) return
   const now = Date.now()
-  // First pass: remove fully expired entries
+  //First pass: remove fully expired entries
   for (const [key, entry] of memStore) {
     if (now > entry.staleUntil) memStore.delete(key)
   }
-  // Second pass: if still over limit, evict oldest
+  //Second pass: if still over limit, evict oldest
   if (memStore.size > MEM_MAX) {
     const sorted = [...memStore.entries()].sort((a, b) => a[1].setAt - b[1].setAt)
     const toRemove = sorted.slice(0, memStore.size - MEM_MAX + 500)
@@ -105,7 +105,7 @@ function pruneMemStore(): void {
   }
 }
 
-// Timeout wrapper
+//Timeout wrapper
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -117,7 +117,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   })
 }
 
-// Cache key builder
+//Cache key builder
 
 /**
  * Build a deterministic, collision-safe cache key.
@@ -139,7 +139,7 @@ export function buildCacheKey(
 ): string {
   const base = `aegis:${KEY_VERSION}:${namespace}:${parts.join(':')}`
   if (!params || Object.keys(params).length === 0) return base
-  // Deterministic hash: sort keys, JSON encode, SHA-256 truncated
+  //Deterministic hash: sort keys, JSON encode, SHA-256 truncated
   const sorted = Object.keys(params).sort().reduce((acc, k) => {
     acc[k] = params[k]
     return acc
@@ -148,10 +148,10 @@ export function buildCacheKey(
   return `${base}:${hash}`
 }
 
-// Stale metadata encoding
-// Redis stores: JSON-encoded CacheEnvelope as the value
-// TTL is set to (ttlSeconds + staleGrace) so stale data survives in Redis
-// Freshness is tracked by the `expiresAt` field inside the envelope
+//Stale metadata encoding
+//Redis stores: JSON-encoded CacheEnvelope as the value
+//TTL is set to (ttlSeconds + staleGrace) so stale data survives in Redis
+//Freshness is tracked by the `expiresAt` field inside the envelope
 
 interface CacheEnvelope<T = unknown> {
   data: T
@@ -160,7 +160,7 @@ interface CacheEnvelope<T = unknown> {
   namespace: string
 }
 
-// Public API
+//Public API
 
 /**
  * Get a cached value. Returns null on miss.
@@ -178,7 +178,7 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
       return null
     }
     if (Date.now() > envelope.expiresAt) {
-      // Expired but data may exist for stale-if-error - return null for fresh reads
+      //Expired but data may exist for stale-if-error - return null for fresh reads
       cacheMissesTotal.inc()
       cacheNamespaceMissesTotal.inc({ namespace: ns })
       timer()
@@ -235,7 +235,7 @@ export async function cacheSet<T>(key: string, value: T, ttlSeconds?: number): P
 
   try {
     if (redis && redisReady) {
-      // Store with extended TTL so stale data persists for grace window
+      //Store with extended TTL so stale data persists for grace window
       const redisTtl = ttl + STALE_GRACE
       await withTimeout(redis.set(key, json, 'EX', redisTtl), OP_TIMEOUT_MS)
       cacheSetsTotal.inc({ namespace: ns })
@@ -247,7 +247,7 @@ export async function cacheSet<T>(key: string, value: T, ttlSeconds?: number): P
     auditLog('cache', 'set error - falling back to memory', { key, error: err.message })
   }
 
-  // In-memory fallback
+  //In-memory fallback
   memStore.set(key, {
     value: json,
     expiresAt: now + ttl * 1000,
@@ -297,7 +297,7 @@ export async function cacheInvalidatePattern(pattern: string, dryRun = false): P
     if (redis && redisReady) {
       const keys: string[] = []
       let cursor = '0'
-      // Use SCAN for production safety (non-blocking)
+      //Use SCAN for production safety (non-blocking)
       do {
         const [nextCursor, batch] = await withTimeout(
           redis.scan(cursor, 'MATCH', pattern, 'COUNT', 200),
@@ -308,7 +308,7 @@ export async function cacheInvalidatePattern(pattern: string, dryRun = false): P
       } while (cursor !== '0')
 
       if (keys.length > 0 && !dryRun) {
-        // Pipeline deletes in batches of 100
+        //Pipeline deletes in batches of 100
         for (let i = 0; i < keys.length; i += 100) {
           const batch = keys.slice(i, i + 100)
           await withTimeout(redis.del(...batch), OP_TIMEOUT_MS)
@@ -321,7 +321,7 @@ export async function cacheInvalidatePattern(pattern: string, dryRun = false): P
     auditLog('cache', 'invalidatePattern error', { pattern, error: err.message })
   }
 
-  // Also clear in-memory
+  //Also clear in-memory
   const search = pattern.replace(/\*/g, '')
   for (const key of [...memStore.keys()]) {
     if (key.includes(search)) {
@@ -370,27 +370,27 @@ export async function remember<T>(
 ): Promise<{ data: T; meta: CacheResponseMeta }> {
   const ns = extractNamespace(key)
 
-  // 1. Try fresh cache hit
+  //1. Try fresh cache hit
   const cached = await cacheGet<T>(key)
   if (cached !== null) {
     return { data: cached, meta: { source: 'cache', stale: false, namespace: ns } }
   }
 
-  // 2. Cache miss - call producer
+  //2. Cache miss - call producer
   try {
     const freshData = await producer()
 
-    // Cache the result (only successful responses)
+    //Cache the result (only successful responses)
     if (freshData !== null && freshData !== undefined) {
       await cacheSet(key, freshData, ttlSeconds)
     } else if (options?.negativeTtl) {
-      // Negative caching: "no data" marker with short TTL
+      //Negative caching: "no data" marker with short TTL
       await cacheSet(key, null as unknown as T, options.negativeTtl)
     }
 
     return { data: freshData, meta: { source: 'origin', stale: false, namespace: ns } }
   } catch (producerError) {
-    // 3. Producer failed - try stale-if-error
+    //3. Producer failed - try stale-if-error
     if (options?.staleOnError) {
       const stale = await cacheGetStale<T>(key)
       if (stale && stale.data !== null) {
@@ -407,7 +407,7 @@ export async function remember<T>(
       }
     }
 
-    // 4. No stale data available - propagate the error
+    //4. No stale data available - propagate the error
     throw producerError
   }
 }
@@ -420,7 +420,7 @@ export interface CacheResponseMeta {
   namespace: string
 }
 
-// Diagnostic & Admin
+//Diagnostic & Admin
 
 /* Check if Redis is connected and accepting commands */
 export function isRedisConnected(): boolean {
@@ -443,7 +443,7 @@ export async function getCacheStats(): Promise<Record<string, unknown>> {
       stats.redisUsedMemory = usedMemMatch?.[1]?.trim()
       stats.redisKeys = keysMatch ? parseInt(keysMatch[1], 10) : undefined
     } catch {
-      // ignore
+      //ignore
     }
   }
 
@@ -453,11 +453,11 @@ export async function getCacheStats(): Promise<Record<string, unknown>> {
 /* Export redis instance for admin operations (health check) */
 export { redis, redisReady }
 
-// Internal helpers
+//Internal helpers
 
 /* Read raw envelope from Redis or in-memory store */
 async function rawGet<T>(key: string): Promise<CacheEnvelope<T> | null> {
-  // Try Redis first
+  //Try Redis first
   try {
     if (redis && redisReady) {
       const raw = await withTimeout(redis.get(key), OP_TIMEOUT_MS)
@@ -465,10 +465,10 @@ async function rawGet<T>(key: string): Promise<CacheEnvelope<T> | null> {
       return JSON.parse(raw) as CacheEnvelope<T>
     }
   } catch {
-    // fall through to memory
+    //fall through to memory
   }
 
-  // In-memory fallback
+  //In-memory fallback
   const entry = memStore.get(key)
   if (!entry) return null
   if (Date.now() > entry.staleUntil) {
@@ -480,12 +480,12 @@ async function rawGet<T>(key: string): Promise<CacheEnvelope<T> | null> {
 
 /* Extract namespace from a cache key for metrics labeling */
 function extractNamespace(key: string): string {
-  // Key format: aegis:v1:{namespace}:...
+  //Key format: aegis:v1:{namespace}:...
   const parts = key.split(':')
   return parts.length >= 3 ? parts[2] : 'unknown'
 }
 
-// Cache TTL Constants (centralized for documentation)
+//Cache TTL Constants (centralized for documentation)
 
 export const CACHE_TTL = {
   /* Weather data: live conditions + 24h forecast */
@@ -501,7 +501,7 @@ export const CACHE_TTL = {
   /* Spatial queries: shelters, risk zones */
   SPATIAL: 60 * 60,          // 1 hour
   /* RSS / emergency news feeds */
-  NEWS: 10 * 60,             // 10 minutes (was 30 — more feeds now so fresher data)
+  NEWS: 10 * 60,             // 10 minutes (was 30 -- more feeds now so fresher data)
   /* Flood data from EA/SEPA/NRW APIs */
   FLOOD_DATA: 10 * 60,       // 10 minutes
   /* Alert list (short because alerts are time-sensitive) */

@@ -27,10 +27,10 @@ export function useSetupStatus() {
       setLoading(true)
       setError(null)
 
-      // Short-circuit with a cached result to avoid repeated API calls on every
-      // page navigation.  sessionStorage is used (not localStorage) so the cache
-      // automatically clears when the browser tab is closed.
-      // CACHE_TTL_MS = 60 000ms = 1 minute; after that we re-fetch from the server.
+      //Short-circuit with a cached result to avoid repeated API calls on every
+      //page navigation.  sessionStorage is used (not localStorage) so the cache
+      //automatically clears when the browser tab is closed.
+      //CACHE_TTL_MS = 60 000ms = 1 minute; after that we re-fetch from the server.
       try {
         const cached = sessionStorage.getItem(CACHE_KEY)
         if (cached) {
@@ -51,16 +51,16 @@ export function useSetupStatus() {
       const data: SetupStatus = await res.json()
       setStatus(data)
 
-      // Store result with the current timestamp for TTL comparison on next load.
+      //Store result with the current timestamp for TTL comparison on next load.
       try {
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }))
-      } catch { /* quota exceeded — ignore */ }
+      } catch { /* quota exceeded -- ignore */ }
     } catch (err: any) {
       console.warn('[useSetupStatus]', err.message)
       setError(err.message)
-      // Safe fallback: if the backend is unreachable (e.g. network down on startup),
-      // assume setup is complete so we don’t block existing deployments with a
-      // setup wizard the admin has already finished.
+      //Safe fallback: if the backend is unreachable (e.g. network down on startup),
+      //assume setup is complete so we don't block existing deployments with a
+      //setup wizard the admin has already finished.
       setStatus({
         isFirstRun: false,
         setupCompleted: true,

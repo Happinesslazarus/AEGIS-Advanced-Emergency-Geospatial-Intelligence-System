@@ -1,7 +1,7 @@
 ﻿/**
  * Floating chat widget that lets citizens ask emergency-related questions
  * and receive AI-generated answers in real time. Features:
- * 1. Streaming mode: SSE via /api/chat/stream — tokens arrive incrementally
+ * 1. Streaming mode: SSE via /api/chat/stream -- tokens arrive incrementally
  * 2. react-markdown rendering: full GFM markdown (bold, lists, code, tables)
  * 3. Stop / Copy / Thumbs-up / Thumbs-down / Regenerate actions per message
  * 4. Follow-up question chips from API response
@@ -35,19 +35,19 @@ import { translateText } from '../../utils/translateService'
 
 const API = ''
 
-// ---- Slash commands ----------------------------------------------------------
+//Slash commands
 const SLASH_COMMANDS: Record<string, { description: string; message: string }> = {
   '/alerts': { description: 'Show active alerts', message: 'Show me all currently active alerts and warnings in my area.' },
   '/sitrep': { description: 'Generate situation report', message: 'Generate a full situation report (SITREP) with current alerts, predictions, river levels, and threat assessment.' },
   '/weather': { description: 'Current weather', message: 'What are the current weather conditions and any weather warnings?' },
   '/evacuate': { description: 'Find evacuation routes', message: 'Help me find evacuation routes and nearby shelters from my current location.' },
-  '/flood': { description: 'Flood risk assessment', message: 'Assess the current flood risk — river levels, rain forecast, and affected areas.' },
+  '/flood': { description: 'Flood risk assessment', message: 'Assess the current flood risk -- river levels, rain forecast, and affected areas.' },
   '/shelters': { description: 'Nearby shelters', message: 'Find nearby emergency shelters with availability and capacity information.' },
   '/predict': { description: 'AI predictions', message: 'Show me the latest AI hazard predictions with probability and confidence levels.' },
   '/help': { description: 'List all commands', message: 'What are all the special commands I can use and what features does AEGIS have?' },
 }
 
-// Admin-only slash commands — merged in when adminMode=true
+//Admin-only slash commands -- merged in when adminMode=true
 const ADMIN_SLASH_COMMANDS: Record<string, { description: string; message: string }> = {
   '/broadcast': { description: 'Draft emergency broadcast', message: 'Help me draft an emergency broadcast alert. What key information do I need to include and what is the correct format?' },
   '/deploy': { description: 'Resource deployment status', message: 'Show current resource deployment status across all active incidents and recommend optimal allocation.' },
@@ -67,9 +67,9 @@ interface Props {
    *  enabling personalized responses, server-side session persistence, and
    *  admin-mode prompts on the backend. */
   authToken?: string | null
-  /** Display name of the signed-in user — shown in the personalised welcome. */
+  /** Display name of the signed-in user -- shown in the personalised welcome. */
   citizenName?: string
-  /** Number of active alerts in the user's region — shown in the welcome. */
+  /** Number of active alerts in the user's region -- shown in the welcome. */
   alertCount?: number
 }
 
@@ -85,7 +85,7 @@ interface MessageMeta {
   smartSuggestions?: Array<{ text: string; category?: string }>
 }
 
-// ---- Thinking / tool call step tracking -----------------------------------
+//Thinking / tool call step tracking
 interface ThinkingStep {
   id: string
   type: 'thinking' | 'tool_start' | 'tool_complete'
@@ -107,7 +107,7 @@ function createMessageId(): string {
   return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-// ---- Markdown renderer --------------------------------------------------------
+//Markdown renderer
 const MarkdownContent = memo(({ text }: { text: string }) => (
   <ReactMarkdown
     remarkPlugins={[remarkGfm]}
@@ -155,7 +155,7 @@ const MarkdownContent = memo(({ text }: { text: string }) => (
 ))
 MarkdownContent.displayName = 'MarkdownContent'
 
-// ---- Thinking chain (visible reasoning) ------------------------------------
+//Thinking chain (visible reasoning)
 const TOOL_LABELS: Record<string, string> = {
   get_active_alerts: 'Checking active alerts',
   get_weather: 'Fetching weather data',
@@ -188,7 +188,7 @@ const ThinkingChain = memo(({ steps, streamStartTime }: { steps: ThinkingStep[];
   return (
     <div className="mb-3 space-y-1.5">
       {steps.map((step, idx) => {
-        // Elapsed time since stream started or since the matching tool_start
+        //Elapsed time since stream started or since the matching tool_start
         let elapsed = ''
         if (step.type === 'tool_complete') {
           const startStep = steps.find(s => s.toolName === step.toolName && s.type === 'tool_start')
@@ -231,7 +231,7 @@ const ThinkingChain = memo(({ steps, streamStartTime }: { steps: ThinkingStep[];
 })
 ThinkingChain.displayName = 'ThinkingChain'
 
-// ---- Artifact detection + panel -------------------------------------------
+//Artifact detection + panel
 const ARTIFACT_PATTERNS = [
   { pattern: /# SITUATION REPORT|## Active Incidents|METHANE/i, type: 'sitrep', label: 'Situation Report', icon: FileText },
   { pattern: /## Evacuation Routes|Route to .+\n\s+Driving:/i, type: 'evacuation', label: 'Evacuation Plan', icon: Shield },
@@ -250,7 +250,7 @@ function detectArtifact(text: string): { type: string; label: string; icon: type
   return null
 }
 
-// ---- Mermaid diagram renderer (lazy CDN load) -----------------------------
+//Mermaid diagram renderer (lazy CDN load)
 const MermaidRenderer = memo(({ code }: { code: string }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [svg, setSvg] = useState<string>('')
@@ -260,7 +260,7 @@ const MermaidRenderer = memo(({ code }: { code: string }) => {
     let cancelled = false
     ;(async () => {
       try {
-        // Lazy-load mermaid from CDN
+        //Lazy-load mermaid from CDN
         if (!(window as any).mermaid) {
           const script = document.createElement('script')
           script.src = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js'
@@ -283,12 +283,12 @@ const MermaidRenderer = memo(({ code }: { code: string }) => {
   }, [code])
 
   if (error) return <div className="text-xs text-red-500 p-2">Diagram error: {error}</div>
-  if (!svg) return <div className="text-xs text-gray-400 p-2 animate-pulse">Rendering diagram…</div>
+  if (!svg) return <div className="text-xs text-gray-400 p-2 animate-pulse">Rendering diagram...</div>
   return <div ref={containerRef} className="overflow-x-auto py-2" dangerouslySetInnerHTML={{ __html: svg }} />
 })
 MermaidRenderer.displayName = 'MermaidRenderer'
 
-// Extracts mermaid code blocks from markdown text
+//Extracts mermaid code blocks from markdown text
 function extractMermaidBlocks(text: string): string[] {
   const blocks: string[] = []
   const regex = /```mermaid\n([\s\S]*?)```/gi
@@ -334,7 +334,7 @@ const ArtifactPanel = memo(({ text, artifact }: { text: string; artifact: { type
 })
 ArtifactPanel.displayName = 'ArtifactPanel'
 
-// ---- Metadata chips -----------------------------------------------------------
+//Metadata chips
 const MetaChips = memo(({ meta }: { meta: MessageMeta }) => {
   const chips: Array<{ text: string; color?: string }> = []
   if (meta.model) chips.push({ text: meta.model })
@@ -348,7 +348,7 @@ const MetaChips = memo(({ meta }: { meta: MessageMeta }) => {
     chips.push({ text: `src: ${names.join(', ')}` })
   }
   if (meta.isPersonalized) chips.push({ text: '✦ personalized', color: 'text-purple-600 dark:text-purple-400' })
-  if (meta.isEmergency) chips.push({ text: `⚠ ${meta.emergencyType || 'emergency'}`, color: 'text-red-600 dark:text-red-400' })
+ if (meta.isEmergency) chips.push({ text: `! ${meta.emergencyType || 'emergency'}`, color: 'text-red-600 dark:text-red-400' })
   if (chips.length === 0) return null
   return (
     <div className="flex flex-wrap gap-1 mt-1.5">
@@ -365,7 +365,7 @@ const MetaChips = memo(({ meta }: { meta: MessageMeta }) => {
 })
 MetaChips.displayName = 'MetaChips'
 
-// ---- Message actions bar (with TTS) ------------------------------------------
+//Message actions bar (with TTS)
 const MessageActions = memo(({
   msgId,
   text,
@@ -398,9 +398,9 @@ const MessageActions = memo(({
       return
     }
     if (!window.speechSynthesis || !text.trim()) return
-    // Strip all markdown formatting for clean TTS output.
-    // Order matters: code blocks first (prevent asterisk-in-code false matches),
-    // then bold/italic, tables, links, headings, horizontal rules, and stray symbols.
+    //Strip all markdown formatting for clean TTS output.
+    //Order matters: code blocks first (prevent asterisk-in-code false matches),
+    //then bold/italic, tables, links, headings, horizontal rules, and stray symbols.
     const plainText = text
       .replace(/```[\s\S]*?```/g, '')          // fenced code blocks
       .replace(/`[^`]*`/g, '')                 // inline code
@@ -408,11 +408,11 @@ const MessageActions = memo(({
       .replace(/\*{1,3}([^*\n]+)\*{1,3}/g, '$1') // bold/italic (*** ** *)
       .replace(/_{1,2}([^_\n]+)_{1,2}/g, '$1')   // underscore bold/italic
       .replace(/~~([^~]+)~~/g, '$1')           // strikethrough
-      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // links — keep label
-      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')    // images — remove entirely
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // links -- keep label
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')    // images -- remove entirely
       .replace(/^\s*[|>*\-+]\s+/gm, '')        // table/blockquote/list leaders
       .replace(/\|/g, ' ')                     // remaining table pipes
-      .replace(/[—–]{2,}/g, ',')               // em/en dashes to pauses
+      .replace(/[---]{2,}/g, ',')               // em/en dashes to pauses
       .replace(/\n{2,}/g, '. ')               // paragraph breaks to sentence pauses
       .replace(/\n/g, ' ')                     // remaining newlines
       .replace(/\s{2,}/g, ' ')                 // collapse multiple spaces
@@ -469,7 +469,7 @@ const MessageActions = memo(({
 })
 MessageActions.displayName = 'MessageActions'
 
-// ---- Animated header orbs (decorative floating particles) --------------------
+//Animated header orbs (decorative floating particles)
 const HeaderOrbs = memo(() => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none">
     <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/[0.04] rounded-full blur-xl animate-float" />
@@ -479,7 +479,7 @@ const HeaderOrbs = memo(() => (
 ))
 HeaderOrbs.displayName = 'HeaderOrbs'
 
-// ---- Typing waveform (replaces basic dot bounce) ----------------------------
+//Typing waveform (replaces basic dot bounce)
 const TypingWaveform = memo(() => (
   <span className="inline-flex items-center gap-[3px] h-4 px-1">
     {[0, 1, 2, 3, 4].map((i) => (
@@ -497,7 +497,7 @@ const TypingWaveform = memo(() => (
 ))
 TypingWaveform.displayName = 'TypingWaveform'
 
-// ---- Message timestamp (hover reveal) ----------------------------------------
+//Message timestamp (hover reveal)
 const MessageTimestamp = memo(({ date }: { date: Date }) => {
   const d = new Date(date)
   const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -509,12 +509,12 @@ const MessageTimestamp = memo(({ date }: { date: Date }) => {
 })
 MessageTimestamp.displayName = 'MessageTimestamp'
 
-// ---- Main component ----------------------------------------------------------
+//Main component
 export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right', adminMode = false, authToken, citizenName, alertCount }: Props): JSX.Element {
   const detectedLanguage = useLanguage()
   const activeLanguage = explicitLang || detectedLanguage || 'en'
 
-  // Language selector state
+  //Language selector state
   const [langMenuOpen, setLangMenuOpen] = useState(false)
   const langMenuRef = useRef<HTMLDivElement>(null)
   const LANGUAGES = [
@@ -530,7 +530,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     { code: 'ur', label: 'اردو', flag: '🇵🇰' },
   ]
 
-  // Close language menu when clicking outside
+  //Close language menu when clicking outside
   useEffect(() => {
     if (!langMenuOpen) return
     const handler = (e: MouseEvent) => {
@@ -546,44 +546,44 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     setLangMenuOpen(false)
   }, [])
 
-  // Only translate bot responses if the user EXPLICITLY chose a language
-  // via the language selector (not from browser auto-detection via navigator.language).
-  // aegis_lang_chosen is ONLY set when user clicks a language in a selector.
+  //Only translate bot responses if the user EXPLICITLY chose a language
+  //via the language selector (not from browser auto-detection via navigator.language).
+  //aegis_lang_chosen is ONLY set when user clicks a language in a selector.
   const userExplicitlyChoseLang = Boolean(
     explicitLang
     || (typeof window !== 'undefined' && localStorage.getItem('aegis_lang_chosen'))
   )
   const shouldTranslateResponses = userExplicitlyChoseLang && activeLanguage !== 'en'
 
-  // ---- Expand / collapse state -----------------------------------------------
+  //Expand / collapse state
   const [isExpanded, setIsExpanded] = useState(false)
   const toggleExpand = useCallback(() => setIsExpanded((v) => !v), [])
 
-  // ---- Input focus glow state -----------------------------------------------
+  //Input focus glow state
   const [inputFocused, setInputFocused] = useState(false)
 
-  // Merge admin commands when in admin mode
+  //Merge admin commands when in admin mode
   const allSlashCommands = useMemo(
     () => adminMode ? { ...SLASH_COMMANDS, ...ADMIN_SLASH_COMMANDS } : SLASH_COMMANDS,
     [adminMode],
   )
 
-  // Isolate localStorage key by user role so anonymous, citizen, and admin
-  // sessions never bleed into each other (prevents stale history cross-contamination).
+  //Isolate localStorage key by user role so anonymous, citizen, and admin
+  //sessions never bleed into each other (prevents stale history cross-contamination).
   const chatStorageKey = adminMode
     ? 'aegis-chat-session-admin'
     : authToken
       ? 'aegis-chat-session-citizen'
       : 'aegis-chat-session-anon'
 
-  // Build a context-aware welcome message shown to new users.
+  //Build a context-aware welcome message shown to new users.
   const buildWelcomeMessage = (): string => {
     if (adminMode) {
-      return `**AEGIS Command Mode** — Operator${citizenName ? `: ${citizenName}` : ''}\n\nAll admin tools are active. Use \`/broadcast\`, \`/deploy\`, \`/incident\`, \`/metrics\`, \`/operators\`, or \`/audit\` — or ask anything in natural language. Full system data access enabled.`
+      return `**AEGIS Command Mode** -- Operator${citizenName ? `: ${citizenName}` : ''}\n\nAll admin tools are active. Use \`/broadcast\`, \`/deploy\`, \`/incident\`, \`/metrics\`, \`/operators\`, or \`/audit\` -- or ask anything in natural language. Full system data access enabled.`
     }
     if (citizenName) {
       const alertLine = alertCount && alertCount > 0
-        ? `\n\n⚠️ There ${alertCount === 1 ? 'is' : 'are'} **${alertCount} active alert${alertCount === 1 ? '' : 's'}** in your region.`
+ ? `\n\n!️ There ${alertCount === 1 ? 'is' : 'are'} **${alertCount} active alert${alertCount === 1 ? '' : 's'}** in your region.`
         : '\n\n✅ No active alerts in your region right now.'
       return `Welcome back, **${citizenName}**! 👋 Your conversation history is saved to your account.${alertLine}\n\nHow can I help you today?`
     }
@@ -619,13 +619,13 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
   const [followUps, setFollowUps] = useState<string[]>([])
   const [isAtBottom, setIsAtBottom] = useState(true)
 
-  // Phase 2: Voice input state
+  //Phase 2: Voice input state
   const [isListening, setIsListening] = useState(false)
   const [voicePendingText, setVoicePendingText] = useState<string | null>(null)
   const recognitionRef = useRef<any>(null)
   const hasSpeechApi = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
 
-  // Phase 2: Image upload state
+  //Phase 2: Image upload state
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
 
@@ -635,14 +635,14 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
   const abortRef = useRef<AbortController | null>(null)
   const lastUserMsgRef = useRef<string>('')
 
-  // Auto-scroll only when already at the bottom
+  //Auto-scroll only when already at the bottom
   useEffect(() => {
     if (isAtBottom) endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isAtBottom])
 
   useEffect(() => { inputRef.current?.focus() }, [])
 
-  // Auto-grow textarea when input changes
+  //Auto-grow textarea when input changes
   useEffect(() => {
     const el = inputRef.current
     if (!el) return
@@ -650,7 +650,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     el.style.height = Math.min(el.scrollHeight, 120) + 'px'
   }, [input])
 
-  // Persist last 30 non-streaming messages to localStorage (role-scoped key)
+  //Persist last 30 non-streaming messages to localStorage (role-scoped key)
   useEffect(() => {
     try {
       const toSave = messages.filter((m) => !m.streaming).slice(-30)
@@ -658,7 +658,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     } catch { /* storage full or private mode */ }
   }, [messages, sessionId, chatStorageKey])
 
-  // Detect whether the user has scrolled away from the bottom
+  //Detect whether the user has scrolled away from the bottom
   const handleScrollContainer = useCallback(() => {
     const el = scrollContainerRef.current
     if (!el) return
@@ -676,9 +676,9 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
 
   useEffect(() => () => { abortRef.current?.abort() }, [])
 
-  // ---- Proactive agent: listen for critical alerts via localStorage event -----
-  // The main app (SocketContext) sets 'aegis-latest-alert' when a critical alert arrives.
-  // This lets the chatbot push a proactive message even without direct socket access.
+  //Proactive agent: listen for critical alerts via localStorage event
+  //The main app (SocketContext) sets 'aegis-latest-alert' when a critical alert arrives.
+  //This lets the chatbot push a proactive message even without direct socket access.
   useEffect(() => {
     const handleStorageEvent = (e: StorageEvent) => {
       if (e.key !== 'aegis-latest-alert' || !e.newValue) return
@@ -688,7 +688,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
           const proactiveMsg: ChatbotMessage = {
             id: createMessageId(),
             sender: 'bot',
-            text: `⚠️ **New ${alert.severity} Alert**: ${alert.title || 'Emergency alert issued'}\n\n${alert.description || ''}\n\n${alert.location_text ? `📍 **Location**: ${alert.location_text}` : ''}\n\nType a question for more details or use \`/alerts\` to see all active alerts.`,
+ text: `!️ **New ${alert.severity} Alert**: ${alert.title || 'Emergency alert issued'}\n\n${alert.description || ''}\n\n${alert.location_text ? `📍 **Location**: ${alert.location_text}` : ''}\n\nType a question for more details or use \`/alerts\` to see all active alerts.`,
             timestamp: new Date(),
             meta: { isEmergency: true, emergencyType: alert.severity },
           }
@@ -700,7 +700,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     return () => window.removeEventListener('storage', handleStorageEvent)
   }, [])
 
-  // ---- Voice input (Web Speech API — zero cost) -----------------------------
+  //Voice input (Web Speech API -- zero cost)
   const toggleVoice = useCallback(() => {
     if (isListening && recognitionRef.current) {
       recognitionRef.current.stop()
@@ -724,7 +724,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
 
     recognition.onend = () => {
       setIsListening(false)
-      // Show confirmation chip instead of auto-sending (prevents accidental sends)
+      //Show confirmation chip instead of auto-sending (prevents accidental sends)
       setInput((current) => {
         if (current.trim()) setVoicePendingText(current.trim())
         return current
@@ -738,7 +738,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     setIsListening(true)
   }, [isListening, hasSpeechApi, activeLanguage])
 
-  // ---- Image upload ---------------------------------------------------------
+  //Image upload
   const handleImageUpload = useCallback(async (file: File) => {
     setIsUploading(true)
     try {
@@ -747,7 +747,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
       const res = await fetch(`${API}/api/chat/upload-image`, { method: 'POST', body: formData })
       if (!res.ok) throw new Error('Upload failed')
       const data = await res.json()
-      // Send as message with image marker the server recognizes
+      //Send as message with image marker the server recognizes
       const imageMsg = `[The citizen attached an image: ${data.imageUrl}] Please analyze this image.`
       handleSend(imageMsg)
     } catch {
@@ -761,19 +761,19 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     }
   }, [])
 
-  // ---- Document upload (PDF, CSV, TXT) -----------------------------------------
+  //Document upload (PDF, CSV, TXT)
   const docInputRef = useRef<HTMLInputElement>(null)
   const handleDocUpload = useCallback(async (file: File) => {
     setIsUploading(true)
     const isPdf = file.name.toLowerCase().endsWith('.pdf')
 
-    // For PDFs, show a progress message — OCR can take 10-60s for image-based files
+    //For PDFs, show a progress message -- OCR can take 10-60s for image-based files
     let ocrMsgId: string | null = null
     if (isPdf) {
       ocrMsgId = createMessageId()
       setMessages((prev) => [...prev, {
         id: ocrMsgId!, sender: 'bot',
-        text: `📄 Reading **${file.name}**… trying text extraction, then OCR if needed. This may take up to a minute for scanned documents.`,
+        text: `📄 Reading **${file.name}**... trying text extraction, then OCR if needed. This may take up to a minute for scanned documents.`,
         timestamp: new Date(),
       }])
     }
@@ -781,7 +781,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     try {
       const formData = new FormData()
       formData.append('file', file)
-      // Give OCR enough time — 10 pages × ~6s/page = ~60s, plus buffer
+      //Give OCR enough time -- 10 pages × ~6s/page = ~60s, plus buffer
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 180_000)
       const res = await fetch(`${API}/api/chat/upload-file`, {
@@ -792,12 +792,12 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
       const data = await res.json()
       const extracted = (data.extractedText || '').trim()
 
-      // Remove the "reading…" progress message now that we have a result
+      //Remove the "reading..." progress message now that we have a result
       if (ocrMsgId) {
         setMessages((prev) => prev.filter((m) => m.id !== ocrMsgId))
       }
 
-      // Detect when all extraction methods (including OCR) failed
+      //Detect when all extraction methods (including OCR) failed
       const isUnreadable = extracted.startsWith('[This PDF appears to be')
         || extracted.startsWith('[PDF text extraction failed')
         || extracted.startsWith('[Excel file uploaded')
@@ -811,7 +811,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
         const sizeKB = (data.size / 1024).toFixed(1)
         const cleanMsg = extracted.startsWith('[')
           ? extracted.replace(/^\[|\]$/g, '')
-          : `This file couldn't be read as text. It may be image-based, scanned, or contain only graphics.\n\n**What you can do:**\n• Describe what the document contains so I can help\n• Take a screenshot and use the image upload button (📷) instead`
+          : `This file couldn't be read as text. It may be image-based, scanned, or contain only graphics.\n\n**What you can do:**\n- Describe what the document contains so I can help\n- Take a screenshot and use the image upload button (📷) instead`
         setMessages((prev) => [...prev, {
           id: createMessageId(), sender: 'bot',
           text: `📄 **${data.filename}** (${sizeKB}KB)\n\n${cleanMsg}`,
@@ -820,7 +820,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
         return
       }
 
-      const docMsg = `[DOCUMENT UPLOAD — NOT an emergency report. Analyze and summarize the content below.]\n\nFile: ${data.filename} (${(data.size / 1024).toFixed(1)}KB, ${data.charCount} characters)`
+      const docMsg = `[DOCUMENT UPLOAD -- NOT an emergency report. Analyze and summarize the content below.]\n\nFile: ${data.filename} (${(data.size / 1024).toFixed(1)}KB, ${data.charCount} characters)`
       const fileContent = `Extracted content:\n${extracted.slice(0, 40000) || '[No text extracted]'}\n\nPlease analyze this document and summarize the key information.`
       handleSend(docMsg, fileContent)
     } catch (err: any) {
@@ -831,7 +831,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
       setMessages((prev) => [...prev, {
         id: createMessageId(), sender: 'bot',
         text: isTimeout
-          ? 'Document processing timed out — the file may be very large. Try a shorter document or paste the key text directly.'
+          ? 'Document processing timed out -- the file may be very large. Try a shorter document or paste the key text directly.'
           : 'Failed to upload document. Supported: PDF, CSV, TXT, JSON, Markdown.',
         timestamp: new Date(),
       }])
@@ -841,13 +841,13 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     }
   }, [])
 
-  // ---- Stop streaming --------------------------------------------------------
+  //Stop streaming
   const handleStop = useCallback(() => {
     abortRef.current?.abort()
     setIsStreaming(false)
   }, [])
 
-  // ---- Feedback --------------------------------------------------------------
+  //Feedback
   const handleFeedback = useCallback(async (msgId: string, vote: 'up' | 'down') => {
     setMessages((prev) =>
       prev.map((m) => (m.id === msgId ? { ...m, feedback: vote } : m)),
@@ -861,7 +861,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     } catch { /* best-effort */ }
   }, [sessionId])
 
-  // ---- Stream a message to the bot ------------------------------------------
+  //Stream a message to the bot
   const streamMessage = useCallback(async (msg: string, fileContent?: string): Promise<void> => {
     abortRef.current = new AbortController()
     const body: Record<string, unknown> = { message: msg, language: userExplicitlyChoseLang ? activeLanguage : undefined }
@@ -875,11 +875,11 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     ])
 
     try {
-      // Send Authorization header when a token is available so the backend
-      // optionalAuth() correctly identifies the user (citizen or admin).
-      // Without this header the backend always treats the caller as anonymous,
-      // preventing personalization, server-side session persistence, and
-      // admin-mode prompts.
+      //Send Authorization header when a token is available so the backend
+      //optionalAuth() correctly identifies the user (citizen or admin).
+      //Without this header the backend always treats the caller as anonymous,
+      //preventing personalization, server-side session persistence, and
+      //admin-mode prompts.
       const chatHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
       if (authToken) chatHeaders['Authorization'] = `Bearer ${authToken}`
 
@@ -915,12 +915,12 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
           try {
             const payload = JSON.parse(line.slice(6))
 
-            // ── Thinking event ───────────────────────────────────────
+            //Thinking event
             if (currentEventType === 'thinking' || 'phase' in payload) {
               const step: ThinkingStep = {
                 id: `think-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
                 type: 'thinking',
-                label: payload.phase || 'Reasoning…',
+                label: payload.phase || 'Reasoning...',
                 timestamp: Date.now(),
               }
               setMessages((prev) =>
@@ -934,7 +934,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
               continue
             }
 
-            // ── Tool call event ──────────────────────────────────────
+            //Tool call event
             if (currentEventType === 'tool_call' || ('name' in payload && 'status' in payload)) {
               const isComplete = payload.status === 'complete'
               const step: ThinkingStep = {
@@ -964,7 +964,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
               continue
             }
 
-            // ── Token event ──────────────────────────────────────────
+            //Token event
             if ('token' in payload) {
               accumulated += payload.token
               setMessages((prev) =>
@@ -973,7 +973,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
                 ),
               )
             } else if ('text' in payload && !('model' in payload)) {
-              // replace event — full replacement (not the done event which also has 'text' sometimes)
+              //replace event -- full replacement (not the done event which also has 'text' sometimes)
               accumulated = payload.text
               setMessages((prev) =>
                 prev.map((m) =>
@@ -981,7 +981,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
                 ),
               )
             } else if ('model' in payload || 'confidence' in payload || 'followUpQuestions' in payload || 'tokensUsed' in payload) {
-              // done event — has model, confidence, sessionId, followUpQuestions etc.
+              //done event -- has model, confidence, sessionId, followUpQuestions etc.
               doneMeta = {
                 model: payload.model,
                 confidence: payload.confidence,
@@ -998,27 +998,27 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
                 setFollowUps(payload.followUpQuestions.slice(0, 3))
               }
             } else if ('sessionId' in payload) {
-              // standalone sessionId (e.g. from start event)
+              //standalone sessionId (e.g. from start event)
               if (!sessionId) setSessionId(payload.sessionId)
             }
 
             currentEventType = ''
-          } catch { /* partial JSON line — skip */ }
+          } catch { /* partial JSON line -- skip */ }
         }
       }
 
-      // eslint-disable-next-line no-constant-condition
+      //eslint-disable-next-line no-constant-condition
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
         buffer += decoder.decode(value, { stream: true })
         flushBuffer()
       }
-      // flush remainder
+      //flush remainder
       buffer += '\n'
       flushBuffer()
 
-      // Translate the final accumulated text only if user explicitly chose a non-English language
+      //Translate the final accumulated text only if user explicitly chose a non-English language
       let displayText = accumulated
       if (shouldTranslateResponses && accumulated.trim()) {
         try {
@@ -1039,13 +1039,13 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     } catch (err: unknown) {
       const isAbort = err instanceof Error && err.name === 'AbortError'
       if (isAbort) {
-        // Stop button pressed — mark message as complete (partial text stays)
+        //Stop button pressed -- mark message as complete (partial text stays)
         setMessages((prev) =>
           prev.map((m) => (m.id === botId ? { ...m, streaming: false } : m)),
         )
         return
       }
-      // Network failure — offline fallback
+      //Network failure -- offline fallback
       setIsOnline(false)
       const local = generateChatResponse(msg)
       let displayText = local.text
@@ -1065,13 +1065,13 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     }
   }, [sessionId, activeLanguage])
 
-  // ---- Send (with slash command support) --------------------------------------
+  //Send (with slash command support)
   const handleSend = useCallback(
     (text: string = input, fileContent?: string): void => {
       const msg = text.trim()
       if (!msg || isStreaming) return
 
-      // Slash command expansion — replace /command with full message
+      //Slash command expansion -- replace /command with full message
       const slashMatch = msg.match(/^(\/\w+)(.*)/)
       let actualMessage = msg
       let displayMessage = msg
@@ -1101,12 +1101,12 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     [input, isStreaming, streamMessage],
   )
 
-  // ---- Export conversation as markdown ---------------------------------------
+  //Export conversation as markdown
   const handleExport = useCallback(() => {
     const lines = messages.map((m) => {
       const time = new Date(m.timestamp).toLocaleString('en-GB')
       const role = m.sender === 'user' ? `**${citizenName || 'You'}**` : '**AEGIS**'
-      return `### ${role} — ${time}\n\n${m.text}\n`
+      return `### ${role} -- ${time}\n\n${m.text}\n`
     })
     const identityLine = citizenName
       ? `_User: ${citizenName}${adminMode ? ' (Admin/Operator)' : ''}_\n`
@@ -1123,7 +1123,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     URL.revokeObjectURL(url)
   }, [messages, citizenName, adminMode, sessionId])
 
-  // ---- New chat / clear session ----------------------------------------------
+  //New chat / clear session
   const handleNewChat = useCallback(() => {
     setMessages([{ id: createMessageId(), sender: 'bot', text: buildWelcomeMessage(), timestamp: new Date() }])
     setSessionId(null)
@@ -1133,7 +1133,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     try { localStorage.removeItem(chatStorageKey) } catch { /* ignore */ }
   }, [activeLanguage, chatStorageKey])
 
-  // ---- Slash command autocomplete -------------------------------------------
+  //Slash command autocomplete
   const [slashSuggestions, setSlashSuggestions] = useState<string[]>([])
   const [slashFocusIdx, setSlashFocusIdx] = useState(-1)
 
@@ -1149,10 +1149,10 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
     }
   }, [allSlashCommands])
 
-  // ---- Regenerate ------------------------------------------------------------
+  //Regenerate
   const handleRegenerate = useCallback(() => {
     if (!lastUserMsgRef.current || isStreaming) return
-    // Remove last bot message, resend
+    //Remove last bot message, resend
     setMessages((prev) => {
       const idx = [...prev].reverse().findIndex((m) => m.sender === 'bot')
       if (idx === -1) return prev
@@ -1167,18 +1167,18 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
   const lastBotIdx = [...messages].reverse().findIndex((m) => m.sender === 'bot' && !m.streaming)
   const lastBotRealIdx = lastBotIdx === -1 ? -1 : messages.length - 1 - lastBotIdx
 
-  // Suggestions: first 2 turns OR after each bot reply (follow-up questions)
+  //Suggestions: first 2 turns OR after each bot reply (follow-up questions)
   const showSuggestions = (messages.length <= 2 && followUps.length === 0) || followUps.length > 0
   const suggestionChips = followUps.length > 0
     ? followUps
     : getSuggestions(activeLanguage).slice(0, 3)
 
-  // Sign-in nudge: shown to anonymous users after 3 user messages so they
-  // know they can get personalized responses and session history by signing in.
+  //Sign-in nudge: shown to anonymous users after 3 user messages so they
+  //know they can get personalized responses and session history by signing in.
   const userMsgCount = messages.filter(m => m.sender === 'user').length
   const showSignInNudge = !authToken && !adminMode && userMsgCount >= 3
 
-  // Session history panel (signed-in only)
+  //Session history panel (signed-in only)
   const [showHistory, setShowHistory] = useState(false)
   const [pastSessions, setPastSessions] = useState<Array<{ id: string; preview: string; created_at: string }>>([])
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -1242,7 +1242,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
               </h3>
               <p className="text-[11px] text-white/60 font-medium mt-0.5">
                 {isStreaming
-                  ? <span className="flex items-center gap-1.5"><TypingWaveform /><span>{t('chat.typing', activeLanguage) || 'Analyzing…'}</span></span>
+                  ? <span className="flex items-center gap-1.5"><TypingWaveform /><span>{t('chat.typing', activeLanguage) || 'Analyzing...'}</span></span>
                   : isOnline
                     ? <span className="flex items-center gap-1.5"><Zap className="w-3 h-3 text-emerald-300 animate-pulse" />{t('chat.subtitle', activeLanguage)}</span>
                     : <span className="flex items-center gap-1"><WifiOff className="w-3 h-3" />{t('chat.offlineMode', activeLanguage)}</span>}
@@ -1250,7 +1250,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
             </div>
           </div>
           <div className="flex items-center gap-0.5 relative z-10">
-            {/* Session history — signed-in users only */}
+            {/* Session history -- signed-in users only */}
             {authToken && !adminMode && (
               <button
                 onClick={handleToggleHistory}
@@ -1310,7 +1310,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
                 </button>
                 <button
                   onClick={() => {
-                    // GDPR clear: wipe all local chat data for this user scope
+                    //GDPR clear: wipe all local chat data for this user scope
                     handleNewChat()
                     ;(['aegis-chat-session-anon', 'aegis-chat-session-citizen', 'aegis-chat-session-admin'] as const).forEach(k => {
                       try { localStorage.removeItem(k) } catch { /* ignore */ }
@@ -1343,14 +1343,14 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
           </div>
         </div>
 
-        {/* Session history panel — signed-in users */}
+        {/* Session history panel -- signed-in users */}
         {showHistory && authToken && (
           <div className="border-b border-gray-200/50 dark:border-gray-700/30 bg-gray-50/80 dark:bg-gray-800/40 max-h-52 overflow-y-auto flex-shrink-0">
             <div className="px-4 py-2.5 flex items-center justify-between sticky top-0 bg-gray-50/90 dark:bg-gray-800/60 backdrop-blur-sm border-b border-gray-200/30 dark:border-gray-700/20">
               <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
                 <History className="w-3 h-3" /> Previous conversations
               </span>
-              {historyLoading && <span className="text-[10px] text-gray-400 animate-pulse">Loading…</span>}
+              {historyLoading && <span className="text-[10px] text-gray-400 animate-pulse">Loading...</span>}
             </div>
             {!historyLoading && pastSessions.length === 0 && (
               <p className="text-[11px] text-gray-400 px-4 py-3">No previous sessions found.</p>
@@ -1408,7 +1408,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
                     <p>{msg.text}</p>
                   ) : (
                     <>
-                      {/* Visible reasoning chain — thinking + tool calls */}
+                      {/* Visible reasoning chain -- thinking + tool calls */}
                       {msg.thinkingSteps && msg.thinkingSteps.length > 0 && (
                         <ThinkingChain steps={msg.thinkingSteps} streamStartTime={msg.thinkingSteps[0]?.timestamp} />
                       )}
@@ -1418,7 +1418,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
                       {msg.streaming && !msg.text && (
                         <div className="flex items-center gap-2 py-1">
                           <TypingWaveform />
-                          <span className="text-[11px] text-gray-400 animate-pulse">Thinking…</span>
+                          <span className="text-[11px] text-gray-400 animate-pulse">Thinking...</span>
                         </div>
                       )}
                       {msg.streaming && msg.text && (
@@ -1473,7 +1473,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
           )}
         </div>
 
-        {/* Sign-in nudge — anonymous users after 3 exchanges */}
+        {/* Sign-in nudge -- anonymous users after 3 exchanges */}
         {showSignInNudge && !isStreaming && (
           <div className="px-4 py-2.5 border-t border-amber-100/80 dark:border-amber-900/30 bg-gradient-to-r from-amber-50/60 via-amber-50/30 to-white dark:from-amber-950/20 dark:via-transparent dark:to-gray-900 flex items-center gap-3">
             <LogIn className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
@@ -1530,7 +1530,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
                 </button>
               ))}
               <div className="px-4 py-1.5 text-[10px] text-gray-400 dark:text-gray-600 border-t border-gray-100 dark:border-gray-700/40 flex gap-3">
-                <span>↑↓ navigate</span><span>↵ or Tab select</span><span>Esc dismiss</span>
+ <span>^v navigate</span><span>↵ or Tab select</span><span>Esc dismiss</span>
               </div>
             </div>
           )}
@@ -1546,7 +1546,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
               <button
                 onClick={() => { setInput(''); setVoicePendingText(null) }}
                 className="px-2 py-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg transition-colors"
-              >✕</button>
+              >x</button>
             </div>
           )}
           {/* Hidden file input for image upload */}
@@ -1635,7 +1635,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
                     handleSend()
                   }
                 }}
-                placeholder={isListening ? '🎙 Listening…' : isExpanded ? 'Ask AEGIS anything… (Shift+Enter for new line)' : 'Ask AEGIS anything…'}
+                placeholder={isListening ? '🎙 Listening...' : isExpanded ? 'Ask AEGIS anything... (Shift+Enter for new line)' : 'Ask AEGIS anything...'}
                 className="relative input text-[13px] py-3 w-full min-h-[44px] max-h-[120px] resize-none leading-snug rounded-xl bg-gray-50/80 dark:bg-gray-800/50 border-gray-200/60 dark:border-gray-700/40 focus:ring-2 focus:ring-aegis-500/20 focus:border-aegis-400/50 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 style={{ overflow: 'hidden' }}
                 aria-label={t('chat.messageLabel', activeLanguage)}
@@ -1695,9 +1695,9 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
             </p>
             <p className="text-[10px] text-gray-400/70 dark:text-gray-500/70 flex items-center gap-1.5">
               <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-md text-[9px] font-mono border border-gray-200/40 dark:border-gray-700/40">/</kbd>
-              <span className="text-gray-300 dark:text-gray-700">·</span>
+              <span className="text-gray-300 dark:text-gray-700">-</span>
               <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-md text-[9px] font-mono border border-gray-200/40 dark:border-gray-700/40">Shift+↵</kbd>
-              <span className="text-gray-300 dark:text-gray-700">·</span>
+              <span className="text-gray-300 dark:text-gray-700">-</span>
               <span>{t('chat.disclaimer', activeLanguage)}</span>
             </p>
           </div>

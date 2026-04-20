@@ -50,7 +50,7 @@ async function dbSet<T>(key: string, value: T): Promise<void> {
       req.onerror = () => reject(req.error)
     })
   } catch {
-    // Fail silently — autosave is best-effort
+    //Fail silently -- autosave is best-effort
   }
 }
 
@@ -63,7 +63,7 @@ async function dbDelete(key: string): Promise<void> {
       tx.oncomplete = () => resolve()
     })
   } catch {
-    // Fail silently
+    //Fail silently
   }
 }
 
@@ -71,7 +71,7 @@ export function useFormAutosave<T extends object>(formKey: string, formState: T)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isFirstRender = useRef(true)
 
-  // Debounced save on state change (skip first render)
+  //Debounced save on state change (skip first render)
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false

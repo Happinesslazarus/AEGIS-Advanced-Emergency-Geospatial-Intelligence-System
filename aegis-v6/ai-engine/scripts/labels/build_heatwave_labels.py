@@ -1,16 +1,16 @@
 """
 Computes binary heatwave labels directly from the ERA5-Land temperature
-column in the master feature dataset — no external download needed.
+column in the master feature dataset -- no external download needed.
 
 Definition used (UK Met Office standard):
   A heatwave occurs when the maximum daily temperature exceeds the
   region-specific threshold for 3 or more consecutive days.
 
 UK county-level thresholds (°C):
-  South England (lat < 52.0)    → 28°C
-  Midlands/North England        → 25°C
-  Wales                         → 25°C
-  Scotland                      → 22°C
+  South England (lat < 52.0)    -> 28°C
+  Midlands/North England        -> 25°C
+  Wales                         -> 25°C
+  Scotland                      -> 22°C
 
 Glossary:
   rolling window    = a sliding computation applied to a sorted time-series;
@@ -22,10 +22,10 @@ Glossary:
   region threshold  = the Met Office's county-specific temperature value
                       above which daytime heat is considered dangerous
 
-  Input  ← data/processed/master_features_uk_2000_2024.parquet
+  Input  <- data/processed/master_features_uk_2000_2024.parquet
               (must contain 'temperature' and 'date' columns)
-  Output → data/labels/heatwave_labels.parquet
-  Used by← ai-engine/training/train_all_hazards_v2.py
+  Output -> data/labels/heatwave_labels.parquet
+  Used by<- ai-engine/training/train_all_hazards_v2.py
 """
 
 from __future__ import annotations
@@ -58,14 +58,14 @@ def get_threshold(lat: float) -> float:
 def build_heatwave_labels(args: argparse.Namespace) -> None:
     _LABEL_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("[1/3] Loading master features …")
+    print("[1/3] Loading master features ...")
     master = pd.read_parquet(str(args.master))
     print(f"  {len(master):,} rows")
 
     if "temperature" not in master.columns:
         sys.exit("Master dataset missing 'temperature' column.")
 
-    print("[2/3] Computing heatwave labels per spatial cell …")
+    print("[2/3] Computing heatwave labels per spatial cell ...")
     master = master.sort_values(["lat", "lon", "date"]).copy()
     master["_threshold"] = master["lat"].apply(get_threshold)
 
@@ -95,14 +95,14 @@ def build_heatwave_labels(args: argparse.Namespace) -> None:
 
         labels.loc[cell_df.index] = extended.astype(int).values
 
-    print("[3/3] Saving …")
+    print("[3/3] Saving ...")
     out = master[["lat", "lon", "date"]].copy()
     out["heatwave_label"] = labels
 
     out_path = args.output or (_LABEL_DIR / "heatwave_labels.parquet")
     out.to_parquet(str(out_path), index=False, compression="snappy")
     pos_rate = labels.mean() * 100
-    print(f"\n  Saved → {out_path}")
+    print(f"\n  Saved -> {out_path}")
     print(f"  Positive rate: {pos_rate:.2f}%")
 
 

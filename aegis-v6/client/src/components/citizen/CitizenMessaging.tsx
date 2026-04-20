@@ -19,7 +19,7 @@ import MessageStatusIcon from '../ui/MessageStatusIcon'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
-//  Helpers
+// Helpers
 
 function formatDateSeparator(dateStr: string, lang: string): string {
   const d = new Date(dateStr)
@@ -68,7 +68,7 @@ function StatusBadge({ status, lang }: { status: string; lang: string }) {
   )
 }
 
-//  Component
+// Component
 
 export default function CitizenMessaging(): JSX.Element {
   const lang = useLanguage()
@@ -98,18 +98,18 @@ export default function CitizenMessaging(): JSX.Element {
     loadThreadMessages, markRead, setActiveThread
   } = socket
 
-  // Connect on mount; also reconnect if the socket drops and comes back up
+  //Connect on mount; also reconnect if the socket drops and comes back up
   useEffect(() => {
     const token = getCitizenToken() || localStorage.getItem('token')
     if (token && !connected) connect(token)
   }, [connected, connect])
 
-  // Fetch threads once connected
+  //Fetch threads once connected
   useEffect(() => {
     if (connected) fetchCitizenThreads()
   }, [connected, fetchCitizenThreads])
 
-  // Auto-restore last thread
+  //Auto-restore last thread
   useEffect(() => {
     if (!connected || threads.length === 0 || hasAutoSelectedRef.current) return
     const storedId = sessionStorage.getItem('aegis-active-thread-id')
@@ -129,17 +129,17 @@ export default function CitizenMessaging(): JSX.Element {
     }
   }, [connected, threads])
 
-  // Persist active thread
+  //Persist active thread
   useEffect(() => {
     if (activeThread) sessionStorage.setItem('aegis-active-thread-id', activeThread.id)
   }, [activeThread])
 
-  // Scroll to bottom on new messages
+  //Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Scroll-to-bottom button visibility
+  //Scroll-to-bottom button visibility
   const handleScroll = useCallback(() => {
     const el = messagesContainerRef.current
     if (!el) return
@@ -147,7 +147,7 @@ export default function CitizenMessaging(): JSX.Element {
     setShowScrollBtn(distFromBottom > 200)
   }, [])
 
-  // Mark incoming operator messages as read
+  //Mark incoming operator messages as read
   useEffect(() => {
     if (activeThread && messages.length > 0) {
       const unreadIds = messages
@@ -157,7 +157,7 @@ export default function CitizenMessaging(): JSX.Element {
     }
   }, [activeThread, messages, markRead])
 
-  // Auto-resize textarea
+  //Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
@@ -165,7 +165,7 @@ export default function CitizenMessaging(): JSX.Element {
     }
   }, [msgInput])
 
-  // Sorted + filtered threads
+  //Sorted + filtered threads
   const filteredThreads = useMemo(() => {
     let list = [...threads]
     if (searchTerm.trim()) {
@@ -253,7 +253,7 @@ export default function CitizenMessaging(): JSX.Element {
   const activeCount = threads.filter(t => t.status === 'in_progress').length
   const totalUnread = threads.reduce((s, t) => s + (t.citizen_unread || 0), 0)
 
-  //  SPLIT-PANEL LAYOUT
+  // SPLIT-PANEL LAYOUT
 
   return (
     <div className="flex h-[calc(100vh-180px)] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 rounded-2xl overflow-hidden shadow-xl border border-gray-200/80 dark:border-gray-800/80">

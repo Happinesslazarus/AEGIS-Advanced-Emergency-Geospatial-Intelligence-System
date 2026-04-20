@@ -11,7 +11,7 @@ import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 
 export function setupDroughtRoutes(router: Router): void {
 
-  // GET /drought-index
+  //GET /drought-index
   router.get('/drought-index', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
@@ -33,7 +33,7 @@ export function setupDroughtRoutes(router: Router): void {
     }
   })
 
-  // GET /water-advisory
+  //GET /water-advisory
   router.get('/water-advisory', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
@@ -51,7 +51,7 @@ export function setupDroughtRoutes(router: Router): void {
     }
   })
 
-  // GET /precipitation — 30-day summary
+  //GET /precipitation -- 30-day summary
   router.get('/precipitation', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)

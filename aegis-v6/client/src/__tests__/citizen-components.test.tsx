@@ -1,12 +1,12 @@
 /**
- * Tests for the <SafetyCheckIn> citizen component — a UI panel that asks citizens
+ * Tests for the <SafetyCheckIn> citizen component -- a UI panel that asks citizens
  * whether they are safe after a disaster and records their status by firing a
  * push-notification through the AlertsContext.
  *
  * Three status buttons:
- *   "I'm Safe"   → success notification  (green button)
- *   "Need Help"  → warning notification  (red button)
- *   "Unsure"     → success notification  (amber button)
+ * "I'm Safe" -> success notification (green button)
+ * "Need Help" -> warning notification (red button)
+ * "Unsure" -> success notification (amber button)
  *
  * Glossary:
  *   describe()              = groups related tests under a labelled block
@@ -45,23 +45,21 @@ import userEvent from '@testing-library/user-event' // realistic user-interactio
 import SafetyCheckIn from '../components/citizen/SafetyCheckIn'
 import { AlertsProvider } from '../contexts/AlertsContext'
 
-// ---------------------------------------------------------------------------
-// Module-level mocks
-// ---------------------------------------------------------------------------
+//Module-level mocks
 
-// i18n — return raw keys so assertions are language-independent
+//i18n -- return raw keys so assertions are language-independent
 vi.mock('../utils/i18n', () => ({
   t: (key: string) => key,
   getLanguage: () => 'en',
 }))
 
-// useLanguage — provides locale string; not critical to SafetyCheckIn logic
+//useLanguage -- provides locale string; not critical to SafetyCheckIn logic
 vi.mock('../hooks/useLanguage', () => ({
   useLanguage: () => 'en',
 }))
 
-// AlertsContext — partial mock: spread the real module so AlertsProvider still works,
-// but replace useAlerts() so we can track pushNotification calls
+//AlertsContext -- partial mock: spread the real module so AlertsProvider still works,
+//but replace useAlerts() so we can track pushNotification calls
 const mockPushNotification = vi.fn()
 vi.mock('../contexts/AlertsContext', async () => {
   const actual = await vi.importActual('../contexts/AlertsContext') // real exports
@@ -77,27 +75,23 @@ vi.mock('../contexts/AlertsContext', async () => {
   }
 })
 
-// ---------------------------------------------------------------------------
-// SafetyCheckIn component — core behaviour
-// ---------------------------------------------------------------------------
+//SafetyCheckIn component -- core behaviour
 describe('SafetyCheckIn', () => {
   beforeEach(() => {
     vi.clearAllMocks() // reset mock call counts before each test
   })
 
-  // ---------------------------------------------------------------------------
-  // Initial rendering
-  // ---------------------------------------------------------------------------
+  //Initial rendering
   describe('rendering', () => {
     test('renders safety check question', () => {
       render(<SafetyCheckIn />)
-      // The heading uses the i18n key 'safetyCheck.areYouSafe' (returned raw by our mock)
+      //The heading uses the i18n key 'safetyCheck.areYouSafe' (returned raw by our mock)
       expect(screen.getByText('safetyCheck.areYouSafe')).toBeInTheDocument()
     })
 
     test('renders three safety status buttons', () => {
       render(<SafetyCheckIn />)
-      // All three status options must always be visible to the citizen
+      //All three status options must always be visible to the citizen
       expect(screen.getByRole('button', { name: /safe/i })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /help/i })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /unsure/i })).toBeInTheDocument()
@@ -105,20 +99,18 @@ describe('SafetyCheckIn', () => {
 
     test('has region role for accessibility', () => {
       render(<SafetyCheckIn />)
-      // role="region" marks this as a named ARIA landmark so screen readers can navigate to it
+      //role="region" marks this as a named ARIA landmark so screen readers can navigate to it
       expect(screen.getByRole('region')).toBeInTheDocument()
     })
 
     test('has descriptive aria-label', () => {
       render(<SafetyCheckIn />)
-      // The aria-label provides a visible name for the region landmark
+      //The aria-label provides a visible name for the region landmark
       expect(screen.getByRole('region')).toHaveAttribute('aria-label', 'Safety check-in')
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Button interactions — notification dispatch and toggle state
-  // ---------------------------------------------------------------------------
+  //Button interactions -- notification dispatch and toggle state
   describe('button interactions', () => {
     test('clicking "I\'m Safe" button triggers notification', async () => {
       const user = userEvent.setup() // create isolated userEvent instance for this test
@@ -126,7 +118,7 @@ describe('SafetyCheckIn', () => {
 
       await user.click(screen.getByRole('button', { name: /safe/i }))
 
-      // Confirmation toast: citizen's safety status has been saved
+      //Confirmation toast: citizen's safety status has been saved
       expect(mockPushNotification).toHaveBeenCalledWith(
         'Safety status recorded.',
         'success' // green toast
@@ -139,10 +131,10 @@ describe('SafetyCheckIn', () => {
 
       await user.click(screen.getByRole('button', { name: /help/i }))
 
-      // Warning toast: emergency services are notified of a help request
+      //Warning toast: emergency services are notified of a help request
       expect(mockPushNotification).toHaveBeenCalledWith(
         'Help request received. Nearby responders notified.',
-        'warning' // amber toast — responders have been alerted
+        'warning' // amber toast -- responders have been alerted
       )
     })
 
@@ -152,7 +144,7 @@ describe('SafetyCheckIn', () => {
 
       await user.click(screen.getByRole('button', { name: /unsure/i }))
 
-      // Unsure is treated as a soft "safe" response — records status without panic
+      //Unsure is treated as a soft "safe" response -- records status without panic
       expect(mockPushNotification).toHaveBeenCalledWith(
         'Safety status recorded.',
         'success'
@@ -160,7 +152,7 @@ describe('SafetyCheckIn', () => {
     })
 
     test('buttons have aria-pressed attribute', async () => {
-      // aria-pressed conveys toggle state to screen readers
+      //aria-pressed conveys toggle state to screen readers
       const user = userEvent.setup()
       render(<SafetyCheckIn />)
 
@@ -172,7 +164,7 @@ describe('SafetyCheckIn', () => {
     })
 
     test('only one button can be pressed at a time', async () => {
-      // The three buttons behave like a radio group — selecting one deselects the others
+      //The three buttons behave like a radio group -- selecting one deselects the others
       const user = userEvent.setup()
       render(<SafetyCheckIn />)
 
@@ -189,28 +181,26 @@ describe('SafetyCheckIn', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Styling — Tailwind CSS class verification
-  // ---------------------------------------------------------------------------
+  //Styling -- Tailwind CSS class verification
   describe('styling', () => {
     test('safe button has green styling', () => {
       render(<SafetyCheckIn />)
       const safeButton = screen.getByRole('button', { name: /safe/i })
-      // bg-green-600 = dark green background communicates a safe/positive status
+      //bg-green-600 = dark green background communicates a safe/positive status
       expect(safeButton.className).toContain('bg-green-600')
     })
 
     test('help button has red styling', () => {
       render(<SafetyCheckIn />)
       const helpButton = screen.getByRole('button', { name: /help/i })
-      // bg-red-600 = red communicates urgency / need for help
+      //bg-red-600 = red communicates urgency / need for help
       expect(helpButton.className).toContain('bg-red-600')
     })
 
     test('unsure button has amber styling', () => {
       render(<SafetyCheckIn />)
       const unsureButton = screen.getByRole('button', { name: /unsure/i })
-      // bg-amber-600 = amber communicates caution / uncertainty
+      //bg-amber-600 = amber communicates caution / uncertainty
       expect(unsureButton.className).toContain('bg-amber-600')
     })
 
@@ -221,19 +211,17 @@ describe('SafetyCheckIn', () => {
       const safeButton = screen.getByRole('button', { name: /safe/i })
       await user.click(safeButton)
 
-      // ring-2 + ring-white = white outline ring that makes the selected state visible
+      //ring-2 + ring-white = white outline ring that makes the selected state visible
       expect(safeButton.className).toContain('ring-2')
       expect(safeButton.className).toContain('ring-white')
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Icons
-  // ---------------------------------------------------------------------------
+  //Icons
   describe('icons', () => {
     test('buttons contain icons', () => {
       render(<SafetyCheckIn />)
-      // Every status button must have an SVG icon for quick visual identification
+      //Every status button must have an SVG icon for quick visual identification
       const buttons = screen.getAllByRole('button')
       buttons.forEach(button => {
         const svg = button.querySelector('svg') // inline SVG element
@@ -243,9 +231,7 @@ describe('SafetyCheckIn', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// SafetyCheckIn accessibility — keyboard navigation
-// ---------------------------------------------------------------------------
+//SafetyCheckIn accessibility -- keyboard navigation
 describe('SafetyCheckIn accessibility', () => {
   test('buttons are keyboard accessible', async () => {
     const user = userEvent.setup()
@@ -255,14 +241,14 @@ describe('SafetyCheckIn accessibility', () => {
     safeButton.focus() // programmatically focus the first button
     expect(document.activeElement).toBe(safeButton) // confirm it received focus
 
-    // Tab key moves focus to the next focusable element in DOM order
+    //Tab key moves focus to the next focusable element in DOM order
     await user.tab()
     const helpButton = screen.getByRole('button', { name: /help/i })
     expect(document.activeElement).toBe(helpButton)
   })
 
   test('can activate button with Enter key', async () => {
-    // Buttons must be activatable via Enter key (standard keyboard UX)
+    //Buttons must be activatable via Enter key (standard keyboard UX)
     const user = userEvent.setup()
     render(<SafetyCheckIn />)
 
@@ -276,7 +262,7 @@ describe('SafetyCheckIn accessibility', () => {
   })
 
   test('can activate button with Space key', async () => {
-    // Space key is the secondary activation key for buttons (both must work per WCAG)
+    //Space key is the secondary activation key for buttons (both must work per WCAG)
     const user = userEvent.setup()
     render(<SafetyCheckIn />)
 

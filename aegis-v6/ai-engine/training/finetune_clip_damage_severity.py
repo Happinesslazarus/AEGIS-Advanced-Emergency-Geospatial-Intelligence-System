@@ -1,25 +1,25 @@
 """
-Fine-tunes a second CLIP head specifically for damage severity estimation —
+Fine-tunes a second CLIP head specifically for damage severity estimation --
 the sub-task of determining HOW BAD the damage is in a crisis image.
 
 This is a separate training run from finetune_clip.py because:
-  • The severity classification has only 4 classes (vs 7 for type)
-  • The label vocabulary is different (INA/USAID scale)
-  • We can use the xBD satellite + CrisisMMD severity annotations
-  • The model is used at a different stage of the AEGIS pipeline
+  - The severity classification has only 4 classes (vs 7 for type)
+  - The label vocabulary is different (INA/USAID scale)
+  - We can use the xBD satellite + CrisisMMD severity annotations
+  - The model is used at a different stage of the AEGIS pipeline
 
 Severity classes (INA Infrastructure Assessment scale):
-  no_damage        — Pre-event appearance; no visible damage
-  minor_damage     — Some debris; functional; cosmetic damage only
-  major_damage     — Significant structural damage; may be unusable
-  destroyed        — Complete destruction; rubble only
+  no_damage        -- Pre-event appearance; no visible damage
+  minor_damage     -- Some debris; functional; cosmetic damage only
+  major_damage     -- Significant structural damage; may be unusable
+  destroyed        -- Complete destruction; rubble only
 
 Architecture:
-  • Initialised from the domain-adapted crisis checkpoint (clip_crisis_vit_b32.pt)
-  • Adds a lightweight MLP classification head on top of the image embedding
-  • Text encoder is completely frozen
-  • Vision encoder: last 4 transformer blocks + classification head trained
-  • Loss: weighted cross-entropy (class imbalance — far fewer "destroyed" images)
+  - Initialised from the domain-adapted crisis checkpoint (clip_crisis_vit_b32.pt)
+  - Adds a lightweight MLP classification head on top of the image embedding
+  - Text encoder is completely frozen
+  - Vision encoder: last 4 transformer blocks + classification head trained
+  - Loss: weighted cross-entropy (class imbalance -- far fewer "destroyed" images)
 
 Outputs:
   model_registry/clip/clip_damage_severity_vit_b32.pt
@@ -33,10 +33,10 @@ Glossary:
   CalibratedHead = adds temperature scaling so predicted probabilities match
                    empirical frequencies (improves alert reliability)
 
-  Reads from  ← model_registry/clip/clip_crisis_vit_b32.pt     (base weights)
-              ← data/crisis/xbd/  (satellite pre/post images)
-              ← data/crisis/crisismmd/ (severity-labelled subset)
-  Writes to   → model_registry/clip/clip_damage_severity_vit_b32.pt
+  Reads from  <- model_registry/clip/clip_crisis_vit_b32.pt     (base weights)
+              <- data/crisis/xbd/  (satellite pre/post images)
+              <- data/crisis/crisismmd/ (severity-labelled subset)
+  Writes to   -> model_registry/clip/clip_damage_severity_vit_b32.pt
 
 Usage:
   python training/finetune_clip_damage_severity.py
@@ -95,7 +95,7 @@ np.random.seed(SEED)
 SEVERITY_CLASSES = ["no_damage", "minor_damage", "major_damage", "destroyed"]
 N_CLASSES        = len(SEVERITY_CLASSES)
 
-# xBD damage type → INA severity mapping
+# xBD damage type -> INA severity mapping
 XBD_TYPE_MAP = {
     "no-damage":       0,  # no_damage
     "no_damage":       0,  # synthetic alias
@@ -197,8 +197,8 @@ class CLIPSeverityClassifier(nn.Module):
     CLIP vision encoder + MLP classification head for damage severity.
 
     The MLP head is a small 2-layer network:
-      image_embedding (512) → LayerNorm → Linear(512, 256) → GELU → Dropout
-                → Linear(256, 4) → logits
+      image_embedding (512) -> LayerNorm -> Linear(512, 256) -> GELU -> Dropout
+                -> Linear(256, 4) -> logits
 
     Using LayerNorm instead of BatchNorm makes it stable at small batch sizes
     that can occur during fine-tuning on limited xBD data.
@@ -219,7 +219,7 @@ class CLIPSeverityClassifier(nn.Module):
     def forward(self, images: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
             feats = self.clip_visual(images)
-        # Last 4 blocks are trainable — already set by set_trainable_layers()
+        # Last 4 blocks are trainable -- already set by set_trainable_layers()
         return self.head(feats)
 
 
@@ -230,7 +230,7 @@ def _create_synthetic_severity_data(data_root: Path) -> None:
     except ImportError:
         return
 
-    # Colour palette: green → yellow → orange → red (no_damage → destroyed)
+    # Colour palette: green -> yellow -> orange -> red (no_damage -> destroyed)
     COLOURS = {
         "no_damage":    (34,  139, 34),   # forest green
         "minor_damage": (255, 200, 0),    # yellow
@@ -293,8 +293,8 @@ def train(args: argparse.Namespace) -> None:
         except ImportError:
             pass
 
-    # ── Load base CLIP model ───────────────────────────────────────────────
-    print(f"Loading CLIP ViT-B-32 on {DEVICE} …")
+    # Load base CLIP model
+    print(f"Loading CLIP ViT-B-32 on {DEVICE} ...")
     clip_model, _, preprocess = open_clip.create_model_and_transforms(
         "ViT-B-32", pretrained="openai"
     )
@@ -303,12 +303,12 @@ def train(args: argparse.Namespace) -> None:
         print(f"  Loading crisis checkpoint: {crisis_ckpt}")
         clip_model.load_state_dict(torch.load(str(crisis_ckpt), map_location=DEVICE))
     else:
-        print("  ⚠ Crisis checkpoint not found; using raw OpenAI weights.")
+        print("  ! Crisis checkpoint not found; using raw OpenAI weights.")
         print("    Run finetune_clip.py first for best performance.")
 
     clip_model = clip_model.to(DEVICE)
 
-    # ── Freeze all params; unfreeze last 4 vision blocks + head ───────────
+    # Freeze all params; unfreeze last 4 vision blocks + head
     for p in clip_model.parameters():
         p.requires_grad_(False)
     blocks = list(clip_model.visual.transformer.resblocks)
@@ -319,15 +319,15 @@ def train(args: argparse.Namespace) -> None:
 
     model = CLIPSeverityClassifier(clip_model).to(DEVICE)
 
-    # ── Data ──────────────────────────────────────────────────────────────
-    print("Loading severity datasets …")
+    # Data
+    print("Loading severity datasets ...")
     full_ds = DamageSeverityDataset(DATA_ROOT, preprocess, "train")
     if len(full_ds) == 0:
-        print("  No xBD/CrisisMMD data found — generating synthetic severity images …")
+        print("  No xBD/CrisisMMD data found -- generating synthetic severity images ...")
         _create_synthetic_severity_data(DATA_ROOT)
         full_ds = DamageSeverityDataset(DATA_ROOT, preprocess, "train")
     if len(full_ds) == 0:
-        print("⚠ Synthetic fallback failed — cannot train severity model.")
+        print("! Synthetic fallback failed -- cannot train severity model.")
         sys.exit(1)
 
     # 80/20 train-val stratified split
@@ -349,7 +349,7 @@ def train(args: argparse.Namespace) -> None:
         shuffle=False, num_workers=args.workers, pin_memory=True,
     )
 
-    # ── Loss with class weights ───────────────────────────────────────────
+    # Loss with class weights
     weights   = compute_class_weights(full_ds).to(DEVICE)
     criterion = nn.CrossEntropyLoss(weight=weights)
     optimizer = torch.optim.AdamW(
@@ -393,7 +393,7 @@ def train(args: argparse.Namespace) -> None:
         avg_loss  = epoch_loss / len(loader)
         train_acc = correct / max(total, 1)
 
-        # ── Validation ────────────────────────────────────────────────
+        # Validation
         model.eval()
         val_preds, val_labels_all = [], []
         val_loss_sum = 0.0
@@ -425,9 +425,9 @@ def train(args: argparse.Namespace) -> None:
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             torch.save(model.state_dict(), str(best_ckpt))
-            print(f"    ✓ New best val_acc={best_val_acc:.4f} — checkpoint saved")
+            print(f"     New best val_acc={best_val_acc:.4f} -- checkpoint saved")
 
-    # ── Final evaluation on val set ───────────────────────────────────────
+    # Final evaluation on val set
     model.load_state_dict(torch.load(str(best_ckpt), map_location=DEVICE))
     model.eval()
     final_preds, final_labels = [], []
@@ -438,13 +438,13 @@ def train(args: argparse.Namespace) -> None:
             logits = model(images)
             final_preds.extend(logits.argmax(dim=1).cpu().tolist())
             final_labels.extend(labels.cpu().tolist())
-    print("\n  ── Final validation (best checkpoint) ──")
+    print("\n  -- Final validation (best checkpoint) --")
     print(classification_report(
         final_labels, final_preds,
         target_names=SEVERITY_CLASSES, zero_division=0,
     ))
 
-    # ── Metadata ──────────────────────────────────────────────────────────
+    # Metadata
     meta = {
         "model_name":       "clip_damage_severity_vit_b32",
         "base_checkpoint":  str(crisis_ckpt),
@@ -458,8 +458,8 @@ def train(args: argparse.Namespace) -> None:
     }
     meta_path = REGISTRY_DIR / "clip_damage_severity_vit_b32.json"
     meta_path.write_text(json.dumps(meta, indent=2))
-    print(f"\n  Checkpoint → {best_ckpt}")
-    print(f"  Metadata   → {meta_path}")
+    print(f"\n  Checkpoint -> {best_ckpt}")
+    print(f"  Metadata   -> {meta_path}")
 
     if wandb:
         wandb.finish()

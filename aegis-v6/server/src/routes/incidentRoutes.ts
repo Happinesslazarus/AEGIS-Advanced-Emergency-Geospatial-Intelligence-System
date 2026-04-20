@@ -30,10 +30,10 @@ function getRequestRegion(req: Request): string {
   return String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
 }
 
-// Cross-incident endpoints
+//Cross-incident endpoints
 
 /**
- * GET /api/v1/incidents/registry — List all registered incident types with metadata
+ * GET /api/v1/incidents/registry -- List all registered incident types with metadata
  */
 router.get('/registry', (_req: Request, res: Response) => {
   const registries = getAllIncidentRegistries()
@@ -45,7 +45,7 @@ router.get('/registry', (_req: Request, res: Response) => {
 })
 
 /**
- * GET /api/v1/incidents/all/dashboard — Cross-incident dashboard summary
+ * GET /api/v1/incidents/all/dashboard -- Cross-incident dashboard summary
  */
 router.get('/all/dashboard', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -58,7 +58,7 @@ router.get('/all/dashboard', authMiddleware, async (req: Request, res: Response,
 })
 
 /**
- * GET /api/v1/incidents/all/predictions — All predictions across incident types
+ * GET /api/v1/incidents/all/predictions -- All predictions across incident types
  */
 router.get('/all/predictions', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -82,7 +82,7 @@ router.get('/all/predictions', authMiddleware, async (req: Request, res: Respons
 })
 
 /**
- * GET /api/v1/incidents/all/alerts — All alerts across incident types
+ * GET /api/v1/incidents/all/alerts -- All alerts across incident types
  */
 router.get('/all/alerts', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -105,7 +105,7 @@ router.get('/all/alerts', async (req: Request, res: Response, next: NextFunction
 })
 
 /**
- * GET /api/v1/incidents/all/map-data — Combined map data for all incidents
+ * GET /api/v1/incidents/all/map-data -- Combined map data for all incidents
  */
 router.get('/all/map-data', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -127,17 +127,17 @@ router.get('/all/map-data', async (req: Request, res: Response, next: NextFuncti
   }
 })
 
-// Dynamic per-incident routing — mounts each module's router
+//Dynamic per-incident routing -- mounts each module's router
 
 router.post('/:type/report', authMiddleware, (_req: Request, _res: Response, next) => next())
 router.get('/:type/predictions', authMiddleware, (_req: Request, _res: Response, next) => next())
 router.get('/:type/history', authMiddleware, (_req: Request, _res: Response, next) => next())
-// Mount each incident module's router at /api/v1/incidents/{incidentId}/
+//Mount each incident module's router at /api/v1/incidents/{incidentId}/
 for (const mod of getAllIncidentModules()) {
   router.use(`/${mod.id}`, mod.router)
 }
 
-// Fallback: catch unknown incident types
+//Fallback: catch unknown incident types
 router.all('/:incidentType/*', (req: Request, res: Response) => {
   const incidentType = req.params.incidentType
   if (incidentType === 'all') return // handled above

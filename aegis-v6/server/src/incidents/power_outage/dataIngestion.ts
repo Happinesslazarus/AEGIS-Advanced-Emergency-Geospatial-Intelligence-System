@@ -14,7 +14,7 @@ export class PowerOutageDataIngestion {
    */
   static async ingestData(region: string): Promise<{ recordsIngested: number; source: string }> {
     try {
-      // Count recent power outage reports
+      //Count recent power outage reports
       const result = await pool.query(
         `SELECT COUNT(*) as count
          FROM reports

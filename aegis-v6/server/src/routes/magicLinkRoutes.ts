@@ -1,13 +1,13 @@
 /**
- * magicLinkRoutes.ts — Passwordless Magic Link Authentication
+ * magicLinkRoutes.ts -- Passwordless Magic Link Authentication
  *
  * Endpoints:
- *   POST /api/auth/magic-link/send     — Send magic link email
- *   GET  /api/auth/magic-link/verify   — Verify token & return JWT
+ *   POST /api/auth/magic-link/send     -- Send magic link email
+ *   GET  /api/auth/magic-link/verify   -- Verify token & return JWT
  *
  * Flow:
- *   1. User enters email → server sends link with secure token
- *   2. User clicks link → token verified → JWT issued
+ * 1. User enters email -> server sends link with secure token
+ * 2. User clicks link -> token verified -> JWT issued
  *   3. Works for both citizens and operators
  */
 
@@ -22,7 +22,7 @@ const router = Router()
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173'
 
-// In-memory store (use Redis in production)
+//In-memory store (use Redis in production)
 interface PendingMagicLink {
   email: string
   expiresAt: number
@@ -30,7 +30,7 @@ interface PendingMagicLink {
 }
 const pendingLinks = new Map<string, PendingMagicLink>()
 
-// Clean expired links every 60s
+//Clean expired links every 60s
 setInterval(() => {
   const now = Date.now()
   for (const [token, data] of pendingLinks) {
@@ -38,7 +38,7 @@ setInterval(() => {
   }
 }, 60_000)
 
-// Rate limit: 3 magic link requests per email per 5 minutes
+//Rate limit: 3 magic link requests per email per 5 minutes
 const magicLinkLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 3,
@@ -59,7 +59,7 @@ router.post('/send', magicLinkLimiter, async (req: Request, res: Response) => {
 
   const normalizedEmail = email.trim().toLowerCase()
 
-  // Check if user exists (citizen or operator)
+  //Check if user exists (citizen or operator)
   const citizenResult = await pool.query(
     `SELECT id, email, display_name, role FROM citizens WHERE LOWER(email) = $1 AND is_active = true LIMIT 1`,
     [normalizedEmail],
@@ -72,14 +72,14 @@ router.post('/send', magicLinkLimiter, async (req: Request, res: Response) => {
   const user = citizenResult.rows[0] || operatorResult.rows[0]
   const userType = citizenResult.rows[0] ? 'citizen' : operatorResult.rows[0] ? 'operator' : null
 
-  // Always respond with success (prevent email enumeration)
+  //Always respond with success (prevent email enumeration)
   if (!user) {
     logger.info({ email: normalizedEmail }, '[MagicLink] Request for unregistered email (silent)')
     res.json({ success: true, message: 'If this email is registered, a magic link has been sent.' })
     return
   }
 
-  // Generate secure token
+  //Generate secure token
   const token = crypto.randomBytes(32).toString('base64url')
   pendingLinks.set(token, {
     email: normalizedEmail,
@@ -87,17 +87,17 @@ router.post('/send', magicLinkLimiter, async (req: Request, res: Response) => {
     used: false,
   })
 
-  // Build magic link URL
+  //Build magic link URL
   const portalPath = userType === 'operator' ? '/admin' : '/citizen/magic-link'
   const magicUrl = `${CLIENT_URL}${portalPath}?token=${token}`
 
-  // Send email (use existing email service if available, otherwise log)
+  //Send email (use existing email service if available, otherwise log)
   try {
     const emailService = await import('../services/emailService.js') as any
     if (typeof emailService.sendMagicLinkEmail === 'function') {
       await emailService.sendMagicLinkEmail(normalizedEmail, magicUrl, user.display_name)
     } else {
-      // Fallback: send via nodemailer directly
+      //Fallback: send via nodemailer directly
       const nodemailer = await import('nodemailer')
       const transporter = nodemailer.default.createTransport({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -111,12 +111,12 @@ router.post('/send', magicLinkLimiter, async (req: Request, res: Response) => {
       await transporter.sendMail({
         from: `"AEGIS" <${process.env.SMTP_USER || process.env.EMAIL_USER || 'noreply@aegis.app'}>`,
         to: normalizedEmail,
-        subject: '🔑 AEGIS Magic Link — Sign in securely',
+        subject: '🔑 AEGIS Magic Link -- Sign in securely',
         html: `
           <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:32px">
-            <h2 style="color:#0ea5e9;margin:0 0 16px">AEGIS — Secure Sign-In</h2>
+            <h2 style="color:#0ea5e9;margin:0 0 16px">AEGIS -- Secure Sign-In</h2>
             <p>Hello ${user.display_name || 'there'},</p>
-            <p>Click below to sign in instantly — no password needed:</p>
+            <p>Click below to sign in instantly -- no password needed:</p>
             <a href="${magicUrl}" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#eab308);color:#000;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;margin:16px 0">
               🔐 Sign In to AEGIS
             </a>
@@ -127,7 +127,7 @@ router.post('/send', magicLinkLimiter, async (req: Request, res: Response) => {
     }
     logger.info({ email: normalizedEmail, userType }, '[MagicLink] Email sent')
   } catch (err) {
-    logger.warn({ err, email: normalizedEmail }, '[MagicLink] Email send failed — link still valid via URL')
+    logger.warn({ err, email: normalizedEmail }, '[MagicLink] Email send failed -- link still valid via URL')
   }
 
   res.json({ success: true, message: 'If this email is registered, a magic link has been sent.' })
@@ -150,11 +150,11 @@ router.post('/verify', async (req: Request, res: Response) => {
     return
   }
 
-  // Mark as used immediately (one-time)
+  //Mark as used immediately (one-time)
   pending.used = true
   pendingLinks.delete(token)
 
-  // Look up user
+  //Look up user
   const citizenResult = await pool.query(
     `SELECT id, email, display_name, role, avatar_url FROM citizens WHERE LOWER(email) = $1 AND is_active = true LIMIT 1`,
     [pending.email],
@@ -170,7 +170,7 @@ router.post('/verify', async (req: Request, res: Response) => {
     return
   }
 
-  // Generate JWT
+  //Generate JWT
   const jwtToken = generateToken({
     id: user.id,
     email: user.email,
@@ -179,7 +179,7 @@ router.post('/verify', async (req: Request, res: Response) => {
   })
   const refreshToken = generateRefreshToken({ id: user.id, role: user.role })
 
-  // Set refresh cookie
+  //Set refresh cookie
   const cookiePath = user.role === 'citizen' ? '/api/citizen-auth' : '/api/auth'
   res.cookie('aegis_refresh', refreshToken, {
     httpOnly: true,
@@ -189,7 +189,7 @@ router.post('/verify', async (req: Request, res: Response) => {
     path: cookiePath,
   })
 
-  // Update last login
+  //Update last login
   const table = citizenResult.rows[0] ? 'citizens' : 'operators'
   await pool.query(`UPDATE ${table} SET last_login = NOW() WHERE id = $1`, [user.id])
 

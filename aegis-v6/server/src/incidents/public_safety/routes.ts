@@ -8,7 +8,7 @@ import { Router, Request, Response } from 'express'
 import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 
 export function setupPublicSafetyRoutes(router: Router): void {
-  // GET /incident-log — recent public safety incidents
+  //GET /incident-log -- recent public safety incidents
   router.get('/incident-log', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
@@ -25,7 +25,7 @@ export function setupPublicSafetyRoutes(router: Router): void {
     }
   })
 
-  // GET /hotspots — public safety hotspot areas
+  //GET /hotspots -- public safety hotspot areas
   router.get('/hotspots', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
@@ -40,7 +40,7 @@ export function setupPublicSafetyRoutes(router: Router): void {
     }
   })
 
-  // GET /emergency-resources — emergency resource deployment
+  //GET /emergency-resources -- emergency resource deployment
   router.get('/emergency-resources', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)

@@ -17,9 +17,9 @@ export async function buildLiveContext(): Promise<string> {
   const parts: string[] = []
   const now = new Date().toISOString()
 
-  // Run ALL queries in parallel for speed (was sequential — 200ms → ~30ms)
+ //Run ALL queries in parallel for speed (was sequential -- 200ms -> ~30ms)
   const [alertsRes, predictionsRes, riverRes, weatherRes, threatRes, trendRes, exposureRes, shelterRes, clusterRes] = await Promise.allSettled([
-    // 1. Active alerts
+    //1. Active alerts
     pool.query(
       `SELECT title, severity, location_text, created_at
        FROM alerts
@@ -27,34 +27,34 @@ export async function buildLiveContext(): Promise<string> {
          AND created_at > NOW() - INTERVAL '24 hours'
        ORDER BY CASE severity WHEN 'Critical' THEN 1 WHEN 'Warning' THEN 2 ELSE 3 END, created_at DESC
        LIMIT 5`),
-    // 2. AI predictions
+    //2. AI predictions
     pool.query(
       `SELECT hazard_type, probability, confidence, region_name, created_at
        FROM predictions
        WHERE created_at > NOW() - INTERVAL '6 hours'
        ORDER BY probability DESC
        LIMIT 5`),
-    // 3. River gauge levels
+    //3. River gauge levels
     pool.query(
       `SELECT station_name, water_level_m, normal_level_m, warning_level_m, recorded_at
        FROM river_levels
        WHERE recorded_at > NOW() - INTERVAL '2 hours'
        ORDER BY recorded_at DESC
        LIMIT 5`),
-    // 4. Weather
+    //4. Weather
     pool.query(
       `SELECT location_name, temperature_c, humidity_pct, wind_speed_ms, precipitation_mm, observed_at
        FROM weather_observations
        WHERE observed_at > NOW() - INTERVAL '3 hours'
        ORDER BY observed_at DESC
        LIMIT 3`),
-    // 5. Threat level
+    //5. Threat level
     pool.query(
       `SELECT threat_level, threat_score, assessment_summary, assessed_at
        FROM threat_assessments
        ORDER BY assessed_at DESC
        LIMIT 1`),
-    // 6a. Trend analysis
+    //6a. Trend analysis
     pool.query(
       `SELECT
         COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '6 hours') AS recent_count,
@@ -62,7 +62,7 @@ export async function buildLiveContext(): Promise<string> {
        FROM alerts
        WHERE is_active = true AND deleted_at IS NULL
          AND created_at > NOW() - INTERVAL '12 hours'`),
-    // 6b. Population exposure
+    //6b. Population exposure
     pool.query(
       `SELECT p.region_name, p.probability,
               COALESCE(fz.estimated_population, 0) AS estimated_population
@@ -73,14 +73,14 @@ export async function buildLiveContext(): Promise<string> {
          AND p.created_at > NOW() - INTERVAL '6 hours'
        ORDER BY p.probability DESC
        LIMIT 3`),
-    // 6c. Shelter capacity
+    //6c. Shelter capacity
     pool.query(
       `SELECT COUNT(*) AS total_shelters,
               SUM(capacity) AS total_capacity,
               SUM(current_occupancy) AS total_occupancy
        FROM shelters
        WHERE is_active = true`),
-    // 6d. Incident clusters
+    //6d. Incident clusters
     pool.query(
       `SELECT incident_type, COUNT(*) AS cnt
        FROM incidents
@@ -91,11 +91,11 @@ export async function buildLiveContext(): Promise<string> {
        LIMIT 5`),
   ])
 
-  // Process results — each is independent, failures are non-critical
+  //Process results -- each is independent, failures are non-critical
   if (alertsRes.status === 'fulfilled' && alertsRes.value.rows.length > 0) {
     parts.push('ACTIVE ALERTS RIGHT NOW:')
     for (const r of alertsRes.value.rows) {
-      parts.push(`  [${r.severity}] ${r.title} — ${r.location_text || 'Area-wide'} (${new Date(r.created_at).toLocaleString('en-GB')})`)
+      parts.push(`  [${r.severity}] ${r.title} -- ${r.location_text || 'Area-wide'} (${new Date(r.created_at).toLocaleString('en-GB')})`)
     }
   } else if (alertsRes.status === 'fulfilled') {
     parts.push('ACTIVE ALERTS: None currently active.')
@@ -109,7 +109,7 @@ export async function buildLiveContext(): Promise<string> {
       const prob = typeof r.probability === 'number'
         ? (r.probability > 1 ? r.probability : (r.probability * 100)).toFixed(0)
         : '?'
-      parts.push(`  ${r.hazard_type}: ${prob}% probability (confidence: ${((r.confidence || 0) * 100).toFixed(0)}%) — ${r.region_name || 'Unknown region'}`)
+      parts.push(`  ${r.hazard_type}: ${prob}% probability (confidence: ${((r.confidence || 0) * 100).toFixed(0)}%) -- ${r.region_name || 'Unknown region'}`)
     }
   }
 
@@ -137,15 +137,15 @@ export async function buildLiveContext(): Promise<string> {
     }
   }
 
-  // Situational awareness
+  //Situational awareness
   const situationalParts: string[] = []
 
   if (trendRes.status === 'fulfilled' && trendRes.value.rows.length > 0) {
     const recent = parseInt(trendRes.value.rows[0].recent_count) || 0
     const previous = parseInt(trendRes.value.rows[0].previous_count) || 0
     let trendDirection = 'STABLE'
-    if (recent > previous + 1) trendDirection = 'WORSENING — alert count increasing'
-    else if (recent < previous - 1) trendDirection = 'IMPROVING — alert count decreasing'
+    if (recent > previous + 1) trendDirection = 'WORSENING -- alert count increasing'
+    else if (recent < previous - 1) trendDirection = 'IMPROVING -- alert count decreasing'
     situationalParts.push(`  Threat trend (6h): ${trendDirection} (${recent} recent vs ${previous} previous alerts)`)
   }
 

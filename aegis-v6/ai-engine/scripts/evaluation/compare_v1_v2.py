@@ -5,24 +5,24 @@ existing ModelRegistry and v2 results from the new JSON metadata files, then
 produces a publication-ready Markdown + CSV table and a bar chart.
 
 Output files:
-  reports/model_comparison_v1_v2.csv    — machine-readable comparison table
-  reports/model_comparison_v1_v2.md     — dissertation-ready Markdown table
-  reports/model_comparison_v1_v2.pdf    — bar chart (saved as PDF for appendix)
+  reports/model_comparison_v1_v2.csv    -- machine-readable comparison table
+  reports/model_comparison_v1_v2.md     -- dissertation-ready Markdown table
+  reports/model_comparison_v1_v2.pdf    -- bar chart (saved as PDF for appendix)
 
 Glossary:
   ModelRegistry  = AEGIS's versioned model store in model_registry/
   v1 artifacts   = the .json metadata files produced by the existing training
                    scripts (train_*_real.py) alongside each .pkl model
   v2 artifacts   = the .json files produced by training/train_flood_v2.py etc.
-  ROC-AUC        = Receiver Operating Characteristic Area Under Curve —
+  ROC-AUC        = Receiver Operating Characteristic Area Under Curve --
                    the probability that the model ranks a random positive
                    higher than a random negative; 0.5 = random, 1.0 = perfect
   calibration    = how close predicted probabilities are to true empirical rates;
                    a well-calibrated model that says "70% flood probability"
                    should be right about 70% of the time
 
-  Reads from ← model_registry/<hazard>/*.json  (v1 and v2 metadata)
-  Writes to  → reports/  (CSV, Markdown, PDF)
+  Reads from <- model_registry/<hazard>/*.json  (v1 and v2 metadata)
+  Writes to  -> reports/  (CSV, Markdown, PDF)
 
 Usage:
   python scripts/evaluation/compare_v1_v2.py
@@ -39,7 +39,7 @@ from pathlib import Path
 try:
     import pandas as pd
     import matplotlib
-    matplotlib.use("Agg")  # headless — no GUI required for server environments
+    matplotlib.use("Agg")  # headless -- no GUI required for server environments
     import matplotlib.pyplot as plt
     import numpy as np
 except ImportError as exc:
@@ -107,21 +107,21 @@ def build_comparison_table(v2_results: dict[str, dict]) -> pd.DataFrame:
     for hazard, display in DISPLAY_NAMES.items():
         v1 = V1_BASELINE.get(hazard, {})
         v2 = v2_results.get(hazard, {})
-        n_train_v2 = v2.get("n_train", "—")
+        n_train_v2 = v2.get("n_train", "--")
         if isinstance(n_train_v2, float):
             n_train_v2 = int(n_train_v2)
 
         rows.append({
             "Hazard":              display,
             "Acc v1":              f"{v1.get('accuracy', 0)*100:.1f}%",
-            "Acc v2":              f"{v2.get('accuracy', 0)*100:.1f}%" if v2 else "—",
+            "Acc v2":              f"{v2.get('accuracy', 0)*100:.1f}%" if v2 else "--",
             "Acc Δ":               (f"+{(v2.get('accuracy',0)-v1.get('accuracy',0))*100:.1f}%"
-                                    if v2 else "—"),
+                                    if v2 else "--"),
             "AUC v1":              f"{v1.get('roc_auc', 0):.3f}",
-            "AUC v2":              f"{v2.get('roc_auc', 0):.3f}" if v2 else "—",
+            "AUC v2":              f"{v2.get('roc_auc', 0):.3f}" if v2 else "--",
             "AUC Δ":               (f"+{(v2.get('roc_auc',0)-v1.get('roc_auc',0)):.3f}"
-                                    if v2 else "—"),
-            "Samples v1→v2":       f"{v1.get('samples','—')} → {n_train_v2:,}" if v2 else "—",
+                                    if v2 else "--"),
+            "Samples v1->v2":       f"{v1.get('samples','--')} -> {n_train_v2:,}" if v2 else "--",
             "Weak Labels":         "Yes" if v2.get("weak", False) else "No",
         })
     return pd.DataFrame(rows)
@@ -135,7 +135,7 @@ def write_markdown(df: pd.DataFrame, out_path: Path) -> None:
     for _, row in df.iterrows():
         lines.append("| " + " | ".join(str(v) for v in row.values) + " |")
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"  Markdown → {out_path}")
+    print(f"  Markdown -> {out_path}")
 
 
 def write_chart(df: pd.DataFrame, out_path: Path) -> None:
@@ -143,7 +143,7 @@ def write_chart(df: pd.DataFrame, out_path: Path) -> None:
     hazards  = df["Hazard"].tolist()
     auc_v1   = [float(v.replace("+","")) for v in df["AUC v1"]]
     auc_v2_raw = [
-        float(v) if v not in ("—", "") else np.nan
+        float(v) if v not in ("--", "") else np.nan
         for v in df["AUC v2"]
     ]
 
@@ -163,25 +163,25 @@ def write_chart(df: pd.DataFrame, out_path: Path) -> None:
     plt.tight_layout()
     plt.savefig(str(out_path), dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"  Chart (PDF) → {out_path}")
+    print(f"  Chart (PDF) -> {out_path}")
 
 
 def main(args: argparse.Namespace) -> None:
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print("[1/4] Loading v2 results from registry …")
+    print("[1/4] Loading v2 results from registry ...")
     v2_results = load_v2_results()
     print(f"  Found v2 results for: {list(v2_results.keys())}")
 
-    print("[2/4] Building comparison table …")
+    print("[2/4] Building comparison table ...")
     df = build_comparison_table(v2_results)
 
-    print("[3/4] Writing CSV and Markdown …")
+    print("[3/4] Writing CSV and Markdown ...")
     df.to_csv(str(out_dir / "model_comparison_v1_v2.csv"), index=False)
     write_markdown(df, out_dir / "model_comparison_v1_v2.md")
 
-    print("[4/4] Rendering chart …")
+    print("[4/4] Rendering chart ...")
     write_chart(df, out_dir / "model_comparison_v1_v2.pdf")
 
     print("\n" + df.to_string(index=False))

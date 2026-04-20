@@ -14,25 +14,25 @@ Labels:
 Glossary:
   SPEI-3     = Standardised Precipitation-Evapotranspiration Index
                accumulated over 3 months; negative = dry, positive = wet
-  WMO        = World Meteorological Organisation — defines the drought thresholds
+  WMO        = World Meteorological Organisation -- defines the drought thresholds
   z-score    = a value expressed as standard deviations from the mean of a
                reference distribution; SPEI is calibrated to the standard
                normal distribution (mean=0, std=1)
   0.5° grid  = the SPEI dataset resolution: one pixel = 0.5 × 0.5 degrees
                (roughly 55 km × 35 km at UK latitudes)
   linear interpolation = filling values between two known grid points by
-               assuming a straight-line change — used here to match SPEI's
+               assuming a straight-line change -- used here to match SPEI's
                monthly resolution to the daily master dataset
 
-  Input  ← data/processed/master_features_uk_2000_2024.parquet
-  Input  ← data/raw/labels/spei03.nc  (download instructions below)
-  Output → data/labels/drought_labels.parquet
-  Used by← ai-engine/training/train_drought_v2.py
+  Input  <- data/processed/master_features_uk_2000_2024.parquet
+  Input  <- data/raw/labels/spei03.nc  (download instructions below)
+  Output -> data/labels/drought_labels.parquet
+  Used by<- ai-engine/training/train_drought_v2.py
 
 Download:
   SPEI Global Drought Monitor (free, no account needed):
   https://spei.csic.es/database.html
-  → Download "SPEI-03" NetCDF file → save as data/raw/labels/spei03.nc
+  -> Download "SPEI-03" NetCDF file -> save as data/raw/labels/spei03.nc
 """
 
 from __future__ import annotations
@@ -57,9 +57,7 @@ _LABEL_DIR = _AI_ROOT / "data" / "labels"
 DROUGHT_THRESHOLD = -1.0
 
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 def load_spei_netcdf(nc_path: Path) -> pd.DataFrame:
     """
@@ -100,7 +98,7 @@ def nearest_spei_value(
     """
     Return the SPEI-3 value for the grid cell nearest to (lat, lon) in the
     given year-month.  SPEI has 0.5° resolution, so nearest-cell lookup
-    introduces at most ~0.25° error (~28 km at UK latitudes — acceptable).
+    introduces at most ~0.25° error (~28 km at UK latitudes -- acceptable).
     """
     # Round to nearest 0.5° grid centre
     lat_r = round(lat * 2) / 2
@@ -117,14 +115,12 @@ def nearest_spei_value(
     return float(row["spei3"].iloc[0])
 
 
-# ---------------------------------------------------------------------------
 # Main labelling
-# ---------------------------------------------------------------------------
 
 def build_drought_labels(args: argparse.Namespace) -> None:
     _LABEL_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("[1/4] Loading master features …")
+    print("[1/4] Loading master features ...")
     master = pd.read_parquet(str(args.master))
     master["date_dt"] = pd.to_datetime(master["date"])
     master["year"]    = master["date_dt"].dt.year
@@ -161,12 +157,12 @@ def build_drought_labels(args: argparse.Namespace) -> None:
         else:
             drought_label = pd.Series(0, index=master.index)
     else:
-        print("[2/4] Loading SPEI NetCDF …")
+        print("[2/4] Loading SPEI NetCDF ...")
         spei_df = load_spei_netcdf(spei_path)
         print(f"  SPEI records: {len(spei_df):,}")
 
-        print("[3/4] Joining SPEI to master rows (nearest-cell monthly lookup) …")
-        # Build a monthly lookup dict for fast access: (lat_r, lon_r, year, month) → spei3
+        print("[3/4] Joining SPEI to master rows (nearest-cell monthly lookup) ...")
+        # Build a monthly lookup dict for fast access: (lat_r, lon_r, year, month) -> spei3
         spei_df["lat_r"] = (spei_df["lat"] * 2).round() / 2
         spei_df["lon_r"] = (spei_df["lon"] * 2).round() / 2
         spei_idx = spei_df.set_index(["lat_r", "lon_r", "year", "month"])["spei3"].to_dict()
@@ -186,7 +182,7 @@ def build_drought_labels(args: argparse.Namespace) -> None:
 
         drought_label = (spei_col <= DROUGHT_THRESHOLD).astype(int)
 
-    print("[4/4] Saving labels …")
+    print("[4/4] Saving labels ...")
     out = master[["lat", "lon", "date"]].copy()
     out["drought_label"] = drought_label
 
@@ -194,7 +190,7 @@ def build_drought_labels(args: argparse.Namespace) -> None:
     out.to_parquet(str(out_path), index=False, compression="snappy")
 
     pos_rate = drought_label.mean() * 100
-    print(f"\n  Saved → {out_path}")
+    print(f"\n  Saved -> {out_path}")
     print(f"  Positive rate: {pos_rate:.2f}%  (expect 10-15% with real SPEI)")
 
 

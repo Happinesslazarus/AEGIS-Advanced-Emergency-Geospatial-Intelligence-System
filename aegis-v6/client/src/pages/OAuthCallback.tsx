@@ -1,5 +1,5 @@
 /**
- * OAuthCallback.tsx — Handles OAuth exchange code from Google & GitHub
+ * OAuthCallback.tsx -- Handles OAuth exchange code from Google & GitHub
  * 
  * The server redirects to /citizen/oauth/callback?code=...&provider=...
  * This page exchanges the one-time code for a JWT, then redirects to dashboard.
@@ -54,8 +54,8 @@ export default function OAuthCallback() {
         if (data?.success && token && user) {
           const result = await oauthLogin(token)
           if (result.success) {
-            // If the user arrived here from scanning a Phone Browser QR code,
-            // auto-approve that QR session before going to the dashboard.
+            //If the user arrived here from scanning a Phone Browser QR code,
+            //auto-approve that QR session before going to the dashboard.
             const pendingQrSession = sessionStorage.getItem('aegis_pending_qr_session')
             if (pendingQrSession) {
               sessionStorage.removeItem('aegis_pending_qr_session')
@@ -68,7 +68,7 @@ export default function OAuthCallback() {
                     body: JSON.stringify({ sessionId: pendingQrSession }),
                   })
                 } catch {
-                  // Non-fatal: user is still logged in, QR approve just didn't fire
+                  //Non-fatal: user is still logged in, QR approve just didn't fire
                 }
               }
             }

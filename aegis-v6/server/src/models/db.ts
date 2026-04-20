@@ -15,7 +15,7 @@ import fs from 'fs'
 import { logger } from '../services/logger.js'
 import { wrapPoolWithQueryLogging } from '../services/queryLogger.js'
 
-// Robustly find .env no matter what the CWD is
+//Robustly find .env no matter what the CWD is
 const envCandidates = [
   path.resolve('.env'),                          // CWD is server/
   path.resolve('server', '.env'),                // CWD is project root
@@ -53,11 +53,11 @@ const pool = new pg.Pool({
   max: parseInt(process.env.DB_POOL_MAX || '20'),
   idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS || '30000'),
   connectionTimeoutMillis: parseInt(process.env.DB_CONNECT_TIMEOUT_MS || '5000'),
-  // Statement timeout prevents runaway queries (30 seconds default)
+  //Statement timeout prevents runaway queries (30 seconds default)
   statement_timeout: parseInt(process.env.DB_STATEMENT_TIMEOUT_MS || '30000'),
-  // Query timeout at application level
+  //Query timeout at application level
   query_timeout: parseInt(process.env.DB_QUERY_TIMEOUT_MS || '30000'),
-  // Enforce TLS for database connections in production unless explicitly disabled
+  //Enforce TLS for database connections in production unless explicitly disabled
   // (e.g. Docker-internal connections where PostgreSQL is not configured with SSL)
   ...(process.env.NODE_ENV === 'production' && process.env.DB_SSL !== 'false' && {
     ssl: {
@@ -66,12 +66,12 @@ const pool = new pg.Pool({
   }),
 })
 
-// Connection event monitoring
+//Connection event monitoring
 pool.on('connect', () => {
   if (process.env.NODE_ENV !== 'production') logger.info('[DB] New client connected')
 })
 pool.on('error', (err) => {
-  logger.error({ err }, '[DB] Unexpected pool error — check DB connectivity')
+  logger.error({ err }, '[DB] Unexpected pool error -- check DB connectivity')
 })
 pool.on('remove', () => {
   if (process.env.NODE_ENV !== 'production') logger.info('[DB] Client removed from pool')
@@ -94,7 +94,7 @@ export async function queryWithRetry<T extends pg.QueryResultRow = any>(
     } catch (err: any) {
       lastError = err
       
-      // Only retry on connection-related errors
+      //Only retry on connection-related errors
       const isRetryable = 
         err.code === 'ECONNREFUSED' ||
         err.code === 'ECONNRESET' ||
@@ -110,7 +110,7 @@ export async function queryWithRetry<T extends pg.QueryResultRow = any>(
         throw err
       }
       
-      // Exponential backoff with jitter
+      //Exponential backoff with jitter
       const delay = Math.min(
         RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt) + Math.random() * 1000,
         RETRY_CONFIG.maxDelayMs
@@ -152,7 +152,7 @@ export function getPoolStats() {
   }
 }
 
-// Wrap pool with slow query logging and metrics
+//Wrap pool with slow query logging and metrics
 const monitoredPool = wrapPoolWithQueryLogging(pool)
 
 export default monitoredPool

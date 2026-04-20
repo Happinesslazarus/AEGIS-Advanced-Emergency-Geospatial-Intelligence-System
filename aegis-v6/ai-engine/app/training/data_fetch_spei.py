@@ -2,18 +2,16 @@
 CSIC SPEI Global Database loader for drought training labels.
 
 WHY SPEI OVER ERA5 SPI
------------------------
-The previous drought pipeline computed SPI from ERA5 reanalysis precipitation —
+The previous drought pipeline computed SPI from ERA5 reanalysis precipitation --
 the same data source used to derive model features.  This created indirect
-label-feature correlation (LeakageSeverity.LOW → PARTIAL status).
+label-feature correlation (LeakageSeverity.LOW -> PARTIAL status).
 
 The CSIC SPEI Global Database computes SPEI from CRU TS4 OBSERVED station data
 (Harris et al., 2020), which is entirely independent of ERA5.  Using SPEI as
 labels while using ERA5 as features means there is zero shared data source
-between labels and features → LeakageSeverity.NONE → TRAINABLE status.
+between labels and features -> LeakageSeverity.NONE -> TRAINABLE status.
 
 WHAT IS SPEI
-------------
 The Standardized Precipitation-Evapotranspiration Index (SPEI) extends SPI by
 incorporating potential evapotranspiration (Thornthwaite method).  A value of
 SPEI < -1.0 indicates moderate drought, < -1.5 severe, < -2.0 extreme.
@@ -23,18 +21,16 @@ The global database provides SPEI at multiple time scales (1, 3, 6, 12, 24,
 January 1901 to the present, updated regularly.
 
 DATASET REFERENCE
------------------
 Vicente-Serrano, S.M., Beguería, S. & López-Moreno, J.I. (2010).
   "A Multiscalar Drought Index Sensitive to Global Warming: The Standardized
   Precipitation Evapotranspiration Index." Bull. Amer. Meteor. Soc., 91,
-  1696–1711. https://doi.org/10.1175/2010BAMS2988.1
+  1696-1711. https://doi.org/10.1175/2010BAMS2988.1
 
 Download: https://spei.csic.es/database.html
 Dataset DOI: https://doi.org/10.20350/digitalCSIC/8508
 
 SETUP INSTRUCTIONS
-------------------
-The SPEI NetCDF files are ~150–200 MB each.  Download them once:
+The SPEI NetCDF files are ~150-200 MB each.  Download them once:
 
   from app.training.data_fetch_spei import download_spei_dataset
   download_spei_dataset(scale_months=3)   # ~150 MB, downloads spei03.nc
@@ -73,7 +69,7 @@ _SPEI_DIR = _AI_ROOT / "data" / "spei"
 _SPEI_CACHE_DIR = _AI_ROOT / "data" / "cache" / "spei_extractions"
 
 # CSIC SPEIbase v2.9 download URLs
-# Source: https://digital.csic.es/handle/10261/332007  (v2.9, covers 1901–2022)
+# Source: https://digital.csic.es/handle/10261/332007  (v2.9, covers 1901-2022)
 # If these go stale, download manually from https://spei.csic.es/database.html
 _SPEI_DOWNLOAD_URLS: dict[int, list[str]] = {
     1:  [
@@ -94,14 +90,12 @@ _SPEI_DOWNLOAD_URLS: dict[int, list[str]] = {
 }
 
 # SPEI drought classification thresholds (WMO standard)
-SPEI_MODERATE_DROUGHT  = -1.0   # ← default label threshold
+SPEI_MODERATE_DROUGHT  = -1.0   # <- default label threshold
 SPEI_SEVERE_DROUGHT    = -1.5
 SPEI_EXTREME_DROUGHT   = -2.0
 
 
-# ---------------------------------------------------------------------------
 # Download helper
-# ---------------------------------------------------------------------------
 
 def download_spei_dataset(
     scale_months: int = 3,
@@ -111,7 +105,6 @@ def download_spei_dataset(
     """Download the CSIC SPEI Global NetCDF file for a given time scale.
 
     Parameters
-    ----------
     scale_months : int
         SPEI time scale in months.  Common choices: 3 (meteorological drought),
         12 (hydrological drought), 6 (agricultural drought).
@@ -121,7 +114,7 @@ def download_spei_dataset(
         Re-download even if the file already exists.
 
     Returns
-    -------
+
     Path to the downloaded file, or None on failure.
     """
     if dest_dir is None:
@@ -154,10 +147,10 @@ def download_spei_dataset(
 
             urllib.request.urlretrieve(url, dest_path, reporthook=_reporthook)
             size_mb = dest_path.stat().st_size // 1_000_000
-            logger.success(f"Downloaded {filename} ({size_mb} MB) → {dest_path}")
+            logger.success(f"Downloaded {filename} ({size_mb} MB) -> {dest_path}")
             return dest_path
         except Exception as exc:
-            logger.warning(f"Download from {url} failed: {exc} — trying next mirror")
+            logger.warning(f"Download from {url} failed: {exc} -- trying next mirror")
             if dest_path.exists():
                 dest_path.unlink()
 
@@ -169,9 +162,7 @@ def download_spei_dataset(
     return None
 
 
-# ---------------------------------------------------------------------------
 # Core extraction
-# ---------------------------------------------------------------------------
 
 def _load_spei_dataset(scale_months: int, spei_dir: Optional[Path] = None):
     """Load the SPEI NetCDF dataset using xarray.  Returns the xarray Dataset
@@ -214,7 +205,6 @@ def extract_spei_series(
     """Extract a monthly SPEI time series for the nearest 0.5° grid cell.
 
     Parameters
-    ----------
     lat, lon      : station coordinates
     start_date    : "YYYY-MM-DD"
     end_date      : "YYYY-MM-DD"
@@ -222,7 +212,7 @@ def extract_spei_series(
     spei_dir      : directory containing the NetCDF file
 
     Returns
-    -------
+
     pd.Series indexed by month-start date (YYYY-MM-01), values are SPEI floats.
     Empty series on failure.
     """
@@ -244,7 +234,7 @@ def extract_spei_series(
         return pd.Series(dtype=float, name=f"spei_{scale_months}m")
 
     # Nearest-neighbour grid cell selection
-    # SPEI lat runs from 90 → -90; lon from -180 → 180 (check dataset)
+    # SPEI lat runs from 90 -> -90; lon from -180 -> 180 (check dataset)
     try:
         lat_name = next(c for c in ("lat", "latitude") if c in ds.coords)
         lon_name = next(c for c in ("lon", "longitude") if c in ds.coords)
@@ -284,9 +274,7 @@ def extract_spei_series(
         return pd.Series(dtype=float, name=f"spei_{scale_months}m")
 
 
-# ---------------------------------------------------------------------------
 # Label builder
-# ---------------------------------------------------------------------------
 
 def build_spei_label_df(
     station_locations: list[dict],
@@ -307,7 +295,6 @@ def build_spei_label_df(
     build_labels() methods: columns [timestamp, station_id, label].
 
     Parameters
-    ----------
     station_locations : list of {"id", "lat", "lon"} dicts
     start_date        : "YYYY-MM-DD"
     end_date          : "YYYY-MM-DD"
@@ -317,7 +304,7 @@ def build_spei_label_df(
     spei_dir          : override directory for NetCDF file
 
     Returns
-    -------
+
     pd.DataFrame with columns: timestamp (hourly), station_id, label (0/1)
     Empty DataFrame if SPEI file is unavailable (caller should fall back).
     """
@@ -379,7 +366,7 @@ def build_spei_label_df(
 
     if not all_labels:
         logger.warning(
-            "SPEI: no data extracted for any station — "
+            "SPEI: no data extracted for any station -- "
             "check that the NetCDF file is present and covers the date range.\n"
             "Download with: from app.training.data_fetch_spei import "
             "download_spei_dataset; download_spei_dataset(3)"

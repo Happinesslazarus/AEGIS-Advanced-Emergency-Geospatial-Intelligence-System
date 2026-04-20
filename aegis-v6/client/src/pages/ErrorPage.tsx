@@ -4,7 +4,7 @@
  * error is caught. Shows a friendly message and a refresh/home link.
  *
  * - Used by client/src/components/shared/ErrorBoundary.tsx
- * - Not directly routed — rendered programmatically on fatal errors
+ * - Not directly routed -- rendered programmatically on fatal errors
  */
 
 import React, { useCallback, useEffect, useRef } from 'react'
@@ -39,12 +39,12 @@ export default function ErrorPage({
   const headingRef = useRef<HTMLHeadingElement>(null)
   const [copied, setCopied] = React.useState(false)
 
-  // Focus heading on mount for a11y
+  //Focus heading on mount for a11y
   useEffect(() => {
     headingRef.current?.focus()
   }, [])
 
-  // Log error to backend (fire-and-forget, deduplicated)
+  //Log error to backend (fire-and-forget, deduplicated)
   useEffect(() => {
     if (logged.current) return
     logged.current = true
@@ -71,7 +71,7 @@ export default function ErrorPage({
         body: JSON.stringify(payload),
       }).catch(() => {})
     } catch {
-      // Swallow
+      //Swallow
     }
   }, [error, componentStack, correlationId])
 
@@ -84,7 +84,7 @@ export default function ErrorPage({
   }, [resetError])
 
   const handleReport = useCallback(() => {
-    // Attempt Sentry feedback dialog first, fall back to email
+    //Attempt Sentry feedback dialog first, fall back to email
     if (typeof Sentry.showReportDialog === 'function') {
       try {
         Sentry.showReportDialog({
@@ -98,10 +98,10 @@ export default function ErrorPage({
         })
         return
       } catch {
-        // Fall through to email
+        //Fall through to email
       }
     }
-    const subject = encodeURIComponent(`AEGIS Bug Report — ${correlationId || 'No Ref'}`)
+    const subject = encodeURIComponent(`AEGIS Bug Report -- ${correlationId || 'No Ref'}`)
     const body = encodeURIComponent(
       `Reference: ${correlationId || 'N/A'}\nPage: ${window.location.href}\nError: ${error?.message || 'Unknown'}\nTime: ${new Date().toISOString()}\n\nPlease describe what you were doing:\n`,
     )
@@ -142,11 +142,11 @@ export default function ErrorPage({
             {t('error.pageMessage', lang)}
           </p>
 
-          {/* Error message — translated to plain language */}
+          {/* Error message -- translated to plain language */}
           {error?.message && (() => {
             const raw = error.message
             const friendly = raw.includes('Loading chunk') || raw.includes('Failed to fetch dynamically imported module')
-              ? 'A page section could not be loaded. This usually happens after an update — try refreshing.'
+              ? 'A page section could not be loaded. This usually happens after an update -- try refreshing.'
               : raw.includes('NetworkError') || raw.includes('Failed to fetch')
               ? 'Could not connect to the AEGIS server. Check your internet connection.'
               : raw.includes('Cannot read properties') || raw.includes('is not a function') || raw.includes('is undefined')
@@ -161,7 +161,7 @@ export default function ErrorPage({
             )
           })()}
 
-          {/* Correlation ID — selectable, copyable */}
+          {/* Correlation ID -- selectable, copyable */}
           {correlationId && (
             <div className="flex items-center justify-center gap-2 mb-6">
               <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400 select-all bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-lg">
@@ -243,7 +243,7 @@ export default function ErrorPage({
       </main>
 
       <footer className="py-4 text-center text-xs text-gray-400 dark:text-gray-600">
-        AEGIS — Emergency Management Platform
+        AEGIS -- Emergency Management Platform
       </footer>
     </div>
   )

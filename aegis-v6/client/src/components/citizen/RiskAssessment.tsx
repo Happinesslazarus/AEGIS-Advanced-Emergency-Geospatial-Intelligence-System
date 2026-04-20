@@ -3,8 +3,8 @@
  *
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
-/* RiskAssessment.tsx — Professional Location-Aware Hazard Assessment
-   Arc gauge · radar chart · 24-hour trend forecasts · real-time data */
+/* RiskAssessment.tsx -- Professional Location-Aware Hazard Assessment
+   Arc gauge - radar chart - 24-hour trend forecasts - real-time data */
 
 import { useMemo, useState } from 'react'
 import {
@@ -150,7 +150,7 @@ const weatherCache = new Map<string, { data: any; ts: number }>()
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes (shorter to avoid stale location data)
 
 function cacheKey(lat: number, lng: number): string {
-  // Round to 0.01° (~1km) instead of 0.05° (~5km) for finer location sensitivity
+  //Round to 0.01° (~1km) instead of 0.05° (~5km) for finer location sensitivity
   return `${Math.round(lat * 100) / 100},${Math.round(lng * 100) / 100}`
 }
 
@@ -206,7 +206,7 @@ async function getUsFloodSignal(coords: Coordinates): Promise<FloodSignal> {
       const values = series?.values?.[0]?.value || []
       if (!values.length) continue
       const latest = Number(values[values.length - 1]?.value || 0)
-      // USGS gage height in feet — flood stage varies, but >10ft is generally elevated, >15ft is high
+      //USGS gage height in feet -- flood stage varies, but >10ft is generally elevated, >15ft is high
       if (latest > 20) worst = Math.max(worst, 45)
       else if (latest > 15) worst = Math.max(worst, 35)
       else if (latest > 10) worst = Math.max(worst, 20)
@@ -217,7 +217,7 @@ async function getUsFloodSignal(coords: Coordinates): Promise<FloodSignal> {
 }
 
 async function getAuFloodSignal(coords: Coordinates): Promise<FloodSignal> {
-  // BOM (Australia) doesn't have a public CORS-enabled API; use our server proxy
+  //BOM (Australia) doesn't have a public CORS-enabled API; use our server proxy
   try {
     const params = new URLSearchParams({ lat: String(coords.lat), lng: String(coords.lng), dist: '100' })
     const res = await fetch(`/api/flood-data/stations?${params.toString()}`)
@@ -238,7 +238,7 @@ async function getAuFloodSignal(coords: Coordinates): Promise<FloodSignal> {
 }
 
 async function getEuFloodSignal(coords: Coordinates): Promise<FloodSignal> {
-  // EU countries — try the server flood endpoint which may have EFAS/national data
+  //EU countries -- try the server flood endpoint which may have EFAS/national data
   try {
     const params = new URLSearchParams({ lat: String(coords.lat), lng: String(coords.lng), dist: '80' })
     const res = await fetch(`/api/flood-data/stations?${params.toString()}`)
@@ -283,7 +283,7 @@ async function getGlobalFloodSignal(coords: Coordinates): Promise<FloodSignal> {
     const medianQ = Number(median[0] || 0)
     if (currentQ <= 0 || meanQ <= 0) return NO_FLOOD
 
-    // Ratio of current discharge to climatological mean
+    //Ratio of current discharge to climatological mean
     const ratio = currentQ / meanQ
     let boost = 0
     if (ratio > 5) boost = 45
@@ -292,13 +292,13 @@ async function getGlobalFloodSignal(coords: Coordinates): Promise<FloodSignal> {
     else if (ratio > 1.5) boost = 15
     else if (ratio > 1.2) boost = 8
 
-    // Cross-check against median — large exceedances confirm flood
+    //Cross-check against median -- large exceedances confirm flood
     if (medianQ > 0) {
       const medRatio = currentQ / medianQ
       if (medRatio > 3 && boost < 30) boost = 30
     }
 
-    // If discharge is forecast to spike in the next 7 days, flag rising risk
+    //If discharge is forecast to spike in the next 7 days, flag rising risk
     const maxForecast = Math.max(...discharge.slice(0, 7).map(Number).filter(v => !isNaN(v)))
     if (maxForecast > currentQ * 1.5 && boost < 20) boost = 20
 
@@ -307,14 +307,14 @@ async function getGlobalFloodSignal(coords: Coordinates): Promise<FloodSignal> {
 }
 
 async function getFloodSignal(coords: Coordinates, countryCode: string): Promise<FloodSignal> {
-  // Try country-specific premium sources first
+  //Try country-specific premium sources first
   let signal: FloodSignal = NO_FLOOD
   if (countryCode === 'GB') signal = await getGbFloodSignal(coords)
   else if (countryCode === 'US') signal = await getUsFloodSignal(coords)
   else if (countryCode === 'AU') signal = await getAuFloodSignal(coords)
   else if (EU_CODES.has(countryCode)) signal = await getEuFloodSignal(coords)
 
-  // Global fallback via GloFAS for ALL countries (including when premium source found nothing)
+  //Global fallback via GloFAS for ALL countries (including when premium source found nothing)
   if (signal.floodBoost < 5) {
     const global = await getGlobalFloodSignal(coords)
     if (global.floodBoost > signal.floodBoost) return global
@@ -340,14 +340,14 @@ async function getMarineSignal(coords: Coordinates): Promise<{ waveBoost: number
     const waveMax = Number(daily?.wave_height_max?.[0] || 0)
     const waveMax2 = Number(daily?.wave_height_max?.[1] || 0)
     const period = Number(daily?.wave_period_max?.[0] || 0)
-    // Wave scoring: 0-2m calm, 2-4m moderate, 4-6m elevated, 6m+ high swell
+    //Wave scoring: 0-2m calm, 2-4m moderate, 4-6m elevated, 6m+ high swell
     const waveScore = (waveMax: number, period: number) => {
       let s = 0
       if (waveMax > 6) s = 40
       else if (waveMax > 4) s = 28
       else if (waveMax > 2.5) s = 15
       else if (waveMax > 1.5) s = 5
-      // Long-period swells (>12s) are more dangerous
+      //Long-period swells (>12s) are more dangerous
       if (period > 14) s += 10
       else if (period > 12) s += 5
       return clamp(s, 0, 45)
@@ -365,47 +365,47 @@ async function getMarineSignal(coords: Coordinates): Promise<{ waveBoost: number
 function getRecommendation(id: string, level: 'low' | 'moderate' | 'elevated' | 'high'): string {
   const tips: Record<string, Record<string, string>> = {
     flood: {
-      high: 'Immediate flood risk — evacuate low-lying areas now, move to higher ground, and follow official emergency orders.',
-      elevated: 'Significant flood potential — prepare evacuation routes, move valuables off ground level, and monitor emergency alerts.',
-      moderate: 'Moderate flood risk — stay alert to rising water levels and ensure drainage is clear around your property.',
-      low: 'Low flood risk — monitor rainfall updates and remain aware of local flood alert channels.',
+      high: 'Immediate flood risk -- evacuate low-lying areas now, move to higher ground, and follow official emergency orders.',
+      elevated: 'Significant flood potential -- prepare evacuation routes, move valuables off ground level, and monitor emergency alerts.',
+      moderate: 'Moderate flood risk -- stay alert to rising water levels and ensure drainage is clear around your property.',
+      low: 'Low flood risk -- monitor rainfall updates and remain aware of local flood alert channels.',
     },
     storm: {
-      high: 'Dangerous storm conditions — shelter immediately, stay away from windows, and avoid all non-essential travel.',
-      elevated: 'Strong storm activity likely — secure outdoor objects, charge devices, and avoid exposed areas.',
-      moderate: 'Storm activity possible — keep an eye on weather updates and have a plan if conditions worsen.',
-      low: 'Minor storm risk — stay weather-aware and check forecasts before extended outdoor activity.',
+      high: 'Dangerous storm conditions -- shelter immediately, stay away from windows, and avoid all non-essential travel.',
+      elevated: 'Strong storm activity likely -- secure outdoor objects, charge devices, and avoid exposed areas.',
+      moderate: 'Storm activity possible -- keep an eye on weather updates and have a plan if conditions worsen.',
+      low: 'Minor storm risk -- stay weather-aware and check forecasts before extended outdoor activity.',
     },
     wind: {
-      high: 'Severe wind warning — avoid trees, scaffolding, and bridges. Stay indoors and brace for power outages.',
-      elevated: 'High winds expected — secure loose items outside, avoid driving high-profile vehicles, and stay sheltered.',
-      moderate: 'Moderate wind conditions — take care near coastal or exposed areas and secure lightweight outdoor items.',
-      low: 'Light winds — no special precautions needed. Routine wind awareness is sufficient.',
+      high: 'Severe wind warning -- avoid trees, scaffolding, and bridges. Stay indoors and brace for power outages.',
+      elevated: 'High winds expected -- secure loose items outside, avoid driving high-profile vehicles, and stay sheltered.',
+      moderate: 'Moderate wind conditions -- take care near coastal or exposed areas and secure lightweight outdoor items.',
+      low: 'Light winds -- no special precautions needed. Routine wind awareness is sufficient.',
     },
     heat: {
-      high: 'Extreme heat emergency — stay indoors with cooling, hydrate constantly, and check on vulnerable neighbors.',
-      elevated: 'Intense heat expected — reduce outdoor exertion during peak hours (11am-4pm) and drink water frequently.',
-      moderate: 'Warm conditions ahead — wear sun protection, stay hydrated, and take breaks in shade when outdoors.',
-      low: 'Comfortable temperatures — no heat-related precautions needed at this time.',
+      high: 'Extreme heat emergency -- stay indoors with cooling, hydrate constantly, and check on vulnerable neighbors.',
+      elevated: 'Intense heat expected -- reduce outdoor exertion during peak hours (11am-4pm) and drink water frequently.',
+      moderate: 'Warm conditions ahead -- wear sun protection, stay hydrated, and take breaks in shade when outdoors.',
+      low: 'Comfortable temperatures -- no heat-related precautions needed at this time.',
     },
     fire: {
-      high: 'Critical fire danger — avoid all open flames, have evacuation bags ready, and follow local fire authority orders.',
-      elevated: 'High fire risk — no outdoor burning, avoid activities that create sparks, and keep emergency supplies ready.',
-      moderate: 'Moderate fire conditions — exercise caution with fire and keep informed of any local fire bans.',
-      low: 'Low fire risk — follow standard fire-safety guidance and stay aware of local conditions.',
+      high: 'Critical fire danger -- avoid all open flames, have evacuation bags ready, and follow local fire authority orders.',
+      elevated: 'High fire risk -- no outdoor burning, avoid activities that create sparks, and keep emergency supplies ready.',
+      moderate: 'Moderate fire conditions -- exercise caution with fire and keep informed of any local fire bans.',
+      low: 'Low fire risk -- follow standard fire-safety guidance and stay aware of local conditions.',
     },
     coastal: {
-      high: 'Severe coastal hazard — stay well away from shorelines, sea walls, and tidal zones. Expect flooding in low areas.',
-      elevated: 'Significant coastal risk — avoid cliff edges and sea fronts, and monitor official surge and tide warnings.',
-      moderate: 'Moderate coastal conditions — exercise caution near the water and be aware of higher-than-normal tides.',
-      low: 'Calm coastal conditions — no immediate risk, but always respect tidal schedules and warning signs.',
+      high: 'Severe coastal hazard -- stay well away from shorelines, sea walls, and tidal zones. Expect flooding in low areas.',
+      elevated: 'Significant coastal risk -- avoid cliff edges and sea fronts, and monitor official surge and tide warnings.',
+      moderate: 'Moderate coastal conditions -- exercise caution near the water and be aware of higher-than-normal tides.',
+      low: 'Calm coastal conditions -- no immediate risk, but always respect tidal schedules and warning signs.',
     },
   }
   return tips[id]?.[level] || 'Monitor local updates and follow official guidance.'
 }
 
 async function buildRiskProfile(coords: Coordinates, countryCode: string): Promise<RiskFactor[]> {
-  // Fetch weather with hourly weather_code for thunder detection on both days
+  //Fetch weather with hourly weather_code for thunder detection on both days
   const wKey = `wx_${cacheKey(coords.lat, coords.lng)}`
   const weather = await cachedFetch(
     `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}` +
@@ -431,15 +431,15 @@ async function buildRiskProfile(coords: Coordinates, countryCode: string): Promi
   const windMax = Number(daily?.wind_speed_10m_max?.[0] || windNow)
   const tempMax = Number(daily?.temperature_2m_max?.[0] || temp)
 
-  // Fetch flood signal for this country
+  //Fetch flood signal for this country
   const flood = await getFloodSignal(coords, countryCode)
 
-  // Fetch marine/wave data in parallel (non-blocking — coastal bonus)
+  //Fetch marine/wave data in parallel (non-blocking -- coastal bonus)
   const marine = await getMarineSignal(coords)
 
-  // Thunder detection from hourly weather_code
-  // Codes 95-99 = thunderstorm, 80-84 = rain showers (stormy)
-  // Today = hours 0-23, Tomorrow = hours 24-47
+  //Thunder detection from hourly weather_code
+  //Codes 95-99 = thunderstorm, 80-84 = rain showers (stormy)
+  //Today = hours 0-23, Tomorrow = hours 24-47
   const thunderFromHourly = (startH: number, endH: number): number => {
     let maxCode = 0
     for (let h = startH; h < Math.min(endH, hourlyWC.length); h++) {
@@ -454,13 +454,13 @@ async function buildRiskProfile(coords: Coordinates, countryCode: string): Promi
   )
   const thunderBoost2 = thunderFromHourly(24, 48)
 
-  // Build source string
+  //Build source string
   const sources: string[] = ['Open-Meteo']
   if (flood.source !== 'Open-Meteo' && flood.floodBoost > 0) sources.push(flood.source.replace(' + Open-Meteo', ''))
   if (marine.source) sources.push(marine.source.replace('Open-Meteo ', ''))
   const primarySource = sources.join(' + ')
 
-  // Today scores
+  //Today scores
   const floodScore = clamp((rainDay * 4) + (rainChance * 0.35) + (rainNow * 10) + flood.floodBoost)
   const stormScore = clamp((windMax * 1.6) + thunderBoost)
   const windScore = clamp((windMax * 1.8) + (windNow * 0.4))
@@ -468,7 +468,7 @@ async function buildRiskProfile(coords: Coordinates, countryCode: string): Promi
   const fireScore = clamp(((tempMax - 20) * 4) + ((50 - humidity) * 1.2) - (rainDay * 1.8))
   const coastalScore = clamp((windMax * 0.9) + (rainChance * 0.25) + (flood.floodBoost * 0.7) + marine.waveBoost)
 
-  // Tomorrow (Day-2) scores
+  //Tomorrow (Day-2) scores
   const rainDay2 = Number(daily?.precipitation_sum?.[1] || 0)
   const rainChance2 = Number(daily?.precipitation_probability_max?.[1] || 0)
   const windMax2 = Number(daily?.wind_speed_10m_max?.[1] || 0)
@@ -662,7 +662,7 @@ export default function RiskAssessment(): JSX.Element {
             className="flex items-center gap-1.5 text-[10px] font-bold bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all border border-blue-200/50 dark:border-blue-800/50"
           >
             {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Compass className="w-3.5 h-3.5" />}
-            // GPS
+            //GPS
           </button>
           {hasData && (
             <button
@@ -747,7 +747,7 @@ export default function RiskAssessment(): JSX.Element {
             </div>
           </div>
           <div className="px-5 pb-4 text-center">
-            <p className="text-[10px] text-gray-400 dark:text-gray-300">Analyzing hazard data — weather, flood gauges, wind models & more</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-300">Analyzing hazard data -- weather, flood gauges, wind models & more</p>
           </div>
         </div>
       ) : (

@@ -44,7 +44,7 @@ export class DroughtAIClient {
         confidence: data.confidence || 0.60,
         confidenceSource: 'statistical',
         region,
-        description: `Drought assessment: ${data.risk_level || 'Low'} risk.${factors ? ` Factors — ${factors}` : ''}`,
+        description: `Drought assessment: ${data.risk_level || 'Low'} risk.${factors ? ` Factors -- ${factors}` : ''}`,
         advisoryText: DroughtAIClient.getAdvisory(data.risk_level || 'Low'),
         generatedAt: new Date().toISOString(),
         dataSourcesUsed: data.data_sources || ['statistical_model'],

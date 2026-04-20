@@ -29,24 +29,22 @@ try:
     _CDS_AVAILABLE = True
 except ImportError:
     _CDS_AVAILABLE = False
-    logger.warning("cdsapi/xarray not installed — ERA5 fetcher disabled")
+    logger.warning("cdsapi/xarray not installed -- ERA5 fetcher disabled")
 
 _CACHE_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "cache" / "multi_location_weather"
 _CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-# Per-location-year parquet cache — persists across ALL training runs regardless
+# Per-location-year parquet cache -- persists across ALL training runs regardless
 # of batch parameters (location list, date range, var set changes).
 # Each file: {loc_id}_{year}_{vars_hash8}.parquet
 _PER_LOC_CACHE_DIR = _CACHE_DIR / "per_loc_year"
 _PER_LOC_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-# ---------------------------------------------------------------------------
 # Open-Meteo archive configuration (primary training data source)
-# ---------------------------------------------------------------------------
-_OM_MAX_CONCURRENT   = 1     # strictly sequential — avoids 429 cascades
-_OM_INTER_REQ_SLEEP  = 3.0   # ~0.33 req/sec — comfortable free-tier margin
+_OM_MAX_CONCURRENT   = 1     # strictly sequential -- avoids 429 cascades
+_OM_INTER_REQ_SLEEP  = 3.0   # ~0.33 req/sec -- comfortable free-tier margin
 _OM_RETRY_429_SLEEP  = 180   # 3 min initial back-off after a 429 (was 60s)
-_OM_MAX_RETRIES      = 2     # fewer retries — 2×3min = 6min max wait per chunk (was 4×60+...)
+_OM_MAX_RETRIES      = 2     # fewer retries -- 2×3min = 6min max wait per chunk (was 4×60+...)
 
 # Global 429 cooldown: when a 429 is received, ALL coroutines pause until this
 # asyncio.Event is set.  This prevents a thundering-herd of concurrent retries
@@ -54,9 +52,7 @@ _OM_MAX_RETRIES      = 2     # fewer retries — 2×3min = 6min max wait per chu
 _OM_GLOBAL_COOLDOWN_EVENT: asyncio.Event | None = None
 _OM_GLOBAL_COOLDOWN_UNTIL: float = 0.0  # epoch seconds
 
-# ---------------------------------------------------------------------------
 # ERA5 / CDS configuration  (kept for optional override / reference)
-# ---------------------------------------------------------------------------
 _CDS_DATASET = "reanalysis-era5-single-levels"
 _ERA5_MAX_CONCURRENT = 2        # parallel CDS requests (server-side queue limits)
 _ERA5_INTER_REQUEST_SLEEP = 1.0 # seconds between launching requests
@@ -80,36 +76,36 @@ _ERA5_VARIABLES = [
     "volumetric_soil_water_layer_2",
 ]
 
-# ERA5 NetCDF short-name → our standard column name
+# ERA5 NetCDF short-name -> our standard column name
 _ERA5_COL_MAP: dict[str, str] = {
     "t2m":   "temperature_2m",           # K
     "d2m":   "dewpoint_2m",              # K
     "u10":   "_wind_u",                  # m/s (component)
     "v10":   "_wind_v",                  # m/s (component)
     "i10fg": "wind_gusts_10m",           # m/s (GRIB short name)
-    "fg10":  "wind_gusts_10m",           # m/s (NetCDF short name — CDS v2 API)
-    "msl":   "pressure_msl",             # Pa → hPa
-    "sp":    "surface_pressure",         # Pa → hPa
-    "tp":    "precipitation",            # m → mm
-    "sf":    "snowfall",                 # m → mm
+    "fg10":  "wind_gusts_10m",           # m/s (NetCDF short name -- CDS v2 API)
+    "msl":   "pressure_msl",             # Pa -> hPa
+    "sp":    "surface_pressure",         # Pa -> hPa
+    "tp":    "precipitation",            # m -> mm
+    "sf":    "snowfall",                 # m -> mm
     "sd":    "snow_depth",               # m (keep as-is)
-    "tcc":   "cloud_cover",              # fraction → %
-    "ssrd":  "shortwave_radiation",      # J/m² → W/m²
-    "stl1":  "soil_temperature_0_to_7cm", # K → °C
+    "tcc":   "cloud_cover",              # fraction -> %
+    "ssrd":  "shortwave_radiation",      # J/m² -> W/m²
+    "stl1":  "soil_temperature_0_to_7cm", # K -> °C
     "swvl1": "soil_moisture_0_to_7cm",   # m³/m³ (keep as-is)
     "swvl2": "soil_moisture_7_to_28cm",  # m³/m³ (keep as-is)
 }
 
 # Fallback Open-Meteo (for recent/live data or if CDS unavailable)
-import aiohttp  # noqa: E402 — kept for live-prediction fallback
+import aiohttp  # noqa: E402 -- kept for live-prediction fallback
 _ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 _MAX_CHUNK_DAYS = 365
 
-# UK grid — 13 locations spanning SE England (dry/warm) to N Scotland
+# UK grid -- 13 locations spanning SE England (dry/warm) to N Scotland
 #
 # heatwave_tmax: region-specific Met Office heatwave Tmax threshold (°C)
 UK_GRID_LOCATIONS: list[dict] = [
-    # South / South-East England — driest and hottest UK region
+    # South / South-East England -- driest and hottest UK region
     {"id": "london",      "lat": 51.51, "lon": -0.13, "region": "se_england",  "heatwave_tmax": 28.0},
     {"id": "cambridge",   "lat": 52.21, "lon":  0.12, "region": "se_england",  "heatwave_tmax": 27.0},
     {"id": "southampton", "lat": 50.91, "lon": -1.40, "region": "s_england",   "heatwave_tmax": 28.0},
@@ -129,23 +125,21 @@ UK_GRID_LOCATIONS: list[dict] = [
     {"id": "inverness",   "lat": 57.48, "lon": -4.22, "region": "scotland",    "heatwave_tmax": 25.0},
 ]
 
-# ---------------------------------------------------------------------------
 # Multi-region heatwave locations
 #
-# UK alone produces ~0.15% positive heatwave labels — too rare for a valid
+# UK alone produces ~0.15% positive heatwave labels -- too rare for a valid
 # chronological split.  Adding Mediterranean and Central European locations
-# increases class balance to ~3–5% while keeping the physical label definition
+# increases class balance to ~3-5% while keeping the physical label definition
 # (WMO consecutive-day threshold) identical.
 #
 # heatwave_tmax: threshold appropriate for each region's climate normal.
 # Sources: national meteorological service heatwave definitions where available;
 # otherwise 95th-percentile Tmax for the location from ERA5 climatology.
-# ---------------------------------------------------------------------------
 GLOBAL_HEATWAVE_LOCATIONS: list[dict] = UK_GRID_LOCATIONS + [
-    # France — canicule-level heat, 2003 / 2019 / 2022 well-documented
+    # France -- canicule-level heat, 2003 / 2019 / 2022 well-documented
     {"id": "paris",      "lat": 48.87, "lon":  2.35, "region": "france",      "heatwave_tmax": 32.0},
     {"id": "marseille",  "lat": 43.30, "lon":  5.37, "region": "s_france",    "heatwave_tmax": 35.0},
-    # Spain — highest heatwave frequency in western Europe
+    # Spain -- highest heatwave frequency in western Europe
     {"id": "madrid",     "lat": 40.42, "lon": -3.70, "region": "spain",       "heatwave_tmax": 38.0},
     {"id": "seville",    "lat": 37.39, "lon": -5.99, "region": "s_spain",     "heatwave_tmax": 40.0},
     {"id": "barcelona",  "lat": 41.38, "lon":  2.18, "region": "ne_spain",    "heatwave_tmax": 34.0},
@@ -154,29 +148,27 @@ GLOBAL_HEATWAVE_LOCATIONS: list[dict] = UK_GRID_LOCATIONS + [
     # Italy
     {"id": "rome",       "lat": 41.90, "lon": 12.50, "region": "c_italy",     "heatwave_tmax": 36.0},
     {"id": "milan",      "lat": 45.47, "lon":  9.19, "region": "n_italy",     "heatwave_tmax": 34.0},
-    # Greece — extreme summer temperatures, well-documented events
+    # Greece -- extreme summer temperatures, well-documented events
     {"id": "athens",     "lat": 37.98, "lon": 23.73, "region": "greece",      "heatwave_tmax": 38.0},
     # Germany / Central Europe
     {"id": "berlin",     "lat": 52.52, "lon": 13.40, "region": "germany",     "heatwave_tmax": 30.0},
     {"id": "munich",     "lat": 48.14, "lon": 11.58, "region": "s_germany",   "heatwave_tmax": 30.0},
     # Netherlands
     {"id": "amsterdam",  "lat": 52.37, "lon":  4.90, "region": "netherlands", "heatwave_tmax": 27.0},
-    # Turkey — very high positive rate, balances class imbalance
+    # Turkey -- very high positive rate, balances class imbalance
     {"id": "ankara",     "lat": 39.93, "lon": 32.86, "region": "turkey",      "heatwave_tmax": 36.0},
     {"id": "istanbul",   "lat": 41.01, "lon": 28.98, "region": "turkey_w",    "heatwave_tmax": 33.0},
 ]
 
-# ---------------------------------------------------------------------------
 # Global wildfire training locations
 #
-# UK has < 5 FWI-30 events per year — far too few for a valid split.
+# UK has < 5 FWI-30 events per year -- far too few for a valid split.
 # Mediterranean Europe, the Iberian Peninsula, and the Canary Islands have
 # historically high fire frequency from ERA5 reanalysis.  The model learns
 # raw meteorological fire-risk signatures without FWI indices in the feature
 # set; the multi-region scope ensures enough positives in every split.
-# ---------------------------------------------------------------------------
 GLOBAL_WILDFIRE_LOCATIONS: list[dict] = [
-    # Iberian Peninsula — highest European wildfire frequency
+    # Iberian Peninsula -- highest European wildfire frequency
     {"id": "madrid",          "lat": 40.42, "lon": -3.70, "region": "spain"},
     {"id": "seville",         "lat": 37.39, "lon": -5.99, "region": "s_spain"},
     {"id": "lisbon",          "lat": 38.72, "lon": -9.14, "region": "portugal"},
@@ -190,49 +182,46 @@ GLOBAL_WILDFIRE_LOCATIONS: list[dict] = [
     # Greece
     {"id": "athens",          "lat": 37.98, "lon": 23.73, "region": "greece"},
     {"id": "thessaloniki",    "lat": 40.64, "lon": 22.94, "region": "n_greece"},
-    # Canary Islands — fires year-round due to drought and trade winds
+    # Canary Islands -- fires year-round due to drought and trade winds
     {"id": "las_palmas",      "lat": 28.12, "lon":-15.43, "region": "canary_islands"},
-    # Scotland — low fire frequency but representative of UK
+    # Scotland -- low fire frequency but representative of UK
     {"id": "edinburgh",       "lat": 55.95, "lon": -3.19, "region": "scotland"},
     {"id": "inverness",       "lat": 57.48, "lon": -4.22, "region": "scotland"},
-    # Morocco (N Africa) — adjacent to European fire climate
+    # Morocco (N Africa) -- adjacent to European fire climate
     {"id": "casablanca",      "lat": 33.57, "lon": -7.59, "region": "morocco"},
 ]
 
-# ---------------------------------------------------------------------------
 # Global landslide training locations
 #
 # UK has too few recorded landslide events for a valid split.  Including
 # high-susceptibility regions (Himalayas, Andes foothills, SE Asia) from the
 # NASA Global Landslide Catalog (GLC) provides enough positive samples.
 # All locations are within Open-Meteo ERA5 coverage.
-# ---------------------------------------------------------------------------
 GLOBAL_LANDSLIDE_LOCATIONS: list[dict] = [
     # UK (base)
     {"id": "edinburgh",   "lat": 55.95, "lon":  -3.19, "region": "scotland"},
     {"id": "glasgow",     "lat": 55.86, "lon":  -4.25, "region": "scotland"},
     {"id": "fort_william","lat": 56.82, "lon":  -5.11, "region": "highland"},
-    # Norway — high-frequency debris flow and quick-clay slides
+    # Norway -- high-frequency debris flow and quick-clay slides
     {"id": "bergen",      "lat": 60.39, "lon":   5.32, "region": "norway"},
     {"id": "trondheim",   "lat": 63.43, "lon":  10.39, "region": "norway"},
-    # Nepal foothills — highest global landslide frequency (NASA GLC)
+    # Nepal foothills -- highest global landslide frequency (NASA GLC)
     {"id": "kathmandu",   "lat": 27.71, "lon":  85.31, "region": "nepal"},
     {"id": "pokhara",     "lat": 28.21, "lon":  83.99, "region": "nepal"},
-    # Northern India (Himachal Pradesh / Uttarakhand) — monsoon-triggered slides
+    # Northern India (Himachal Pradesh / Uttarakhand) -- monsoon-triggered slides
     {"id": "shimla",      "lat": 31.10, "lon":  77.17, "region": "n_india"},
-    # Colombia — Andes foothills, high GLC event density
+    # Colombia -- Andes foothills, high GLC event density
     {"id": "medellin",    "lat":  6.24, "lon": -75.57, "region": "colombia"},
     {"id": "bogota",      "lat":  4.71, "lon": -74.07, "region": "colombia"},
-    # Philippines — typhoon-triggered landslides, high GLC density
+    # Philippines -- typhoon-triggered landslides, high GLC density
     {"id": "manila",      "lat": 14.60, "lon": 120.98, "region": "philippines"},
-    # Japan — well-documented debris flow database
+    # Japan -- well-documented debris flow database
     {"id": "osaka",       "lat": 34.69, "lon": 135.50, "region": "japan"},
     {"id": "hiroshima",   "lat": 34.39, "lon": 132.45, "region": "japan"},
-    # Italy (Apennines) — well-documented historical events
+    # Italy (Apennines) -- well-documented historical events
     {"id": "naples",      "lat": 40.85, "lon":  14.27, "region": "s_italy"},
 ]
 
-# ---------------------------------------------------------------------------
 # Global drought training locations
 #
 # Drought labels come from CSIC SPEI-3 (CRU TS4 observed, independent of ERA5).
@@ -240,7 +229,6 @@ GLOBAL_LANDSLIDE_LOCATIONS: list[dict] = [
 # Africa, Australian interior, Mediterranean basin, Central America, SW USA,
 # NE Brazil, and South/Central Asia.  At least one site per major climate zone
 # prone to multi-month precipitation deficit events recorded in SPEI/EM-DAT.
-# ---------------------------------------------------------------------------
 GLOBAL_DROUGHT_LOCATIONS: list[dict] = [
     # Mediterranean / Southern Europe
     {"id": "madrid",       "lat": 40.42, "lon":  -3.70, "region": "spain"},
@@ -251,7 +239,7 @@ GLOBAL_DROUGHT_LOCATIONS: list[dict] = [
     {"id": "tunis",        "lat": 36.82, "lon":   10.17, "region": "n_africa"},
     {"id": "niamey",       "lat": 13.51, "lon":    2.12, "region": "sahel"},
     {"id": "dakar",        "lat": 14.69, "lon":  -17.44, "region": "w_sahel"},
-    # Horn of Africa — highest drought disaster frequency globally
+    # Horn of Africa -- highest drought disaster frequency globally
     {"id": "nairobi",      "lat":  -1.29, "lon":  36.82, "region": "e_africa"},
     {"id": "addis_ababa",  "lat":   9.03, "lon":  38.74, "region": "ethiopia"},
     {"id": "mogadishu",    "lat":   2.05, "lon":  45.34, "region": "somalia"},
@@ -264,21 +252,20 @@ GLOBAL_DROUGHT_LOCATIONS: list[dict] = [
     # Central / South Asia
     {"id": "karachi",      "lat": 24.86, "lon":  67.01, "region": "pakistan"},
     {"id": "new_delhi",    "lat": 28.64, "lon":  77.22, "region": "india"},
-    # Australia — Murray-Darling Basin droughts
+    # Australia -- Murray-Darling Basin droughts
     {"id": "adelaide",     "lat": -34.92, "lon": 138.60, "region": "s_australia"},
     {"id": "perth",        "lat": -31.95, "lon": 115.86, "region": "w_australia"},
     {"id": "alice_springs","lat": -23.70, "lon": 133.88, "region": "c_australia"},
-    # South America — NE Brazil, Andean dry valleys
+    # South America -- NE Brazil, Andean dry valleys
     {"id": "fortaleza",    "lat":  -3.72, "lon": -38.54, "region": "ne_brazil"},
     {"id": "lima",         "lat": -12.04, "lon": -77.04, "region": "peru"},
-    # North America — SW USA, Great Plains
+    # North America -- SW USA, Great Plains
     {"id": "phoenix",      "lat": 33.45, "lon": -112.07, "region": "sw_usa"},
     {"id": "denver",       "lat": 39.74, "lon": -104.98, "region": "great_plains"},
     # Central America
     {"id": "guatemala_city","lat": 14.64, "lon":  -90.51, "region": "c_america"},
 ]
 
-# ---------------------------------------------------------------------------
 # Global severe storm / tropical cyclone training locations
 #
 # Storm labels come from IBTrACS global track archive (WMO authoritative).
@@ -286,25 +273,24 @@ GLOBAL_DROUGHT_LOCATIONS: list[dict] = [
 # North Pacific, Eastern North Pacific, North Indian (Bay of Bengal + Arabian
 # Sea), South Indian, and South Pacific.  Extratropical storm regions (NW
 # Europe, Southern Ocean) are also represented using the Named Storm archive.
-# ---------------------------------------------------------------------------
 GLOBAL_STORM_LOCATIONS: list[dict] = [
-    # North Atlantic basin — US Gulf/East Coast, Caribbean
+    # North Atlantic basin -- US Gulf/East Coast, Caribbean
     {"id": "miami",        "lat": 25.77, "lon":  -80.19, "region": "florida"},
     {"id": "houston",      "lat": 29.76, "lon":  -95.37, "region": "gulf_coast"},
     {"id": "new_orleans",  "lat": 29.95, "lon":  -90.07, "region": "gulf_coast"},
     {"id": "san_juan_pr",  "lat": 18.47, "lon":  -66.12, "region": "caribbean"},
     {"id": "havana",       "lat": 23.13, "lon":  -82.38, "region": "caribbean"},
-    # Western North Pacific — most active basin globally
+    # Western North Pacific -- most active basin globally
     {"id": "manila",       "lat": 14.60, "lon":  120.98, "region": "philippines"},
     {"id": "taipei",       "lat": 25.05, "lon":  121.56, "region": "taiwan"},
     {"id": "tokyo",        "lat": 35.69, "lon":  139.69, "region": "japan"},
     {"id": "okinawa",      "lat": 26.21, "lon":  127.68, "region": "japan"},
     {"id": "hong_kong",    "lat": 22.32, "lon":  114.17, "region": "china_coast"},
     {"id": "shanghai",     "lat": 31.23, "lon":  121.47, "region": "china_coast"},
-    # Eastern North Pacific — Pacific coast Mexico + Hawaii
+    # Eastern North Pacific -- Pacific coast Mexico + Hawaii
     {"id": "acapulco",     "lat": 16.85, "lon":  -99.92, "region": "mx_pacific"},
     {"id": "honolulu",     "lat": 21.31, "lon": -157.86, "region": "hawaii"},
-    # North Indian — Bay of Bengal (deadliest)
+    # North Indian -- Bay of Bengal (deadliest)
     {"id": "dhaka",        "lat": 23.72, "lon":   90.41, "region": "bangladesh"},
     {"id": "kolkata",      "lat": 22.57, "lon":   88.36, "region": "bay_bengal"},
     {"id": "chennai",      "lat": 13.08, "lon":   80.27, "region": "se_india"},
@@ -326,13 +312,11 @@ GLOBAL_STORM_LOCATIONS: list[dict] = [
     {"id": "amsterdam",    "lat": 52.37, "lon":   4.90, "region": "netherlands"},
 ]
 
-# ---------------------------------------------------------------------------
 # Global power outage training locations
 #
 # Outage labels come from EIA OE-417 (US) + embedded UK named storm outage
 # records.  Sites cover major English-speaking electricity markets with
 # available independent outage reporting.
-# ---------------------------------------------------------------------------
 GLOBAL_OUTAGE_LOCATIONS: list[dict] = [
     # United Kingdom (Named Storm outage records)
     {"id": "london",       "lat": 51.51, "lon":  -0.13, "region": "se_england"},
@@ -352,20 +336,18 @@ GLOBAL_OUTAGE_LOCATIONS: list[dict] = [
     {"id": "chicago",      "lat": 41.88, "lon":  -87.63, "region": "midwest"},
     {"id": "los_angeles",  "lat": 34.05, "lon": -118.24, "region": "california"},
     {"id": "seattle",      "lat": 47.61, "lon": -122.33, "region": "pacific_nw"},
-    # Australia (Bureau of Meteorology wind events → grid operator records)
+    # Australia (Bureau of Meteorology wind events -> grid operator records)
     {"id": "sydney",       "lat": -33.87, "lon": 151.21, "region": "nsw"},
     {"id": "brisbane",     "lat": -27.47, "lon": 153.02, "region": "qld"},
     {"id": "perth",        "lat": -31.95, "lon": 115.86, "region": "wa"},
     {"id": "adelaide",     "lat": -34.92, "lon": 138.60, "region": "sa"},
 ]
 
-# ---------------------------------------------------------------------------
 # Global water supply disruption training locations
 #
 # Labels come from GRDC gauge-based Q10 low-flow events + embedded WHO/EA/
 # USBR water supply disruption event records.  Sites chosen to overlap with
 # GRDC station coverage and documented events in WATER_SUPPLY_DISRUPTION_EVENTS.
-# ---------------------------------------------------------------------------
 GLOBAL_WATER_LOCATIONS: list[dict] = [
     # United Kingdom
     {"id": "london",       "lat": 51.51, "lon":  -0.13, "region": "se_england"},
@@ -398,16 +380,14 @@ GLOBAL_WATER_LOCATIONS: list[dict] = [
     {"id": "sydney",       "lat": -33.87, "lon": 151.21, "region": "nsw"},
 ]
 
-# ---------------------------------------------------------------------------
 # Global public safety training locations
 #
 # Labels come from Stats19 (UK DfT) adverse-weather road accidents and NHTSA
 # FARS (US) adverse atmospheric condition fatalities.  Sites cover Great
 # Britain (Stats19 catchment) and contiguous US states (FARS catchment).
 # Radius of 80km per station gives ~county-level granularity.
-# ---------------------------------------------------------------------------
 GLOBAL_SAFETY_LOCATIONS: list[dict] = [
-    # Great Britain — Stats19 catchment
+    # Great Britain -- Stats19 catchment
     {"id": "london",       "lat": 51.51, "lon":  -0.13, "region": "se_england"},
     {"id": "cambridge",    "lat": 52.21, "lon":   0.12, "region": "se_england"},
     {"id": "bristol",      "lat": 51.45, "lon":  -2.58, "region": "sw_england"},
@@ -419,7 +399,7 @@ GLOBAL_SAFETY_LOCATIONS: list[dict] = [
     {"id": "edinburgh",    "lat": 55.95, "lon":  -3.19, "region": "scotland"},
     {"id": "glasgow",      "lat": 55.86, "lon":  -4.25, "region": "scotland"},
     {"id": "aberdeen",     "lat": 57.15, "lon":  -2.09, "region": "scotland"},
-    # United States — NHTSA FARS catchment (regional centroids)
+    # United States -- NHTSA FARS catchment (regional centroids)
     {"id": "new_york",     "lat": 40.71, "lon":  -74.01, "region": "northeast_us"},
     {"id": "chicago",      "lat": 41.88, "lon":  -87.63, "region": "midwest"},
     {"id": "houston",      "lat": 29.76, "lon":  -95.37, "region": "texas"},
@@ -474,31 +454,31 @@ def _process_era5_ds(ds: "xr.Dataset", lat: float, lon: float) -> "pd.DataFrame"
             df = df.rename(columns={tc: "timestamp"})
             break
 
-    # Rename ERA5 short names → our standard column names
+    # Rename ERA5 short names -> our standard column names
     df = df.rename(columns=_ERA5_COL_MAP)
 
-    # --- Unit conversions ---
+    # Unit conversions
     for col in ("temperature_2m", "dewpoint_2m", "soil_temperature_0_to_7cm"):
         if col in df.columns:
-            df[col] = df[col] - 273.15                  # K → °C
+            df[col] = df[col] - 273.15                  # K -> °C
 
     for col in ("pressure_msl", "surface_pressure"):
         if col in df.columns:
-            df[col] = df[col] / 100.0                   # Pa → hPa
+            df[col] = df[col] / 100.0                   # Pa -> hPa
 
     if "precipitation" in df.columns:
-        df["precipitation"] = (df["precipitation"] * 1000.0).clip(lower=0.0)  # m → mm
+        df["precipitation"] = (df["precipitation"] * 1000.0).clip(lower=0.0)  # m -> mm
 
     if "snowfall" in df.columns:
-        df["snowfall"] = (df["snowfall"] * 1000.0).clip(lower=0.0)  # m → mm
+        df["snowfall"] = (df["snowfall"] * 1000.0).clip(lower=0.0)  # m -> mm
 
     if "cloud_cover" in df.columns:
-        df["cloud_cover"] = (df["cloud_cover"] * 100.0).clip(0.0, 100.0)  # fraction → %
+        df["cloud_cover"] = (df["cloud_cover"] * 100.0).clip(0.0, 100.0)  # fraction -> %
 
     if "shortwave_radiation" in df.columns:
-        df["shortwave_radiation"] = (df["shortwave_radiation"] / 3600.0).clip(lower=0.0)  # J/m² → W/m²
+        df["shortwave_radiation"] = (df["shortwave_radiation"] / 3600.0).clip(lower=0.0)  # J/m² -> W/m²
 
-    # --- Derived variables ---
+    # Derived variables
     if "_wind_u" in df.columns and "_wind_v" in df.columns:
         df["wind_speed_10m"] = np.sqrt(df["_wind_u"] ** 2 + df["_wind_v"] ** 2)
         df["wind_direction_10m"] = (
@@ -544,7 +524,7 @@ def _fetch_era5_location_year(
     is 15 vars × 31 days × 24 hours × 4 grid cells ≈ 44,640 fields.
     The 12 monthly DataFrames are concatenated before returning.
     """
-    buf = 0.4  # degrees — ensures ≥ 1 ERA5 grid cell on each side
+    buf = 0.4  # degrees -- ensures ≥ 1 ERA5 grid cell on each side
     area = [lat + buf, lon - buf, lat - buf, lon + buf]  # N W S E
     days  = [f"{d:02d}" for d in range(1, 32)]
     times = [f"{h:02d}:00" for h in range(24)]
@@ -559,7 +539,7 @@ def _fetch_era5_location_year(
             with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
                 tmp_path = tmp.name
 
-            logger.info(f"    ERA5 → {loc_id} {year}-{month_str} (queuing CDS…)")
+            logger.info(f"    ERA5 -> {loc_id} {year}-{month_str} (queuing CDS...)")
             client.retrieve(
                 _CDS_DATASET,
                 {
@@ -576,8 +556,8 @@ def _fetch_era5_location_year(
             )
 
             # CDS v2 API wraps NetCDF(s) in a zip archive.
-            # ERA5 splits instant vars (t2m, wind…) and accumulated vars (tp, sf…)
-            # into separate nc files — extract all and merge on timestamp.
+            # ERA5 splits instant vars (t2m, wind...) and accumulated vars (tp, sf...)
+            # into separate nc files -- extract all and merge on timestamp.
             if zipfile.is_zipfile(tmp_path):
                 nc_paths_extracted: list[str] = []
                 with zipfile.ZipFile(tmp_path, "r") as zf:
@@ -616,7 +596,7 @@ def _fetch_era5_location_year(
             monthly_frames.append(df_month)
 
         except Exception as exc:
-            logger.warning(f"    ERA5 fetch failed — {loc_id} {year}-{month_str}: {exc}")
+            logger.warning(f"    ERA5 fetch failed -- {loc_id} {year}-{month_str}: {exc}")
         finally:
             if tmp_path:
                 Path(tmp_path).unlink(missing_ok=True)
@@ -643,7 +623,7 @@ async def _fetch_om_location_year(
     """Fetch one calendar year of Open-Meteo archive data for a single location.
 
     Checks a per-(location, year) parquet cache before making any network
-    request — this means previously-fetched data is reused across ALL training
+    request -- this means previously-fetched data is reused across ALL training
     runs even when the overall batch parameters (date range, location list)
     change.  A 429 from the server triggers a global cooldown that pauses ALL
     pending requests for 3 minutes, avoiding thundering-herd re-retries on the
@@ -652,17 +632,17 @@ async def _fetch_om_location_year(
     import time as _time
     global _OM_GLOBAL_COOLDOWN_EVENT, _OM_GLOBAL_COOLDOWN_UNTIL
 
-    # --- Per-location-year disk cache check ---
+    # Per-location-year disk cache check
     cache_path = _per_loc_cache_path(loc["id"], year, hourly_vars)
     if cache_path.exists():
         try:
             df = pd.read_parquet(cache_path)
-            logger.debug(f"    ✓ cache hit: {loc['id']} {year}")
+            logger.debug(f"     cache hit: {loc['id']} {year}")
             return df
         except Exception:
-            cache_path.unlink(missing_ok=True)  # corrupted — re-fetch
+            cache_path.unlink(missing_ok=True)  # corrupted -- re-fetch
 
-    # --- Global cooldown: wait if a recent 429 hit ---
+    # Global cooldown: wait if a recent 429 hit
     if _OM_GLOBAL_COOLDOWN_UNTIL > _time.monotonic():
         remaining = _OM_GLOBAL_COOLDOWN_UNTIL - _time.monotonic()
         logger.info(f"    Waiting {remaining:.0f}s (global 429 cooldown) for {loc['id']} {year}")
@@ -690,7 +670,7 @@ async def _fetch_om_location_year(
                     cooldown = _OM_RETRY_429_SLEEP * (2 ** attempt)
                     _OM_GLOBAL_COOLDOWN_UNTIL = _time.monotonic() + cooldown
                     logger.warning(
-                        f"    Open-Meteo 429 for {loc['id']} {year} — "
+                        f"    Open-Meteo 429 for {loc['id']} {year} -- "
                         f"global cooldown {cooldown}s (attempt {attempt+1}/{_OM_MAX_RETRIES})"
                     )
                     await asyncio.sleep(cooldown)
@@ -746,7 +726,6 @@ async def fetch_multi_location_weather(
     the total fetch time is roughly 216 / 2 × 2s ≈ 4 minutes.
 
     Parameters
-    ----------
     locations : list[dict], optional
         Dicts with keys ``id``, ``lat``, ``lon``, ``region``.
         Defaults to UK_GRID_LOCATIONS.
@@ -761,7 +740,7 @@ async def fetch_multi_location_weather(
     if hourly_vars is None:
         hourly_vars = EXTENDED_HOURLY_VARS
 
-    # --- Disk cache ---
+    # Disk cache
     cache_key = hashlib.md5(
         f"om|{sorted(l['id'] for l in locations)}|{start_date}|{end_date}|{hourly_vars}".encode()
     ).hexdigest()[:12]
@@ -796,7 +775,7 @@ async def fetch_multi_location_weather(
                 df["latitude"]   = loc["lat"]
                 df["longitude"]  = loc["lon"]
                 all_frames.append(df)
-                logger.info(f"    ✓ {loc['id']} {year} — {len(df):,} rows")
+                logger.info(f"     {loc['id']} {year} -- {len(df):,} rows")
 
     connector = aiohttp.TCPConnector(limit=_OM_MAX_CONCURRENT)
     async with aiohttp.ClientSession(connector=connector) as session:
@@ -823,7 +802,7 @@ async def fetch_multi_location_weather(
 
     try:
         result.to_csv(cache_path, index=False)
-        logger.info(f"  Cached → {cache_path.name}")
+        logger.info(f"  Cached -> {cache_path.name}")
     except Exception as exc:
         logger.warning(f"  Cache write failed: {exc}")
 
@@ -875,8 +854,8 @@ def build_per_station_features(
         combined.index.name = "timestamp"  # Name it so reset_index() creates proper column
         combined["station_id"] = station_id
 
-        # Rainfall rolling-window features — built from Open-Meteo `precipitation` column.
-        # compute_rainfall_features() needs a `rainfall_mm` column; we map precipitation→rainfall_mm.
+        # Rainfall rolling-window features -- built from Open-Meteo `precipitation` column.
+        # compute_rainfall_features() needs a `rainfall_mm` column; we map precipitation->rainfall_mm.
         precip_col = next(
             (c for c in ["precipitation", "precipitation_sum", "rain"] if c in grp.columns),
             None,
@@ -887,7 +866,7 @@ def build_per_station_features(
             rain_input["rainfall_mm"] = grp[precip_col].clip(lower=0.0).fillna(0.0)
             try:
                 rf = feature_engineer.compute_rainfall_features(rain_input)
-                # rf is indexed by (timestamp, station_id) — drop station_id level, align
+                # rf is indexed by (timestamp, station_id) -- drop station_id level, align
                 rf_flat = rf.reset_index()
                 rf_flat = rf_flat.drop(columns=["station_id"], errors="ignore")
                 rf_flat = rf_flat.set_index("timestamp")
@@ -907,11 +886,11 @@ def build_per_station_features(
                 logger.warning(f"compute_rainfall_features failed for {station_id}: {rf_err}")
         else:
             logger.warning(
-                f"No precipitation column found for station {station_id} — "
+                f"No precipitation column found for station {station_id} -- "
                 "rainfall_* features will be absent. Tag: partial_features."
             )
 
-        # FAO-56 Penman-Monteith ET0 — derived from ERA5 variables so the feature
+        # FAO-56 Penman-Monteith ET0 -- derived from ERA5 variables so the feature
         # is always physically correct regardless of whether Open-Meteo provided it.
         # If Open-Meteo already supplied et0_fao_evapotranspiration it is used directly;
         # otherwise we compute it from T, RH, wind, radiation, and pressure.
@@ -923,10 +902,10 @@ def build_per_station_features(
                 RH  = grp.get("relative_humidity_2m", pd.Series(np.full(len(grp), 60.0))).values.astype(np.float64)
                 u10 = grp.get("wind_speed_10m", pd.Series(np.full(len(grp), 2.0))).values.astype(np.float64)
                 Rs  = grp.get("shortwave_radiation", pd.Series(np.zeros(len(grp)))).values.astype(np.float64)
-                # Pressure → kPa.  ERA5 cache stores pressure in hPa (÷100 from Pa).
+                # Pressure -> kPa.  ERA5 cache stores pressure in hPa (÷100 from Pa).
                 # Open-Meteo also returns hPa. Detect unit by magnitude:
                 #   Pa:  ~100000  (mean > 2000)
-                #   hPa: ~1013    (mean 900–1100)
+                #   hPa: ~1013    (mean 900-1100)
                 #   kPa: ~101.3   (mean < 200)
                 if "surface_pressure" in grp.columns:
                     _p_raw = grp["surface_pressure"].values.astype(np.float64)
@@ -935,9 +914,9 @@ def build_per_station_features(
                 else:
                     _p_raw = np.full(len(grp), 101300.0)  # default Pa
                 _pmean = float(np.nanmean(_p_raw))
-                if _pmean > 2000:        # Pa → kPa
+                if _pmean > 2000:        # Pa -> kPa
                     P = _p_raw / 1000.0
-                elif _pmean > 200:       # hPa → kPa
+                elif _pmean > 200:       # hPa -> kPa
                     P = _p_raw / 10.0
                 else:                    # already kPa
                     P = _p_raw
@@ -962,7 +941,7 @@ def build_per_station_features(
                 gamma = 0.000665 * P
 
                 # Net shortwave radiation: Rns = (1 − 0.23) × Rs [MJ/m²/h]
-                Rs_mj = Rs * 0.0036   # W/m² × 3600 s/h × 1e-6 MJ/J → MJ/m²/h
+                Rs_mj = Rs * 0.0036   # W/m² × 3600 s/h × 1e-6 MJ/J -> MJ/m²/h
                 Rns = 0.77 * Rs_mj
 
                 # Net long-wave radiation (FAO-56 eq. 39, simplified for hourly)
@@ -977,10 +956,10 @@ def build_per_station_features(
                 # Net radiation
                 Rn = Rns - Rnl
 
-                # Soil heat flux G (FAO-56 eq. 45–46): day=0.1·Rn, night=0.5·Rn
+                # Soil heat flux G (FAO-56 eq. 45-46): day=0.1-Rn, night=0.5-Rn
                 G = np.where(Rs > 0, 0.1 * Rn, 0.5 * Rn)
 
-                # ET0 (mm/h) — FAO-56 Penman-Monteith (hourly form, eq. 53)
+                # ET0 (mm/h) -- FAO-56 Penman-Monteith (hourly form, eq. 53)
                 T_safe = T + 273.0
                 numerator   = (0.408 * delta * (Rn - G)
                                + gamma * (37.0 / T_safe) * u2 * (es - ea))

@@ -27,7 +27,7 @@ interface ValidateOptions {
  * to the request so handlers get typed, sanitised input.
  */
 export function validate(schemas: ValidateOptions | ZodSchema) {
-  // Allow passing a single schema for body validation
+  //Allow passing a single schema for body validation
   const opts: ValidateOptions = schemas instanceof z.ZodType
     ? { body: schemas }
     : schemas
@@ -81,9 +81,9 @@ function formatErrors(error: ZodError): string[] {
   })
 }
 
-// COMMON VALIDATION SCHEMAS
+//COMMON VALIDATION SCHEMAS
 
-// Allowed column names for ORDER BY — prevents SQL injection if sortBy is ever interpolated
+//Allowed column names for ORDER BY -- prevents SQL injection if sortBy is ever interpolated
 const ALLOWED_SORT_COLUMNS = [
   'created_at', 'updated_at', 'id', 'severity', 'status', 'title', 'name',
 ] as const

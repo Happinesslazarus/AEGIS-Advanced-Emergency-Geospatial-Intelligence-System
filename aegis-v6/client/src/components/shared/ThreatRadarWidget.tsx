@@ -1,6 +1,6 @@
 /**
  * Radar-style widget that arranges active threats in concentric
- * severity rings (critical → low). Each threat appears as a dot
+ * severity rings (critical -> low). Each threat appears as a dot
  * positioned by category and coloured by severity.
  */
 
@@ -103,7 +103,7 @@ export default function ThreatRadarWidget(): JSX.Element {
   const fetchThreats = async () => {
     setLoading(true)
     try {
-      // Fetch from alerts API
+      //Fetch from alerts API
       const res = await fetch('/api/alerts')
       if (res.ok) {
         const data = await res.json()
@@ -130,7 +130,7 @@ export default function ThreatRadarWidget(): JSX.Element {
         }))
       }
     } catch {
-      // Use empty state
+      //Use empty state
     }
     setLoading(false)
   }

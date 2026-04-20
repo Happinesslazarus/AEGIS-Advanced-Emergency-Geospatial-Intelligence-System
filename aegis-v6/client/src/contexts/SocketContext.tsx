@@ -13,10 +13,10 @@ const SocketContext = createContext<SocketState | null>(null)
 
 function getPersistedToken(): string | null {
   const path = window.location.pathname
-  // Route-based token selection: citizen and admin sessions use different
-  // JWT tokens (different scopes).  We pick the right one based on the active
-  // URL so a citizen and an admin can share the same browser without one
-  // token overwriting the other.
+  //Route-based token selection: citizen and admin sessions use different
+  //JWT tokens (different scopes).  We pick the right one based on the active
+  //URL so a citizen and an admin can share the same browser without one
+  //token overwriting the other.
   if (path.startsWith('/citizen')) {
     return getCitizenToken() || getToken()
   }
@@ -30,7 +30,7 @@ function getPersistedToken(): string | null {
 export function SocketProvider({ children }: { children: ReactNode }): JSX.Element {
   const socketState = useSocket()
 
-  // Connect on mount and whenever the socket disconnects
+  //Connect on mount and whenever the socket disconnects
   useEffect(() => {
     const token = getPersistedToken()
     if (token && !socketState.connected) {
@@ -38,9 +38,9 @@ export function SocketProvider({ children }: { children: ReactNode }): JSX.Eleme
     }
   }, [socketState.connected, socketState.connect])
 
-  // Cross-tab login sync: `storage` event fires in OTHER tabs when
-  // localStorage changes.  This lets a citizen who logs in on Tab A get a
-  // real-time Socket.IO connection on Tab B without a page refresh.
+  //Cross-tab login sync: `storage` event fires in OTHER tabs when
+  //localStorage changes.  This lets a citizen who logs in on Tab A get a
+  //real-time Socket.IO connection on Tab B without a page refresh.
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'aegis-citizen-token') {
@@ -54,9 +54,9 @@ export function SocketProvider({ children }: { children: ReactNode }): JSX.Eleme
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [socketState.connect])
 
-  // Same-tab admin login sync: `ae:token-set` fires in api.ts when setToken() is
-  // called (after operator login or silent JWT refresh). This reconnects the
-  // sharedSocket with the operator token so ReportsContext socket listeners fire.
+  //Same-tab admin login sync: `ae:token-set` fires in api.ts when setToken() is
+  //called (after operator login or silent JWT refresh). This reconnects the
+  //sharedSocket with the operator token so ReportsContext socket listeners fire.
   useEffect(() => {
     const handleTokenSet = () => {
       const token = getPersistedToken()
@@ -72,7 +72,7 @@ export function SocketProvider({ children }: { children: ReactNode }): JSX.Eleme
     }
   }, [socketState.disconnect])
 
-  // Proactive agent: forward critical socket alerts to chatbot via localStorage
+  //Proactive agent: forward critical socket alerts to chatbot via localStorage
   useEffect(() => {
     const socket = socketState.socket
     if (!socket) return
@@ -108,7 +108,7 @@ export function SocketProvider({ children }: { children: ReactNode }): JSX.Eleme
  *  triggers the listener above and reconnects the socket immediately.
  */
 export function notifySocketAuthChange(): void {
-  // Dispatch a storage event manually for same-tab listeners
+  //Dispatch a storage event manually for same-tab listeners
   window.dispatchEvent(new StorageEvent('storage', {
     key: 'aegis-citizen-token',
     newValue: getCitizenToken(),

@@ -1,5 +1,5 @@
 ﻿/**
- * In-memory feature flag engine — supports percentage-based rollouts,
+ * In-memory feature flag engine -- supports percentage-based rollouts,
  * multi-attribute targeting rules (role, region, userId), A/B test variants
  * with weighted distribution, and kill switches. Refreshes from DB every 30s.
  *
@@ -12,7 +12,7 @@ import crypto from 'crypto'
 import { logger } from './logger.js'
 import pool from '../models/db.js'
 
-// Feature flag types
+//Feature flag types
 export interface FeatureFlag {
   key: string
   name: string
@@ -61,12 +61,12 @@ interface EvaluationResult {
   ruleId?: string
 }
 
-// In-memory flag cache (refreshed periodically)
+//In-memory flag cache (refreshed periodically)
 const flagCache = new Map<string, FeatureFlag>()
 let lastRefresh = 0
 const REFRESH_INTERVAL_MS = 30_000  // 30 seconds
 
-// Default flags (bootstrap before DB connection)
+//Default flags (bootstrap before DB connection)
 const DEFAULT_FLAGS: FeatureFlag[] = [
   {
     key: 'ai_auto_verification',
@@ -149,7 +149,7 @@ const DEFAULT_FLAGS: FeatureFlag[] = [
   },
 ]
 
-// Initialize default flags
+//Initialize default flags
 for (const flag of DEFAULT_FLAGS) {
   flagCache.set(flag.key, flag)
 }
@@ -220,25 +220,25 @@ function evaluateRule(rule: TargetingRule, context: EvaluationContext): boolean 
 export function evaluateFlag(flagKey: string, context: EvaluationContext = {}): EvaluationResult {
   const flag = flagCache.get(flagKey)
 
-  // Flag not found - default to disabled
+  //Flag not found - default to disabled
   if (!flag) {
     return { enabled: false, reason: 'default' }
   }
 
-  // Kill switch overrides everything
+  //Kill switch overrides everything
   if (flag.killSwitch) {
     return { enabled: false, reason: 'killswitch' }
   }
 
-  // Flag globally disabled
+  //Flag globally disabled
   if (!flag.enabled) {
     return { enabled: false, reason: 'default' }
   }
 
-  // Check targeting rules (first matching rule wins)
+  //Check targeting rules (first matching rule wins)
   for (const rule of flag.targetingRules) {
     if (evaluateRule(rule, context)) {
-      // Rule has custom percentage
+      //Rule has custom percentage
       if (rule.percentage !== undefined && context.userId) {
         const bucket = getUserBucket(context.userId, flagKey)
         if (bucket >= rule.percentage) {
@@ -259,10 +259,10 @@ export function evaluateFlag(flagKey: string, context: EvaluationContext = {}): 
     }
   }
 
-  // Check rollout percentage
+  //Check rollout percentage
   if (flag.rolloutPercentage < 100) {
     if (!context.userId) {
-      // No user context - use default rollout behavior (disabled for partial rollouts)
+      //No user context - use default rollout behavior (disabled for partial rollouts)
       return { enabled: false, reason: 'rollout' }
     }
 
@@ -272,7 +272,7 @@ export function evaluateFlag(flagKey: string, context: EvaluationContext = {}): 
     }
   }
 
-  // Flag is enabled
+  //Flag is enabled
   const variant = flag.variants && context.userId
     ? selectVariant(flag.variants, context.userId, flagKey)
     : flag.defaultVariant
@@ -317,7 +317,7 @@ export async function updateFlag(
 
   flagCache.set(flagKey, updated)
 
-  // Persist to database (if table exists)
+  //Persist to database (if table exists)
   try {
     await pool.query(`
       INSERT INTO feature_flags (key, name, description, enabled, rollout_percentage, 
@@ -347,7 +347,7 @@ export async function updateFlag(
       updated.killSwitch,
     ])
   } catch (err) {
-    // Table might not exist - that's OK, we use in-memory
+    //Table might not exist - that's OK, we use in-memory
     logger.debug({ flagKey }, '[FeatureFlags] DB persist skipped (table may not exist)')
   }
 
@@ -423,14 +423,14 @@ async function refreshFlags(): Promise<void> {
 
     lastRefresh = Date.now()
   } catch {
-    // Table might not exist - use defaults
+    //Table might not exist - use defaults
   }
 }
 
-// Refresh flags periodically
+//Refresh flags periodically
 setInterval(refreshFlags, REFRESH_INTERVAL_MS)
 
-// Initial refresh
+//Initial refresh
 refreshFlags().catch(() => {})
 
 /**

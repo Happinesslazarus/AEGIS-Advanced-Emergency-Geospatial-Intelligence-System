@@ -11,16 +11,16 @@
  * - Calls cloud APIs using keys from env: GEMINI_API_KEY, GROQ_API_KEY, etc.
  * - startModelWarmup() is triggered at server startup (index.ts)
  *
- * - chatCompletion()        — single-call LLM request, returns JSON response
- * - chatCompletionStream()  — same but streams tokens via callback
- * - classifyQuery()         — lightweight classification of query intent
- * - getProviderStatus()     — health of all registered providers (used by GET /api/chat/status)
- * - startModelWarmup()      — pre-loads the primary model at startup
+ * - chatCompletion()        -- single-call LLM request, returns JSON response
+ * - chatCompletionStream()  -- same but streams tokens via callback
+ * - classifyQuery()         -- lightweight classification of query intent
+ * - getProviderStatus()     -- health of all registered providers (used by GET /api/chat/status)
+ * - startModelWarmup()      -- pre-loads the primary model at startup
  *
- * - server/src/services/chatService.ts       — main caller of chatCompletion()
- * - server/src/services/aiAnalysisPipeline.ts — uses classifyQuery() for report scoring
- * - server/src/services/embeddingRouter.ts   — similar router but for embeddings
- * - ai-engine/main.py                        — the FastAPI AI engine (separate process)
+ * - server/src/services/chatService.ts       -- main caller of chatCompletion()
+ * - server/src/services/aiAnalysisPipeline.ts -- uses classifyQuery() for report scoring
+ * - server/src/services/embeddingRouter.ts   -- similar router but for embeddings
+ * - ai-engine/main.py                        -- the FastAPI AI engine (separate process)
  * */
 
 import type { LLMRequest, LLMResponse, LLMProvider } from '../types/index.js'
@@ -103,7 +103,7 @@ export function getTokenUsageStats(): {
   }
 }
 
-// Ollama (Local) Configuration
+//Ollama (Local) Configuration
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
 
@@ -115,10 +115,10 @@ async function isOllamaAvailable(): Promise<boolean> {
   } catch { return false }
 }
 
-// Model Preloading / Warmup
-// Ollama loads models on first request (30-60s cold start on 8GB VRAM).
-// Preloading sends a tiny request to force the model into VRAM ahead of time.
-// Only one model fits in VRAM at once, so we preload the PRIMARY model
+//Model Preloading / Warmup
+//Ollama loads models on first request (30-60s cold start on 8GB VRAM).
+//Preloading sends a tiny request to force the model into VRAM ahead of time.
+//Only one model fits in VRAM at once, so we preload the PRIMARY model
 // (aegis-ai) on server startup and keep it warm.
 
 let warmupDone = false
@@ -135,7 +135,7 @@ async function warmupModel(model: string): Promise<void> {
       signal: AbortSignal.timeout(120_000), // 2 min timeout for cold load
     })
     if (res.ok) {
-      devLog(`[LLM] ?? Model ${model} warmed up — ready in VRAM`)
+      devLog(`[LLM] ?? Model ${model} warmed up -- ready in VRAM`)
       lastWarmupModel = model
     }
   } catch (err: any) {
@@ -150,7 +150,7 @@ export async function startModelWarmup(): Promise<void> {
 
   const available = await isOllamaAvailable()
   if (!available) {
-    devLog('[LLM] Ollama not available — skipping warmup')
+    devLog('[LLM] Ollama not available -- skipping warmup')
     return
   }
 
@@ -158,12 +158,12 @@ export async function startModelWarmup(): Promise<void> {
   devLog(`[LLM] ?? Pre-warming ${primary} into GPU...`)
   await warmupModel(primary)
 
-  // Keep-alive ping: re-warm before Ollama evicts the model
+  //Keep-alive ping: re-warm before Ollama evicts the model
   setInterval(async () => {
     const stillAvailable = await isOllamaAvailable()
     if (!stillAvailable) return
     try {
-      // Just ping to reset keep_alive timer — no generation needed
+      //Just ping to reset keep_alive timer -- no generation needed
       await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -171,7 +171,7 @@ export async function startModelWarmup(): Promise<void> {
         signal: AbortSignal.timeout(5000),
       })
     } catch {
-      // Silent — non-critical
+      //Silent -- non-critical
     }
   }, WARMUP_INTERVAL_MS)
 }
@@ -182,7 +182,7 @@ export async function preloadModelForClassification(classification: QueryClassif
   const firstOllama = recommended.find(n => n.startsWith('ollama-'))
   if (!firstOllama) return
 
-  // Determine which model this maps to
+  //Determine which model this maps to
   const primary = process.env.OLLAMA_PRIMARY_MODEL || 'qwen3:8b'
   const fast = process.env.OLLAMA_FAST_MODEL || 'qwen3:4b'
   const specialist = process.env.OLLAMA_SPECIALIST_MODEL || 'qwen3:8b'
@@ -199,7 +199,7 @@ export async function preloadModelForClassification(classification: QueryClassif
   const targetModel = modelMap[firstOllama]
   if (!targetModel || targetModel === lastWarmupModel) return // Already warm
 
-  // Fire-and-forget — don't block the request pipeline
+  //Fire-and-forget -- don't block the request pipeline
   warmupModel(targetModel).catch(() => {})
 }
 
@@ -208,8 +208,8 @@ async function callOllama(config: LLMProvider, req: LLMRequest): Promise<LLMResp
   const start = Date.now()
   const isQwen3 = config.model.toLowerCase().includes('qwen3')
 
-  // For qwen3 models: disable thinking mode to prevent German/wrong-language outputs
-  // and prepend /no_think to system message as fallback
+  //For qwen3 models: disable thinking mode to prevent German/wrong-language outputs
+  //and prepend /no_think to system message as fallback
   const messages = isQwen3
     ? req.messages.map((m, i) => (
         i === 0 && m.role === 'system'
@@ -241,7 +241,7 @@ async function callOllama(config: LLMProvider, req: LLMRequest): Promise<LLMResp
   }
 
   const data = await res.json() as any
-  // Strip <think>...</think> blocks (qwen3 thinking mode leaks wrong-language reasoning)
+  //Strip <think>...</think> blocks (qwen3 thinking mode leaks wrong-language reasoning)
   const raw = data.message?.content || ''
   const text = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
   const tokensUsed = (data.eval_count || 0) + (data.prompt_eval_count || 0)
@@ -265,7 +265,7 @@ async function callOllamaStream(config: LLMProvider, req: LLMRequest, handlers: 
   let tokensUsed = 0
   const isQwen3 = config.model.toLowerCase().includes('qwen3')
 
-  // For qwen3 models: disable thinking mode to prevent German/wrong-language outputs
+  //For qwen3 models: disable thinking mode to prevent German/wrong-language outputs
   const messages = isQwen3
     ? req.messages.map((m, i) => (
         i === 0 && m.role === 'system'
@@ -316,7 +316,7 @@ async function callOllamaStream(config: LLMProvider, req: LLMRequest, handlers: 
         const data = JSON.parse(line)
         if (data.message?.content) {
           content += data.message.content
-          // Strip <think>...</think> tokens from stream — qwen3 thinking leaks wrong-language text
+          //Strip <think>...</think> tokens from stream -- qwen3 thinking leaks wrong-language text
           const cleaned = data.message.content.replace(/<think>[\s\S]*?<\/think>/g, '')
           if (cleaned) await handlers.onToken(cleaned)
         }
@@ -343,7 +343,7 @@ async function callOllamaStream(config: LLMProvider, req: LLMRequest, handlers: 
 function initProviders(): void {
   if (providers.length > 0) return // already initialised
 
-  // Ollama local models (zero cost — highest priority)
+  //Ollama local models (zero cost -- highest priority)
   const ollamaPrimary = process.env.OLLAMA_PRIMARY_MODEL || 'qwen3:8b'
   const ollamaFast = process.env.OLLAMA_FAST_MODEL || 'qwen3:4b'
   const ollamaSpecialist = process.env.OLLAMA_SPECIALIST_MODEL || 'qwen3:8b'
@@ -407,11 +407,11 @@ function initProviders(): void {
     )
   }
 
-  // Cloud fallbacks (free tiers) — upgraded April 2026 to most powerful free models
+  //Cloud fallbacks (free tiers) -- upgraded April 2026 to most powerful free models
   defs.push(
     {
       name: 'gemini',
-      model: process.env.GEMINI_MODEL || 'gemini-2.5-pro',           // Google's BEST model — free tier 25 RPD
+      model: process.env.GEMINI_MODEL || 'gemini-2.5-pro',           // Google's BEST model -- free tier 25 RPD
       apiKey: process.env.GEMINI_API_KEY || '',
       baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
       maxTokens: 65536,
@@ -421,7 +421,7 @@ function initProviders(): void {
     },
     {
       name: 'groq',
-      model: process.env.GROQ_MODEL || 'qwen/qwen3-32b',            // Qwen3 32B — powerful reasoning on Groq
+      model: process.env.GROQ_MODEL || 'qwen/qwen3-32b',            // Qwen3 32B -- powerful reasoning on Groq
       apiKey: process.env.GROQ_API_KEY || '',
       baseUrl: 'https://api.groq.com/openai/v1',
       maxTokens: 32768,
@@ -431,7 +431,7 @@ function initProviders(): void {
     },
     {
       name: 'openrouter',
-      model: process.env.OPENROUTER_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free', // 120B MoE — top free model
+      model: process.env.OPENROUTER_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free', // 120B MoE -- top free model
       apiKey: process.env.OPENROUTER_API_KEY || '',
       baseUrl: 'https://openrouter.ai/api/v1',
       maxTokens: 32768,
@@ -464,7 +464,7 @@ function initProviders(): void {
   }
 
   if (providers.length === 0) {
-    logger.error('[LLM] No LLM providers configured. Set GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY, or HF_API_KEY in .env — chat/AI features will fail explicitly.')
+    logger.error('[LLM] No LLM providers configured. Set GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY, or HF_API_KEY in .env -- chat/AI features will fail explicitly.')
   } else {
     devLog(`[LLM] ? ${providers.length} provider(s) ready: ${providers.map((p) => p.config.name).join(' ? ')}`)
   }
@@ -475,7 +475,7 @@ function isRateLimited(state: ProviderState): boolean {
   const now = Date.now()
   const { requests, windowMs } = state.config.rateLimit
 
-  // Reset window if expired
+  //Reset window if expired
   if (now - state.windowStart >= windowMs) {
     state.requestCount = 0
     state.windowStart = now
@@ -486,12 +486,12 @@ function isRateLimited(state: ProviderState): boolean {
 
 function isBackedOff(state: ProviderState): boolean {
   if (state.consecutiveErrors === 0) return false
-  // Circuit breaker: if 3+ consecutive failures, open circuit for 30s minimum
+  //Circuit breaker: if 3+ consecutive failures, open circuit for 30s minimum
   if (state.consecutiveErrors >= 3) {
     const circuitOpenMs = 30_000
     return Date.now() - (state.lastErrorAt || 0) < circuitOpenMs
   }
-  // Exponential backoff: 2^errors seconds, capped at 5 minutes
+  //Exponential backoff: 2^errors seconds, capped at 5 minutes
   const backoffMs = Math.min(2 ** state.consecutiveErrors * 1000, 300_000)
   return Date.now() - (state.lastErrorAt || 0) < backoffMs
 }
@@ -512,7 +512,7 @@ function recordError(state: ProviderState, error: string): void {
 async function callGemini(config: LLMProvider, req: LLMRequest): Promise<LLMResponse> {
   const start = Date.now()
 
-  // Convert messages to Gemini format
+  //Convert messages to Gemini format
   const contents = req.messages
     .filter((m) => m.role !== 'system')
     .map((m) => ({
@@ -824,7 +824,7 @@ async function callOpenRouterStream(config: LLMProvider, req: LLMRequest, handle
 async function callHuggingFace(config: LLMProvider, req: LLMRequest): Promise<LLMResponse> {
   const start = Date.now()
 
-  // HF Inference API uses a simpler text-generation format
+  //HF Inference API uses a simpler text-generation format
   const prompt = req.messages.map((m) => {
     if (m.role === 'system') return `<|system|>\n${m.content}</s>\n`
     if (m.role === 'user') return `<|user|>\n${m.content}</s>\n`
@@ -872,7 +872,7 @@ async function callHuggingFaceStream(
 ): Promise<LLMResponse> {
   const start = Date.now()
 
-  // Format messages into a prompt
+  //Format messages into a prompt
   const prompt = req.messages
     .map(m => {
       if (m.role === 'system') return `<|system|>\n${m.content}</s>`
@@ -910,7 +910,7 @@ async function callHuggingFaceStream(
   const contentType = res.headers.get('content-type') || ''
 
   if (contentType.includes('text/event-stream') && res.body) {
-    // Real SSE streaming
+    //Real SSE streaming
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
@@ -936,17 +936,17 @@ async function callHuggingFaceStream(
             await handlers.onToken(token)
           }
         } catch {
-          // Skip unparseable SSE data lines
+          //Skip unparseable SSE data lines
         }
       }
     }
   } else {
-    // Non-streaming response (model doesn't support streaming) — simulate
+    //Non-streaming response (model doesn't support streaming) -- simulate
     const data = await res.json() as any
     const text = Array.isArray(data) ? data[0]?.generated_text || '' : data?.generated_text || data?.[0]?.generated_text || ''
     fullText = text
 
-    // Emit in small chunks to simulate streaming
+    //Emit in small chunks to simulate streaming
     const words = text.split(/(\s+)/)
     for (const word of words) {
       if (word) await handlers.onToken(word)
@@ -992,21 +992,21 @@ async function callProviderStream(config: LLMProvider, req: LLMRequest, handlers
   }
 }
 
-// Classifies incoming queries to route to the optimal Ollama model,
-// or decide when cloud escalation is necessary.
+//Classifies incoming queries to route to the optimal Ollama model,
+//or decide when cloud escalation is necessary.
 
 export type QueryClassification =
-  | 'LIFE_THREATENING'  // Must respond fast + accurately — use fastest available
-  | 'EMERGENCY'         // Active emergency — prefer quality but speed matters
-  | 'COMPLEX'           // Multi-step reasoning, tool use — prefer primary/cloud
-  | 'REASONING'         // Deep analysis, comparisons — specialist (deepseek-r1)
-  | 'CONVERSATIONAL'    // Follow-ups, clarifications — fast model is fine
-  | 'SIMPLE_FACTUAL'    // Single-fact lookups — fast model or cache
-  | 'TRAUMA'            // Post-traumatic distress — needs warmth + expertise
+  | 'LIFE_THREATENING'  // Must respond fast + accurately -- use fastest available
+  | 'EMERGENCY'         // Active emergency -- prefer quality but speed matters
+  | 'COMPLEX'           // Multi-step reasoning, tool use -- prefer primary/cloud
+  | 'REASONING'         // Deep analysis, comparisons -- specialist (deepseek-r1)
+  | 'CONVERSATIONAL'    // Follow-ups, clarifications -- fast model is fine
+  | 'SIMPLE_FACTUAL'    // Single-fact lookups -- fast model or cache
+  | 'TRAUMA'            // Post-traumatic distress -- needs warmth + expertise
   | 'ABOUT_AEGIS'       // Questions about the platform, its creator, usage
   | 'GENERAL'           // Default bucket
 
-// Enhanced Pattern Detection (multi-signal classification)
+//Enhanced Pattern Detection (multi-signal classification)
 
 const LIFE_THREAT_PATTERNS = [
   /\b(drowning|can'?t breathe|heart attack|not breathing|choking|bleeding out|dying|dieing|dyin)\b/i,
@@ -1030,7 +1030,7 @@ const TRAUMA_PATTERNS = [
   /\b(scared|terrified|panic attack|anxiety|depressed|hopeless|suicid)/i,
   /\b(grief|griev|mourn|overwhelm|crying|can'?t cope|breaking down)\b/i,
   /\b(alone|isolated|no one to talk|don'?t know what to do)\b/i,
-  // Mental health crisis — route to primary model for best quality
+  //Mental health crisis -- route to primary model for best quality
   /\b(kill myself|want to die|end it all|self.?harm|cutting|overdose)\b/i,
   /\b(don'?t want to live|no reason to live|better off dead|worth ?less)\b/i,
   /\b(therap|counsel|psycholog|mental health|mental illness)\b/i,
@@ -1039,7 +1039,7 @@ const TRAUMA_PATTERNS = [
   /\b(panic|dissociat|hyperventilat|intrusive thoughts|voices|paranoi)\b/i,
   /\b(hate myself|self loath|nobody cares|no one cares|unwanted|rejected)\b/i,
   /\b(empty|numb|falling apart|can'?t go on|giving up|no hope)\b/i,
-  // Misspellings & variants people actually type in distress
+  //Misspellings & variants people actually type in distress
   /\b(feel like dying|feel like dieing|wanna die|gonna die|ready to die)\b/i,
   /\b(di+e+i?n?g?|sui+ci+d|sel+f[- ]?ha?r+m|over ?dos)\b/i,
   /\b(hurt myself|hurting myself|harm myself|harming myself|end my life)\b/i,
@@ -1078,16 +1078,16 @@ const ABOUT_AEGIS_PATTERNS = [
 /**
  * Multi-signal query classification with confidence scoring.
  * Returns the classification with the highest weighted score.
- * Detects intent automatically — no manual logic required.
+ * Detects intent automatically -- no manual logic required.
  */
 export function classifyQuery(message: string): QueryClassification {
   const lower = message.toLowerCase()
   const len = message.length
 
-  // PHASE 1: Hard priority — life-threatening always wins
+  //PHASE 1: Hard priority -- life-threatening always wins
   if (LIFE_THREAT_PATTERNS.some(p => p.test(lower))) return 'LIFE_THREATENING'
 
-  // PHASE 2: Score-based classification for everything else
+  //PHASE 2: Score-based classification for everything else
   const scores: Record<string, number> = {
     EMERGENCY: 0,
     TRAUMA: 0,
@@ -1098,14 +1098,14 @@ export function classifyQuery(message: string): QueryClassification {
     SIMPLE_FACTUAL: 0,
   }
 
-  // Pattern matches (weighted)
+  //Pattern matches (weighted)
   scores.EMERGENCY += EMERGENCY_PATTERNS.filter(p => p.test(lower)).length * 3
   scores.TRAUMA += TRAUMA_PATTERNS.filter(p => p.test(lower)).length * 2.5
   scores.REASONING += REASONING_PATTERNS.filter(p => p.test(lower)).length * 2
   scores.COMPLEX += COMPLEX_PATTERNS.filter(p => p.test(lower)).length * 2
   scores.ABOUT_AEGIS += ABOUT_AEGIS_PATTERNS.filter(p => p.test(lower)).length * 3
 
-  // Message-length signals
+  //Message-length signals
   if (len < 30) scores.CONVERSATIONAL += 2
   if (len < 40 && /^(yes|no|ok|thanks|thank you|hello|hi|hey|sure|yep|nah|okay)\b/i.test(lower)) {
     scores.CONVERSATIONAL += 4
@@ -1114,29 +1114,29 @@ export function classifyQuery(message: string): QueryClassification {
     scores.SIMPLE_FACTUAL += 3
   }
 
-  // Urgency signals boost EMERGENCY
+  //Urgency signals boost EMERGENCY
   const excl = (message.match(/!/g) || []).length
   const capsRatio = message.replace(/[^A-Z]/g, '').length / Math.max(message.replace(/[^a-zA-Z]/g, '').length, 1)
   if (excl >= 2) scores.EMERGENCY += 1
   if (capsRatio > 0.5 && len > 10) scores.EMERGENCY += 1.5
 
-  // Emotional language boosts TRAUMA
+  //Emotional language boosts TRAUMA
   const emotionalWords = lower.match(/\b(feel|feeling|felt|scared|afraid|worried|anxious|sad|empty|broken|numb|hopeless|helpless|desperate|miserable|suicidal)\b/g)
   if (emotionalWords) scores.TRAUMA += emotionalWords.length * 0.8
 
-  // Crisis language safety net — dying/dieing/die with distress context
+  //Crisis language safety net -- dying/dieing/die with distress context
   if (/\b(die|dying|dieing|dyin|kill|suicid|harm|hurt)\b/i.test(lower) && /\b(i|my|me|myself|feel|want|gonna|wanna|going to)\b/i.test(lower)) {
     scores.TRAUMA += 5
   }
 
-  // Long analytical queries boost REASONING/COMPLEX
+  //Long analytical queries boost REASONING/COMPLEX
   if (len > 150) {
     scores.REASONING += 0.5
     scores.COMPLEX += 0.5
   }
   if ((message.match(/\?/g) || []).length > 1) scores.COMPLEX += 1
 
-  // Find the winner
+  //Find the winner
   let best: string = 'GENERAL'
   let bestScore = 0
   for (const [cls, score] of Object.entries(scores)) {
@@ -1146,44 +1146,44 @@ export function classifyQuery(message: string): QueryClassification {
     }
   }
 
-  // Minimum threshold — need at least some signal
+  //Minimum threshold -- need at least some signal
   if (bestScore < 1.5) return 'GENERAL'
 
   return best as QueryClassification
 }
 
 /**
- * Intelligent 4-tier model routing — matches query intent to optimal model:
- *   PRIMARY    (aegis-ai)             ? emergencies, trauma, identity — warm empathetic expert
- *   SPECIALIST (deepseek-r1:8b)      ? reasoning, analysis, complex comparisons — chain-of-thought
+ * Intelligent 4-tier model routing -- matches query intent to optimal model:
+ *   PRIMARY    (aegis-ai)             ? emergencies, trauma, identity -- warm empathetic expert
+ *   SPECIALIST (deepseek-r1:8b)      ? reasoning, analysis, complex comparisons -- chain-of-thought
  *   FAST       (qwen3:8b)            ? balanced conversational, follow-ups, moderate complexity
- *   ULTRA-FAST (phi4-mini)            ? instant simple answers, greetings, factual lookups — 2.5GB lightning
+ *   ULTRA-FAST (phi4-mini)            ? instant simple answers, greetings, factual lookups -- 2.5GB lightning
  */
 function getRecommendedProviders(classification: QueryClassification): string[] {
   switch (classification) {
     case 'LIFE_THREATENING':
-      // No compromise — best model first, fast cloud backup
+      //No compromise -- best model first, fast cloud backup
       return ['ollama-primary', 'gemini', 'groq', 'ollama-specialist']
     case 'EMERGENCY':
-      // Quality + speed — primary local, cloud for overflow
+      //Quality + speed -- primary local, cloud for overflow
       return ['ollama-primary', 'gemini', 'groq', 'ollama-specialist']
     case 'TRAUMA':
-      // Warmth + expertise — needs the BEST model, never a small/fast one
+      //Warmth + expertise -- needs the BEST model, never a small/fast one
       return ['ollama-primary', 'gemini', 'groq', 'openrouter', 'ollama-specialist']
     case 'REASONING':
-      // Deep analysis — deepseek-r1 excels here with think-tokens
+      //Deep analysis -- deepseek-r1 excels here with think-tokens
       return ['ollama-specialist', 'ollama-primary', 'gemini', 'groq']
     case 'COMPLEX':
-      // Multi-step — specialist first, then primary, then cloud
+      //Multi-step -- specialist first, then primary, then cloud
       return ['ollama-specialist', 'ollama-primary', 'gemini', 'openrouter']
     case 'ABOUT_AEGIS':
-      // Platform/creator/identity questions — MUST use primary (8b) model for full system prompt understanding
+      //Platform/creator/identity questions -- MUST use primary (8b) model for full system prompt understanding
       return ['ollama-primary', 'ollama-specialist', 'gemini', 'groq']
     case 'CONVERSATIONAL':
-      // Balanced conversation — qwen3 handles well, ultrafast as backup
+      //Balanced conversation -- qwen3 handles well, ultrafast as backup
       return ['ollama-fast', 'ollama-ultrafast', 'groq', 'ollama-primary']
     case 'SIMPLE_FACTUAL':
-      // Minimal latency — phi4-mini loads in seconds, perfect for quick facts
+      //Minimal latency -- phi4-mini loads in seconds, perfect for quick facts
       return ['ollama-ultrafast', 'ollama-fast', 'groq', 'ollama-primary']
     case 'GENERAL':
     default:
@@ -1202,7 +1202,7 @@ function getOrderedProviders(classification?: QueryClassification): ProviderStat
   const ordered: ProviderState[] = []
   const seen = new Set<string>()
 
-  // First: add recommended providers in order
+  //First: add recommended providers in order
   for (const name of recommended) {
     const state = providers.find(p => p.config.name === name)
     if (state) {
@@ -1211,7 +1211,7 @@ function getOrderedProviders(classification?: QueryClassification): ProviderStat
     }
   }
 
-  // Then: add remaining providers in default priority order
+  //Then: add remaining providers in default priority order
   for (const state of providers) {
     if (!seen.has(state.config.name)) {
       ordered.push(state)
@@ -1257,13 +1257,13 @@ export async function chatCompletion(req: LLMRequest): Promise<LLMResponse> {
     }
 
     try {
-      // Prepare messages for this provider's token budget
+      //Prepare messages for this provider's token budget
       const preparedReq = { ...req, messages: prepareMessagesForProvider(state.config.name, req.messages) }
       const response = await callProvider(state.config, preparedReq)
       recordSuccess(state)
       const isLocal = state.config.name.startsWith('ollama')
       logTokenUsage({ provider: state.config.name, model: state.config.model, tokensUsed: response.tokensUsed, timestamp: Date.now(), isLocal, queryClassification: (req as any).classification })
-      devLog(`[LLM] ? ${state.config.name}/${state.config.model} — ${response.tokensUsed} tokens, ${response.latencyMs}ms${isLocal ? ' [LOCAL]' : ' [API]'}`)
+      devLog(`[LLM] ? ${state.config.name}/${state.config.model} -- ${response.tokensUsed} tokens, ${response.latencyMs}ms${isLocal ? ' [LOCAL]' : ' [API]'}`)
       return response
     } catch (err: any) {
       const msg = err.message || String(err)
@@ -1308,13 +1308,13 @@ export async function chatCompletionStream(
     }
 
     try {
-      // Prepare messages for this provider's token budget
+      //Prepare messages for this provider's token budget
       const preparedReq = { ...req, messages: prepareMessagesForProvider(state.config.name, req.messages) }
       const response = await callProviderStream(state.config, preparedReq, handlers)
       recordSuccess(state)
       const isLocal = state.config.name.startsWith('ollama')
       logTokenUsage({ provider: state.config.name, model: state.config.model, tokensUsed: response.tokensUsed, timestamp: Date.now(), isLocal, queryClassification: (req as any).classification })
-      devLog(`[LLM] ? stream ${state.config.name}/${state.config.model} — ${response.tokensUsed} tokens, ${response.latencyMs}ms${isLocal ? ' [LOCAL]' : ' [API]'}`)
+      devLog(`[LLM] ? stream ${state.config.name}/${state.config.model} -- ${response.tokensUsed} tokens, ${response.latencyMs}ms${isLocal ? ' [LOCAL]' : ' [API]'}`)
       return response
     } catch (err: any) {
       const msg = err.message || String(err)
@@ -1393,7 +1393,7 @@ function trackLatency(providerName: string, latencyMs: number): void {
 export async function chatCompletionJSON<T = any>(req: LLMRequest): Promise<{ parsed: T; raw: LLMResponse }> {
   const jsonInstruction = 'You MUST respond with valid JSON only. No markdown, no explanation, just a JSON object.'
 
-  // Clone messages and prepend JSON instruction to system message
+  //Clone messages and prepend JSON instruction to system message
   const messages: LLMRequest['messages'] = req.messages.map((m) => ({ ...m }))
   const sysIdx = messages.findIndex((m) => m.role === 'system')
   if (sysIdx >= 0) {
@@ -1405,16 +1405,16 @@ export async function chatCompletionJSON<T = any>(req: LLMRequest): Promise<{ pa
   const modifiedReq: LLMRequest = { ...req, messages }
   const raw = await chatCompletion(modifiedReq)
 
-  // Track latency
+  //Track latency
   trackLatency(raw.provider, raw.latencyMs)
 
-  // Attempt to parse JSON from response
+  //Attempt to parse JSON from response
   const parsed = tryParseJSON<T>(raw.content)
   if (parsed !== undefined) {
     return { parsed, raw }
   }
 
-  // Retry once with explicit correction
+  //Retry once with explicit correction
   const retryMessages: LLMRequest['messages'] = [
     ...modifiedReq.messages,
     { role: 'assistant', content: raw.content },
@@ -1436,31 +1436,31 @@ export async function chatCompletionJSON<T = any>(req: LLMRequest): Promise<{ pa
 
 /* Try to parse JSON from a string, including extracting from markdown code blocks */
 function tryParseJSON<T>(text: string): T | undefined {
-  // Direct parse
+  //Direct parse
   try {
     return JSON.parse(text) as T
   } catch {
-    // ignore
+    //ignore
   }
 
-  // Try extracting from markdown code blocks: ```json ... ``` or ``` ...
+  //Try extracting from markdown code blocks: ```json ... ``` or ``` ...
   const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
   if (codeBlockMatch?.[1]) {
     try {
       return JSON.parse(codeBlockMatch[1].trim()) as T
     } catch {
-      // ignore
+      //ignore
     }
   }
 
   return undefined
 }
 
-// Cloud providers have much lower token budgets than local Ollama.
-// This function condenses the system prompt and trims history to fit
-// within the provider's input token limit, preserving the local-first
-// architecture: local models get the full rich prompt, cloud APIs get
-// a compact but equally effective version.
+//Cloud providers have much lower token budgets than local Ollama.
+//This function condenses the system prompt and trims history to fit
+//within the provider's input token limit, preserving the local-first
+//architecture: local models get the full rich prompt, cloud APIs get
+//a compact but equally effective version.
 
 /* Token budget per provider (input tokens, not output) */
 const PROVIDER_INPUT_LIMITS: Record<string, number> = {
@@ -1468,7 +1468,7 @@ const PROVIDER_INPUT_LIMITS: Record<string, number> = {
   'ollama-fast': 32_000,
   'ollama-specialist': 32_000,
   'ollama-ultrafast': 8_000,
-  'gemini': 100_000,    // Gemini 2.5 Pro: 1M context — use generous budget
+  'gemini': 100_000,    // Gemini 2.5 Pro: 1M context -- use generous budget
   'groq': 30_000,       // Qwen3-32B / Llama-3.3-70B: 131K context on Groq
   'openrouter': 30_000, // Nemotron-3 Super 120B: 262K context, free
   'huggingface': 6_000, // Llama-3-8B: 8K context on HF Inference
@@ -1476,27 +1476,27 @@ const PROVIDER_INPUT_LIMITS: Record<string, number> = {
 
 /* Condensed system prompt for token-constrained cloud providers */
 function condenseSystemPrompt(fullPrompt: string): string {
-  // Extract the non-overridable preamble (identity + safety)
+  //Extract the non-overridable preamble (identity + safety)
   const preambleEnd = fullPrompt.indexOf('\n\nYou are AEGIS Assistant')
   const preamble = preambleEnd > 0 ? fullPrompt.slice(0, preambleEnd) : ''
 
-  // Extract region info (last paragraph with emergency numbers)
+  //Extract region info (last paragraph with emergency numbers)
   const regionMatch = fullPrompt.match(/Key facts about[\s\S]*?\.$/m)
   const regionInfo = regionMatch ? regionMatch[0] : ''
 
-  // PRESERVE critical dynamic sections that must not be dropped
-  // Image analysis results, emergency instructions, vision unavailability
+  //PRESERVE critical dynamic sections that must not be dropped
+  //Image analysis results, emergency instructions, vision unavailability
   const preservedSections: string[] = []
 
-  // Preserve image analysis context (vision AI results or unavailability notice)
+  //Preserve image analysis context (vision AI results or unavailability notice)
   const imageAnalysisMatch = fullPrompt.match(/\n\n\[IMAGE (?:ANALYSIS COMPLETED|UPLOAD RECEIVED)[^\n]*\][\s\S]*?(?=\n\n\[|$)/)
   if (imageAnalysisMatch) preservedSections.push(imageAnalysisMatch[0])
 
-  // Preserve emergency detection context
+  //Preserve emergency detection context
   const emergencyMatch = fullPrompt.match(/\n\n.{0,4}EMERGENCY DETECTED:[\s\S]*?(?=\n\n|$)/)
   if (emergencyMatch) preservedSections.push(emergencyMatch[0])
 
-  // Preserve language instruction (both old and new format)
+  //Preserve language instruction (both old and new format)
   const langMatch = fullPrompt.match(/\n\n=== LANGUAGE RULE ===[\s\S]*?===/) || fullPrompt.match(/\n\nIMPORTANT:.*(?:language code|respond.*English)[\s\S]*?(?=\n\n|$)/)
   if (langMatch) preservedSections.push(langMatch[0])
 
@@ -1507,13 +1507,13 @@ function condenseSystemPrompt(fullPrompt: string): string {
 
   return `${preamble}
 
-You are AEGIS Assistant — a smart, friendly AI for the AEGIS Universal Disaster Intelligence Platform. You specialise in emergency safety guidance for all hazard types (floods, storms, heatwaves, wildfires, landslides, earthquakes, power outages, water supply, chemical spills, public safety), but you can also answer general questions, math, greetings, and everyday queries helpfully.
+You are AEGIS Assistant -- a smart, friendly AI for the AEGIS Universal Disaster Intelligence Platform. You specialise in emergency safety guidance for all hazard types (floods, storms, heatwaves, wildfires, landslides, earthquakes, power outages, water supply, chemical spills, public safety), but you can also answer general questions, math, greetings, and everyday queries helpfully.
 
 Core rules:
 - Lead with the most critical action first. Number all steps.
 - NEVER give medical diagnoses or legal advice.
 - Always recommend calling ${rMeta.emergencyNumber} for life-threatening emergencies.
-- Be empathetic but factual — lives depend on accuracy.
+- Be empathetic but factual -- lives depend on accuracy.
 - If unsure, say so and direct to official sources.
 - Cite data sources when using tool results.
 - Use bullet points. Be concise and specific.
@@ -1539,7 +1539,7 @@ function prepareMessagesForProvider(
 
   const isLocal = providerName.startsWith('ollama')
 
-  // Local models: only trim if genuinely over limit
+  //Local models: only trim if genuinely over limit
   if (isLocal) {
     const totalTokens = messages.reduce((s, m) => s + estimateTokens(m.content), 0)
     if (totalTokens <= limit) return messages
@@ -1548,8 +1548,8 @@ function prepareMessagesForProvider(
 
   let prepared = [...messages]
 
-  // Cloud providers with tight budgets (< 10k): ALWAYS condense the system prompt.
-  // Estimators undercount by ~15%, so proactive condensing is required.
+  //Cloud providers with tight budgets (< 10k): ALWAYS condense the system prompt.
+  //Estimators undercount by ~15%, so proactive condensing is required.
   const isTightBudget = limit < 10_000
   if (isTightBudget && prepared[0]?.role === 'system') {
     const systemTokens = estimateTokens(prepared[0].content)
@@ -1559,7 +1559,7 @@ function prepareMessagesForProvider(
     }
   }
 
-  // Trim conversation history to fit remaining budget
+  //Trim conversation history to fit remaining budget
   const totalAfterCondense = prepared.reduce((s, m) => s + estimateTokens(m.content), 0)
   if (totalAfterCondense > limit) {
     prepared = trimMessagesToFit(prepared, limit)
@@ -1584,14 +1584,14 @@ function prepareMessagesForProvider(
 export function estimateTokens(text: string): number {
   if (!text) return 0
 
-  // Count different token types
+  //Count different token types
   const words = text.split(/\s+/).filter(Boolean)
   const codeIndicators = (text.match(/[{}\[\]();=<>]/g) || []).length
   const urlCount = (text.match(/https?:\/\/\S+/g) || []).length
   const jsonIndicators = (text.match(/"[^"]+"\s*:/g) || []).length
   const numberGroups = (text.match(/\d+/g) || []).length
 
-  // Base: words * factor
+  //Base: words * factor
   let factor = 1.3 // Default English text
   if (codeIndicators > words.length * 0.1) factor = 1.5   // Code-heavy
   if (jsonIndicators > 3) factor = 1.8                      // JSON-heavy
@@ -1618,17 +1618,17 @@ export function trimMessagesToFit(
   const totalTokens = messages.reduce((sum, m) => sum + estimateTokens(m.content), 0)
   if (totalTokens <= maxTokens) return messages
 
-  // Always keep: first message (system) + last 4 messages (recent context)
+  //Always keep: first message (system) + last 4 messages (recent context)
   const systemMsg = messages[0]
   const recentMsgs = messages.slice(-4)
   const middleMsgs = messages.slice(1, -4)
 
   if (middleMsgs.length === 0) return messages
 
-  // Summarize middle messages into a compact context note
+  //Summarize middle messages into a compact context note
   const topicKeywords = new Set<string>()
   for (const msg of middleMsgs) {
-    // Extract key nouns/topics (simple heuristic: capitalized words + long words)
+    //Extract key nouns/topics (simple heuristic: capitalized words + long words)
     const words = msg.content.split(/\s+/)
     for (const w of words) {
       const clean = w.replace(/[^a-zA-Z]/g, '')
@@ -1659,7 +1659,7 @@ export function selectBestProvider(req: LLMRequest): string | null {
   const available = providers.filter((s) => !isRateLimited(s) && !isBackedOff(s))
   if (available.length === 0) return null
 
-  // Estimate query complexity from total message token count
+  //Estimate query complexity from total message token count
   const totalTokens = req.messages.reduce((sum, m) => sum + estimateTokens(m.content), 0)
 
   let bestScore = -1
@@ -1668,49 +1668,49 @@ export function selectBestProvider(req: LLMRequest): string | null {
   for (const state of available) {
     const name = state.config.name
 
-    // Latency score: inverse of average latency (lower = better), default 500ms
+    //Latency score: inverse of average latency (lower = better), default 500ms
     const history = latencyTracker.get(name)
     const avgLatency = history && history.length > 0
       ? history.reduce((a, b) => a + b, 0) / history.length
       : 500
     const latencyScore = 1000 / (avgLatency + 100) // Normalize, +100 to avoid division issues
 
-    // Reliability score: inverse of consecutive errors
+    //Reliability score: inverse of consecutive errors
     const reliabilityScore = 1 / (1 + state.consecutiveErrors)
 
-    // Capability score: higher for more capable models
+    //Capability score: higher for more capable models
     let capabilityScore: number
     switch (name) {
-      case 'ollama-primary': // Llama 3.1 70B — GPT-3.5+ level
+      case 'ollama-primary': // Llama 3.1 70B -- GPT-3.5+ level
         capabilityScore = 1.2  // Prefer local over cloud
         break
       case 'gemini':
       case 'openrouter':
         capabilityScore = 1.0
         break
-      case 'ollama-specialist': // Mistral Nemo 12B — excellent for drafts
+      case 'ollama-specialist': // Mistral Nemo 12B -- excellent for drafts
         capabilityScore = 0.95
         break
       case 'groq':
         capabilityScore = 0.8
         break
-      case 'ollama-fast': // Llama 3.2 3B — fast lookups only
+      case 'ollama-fast': // Llama 3.2 3B -- fast lookups only
         capabilityScore = 0.7
         break
       default:
         capabilityScore = 0.6
     }
 
-    // Weight scores based on query complexity
+    //Weight scores based on query complexity
     let score: number
     if (totalTokens > 500) {
-      // Complex query: prefer capable, reliable providers
+      //Complex query: prefer capable, reliable providers
       score = capabilityScore * 0.5 + reliabilityScore * 0.3 + latencyScore * 0.2
     } else if (totalTokens < 200) {
-      // Simple query: prefer fast providers
+      //Simple query: prefer fast providers
       score = latencyScore * 0.5 + reliabilityScore * 0.3 + capabilityScore * 0.2
     } else {
-      // Medium: balanced
+      //Medium: balanced
       score = latencyScore * 0.33 + reliabilityScore * 0.34 + capabilityScore * 0.33
     }
 
@@ -1735,13 +1735,13 @@ export function scoreResponseQuality(
   const issues: string[] = []
   let score = 100
 
-  // Check 1: Response length (not empty)
+  //Check 1: Response length (not empty)
   if (response.content.length <= 10) {
     issues.push('Response is too short or empty')
     score -= 20
   }
 
-  // Check 2: Doesn't end mid-sentence
+  //Check 2: Doesn't end mid-sentence
   const trimmed = response.content.trim()
   const lastChar = trimmed[trimmed.length - 1]
   if (lastChar && !'.!?\n'.includes(lastChar)) {
@@ -1749,7 +1749,7 @@ export function scoreResponseQuality(
     score -= 20
   }
 
-  // Check 3: No refusal patterns
+  //Check 3: No refusal patterns
   const lowerContent = response.content.toLowerCase()
   const refusalPatterns = ['i cannot', "i'm unable", 'i am unable', "i can't"]
   if (refusalPatterns.some((p) => lowerContent.includes(p))) {
@@ -1757,7 +1757,7 @@ export function scoreResponseQuality(
     score -= 20
   }
 
-  // Check 4: Relevance — last user message shares at least 1 keyword with response
+  //Check 4: Relevance -- last user message shares at least 1 keyword with response
   const lastUserMsg = [...request.messages].reverse().find((m) => m.role === 'user')
   if (lastUserMsg) {
     const userWords = new Set(
@@ -1798,8 +1798,8 @@ export function getProviderHealth(): Array<{
       ? Math.round(history.reduce((a, b) => a + b, 0) / history.length)
       : 0
 
-    // Success rate: based on consecutive errors vs total tracked calls
-    // If we have latency history, those were successes
+    //Success rate: based on consecutive errors vs total tracked calls
+    //If we have latency history, those were successes
     const successCount = history.length
     const totalCount = successCount + state.consecutiveErrors
     const successRate = totalCount > 0 ? successCount / totalCount : 1

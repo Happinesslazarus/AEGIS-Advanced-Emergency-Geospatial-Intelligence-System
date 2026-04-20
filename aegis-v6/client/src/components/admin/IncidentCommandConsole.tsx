@@ -23,12 +23,12 @@ import { t as i18n } from '../../utils/i18n'
 const INCIDENT_ICONS: Record<string, React.ElementType> = {
   flood: Droplets, severe_storm: CloudLightning, heatwave: Thermometer,
   wildfire: Flame, landslide: Mountain, power_outage: ZapOff,
-  // both short and full-form IDs used across server / AI engine
+  //both short and full-form IDs used across server / AI engine
   water_supply: Droplets, water_supply_disruption: Droplets,
   infrastructure: AlertTriangle, infrastructure_damage: AlertTriangle,
   public_safety: Shield, public_safety_incident: Shield,
   environmental_hazard: Biohazard, drought: Sun,
-  // additional incident types from registry / AI engine
+  //additional incident types from registry / AI engine
   earthquake: Mountain, tsunami: Droplets, storm: CloudLightning,
   chemical_spill: Biohazard, industrial: Biohazard,
   crowd: AlertTriangle, crowd_crush: AlertTriangle,
@@ -85,7 +85,7 @@ function MiniGauge({ value, max, color, size = 28 }: { value: number; max: numbe
   )
 }
 
-// MAIN COMPONENT
+//MAIN COMPONENT
 
 export default function IncidentCommandConsole({
   onSelectIncident,
@@ -153,7 +153,7 @@ export default function IncidentCommandConsole({
       setTotalPredictions((predictions.predictions || []).length)
       setLastUpdated(new Date())
 
-      // Compound / cascading detection
+      //Compound / cascading detection
       const criticalIds = built
         .filter(s => s.highestSeverity === 'critical' || s.alerts >= 2)
         .map(s => s.id)
@@ -171,7 +171,7 @@ export default function IncidentCommandConsole({
 
   useEffect(() => { refresh(); const iv = setInterval(refresh, 30_000); return () => clearInterval(iv) }, [refresh])
 
-  // Keyboard shortcuts
+  //Keyboard shortcuts
   const refreshRef = useRef(refresh)
   useEffect(() => { refreshRef.current = refresh }, [refresh])
 
@@ -209,7 +209,7 @@ export default function IncidentCommandConsole({
   const banner = threatBannerCfg[overallThreat]
   const BannerIcon = banner.icon
 
-  // RENDER
+  //RENDER
 
   return (
     <div className="space-y-5 animate-fade-in">

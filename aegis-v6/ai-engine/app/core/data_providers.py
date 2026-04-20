@@ -50,7 +50,7 @@ async def _fetch_json(
                 await asyncio.sleep(2 ** attempt)
     return None
 
-# 1.  SEPA River Gauges (Scotland)  — FREE, no key required
+# 1.  SEPA River Gauges (Scotland)  -- FREE, no key required
 #     https://timeseries.sepa.org.uk/KiWIS/KiWIS
 
 SEPA_BASE = "https://timeseries.sepa.org.uk/KiWIS/KiWIS"
@@ -170,7 +170,7 @@ async def sepa_get_river_data(
     })
     return result
 
-# 2.  UK Environment Agency — Flood Monitoring API  — FREE, no key
+# 2.  UK Environment Agency -- Flood Monitoring API  -- FREE, no key
 #     https://environment.data.gov.uk/flood-monitoring/doc/reference
 
 EA_BASE = "https://environment.data.gov.uk/flood-monitoring"
@@ -279,7 +279,7 @@ async def ea_get_river_data(
     })
     return result
 
-# 3.  Open-Meteo Weather API  — FREE, no key, unlimited
+# 3.  Open-Meteo Weather API  -- FREE, no key, unlimited
 #     https://open-meteo.com/en/docs
 
 OPENMETEO_CURRENT = "https://api.open-meteo.com/v1/forecast"
@@ -376,13 +376,13 @@ async def openmeteo_get_historical(
         "evapotranspiration": sum(eto[-7:]) / max(len(eto[-7:]), 1),  # 7-day avg mm/day
     }
 
-# 4.  NOAA ENSO Index — FREE, no key
+# 4.  NOAA ENSO Index -- FREE, no key
 #     https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt
 
 ENSO_URL = "https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt"
 
 async def noaa_get_enso_index(session: aiohttp.ClientSession) -> float:
-    """Fetch the latest Oceanic Ni—o Index (ONI) from NOAA."""
+    """Fetch the latest Oceanic Ni--o Index (ONI) from NOAA."""
     try:
         async with session.get(ENSO_URL, timeout=aiohttp.ClientTimeout(total=15)) as resp:
             if resp.status != 200:
@@ -397,7 +397,7 @@ async def noaa_get_enso_index(session: aiohttp.ClientSession) -> float:
     except Exception:
         return 0.0
 
-# 5.  NASA FIRMS — Active Fire Hotspots  — FREE, key optional
+# 5.  NASA FIRMS -- Active Fire Hotspots  -- FREE, key optional
 #     https://firms.modaps.eosdis.nasa.gov/api/area/csv/
 
 FIRMS_BASE = "https://firms.modaps.eosdis.nasa.gov/api/area/csv"
@@ -449,7 +449,7 @@ async def nasa_get_active_fires(
     except Exception:
         return []
 
-# 6.  Open-Elevation API — FREE, no key
+# 6.  Open-Elevation API -- FREE, no key
 
 ELEVATION_URL = "https://api.open-elevation.com/api/v1/lookup"
 
@@ -466,7 +466,7 @@ async def get_elevation(
         return float(data["results"][0].get("elevation", 0))
     return None
 
-# 7.  MASTER AGGREGATOR — Pulls all sources in parallel
+# 7.  MASTER AGGREGATOR -- Pulls all sources in parallel
 
 async def fetch_live_features(
     lat: float,
@@ -525,7 +525,7 @@ async def fetch_live_features(
         raw_sources["weather"] = weather
         data_quality["weather"] = "live_open_meteo"
         logger.info(
-            f"[LiveData] Open-Meteo: temp={weather['temperature']:.1f}—C, "
+            f"[LiveData] Open-Meteo: temp={weather['temperature']:.1f}--C, "
             f"rain_24h={weather['rainfall_24h']:.1f}mm, "
             f"soil_moisture={weather['soil_moisture']:.2f}"
         )

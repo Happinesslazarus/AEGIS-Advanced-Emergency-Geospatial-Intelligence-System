@@ -16,7 +16,7 @@ import {
   type ConsentCategory,
 } from '../../utils/cookiePreferences'
 
-// Component
+//Component
 
 export default function CookieConsent(): JSX.Element | null {
   const lang = useLanguage()
@@ -27,12 +27,12 @@ export default function CookieConsent(): JSX.Element | null {
   const bannerRef = useRef<HTMLDivElement>(null)
   const firstBtnRef = useRef<HTMLButtonElement>(null)
 
-  // Show banner when there is no valid consent
+  //Show banner when there is no valid consent
   useEffect(() => {
     setVisible(getConsent() === null)
   }, [])
 
-  // Listen for external resetConsent() calls (e.g. footer link)
+  //Listen for external resetConsent() calls (e.g. footer link)
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail
@@ -47,7 +47,7 @@ export default function CookieConsent(): JSX.Element | null {
     return () => window.removeEventListener(CONSENT_CHANGE_EVENT, handler)
   }, [])
 
-  // Focus first interactive element when banner appears
+  //Focus first interactive element when banner appears
   useEffect(() => {
     if (visible) firstBtnRef.current?.focus()
   }, [visible])
@@ -136,7 +136,7 @@ export default function CookieConsent(): JSX.Element | null {
               aria-label={t('cookieConsent.managePreferences', lang)}
               className="border-t border-gray-200 dark:border-white/10 px-5 py-4 space-y-4"
             >
-              {/* Essential — always on */}
+              {/* Essential -- always on */}
               <CategoryRow
                 id="essential"
                 label={t('cookieConsent.cat.essential', lang)}
@@ -191,7 +191,7 @@ export default function CookieConsent(): JSX.Element | null {
   )
 }
 
-// Sub-component: category toggle row
+//Sub-component: category toggle row
 
 type CategoryRowProps = {
   id: ConsentCategory

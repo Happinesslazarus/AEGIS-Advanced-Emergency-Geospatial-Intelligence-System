@@ -67,18 +67,18 @@ export function LazyImage({
   const [shouldLoad, setShouldLoad] = useState(false)
   const imgRef = useRef<HTMLImageElement>(null)
 
-  // Use Intersection Observer for browsers that don't support native lazy loading
+  //Use Intersection Observer for browsers that don't support native lazy loading
   useEffect(() => {
     const img = imgRef.current
     if (!img) return
 
-    // Check if native lazy loading is supported
+    //Check if native lazy loading is supported
     if ('loading' in HTMLImageElement.prototype) {
       setShouldLoad(true)
       return
     }
 
-    // Fallback to Intersection Observer
+    //Fallback to Intersection Observer
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -105,12 +105,12 @@ export function LazyImage({
     onError?.()
   }
 
-  // Combine transition classes for blur-up effect
+  //Combine transition classes for blur-up effect
   const transitionClasses = blurUp
     ? `transition-all duration-300 ease-out ${isLoaded ? loadedClassName : loadingClassName}`
     : ''
 
-  // Error fallback display
+  //Error fallback display
   if (hasError) {
     return (
       <div
@@ -119,7 +119,7 @@ export function LazyImage({
         role="img"
         aria-label={alt}
       >
-        <span className="text-gray-400 dark:text-gray-500 text-sm">⚠ Image unavailable</span>
+ <span className="text-gray-400 dark:text-gray-500 text-sm">! Image unavailable</span>
       </div>
     )
   }

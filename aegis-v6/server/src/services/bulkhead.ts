@@ -17,7 +17,7 @@
 import client from 'prom-client'
 import { logger } from './logger.js'
 
-// Prometheus metrics
+//Prometheus metrics
 const bulkheadActive = new client.Gauge({
   name: 'aegis_bulkhead_active',
   help: 'Currently active executions per bulkhead',
@@ -65,10 +65,10 @@ interface Bulkhead {
   queue: QueueEntry[]
 }
 
-// Registry of bulkheads
+//Registry of bulkheads
 const bulkheads = new Map<string, Bulkhead>()
 
-// Default configuration
+//Default configuration
 const DEFAULT_CONFIG: BulkheadConfig = {
   maxConcurrent: 25,
   maxQueue: 50,
@@ -113,23 +113,23 @@ export async function execute<T>(
 
   const { config } = bulkhead
 
-  // Fast path: slot available
+  //Fast path: slot available
   if (bulkhead.active < config.maxConcurrent) {
     return executeWithTracking(bulkhead, fn)
   }
 
-  // Check queue capacity
+  //Check queue capacity
   if (bulkhead.queue.length >= config.maxQueue) {
     bulkheadRejections.labels(bulkheadName).inc()
     throw new BulkheadFullError(bulkheadName, 'Queue full')
   }
 
-  // Queue the request
+  //Queue the request
   const startWait = Date.now()
 
   const permit = await new Promise<void>((resolve, reject) => {
     const timeoutId = setTimeout(() => {
-      // Remove from queue
+      //Remove from queue
       const idx = bulkhead.queue.findIndex(e => e.resolve === resolve)
       if (idx !== -1) {
         bulkhead.queue.splice(idx, 1)
@@ -146,7 +146,7 @@ export async function execute<T>(
       timeoutId,
     }
 
-    // Insert by priority (higher priority first)
+    //Insert by priority (higher priority first)
     if (config.fairQueuing || options.priority === undefined) {
       bulkhead.queue.push(entry)
     } else {
@@ -180,7 +180,7 @@ async function executeWithTracking<T>(bulkhead: Bulkhead, fn: () => Promise<T>):
     bulkhead.active--
     bulkheadActive.labels(bulkhead.name).set(bulkhead.active)
 
-    // Release next in queue
+    //Release next in queue
     releaseNext(bulkhead)
   }
 }
@@ -301,7 +301,7 @@ export class BulkheadFullError extends Error {
   }
 }
 
-// Pre-configured bulkheads for AEGIS services
+//Pre-configured bulkheads for AEGIS services
 export const Bulkheads = {
   DATABASE_QUERIES: 'database_queries',
   DATABASE_WRITES: 'database_writes',
@@ -317,56 +317,56 @@ export const Bulkheads = {
  * Initialize default bulkheads
  */
 export function initBulkheads(): void {
-  // Database queries - high concurrency, critical
+  //Database queries - high concurrency, critical
   getBulkhead(Bulkheads.DATABASE_QUERIES, {
     maxConcurrent: 50,
     maxQueue: 100,
     queueTimeoutMs: 15_000,
   })
 
-  // Database writes - lower concurrency to prevent contention
+  //Database writes - lower concurrency to prevent contention
   getBulkhead(Bulkheads.DATABASE_WRITES, {
     maxConcurrent: 20,
     maxQueue: 50,
     queueTimeoutMs: 30_000,
   })
 
-  // AI Engine - limited by external service capacity
+  //AI Engine - limited by external service capacity
   getBulkhead(Bulkheads.AI_ENGINE, {
     maxConcurrent: 10,
     maxQueue: 25,
     queueTimeoutMs: 60_000,
   })
 
-  // External APIs - prevent overloading external services
+  //External APIs - prevent overloading external services
   getBulkhead(Bulkheads.EXTERNAL_APIS, {
     maxConcurrent: 15,
     maxQueue: 30,
     queueTimeoutMs: 45_000,
   })
 
-  // File uploads - memory intensive
+  //File uploads - memory intensive
   getBulkhead(Bulkheads.FILE_UPLOADS, {
     maxConcurrent: 5,
     maxQueue: 20,
     queueTimeoutMs: 120_000, // Longer timeout for large files
   })
 
-  // WebSocket broadcasts - fast, but limit to prevent CPU spikes
+  //WebSocket broadcasts - fast, but limit to prevent CPU spikes
   getBulkhead(Bulkheads.WEBSOCKET_BROADCAST, {
     maxConcurrent: 100,
     maxQueue: 200,
     queueTimeoutMs: 5_000,
   })
 
-  // Report processing - moderate, verification pipeline
+  //Report processing - moderate, verification pipeline
   getBulkhead(Bulkheads.REPORT_PROCESSING, {
     maxConcurrent: 15,
     maxQueue: 50,
     queueTimeoutMs: 30_000,
   })
 
-  // Chat messages - high priority, low latency required
+  //Chat messages - high priority, low latency required
   getBulkhead(Bulkheads.CHAT_MESSAGES, {
     maxConcurrent: 30,
     maxQueue: 100,

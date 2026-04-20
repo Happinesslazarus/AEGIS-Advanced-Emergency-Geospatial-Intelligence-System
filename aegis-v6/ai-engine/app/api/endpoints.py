@@ -36,7 +36,7 @@ from app.core.auth import verify_api_key
 
 # Input sanitization 
 
-# _CTRL_RE: matches ASCII control characters EXCEPT tab (\t), newline (\n),
+# CTRL_RE: matches ASCII control characters EXCEPT tab (\t), newline (\n),
 # and carriage return (\r) which are valid in multi-line text inputs.
 # Strips null bytes and other non-printable chars that could confuse the
 # NLP models or cause JSON serialization issues downstream.
@@ -224,7 +224,7 @@ async def predict_hazard(
         # No predictor registered: return a safe LOW baseline rather than 404/500.
         # This lets front-end calls succeed even for hazard types still in development.
         else:
-            logger.warning(f"No predictor for {payload.hazard_type.value} — returning safe LOW")
+            logger.warning(f"No predictor for {payload.hazard_type.value} -- returning safe LOW")
             from app.schemas.predictions import ContributingFactor
             return PredictionResponse(
                 model_version="rule-v1.0.0",
@@ -429,7 +429,7 @@ async def trigger_retrain(
 ):
     """
     Trigger REAL model retraining (REQUIRES API KEY).
-    Trains models on actual database data — no stubs, no fakes.
+    Trains models on actual database data -- no stubs, no fakes.
     """
     
     try:
@@ -561,8 +561,8 @@ async def classify_report(
         if len(_text.strip()) < 3:
             raise HTTPException(status_code=400, detail="Report text too short")
 
-        # Three-tier fallback: trainable (directly trained XGBoost) → ML wrapper
-        # (loaded from artifact store) → keyword rule engine.  Each falls through
+        # Three-tier fallback: trainable (directly trained XGBoost) -> ML wrapper
+        # (loaded from artifact store) -> keyword rule engine.  Each falls through
         # only when the previous tier's model hasn't been fitted yet.
         if report_classifier_trainable and report_classifier_trainable.model is not None:
             import time as _time
@@ -739,7 +739,7 @@ async def detect_fake(
         logger.error(f"Fake detection failed: {e}")
         raise HTTPException(status_code=500, detail=_safe_error_detail("Internal server error", e))
 
-# LIVE DATA ENDPOINT — Real-time sensor data from SEPA, EA, Open-Meteo, NOAA
+# LIVE DATA ENDPOINT -- Real-time sensor data from SEPA, EA, Open-Meteo, NOAA
 @router.get("/live-data")
 async def get_live_data(
     lat: float,
@@ -877,7 +877,7 @@ async def rollback_model(model_name: str, target_version: Optional[str] = None):
             to_version = result.get("to_version", "")
             await _reload_model_after_rollback(model_name, to_version)
 
-        logger.success(f"Rollback: {model_name} → {result.get('to_version')}")
+        logger.success(f"Rollback: {model_name} -> {result.get('to_version')}")
         return result
     except HTTPException:
         raise

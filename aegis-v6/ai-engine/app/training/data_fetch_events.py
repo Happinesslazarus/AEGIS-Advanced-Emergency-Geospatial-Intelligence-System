@@ -4,26 +4,26 @@ and wildfire hazard pipelines.
 
 Three data sources are provided:
 
-1. NAMED_STORMS — static table of every Met Office / Met Éireann / KNMI named
-   storm affecting the UK and Ireland (2015–2025). Source: Met Office severe
+1. NAMED_STORMS -- static table of every Met Office / Met Éireann / KNMI named
+   storm affecting the UK and Ireland (2015-2025). Source: Met Office severe
    weather archive and Named Storm naming lists.  Each record includes the
    storm's start/end dates, peak gust speed (km/h), and a list of affected
    UK region IDs that correspond to UK_GRID_LOCATIONS station IDs.
 
-2. OFFICIAL_HEATWAVES — static table of formally declared heatwave episodes
+2. OFFICIAL_HEATWAVES -- static table of formally declared heatwave episodes
    from UK Met Office (Heat-Health Alert activations at Heat Level 3+), Météo-
    France (canicule vigilance rouge/orange), AEMET Spain, and HNMS Greece
-   (2019–2025). Each record covers a specific geographic region and includes
+   (2019-2025). Each record covers a specific geographic region and includes
    the station IDs from GLOBAL_HEATWAVE_LOCATIONS that were affected.
 
-3. fetch_nasa_firms_events() — async function that queries the NASA FIRMS
+3. fetch_nasa_firms_events() -- async function that queries the NASA FIRMS
    (Fire Information for Resource Management System) MODIS/VIIRS API for
    confirmed satellite-detected active fire pixels within a lat/lon bounding
    box.  Requires a free FIRMS MAP_KEY in the FIRMS_MAP_KEY environment
    variable.  Fails gracefully (returns empty DataFrame) if the key is absent
    or the API is unreachable.
 
-4. match_events_to_stations() — shared haversine-based spatial matcher used by
+4. match_events_to_stations() -- shared haversine-based spatial matcher used by
    all three pipelines to map an event's lat/lon (or affected region list) to
    the nearest training weather station(s) within a configurable radius.
 
@@ -44,23 +44,21 @@ import pandas as pd
 from loguru import logger
 
 
-# ---------------------------------------------------------------------------
-# Met Office / Met Éireann / KNMI Named Storms (UK & Ireland, 2015–2025)
+# Met Office / Met Éireann / KNMI Named Storms (UK & Ireland, 2015-2025)
 #
 # Sources:
-#   - Met Office Named Storms archive:
+#   Met Office Named Storms archive:
 #       https://www.metoffice.gov.uk/weather/warnings-and-advice/named-storms/
-#   - Met Éireann severe weather archive
-#   - EUMETNET Name Our Storms project records
+#   Met Éireann severe weather archive
+#   EUMETNET Name Our Storms project records
 #
 # Fields:
-#   name        — official storm name
-#   start_date  — first day of named-storm-force winds in UK/Ireland (UTC)
-#   end_date    — last day of named-storm-force winds (inclusive, UTC)
-#   peak_gust_kmh  — highest recorded or reanalysis gust at any UK station
-#   regions     — UK_GRID_LOCATIONS station IDs affected by storm-force winds
+#   name        -- official storm name
+#   start_date  -- first day of named-storm-force winds in UK/Ireland (UTC)
+#   end_date    -- last day of named-storm-force winds (inclusive, UTC)
+#   peak_gust_kmh  -- highest recorded or reanalysis gust at any UK station
+#   regions     -- UK_GRID_LOCATIONS station IDs affected by storm-force winds
 #                 (gust thresholds ≥ 80 km/h or official wind warning issued)
-# ---------------------------------------------------------------------------
 NAMED_STORMS: list[dict] = [
     # 2015-16 naming season (first UK named storm season)
     {"name": "Abigail",  "start_date": "2015-11-12", "end_date": "2015-11-13",
@@ -227,8 +225,7 @@ NAMED_STORMS: list[dict] = [
 ]
 
 
-# ---------------------------------------------------------------------------
-# Formally Declared Heatwave Episodes (2019–2025)
+# Formally Declared Heatwave Episodes (2019-2025)
 #
 # Sources:
 #   UK:     Met Office Heat-Health Alert (HHA) Level 3+ activations
@@ -243,14 +240,13 @@ NAMED_STORMS: list[dict] = [
 #           https://www.hnms.gr/
 #
 # Fields:
-#   episode  — short human-readable label
-#   country  — "UK" | "France" | "Spain" | "Italy" | "Greece" | "Germany" | "Portugal"
-#   start_date / end_date  — inclusive dates of declared heat emergency (YYYY-MM-DD)
-#   stations — GLOBAL_HEATWAVE_LOCATIONS station IDs in the affected region
-#   source   — issuing authority
-# ---------------------------------------------------------------------------
+#   episode  -- short human-readable label
+#   country  -- "UK" | "France" | "Spain" | "Italy" | "Greece" | "Germany" | "Portugal"
+#   start_date / end_date  -- inclusive dates of declared heat emergency (YYYY-MM-DD)
+#   stations -- GLOBAL_HEATWAVE_LOCATIONS station IDs in the affected region
+#   source   -- issuing authority
 OFFICIAL_HEATWAVES: list[dict] = [
-    # 2019 — two major episodes across UK and Europe
+    # 2019 -- two major episodes across UK and Europe
     {"episode": "UK-HHA-L3-2019-Jun",
      "country": "UK", "start_date": "2019-06-28", "end_date": "2019-07-04",
      "stations": ["london", "cambridge", "southampton", "bristol", "cardiff",
@@ -260,11 +256,11 @@ OFFICIAL_HEATWAVES: list[dict] = [
      "country": "UK", "start_date": "2019-07-22", "end_date": "2019-07-27",
      "stations": ["london", "cambridge", "southampton", "bristol", "cardiff",
                   "birmingham", "manchester", "york"],
-     "source": "Met Office Heat-Health Alert Level 3/4 — Cambridge 38.7°C record"},
+     "source": "Met Office Heat-Health Alert Level 3/4 -- Cambridge 38.7°C record"},
     {"episode": "FR-canicule-2019-Jun",
      "country": "France", "start_date": "2019-06-24", "end_date": "2019-07-01",
      "stations": ["paris", "marseille"],
-     "source": "Météo-France vigilance canicule rouge — Gallargues 45.9°C record"},
+     "source": "Météo-France vigilance canicule rouge -- Gallargues 45.9°C record"},
     {"episode": "FR-canicule-2019-Jul",
      "country": "France", "start_date": "2019-07-22", "end_date": "2019-07-26",
      "stations": ["paris", "marseille"],
@@ -295,13 +291,13 @@ OFFICIAL_HEATWAVES: list[dict] = [
     {"episode": "GR-heat-2021-Aug",
      "country": "Greece", "start_date": "2021-08-01", "end_date": "2021-08-15",
      "stations": ["athens"],
-     "source": "HNMS extreme heat advisory — widespread wildfires concurrent"},
+     "source": "HNMS extreme heat advisory -- widespread wildfires concurrent"},
     {"episode": "TR-heat-2021-Aug",
      "country": "Turkey", "start_date": "2021-08-01", "end_date": "2021-08-15",
      "stations": ["istanbul"],
      "source": "Turkish State Meteorological Service extreme heat alert"},
 
-    # 2022 — UK record broken (40.3°C), most severe European heatwave on record
+    # 2022 -- UK record broken (40.3°C), most severe European heatwave on record
     {"episode": "UK-HHA-L3-2022-Jun",
      "country": "UK", "start_date": "2022-06-15", "end_date": "2022-06-19",
      "stations": ["london", "cambridge", "southampton", "bristol", "birmingham"],
@@ -310,7 +306,7 @@ OFFICIAL_HEATWAVES: list[dict] = [
      "country": "UK", "start_date": "2022-07-14", "end_date": "2022-07-19",
      "stations": ["london", "cambridge", "southampton", "bristol", "cardiff",
                   "birmingham", "manchester", "york", "newcastle", "edinburgh"],
-     "source": "Met Office Heat-Health Alert Level 4 (Emergency) — UK record 40.3°C 19 Jul"},
+     "source": "Met Office Heat-Health Alert Level 4 (Emergency) -- UK record 40.3°C 19 Jul"},
     {"episode": "FR-canicule-2022-Jun",
      "country": "France", "start_date": "2022-06-14", "end_date": "2022-06-19",
      "stations": ["paris", "marseille"],
@@ -322,19 +318,19 @@ OFFICIAL_HEATWAVES: list[dict] = [
     {"episode": "ES-calor-2022-Jun",
      "country": "Spain", "start_date": "2022-06-10", "end_date": "2022-06-26",
      "stations": ["madrid", "seville", "barcelona", "lisbon"],
-     "source": "AEMET aviso rojo por calor — earliest heatwave on record"},
+     "source": "AEMET aviso rojo por calor -- earliest heatwave on record"},
     {"episode": "ES-calor-2022-Jul",
      "country": "Spain", "start_date": "2022-07-09", "end_date": "2022-07-26",
      "stations": ["madrid", "seville", "barcelona"],
-     "source": "AEMET aviso rojo por calor — Almeria 44.2°C"},
+     "source": "AEMET aviso rojo por calor -- Almeria 44.2°C"},
     {"episode": "PT-calor-2022-Jul",
      "country": "Portugal", "start_date": "2022-07-07", "end_date": "2022-07-25",
      "stations": ["lisbon"],
-     "source": "IPMA aviso vermelho calor — Pinhao 47°C record"},
+     "source": "IPMA aviso vermelho calor -- Pinhao 47°C record"},
     {"episode": "IT-hhws-2022-Jul",
      "country": "Italy", "start_date": "2022-07-16", "end_date": "2022-07-23",
      "stations": ["rome"],
-     "source": "HHWS Italy Level 3 alert — Sicily 48.8°C national record (2021)"},
+     "source": "HHWS Italy Level 3 alert -- Sicily 48.8°C national record (2021)"},
     {"episode": "GR-heat-2022-Jul",
      "country": "Greece", "start_date": "2022-07-16", "end_date": "2022-07-28",
      "stations": ["athens"],
@@ -356,11 +352,11 @@ OFFICIAL_HEATWAVES: list[dict] = [
     {"episode": "GR-heat-2023-Jul",
      "country": "Greece", "start_date": "2023-07-09", "end_date": "2023-07-26",
      "stations": ["athens"],
-     "source": "HNMS extreme heat advisory — Larissa 44.2°C, tourist fatalities"},
+     "source": "HNMS extreme heat advisory -- Larissa 44.2°C, tourist fatalities"},
     {"episode": "ES-calor-2023-Apr",
      "country": "Spain", "start_date": "2023-04-26", "end_date": "2023-04-29",
      "stations": ["seville", "madrid"],
-     "source": "AEMET aviso naranja — earliest heatwave of year in Europe"},
+     "source": "AEMET aviso naranja -- earliest heatwave of year in Europe"},
     {"episode": "ES-calor-2023-Jun",
      "country": "Spain", "start_date": "2023-06-22", "end_date": "2023-06-25",
      "stations": ["seville", "madrid", "barcelona"],
@@ -368,7 +364,7 @@ OFFICIAL_HEATWAVES: list[dict] = [
     {"episode": "IT-hhws-2023-Jul",
      "country": "Italy", "start_date": "2023-07-09", "end_date": "2023-07-26",
      "stations": ["rome"],
-     "source": "HHWS Italy Level 3 — Sardinia 48°C near-record"},
+     "source": "HHWS Italy Level 3 -- Sardinia 48°C near-record"},
     {"episode": "FR-canicule-2023-Jun",
      "country": "France", "start_date": "2023-06-19", "end_date": "2023-06-25",
      "stations": ["paris", "marseille"],
@@ -387,7 +383,7 @@ OFFICIAL_HEATWAVES: list[dict] = [
     {"episode": "GR-heat-2024-Jun",
      "country": "Greece", "start_date": "2024-06-14", "end_date": "2024-06-20",
      "stations": ["athens"],
-     "source": "HNMS extreme heat advisory — Acropolis visitor fatalities"},
+     "source": "HNMS extreme heat advisory -- Acropolis visitor fatalities"},
     {"episode": "IT-hhws-2024-Jul",
      "country": "Italy", "start_date": "2024-07-14", "end_date": "2024-07-23",
      "stations": ["rome"],
@@ -399,7 +395,6 @@ OFFICIAL_HEATWAVES: list[dict] = [
 ]
 
 
-# ---------------------------------------------------------------------------
 # NASA FIRMS Active Fire Detection (MODIS / VIIRS)
 #
 # API documentation:
@@ -410,12 +405,11 @@ OFFICIAL_HEATWAVES: list[dict] = [
 #
 # Store the key in the FIRMS_MAP_KEY environment variable.
 # If the key is absent or the API is unreachable, the function returns an
-# empty DataFrame and logs a warning — the calling pipeline should check
+# empty DataFrame and logs a warning -- the calling pipeline should check
 # for this and apply the configured fallback.
 #
 # Returns one row per MODIS/VIIRS fire pixel per day with columns:
 #   latitude, longitude, acq_date, brightness, frp, confidence
-# ---------------------------------------------------------------------------
 
 _FIRMS_BASE_URL = "https://firms.modaps.eosdis.nasa.gov/api/area/csv"
 _FIRMS_CACHE_DIR = (
@@ -434,27 +428,26 @@ async def fetch_nasa_firms_events(
     """Fetch NASA FIRMS active fire pixels for a bounding box and date range.
 
     Parameters
-    ----------
     bbox : (west_lon, south_lat, east_lon, north_lat)
     start_date : "YYYY-MM-DD"
     end_date   : "YYYY-MM-DD"
     source     : FIRMS dataset name.  Recommended options in order of quality:
-                   "VIIRS_SNPP_NRT"   — 375m, near-real-time (≤ 7 days)
-                   "VIIRS_SNPP_SP"    — 375m, standard processing (historical)
-                   "MODIS_NRT"        — 1km, near-real-time
-                   "MODIS_SP"         — 1km, standard processing (Collection 6.1)
-    confidence_threshold : filter pixels below this confidence level (0–100
+                   "VIIRS_SNPP_NRT"   -- 375m, near-real-time (≤ 7 days)
+                   "VIIRS_SNPP_SP"    -- 375m, standard processing (historical)
+                   "MODIS_NRT"        -- 1km, near-real-time
+                   "MODIS_SP"         -- 1km, standard processing (Collection 6.1)
+    confidence_threshold : filter pixels below this confidence level (0-100
                            for VIIRS; "low"/"nominal"/"high" remapped to 33/66/99)
 
     Returns
-    -------
+
     pd.DataFrame with columns: latitude, longitude, acq_date, confidence
     Empty DataFrame on any failure.
     """
     api_key = os.environ.get("FIRMS_MAP_KEY", "").strip()
     if not api_key:
         logger.warning(
-            "FIRMS_MAP_KEY not set — NASA FIRMS fire data unavailable. "
+            "FIRMS_MAP_KEY not set -- NASA FIRMS fire data unavailable. "
             "Set the environment variable to a free key from "
             "https://firms.modaps.eosdis.nasa.gov/api/map_key/"
         )
@@ -490,7 +483,7 @@ async def fetch_nasa_firms_events(
                     current = chunk_end + timedelta(days=1)
                     continue
                 except Exception:
-                    pass  # Corrupt cache — re-fetch
+                    pass  # Corrupt cache -- re-fetch
 
             url = (
                 f"{_FIRMS_BASE_URL}/{api_key}/{source}"
@@ -500,12 +493,12 @@ async def fetch_nasa_firms_events(
             try:
                 async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
                     if resp.status == 429:
-                        logger.warning("FIRMS API rate-limited — skipping this chunk")
+                        logger.warning("FIRMS API rate-limited -- skipping this chunk")
                         current = chunk_end + timedelta(days=1)
                         continue
                     if resp.status != 200:
                         logger.warning(
-                            f"FIRMS API returned HTTP {resp.status} for {date_str} — skipping"
+                            f"FIRMS API returned HTTP {resp.status} for {date_str} -- skipping"
                         )
                         current = chunk_end + timedelta(days=1)
                         continue
@@ -524,7 +517,7 @@ async def fetch_nasa_firms_events(
             current = chunk_end + timedelta(days=1)
 
     if not all_chunks:
-        logger.warning("No FIRMS fire data retrieved — all chunks empty or failed")
+        logger.warning("No FIRMS fire data retrieved -- all chunks empty or failed")
         return pd.DataFrame()
 
     df = pd.concat(all_chunks, ignore_index=True)
@@ -539,7 +532,7 @@ async def fetch_nasa_firms_events(
     conf_col = next((c for c in df.columns if "confidence" in c), None)
 
     if lat_col is None or lon_col is None or date_col is None:
-        logger.warning("FIRMS response missing expected columns — returning empty")
+        logger.warning("FIRMS response missing expected columns -- returning empty")
         return pd.DataFrame()
 
     df = df.rename(columns={
@@ -548,7 +541,7 @@ async def fetch_nasa_firms_events(
         date_col: "acq_date",
     })
 
-    # Confidence filter — VIIRS uses numeric 0–100; MODIS uses "low"/"nominal"/"high"
+    # Confidence filter -- VIIRS uses numeric 0-100; MODIS uses "low"/"nominal"/"high"
     if conf_col:
         df = df.rename(columns={conf_col: "confidence"})
         if df["confidence"].dtype == object:
@@ -566,9 +559,7 @@ async def fetch_nasa_firms_events(
     return df
 
 
-# ---------------------------------------------------------------------------
 # Shared event-to-station spatial matcher
-# ---------------------------------------------------------------------------
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Return the great-circle distance in km between two points."""
@@ -596,17 +587,16 @@ def match_events_to_stations(
 
     Two matching strategies are supported and are applied in priority order:
 
-    Strategy A — Region list (preferred when events have a 'regions' field):
+    Strategy A -- Region list (preferred when events have a 'regions' field):
         If the event dict contains a list of station IDs in `region_col`, those
         stations are matched directly.  This is used for NAMED_STORMS and
         OFFICIAL_HEATWAVES where affected stations are already annotated.
 
-    Strategy B — Spatial proximity (fallback for NASA FIRMS and other point events):
+    Strategy B -- Spatial proximity (fallback for NASA FIRMS and other point events):
         If the event has `latitude` and `longitude` fields, each station within
         `radius_km` is matched.
 
     Parameters
-    ----------
     events           : list of event dicts (NAMED_STORMS, OFFICIAL_HEATWAVES, etc.)
     station_locations: list of location dicts with 'id', 'lat', 'lon' keys
     radius_km        : haversine radius for spatial matching (Strategy B only)
@@ -615,7 +605,7 @@ def match_events_to_stations(
     region_col       : key in event dict that lists affected station IDs (or None)
 
     Returns
-    -------
+
     pd.DataFrame with columns: timestamp (hourly UTC), station_id, label=1
     """
     station_index = {s["id"]: s for s in station_locations}
@@ -687,7 +677,7 @@ def build_storm_label_df(
     if not relevant:
         logger.warning(
             f"  No named storms in NAMED_STORMS overlap "
-            f"{start_date}–{end_date}.  Storm labels will be all-negative."
+            f"{start_date}-{end_date}.  Storm labels will be all-negative."
         )
         return pd.DataFrame(columns=["timestamp", "station_id", "label"])
 
@@ -722,7 +712,7 @@ def build_heatwave_label_df(
     if not relevant:
         logger.warning(
             f"  No official heatwave declarations overlap "
-            f"{start_date}–{end_date}.  Heatwave labels will be all-negative."
+            f"{start_date}-{end_date}.  Heatwave labels will be all-negative."
         )
         return pd.DataFrame(columns=["timestamp", "station_id", "label"])
 

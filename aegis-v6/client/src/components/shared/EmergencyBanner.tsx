@@ -27,7 +27,7 @@ export default function EmergencyBanner({ forceShow = false }: EmergencyBannerPr
     }
   })
 
-  // Re-show when forceShow changes to true
+  //Re-show when forceShow changes to true
   useEffect(() => {
     if (forceShow) setDismissed(false)
   }, [forceShow])
@@ -37,7 +37,7 @@ export default function EmergencyBanner({ forceShow = false }: EmergencyBannerPr
     try {
       sessionStorage.setItem(STORAGE_KEY, '1')
     } catch {
-      // Storage unavailable — dismiss for this render only
+      //Storage unavailable -- dismiss for this render only
     }
   }, [])
 

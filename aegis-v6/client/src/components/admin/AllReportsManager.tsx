@@ -113,16 +113,16 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
   const filteredRef = useRef(filtered)
   useEffect(() => { filteredRef.current = filtered }, [filtered])
 
-  // Reset page when filters change
+  //Reset page when filters change
   useEffect(() => { setPage(0) }, [filtered])
 
-  //  Toggle sort
+  // Toggle sort
   const toggleSort = useCallback((key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setSortKey(key); setSortDir('desc') }
   }, [sortKey])
 
-  //  Sorted filtered reports
+  // Sorted filtered reports
   const sortedFiltered = useMemo(() => {
     if (viewMode !== 'table') return filtered
     const SEVERITY_RANK: Record<string, number> = { High: 3, Medium: 2, Low: 1 }
@@ -143,14 +143,14 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
     return arr
   }, [filtered, sortKey, sortDir, viewMode])
 
-  //  Paginated results
+  // Paginated results
   const totalPages = Math.ceil((viewMode === 'table' ? sortedFiltered : filtered).length / PAGE_SIZE)
   const paginatedReports = useMemo(() => {
     const source = viewMode === 'table' ? sortedFiltered : filtered
     return source.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
   }, [viewMode, sortedFiltered, filtered, page])
 
-  //  Select helpers
+  // Select helpers
   const toggleSelection = (id: string) => {
     const next = new Set(selectedReportIds)
     if (next.has(id)) next.delete(id); else next.add(id)
@@ -166,7 +166,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
     setSearchTerm(''); setSmartFilter('')
   }, [])
 
-  // Keyboard shortcuts — placed after toggleSelectAll/clearFilters to avoid TDZ errors
+  //Keyboard shortcuts -- placed after toggleSelectAll/clearFilters to avoid TDZ errors
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
@@ -189,7 +189,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
 
   const hasFilters = filterSeverity !== 'all' || filterStatus !== 'all' || filterType !== 'all' || searchTerm || smartFilter
 
-  //  Pipeline computed values
+  // Pipeline computed values
   const pipeline = useMemo(() => [
     { label: statusLabel('Urgent', lang), raw: 'Urgent', count: stats.urgent, color: 'bg-red-500', textColor: 'text-red-600 dark:text-red-400', bgLight: 'bg-red-50 dark:bg-red-950/20' },
     { label: statusLabel('Unverified', lang), raw: 'Unverified', count: stats.unverified, color: 'bg-amber-400', textColor: 'text-amber-600 dark:text-amber-400', bgLight: 'bg-amber-50 dark:bg-amber-950/20' },
@@ -198,7 +198,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
     { label: statusLabel('Resolved', lang), raw: 'Resolved', count: stats.resolved, color: 'bg-gray-400', textColor: 'text-gray-500 dark:text-gray-300', bgLight: 'bg-gray-50 dark:bg-gray-800/50' },
   ], [lang, stats])
 
-  //  Report timeline sparkline data (last 24h in 1h buckets)
+  // Report timeline sparkline data (last 24h in 1h buckets)
   const sparklineData = useMemo(() => {
     const now = Date.now()
     const buckets = new Array(24).fill(0)
@@ -212,7 +212,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
 
   const sparkline = sparklineData.normalized
 
-  //  Sort indicator component
+  // Sort indicator component
   const SortIcon = ({ col }: { col: SortKey }) => {
     if (sortKey !== col) return <ArrowUpDown className="w-3 h-3 text-gray-400 dark:text-gray-300" />
     return sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-aegis-500" /> : <ArrowDown className="w-3 h-3 text-aegis-500" />
@@ -222,7 +222,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
     <div className="space-y-4 animate-fade-in">
 
       {/*
-          SECTION 1 — HEADER BAR
+          SECTION 1 -- HEADER BAR
            */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -236,7 +236,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
             </h1>
             <p className="text-[10px] text-gray-500 dark:text-gray-300 flex items-center gap-2">
               <span className="tabular-nums font-semibold text-aegis-600">{filtered.length}</span> {t('allReports.matchingFilters', lang)}
-              {selectedReportIds.size > 0 && <span className="text-aegis-600 font-bold">• {selectedReportIds.size} {t('common.selected', lang)}</span>}
+              {selectedReportIds.size > 0 && <span className="text-aegis-600 font-bold">- {selectedReportIds.size} {t('common.selected', lang)}</span>}
             </p>
           </div>
         </div>
@@ -271,7 +271,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
       )}
 
       {/*
-          SECTION 2 — STATUS PIPELINE + TIMELINE SPARKLINE
+          SECTION 2 -- STATUS PIPELINE + TIMELINE SPARKLINE
            */}
       <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm overflow-hidden">
         <button
@@ -281,7 +281,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
             <span className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{t('allReports.reportPipeline', lang)}</span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-300 tabular-nums">— {stats.total} {t('common.total', lang).toLowerCase()}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-300 tabular-nums">-- {stats.total} {t('common.total', lang).toLowerCase()}</span>
           </div>
           {pipelineExpanded ? <ChevronUp className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />}
         </button>
@@ -315,7 +315,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-widest">{t('allReports.activityTimeline', lang)}</span>
-                <span className="text-[9px] text-gray-400 dark:text-gray-300">→</span>
+ <span className="text-[9px] text-gray-400 dark:text-gray-300">-></span>
               </div>
               <div className="flex items-end gap-px h-8">
                 {sparkline.map((v, i) => (
@@ -357,7 +357,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
       </div>
 
       {/*
-          SECTION 3 — AI SMART FILTER
+          SECTION 3 -- AI SMART FILTER
            */}
       <div className="bg-gradient-to-r from-violet-500/5 via-purple-500/5 to-fuchsia-500/5 dark:from-violet-500/10 dark:via-purple-500/10 dark:to-fuchsia-500/10 rounded-2xl ring-1 ring-violet-200 dark:ring-violet-800/50 p-4 backdrop-blur">
         <div className="flex items-center gap-2 mb-2.5">
@@ -381,7 +381,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
       </div>
 
       {/*
-          SECTION 4 — INCIDENT TYPE FILTER + SEARCH/FILTER TOOLBAR
+          SECTION 4 -- INCIDENT TYPE FILTER + SEARCH/FILTER TOOLBAR
            */}
       <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm overflow-hidden">
         <IncidentFilterPanel />
@@ -420,7 +420,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
       </div>
 
       {/*
-          SECTION 5 — STATUS FILTER PILLS
+          SECTION 5 -- STATUS FILTER PILLS
            */}
       <div className="flex items-center gap-2 flex-wrap">
         {([
@@ -440,7 +440,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
       </div>
 
       {/*
-          SECTION 6 — SELECT ALL + COUNT
+          SECTION 6 -- SELECT ALL + COUNT
            */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-3">
@@ -465,7 +465,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
       </div>
 
       {/*
-          SECTION 7 — REPORT LIST (Card or Table view)
+          SECTION 7 -- REPORT LIST (Card or Table view)
            */}
       {filtered.length === 0 ? (
         <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 p-12 text-center">
@@ -568,7 +568,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
                             </div>
                             <span className="text-[10px] font-bold tabular-nums text-gray-600 dark:text-gray-300">{r.confidence}%</span>
                           </div>
-                        ) : <span className="text-[10px] text-gray-300 dark:text-gray-300">—</span>}
+                        ) : <span className="text-[10px] text-gray-300 dark:text-gray-300">--</span>}
                       </td>
                       <td className="px-3 py-2.5 text-right" onClick={() => onSelectReport(r)}>
                         <span className="text-[10px] text-gray-600 dark:text-gray-300 tabular-nums">{timeAgo(r.timestamp, lang)}</span>
@@ -661,7 +661,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
             disabled={page === 0}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
-            ← {t('common.previous', lang)}
+ <- {t('common.previous', lang)}
           </button>
           <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums font-semibold">
             {page + 1} / {totalPages}
@@ -671,13 +671,13 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
             disabled={page >= totalPages - 1}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
-            {t('common.next', lang)} →
+ {t('common.next', lang)} ->
           </button>
         </div>
       )}
 
       {/*
-          SECTION 8 — FLOATING BULK ACTIONS BAR
+          SECTION 8 -- FLOATING BULK ACTIONS BAR
            */}
       {selectedReportIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/95 backdrop-blur-xl text-white rounded-2xl shadow-2xl px-3 sm:px-5 py-3 flex items-center gap-2 sm:gap-3 ring-2 ring-aegis-500/50 z-50 animate-slide-up max-w-[calc(100vw-1.5rem)] overflow-x-auto">

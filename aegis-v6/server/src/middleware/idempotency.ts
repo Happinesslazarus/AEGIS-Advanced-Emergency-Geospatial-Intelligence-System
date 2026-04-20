@@ -8,9 +8,9 @@
  * - In distributed deployments, should be backed by Redis instead
  *
  * How it works:
- * 1. Key exists + completed → return cached response (Idempotent-Replayed: true)
- * 2. Key exists + processing → return 409 Conflict (request in flight)
- * 3. New key → process request normally, cache the result if successful
+ * 1. Key exists + completed -> return cached response (Idempotent-Replayed: true)
+ * 2. Key exists + processing -> return 409 Conflict (request in flight)
+ * 3. New key -> process request normally, cache the result if successful
  * */
 
 import { Request, Response, NextFunction } from 'express'
@@ -28,10 +28,10 @@ interface IdempotentEntry {
   completedAt?: number
 }
 
-// In-memory store (production should use Redis for distributed deployments)
+//In-memory store (production should use Redis for distributed deployments)
 const idempotencyStore = new Map<string, IdempotentEntry>()
 
-// LRU eviction config
+//LRU eviction config
 const MAX_ENTRIES = 5000
 const TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 
@@ -41,14 +41,14 @@ const TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 function pruneIdempotencyStore(): void {
   const now = Date.now()
   
-  // Remove expired entries
+  //Remove expired entries
   for (const [key, entry] of idempotencyStore) {
     if (now - entry.createdAt > TTL_MS) {
       idempotencyStore.delete(key)
     }
   }
 
-  // Enforce size limit (evict oldest first)
+  //Enforce size limit (evict oldest first)
   if (idempotencyStore.size > MAX_ENTRIES) {
     const entries = [...idempotencyStore.entries()]
       .sort((a, b) => a[1].createdAt - b[1].createdAt)
@@ -60,7 +60,7 @@ function pruneIdempotencyStore(): void {
   }
 }
 
-// Run cleanup every 5 minutes
+//Run cleanup every 5 minutes
 setInterval(pruneIdempotencyStore, 5 * 60 * 1000)
 
 /**
@@ -85,7 +85,7 @@ export function idempotencyMiddleware(options?: {
   const { enabled = true, requireKey = false } = options || {}
 
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    // Skip if disabled or not a mutating method
+    //Skip if disabled or not a mutating method
     if (!enabled) {
       next()
       return
@@ -97,10 +97,10 @@ export function idempotencyMiddleware(options?: {
       return
     }
 
-    // Get idempotency key from header
+    //Get idempotency key from header
     const clientKey = req.headers['idempotency-key'] as string | undefined
 
-    // If no key provided and not required, proceed normally
+    //If no key provided and not required, proceed normally
     if (!clientKey) {
       if (requireKey) {
         res.status(400).json({
@@ -116,7 +116,7 @@ export function idempotencyMiddleware(options?: {
       return
     }
 
-    // Validate key format (UUID or alphanumeric, max 256 chars)
+    //Validate key format (UUID or alphanumeric, max 256 chars)
     if (clientKey.length > 256 || !/^[\w-]+$/.test(clientKey)) {
       res.status(400).json({
         success: false,
@@ -131,7 +131,7 @@ export function idempotencyMiddleware(options?: {
     const fullKey = buildIdempotencyKey(req, clientKey)
     const existing = idempotencyStore.get(fullKey)
 
-    // Case 1: Key exists and completed → return cached response
+ //Case 1: Key exists and completed -> return cached response
     if (existing?.status === 'completed' && existing.response) {
       logger.info({ key: clientKey, path: req.path }, '[Idempotency] Returning cached response')
       res.setHeader('Idempotent-Replayed', 'true')
@@ -147,7 +147,7 @@ export function idempotencyMiddleware(options?: {
       return
     }
 
-    // Case 2: Key exists and still processing → conflict
+ //Case 2: Key exists and still processing -> conflict
     if (existing?.status === 'processing') {
       res.status(409).json({
         success: false,
@@ -159,13 +159,13 @@ export function idempotencyMiddleware(options?: {
       return
     }
 
-    // Case 3: New key → mark as processing and proceed
+ //Case 3: New key -> mark as processing and proceed
     idempotencyStore.set(fullKey, {
       status: 'processing',
       createdAt: Date.now(),
     })
 
-    // Capture the response
+    //Capture the response
     const originalJson = res.json.bind(res)
     let capturedBody: unknown
     let capturedStatusCode: number
@@ -174,7 +174,7 @@ export function idempotencyMiddleware(options?: {
       capturedBody = body
       capturedStatusCode = res.statusCode
 
-      // Only cache successful responses (2xx)
+      //Only cache successful responses (2xx)
       if (capturedStatusCode >= 200 && capturedStatusCode < 300) {
         const headers: Record<string, string> = {}
         const resHeaders = res.getHeaders()
@@ -195,7 +195,7 @@ export function idempotencyMiddleware(options?: {
           completedAt: Date.now(),
         })
       } else {
-        // Don't cache error responses — allow retry
+        //Don't cache error responses -- allow retry
         idempotencyStore.delete(fullKey)
       }
 

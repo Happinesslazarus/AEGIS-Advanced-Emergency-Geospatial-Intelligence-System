@@ -96,7 +96,7 @@ class ModelMonitor:
                     limit,
                 )
             except Exception:
-                # `input_features` column missing on older deployments — fall back
+                # `input_features` column missing on older deployments -- fall back
                 # to extracting input features from the `prediction_response` JSONB.
                 rows = await conn.fetch(
                     """
@@ -263,14 +263,14 @@ class ModelMonitor:
         feature_drift = float(np.mean(list(feature_drift_parts.values()))) if feature_drift_parts else 0.0
 
         # Confidence collapse: normalised drop from training baseline.
-        # A 20% relative drop (e.g. 0.80 → 0.64) maps to 0.20, which pushes
+ # A 20% relative drop (e.g. 0.80 -> 0.64) maps to 0.20, which pushes
         # the final drift score toward WARNING territory.
         baseline_conf = baseline.get("validation_confidence_stats", {})
         base_conf_mean = float(baseline_conf.get("mean", avg_conf))
         conf_collapse = max(0.0, min(1.0, (base_conf_mean - avg_conf) / max(0.1, base_conf_mean)))
 
         # Positive shift: fraction of the maximum possible rate change (0.5).
-        # Normalising to 0.5 means a shift from 20% → 70% positive rate scores 1.0.
+ # Normalising to 0.5 means a shift from 20% -> 70% positive rate scores 1.0.
         baseline_pred = baseline.get("baseline_prediction_distribution", {})
         base_pos_rate = float(baseline_pred.get("positive_rate", pos_rate))
         positive_shift = min(1.0, abs(base_pos_rate - pos_rate) / 0.5)
@@ -280,10 +280,10 @@ class ModelMonitor:
         shap_shift = normalized_rank_shift(base_shap_rank, current_shap_rank, top_k=5)
 
         # Composite drift score with per-component weights:
-        #   feature_drift   0.45 — input distribution is the strongest signal
-        #   conf_collapse   0.25 — sudden confidence drops indicate covariate shift
-        #   positive_shift  0.20 — label distribution change
-        #   shap_shift      0.10 — feature importance reordering (weaker signal)
+        #   feature_drift   0.45 -- input distribution is the strongest signal
+        #   conf_collapse   0.25 -- sudden confidence drops indicate covariate shift
+        #   positive_shift  0.20 -- label distribution change
+        #   shap_shift      0.10 -- feature importance reordering (weaker signal)
         score = weighted_drift_score(
             {
                 "feature_drift": (feature_drift, 0.45),
@@ -320,8 +320,8 @@ class ModelMonitor:
         snapshot = self.compute_snapshot(hazard_type, region_id, version, rows)
 
         # Translate drift_alert_level string into actionable health_status:
-        # INFO → watch (log only), WARNING → degraded (operator alert),
-        # CRITICAL → rollback_recommended (automatic candidate surfaced).
+ # INFO -> watch (log only), WARNING -> degraded (operator alert),
+ # CRITICAL -> rollback_recommended (automatic candidate surfaced).
         health = "healthy"
         if snapshot.alert_level == "INFO":
             health = "watch"

@@ -1,11 +1,9 @@
 /**
- * Api validation client utility (helper functions).
+ * Validates every API response at runtime so the UI never trusts raw JSON blindly.
  *
- * How it connects:
  * - Wraps fetch calls in the API utility layer
  * - Schemas mirror the backend response contracts
- * Simple explanation:
- * Validates every API response at runtime so the UI never trusts raw JSON blindly. */
+ */
 
 import { z } from 'zod'
 import type { ApiResponse, ApiError } from '../types/api'
@@ -166,7 +164,7 @@ export async function validatedFetch<T>(
       ...options,
     })
     
-    // Validate Content-Type header
+    //Validate Content-Type header
     const contentType = response.headers.get('Content-Type')
     if (contentType && !contentType.includes('application/json')) {
       return {
@@ -194,13 +192,13 @@ export async function validatedFetch<T>(
     
     const rawData = await response.json()
     
-    // Validate response against schema
+    //Validate response against schema
     const parseResult = schema.safeParse(rawData)
     
     if (!parseResult.success) {
       console.error('[API Validation] Schema validation failed:', parseResult.error.issues)
       
-      // In development, log detailed errors
+      //In development, log detailed errors
       if (import.meta.env.DEV) {
         console.error('[API Validation] Raw data:', rawData)
         console.error('[API Validation] Validation errors:', parseResult.error.format())

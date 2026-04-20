@@ -1,5 +1,5 @@
 /**
- * FamilyCheckIn — Family/trusted contact safety check-in component.
+ * FamilyCheckIn -- Family/trusted contact safety check-in component.
  * Allows citizens to share their safety status with pre-configured contacts
  * via SMS, WhatsApp, or in-app messaging.
  */
@@ -80,9 +80,9 @@ export default function FamilyCheckIn({ onClose, userName = 'Citizen' }: Props):
     setSending(true)
 
     const statusLabel = STATUS_OPTIONS.find(s => s.key === selectedStatus)?.label || selectedStatus
-    const fullMessage = `[AEGIS Safety Check-In] ${userName}: ${statusLabel}${message ? ` — ${message}` : ''}`
+    const fullMessage = `[AEGIS Safety Check-In] ${userName}: ${statusLabel}${message ? ` -- ${message}` : ''}`
 
-    // For each contact, attempt to share via Web Share API or SMS fallback
+    //For each contact, attempt to share via Web Share API or SMS fallback
     for (const contact of contacts) {
       try {
         if (navigator.share) {
@@ -91,15 +91,15 @@ export default function FamilyCheckIn({ onClose, userName = 'Citizen' }: Props):
             text: fullMessage,
           })
         } else {
-          // SMS fallback
+          //SMS fallback
           const smsBody = encodeURIComponent(fullMessage)
           window.open(`sms:${contact.phone}?body=${smsBody}`, '_blank')
         }
 
-        // Update last notified
+        //Update last notified
         contact.lastNotified = new Date().toISOString()
       } catch {
-        // User cancelled share or error — continue to next contact
+        //User cancelled share or error -- continue to next contact
       }
     }
 
@@ -245,7 +245,7 @@ export default function FamilyCheckIn({ onClose, userName = 'Citizen' }: Props):
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate">{c.name}</p>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-500">{c.relationship} • {c.phone}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500">{c.relationship} - {c.phone}</p>
                       {c.lastNotified && (
                         <p className="text-[9px] text-green-600 dark:text-green-400 flex items-center gap-0.5 mt-0.5">
                           <Check className="w-2.5 h-2.5" /> Last notified {new Date(c.lastNotified).toLocaleString()}

@@ -1,7 +1,7 @@
 /**
  * Tests for the two-factor authentication (2FA) UI components:
- *   - TwoFactorChallenge — the login step where the user enters a TOTP or backup code
- *   - TwoFactorSettings  — the settings page where staff can enable, disable, and manage 2FA
+ *   - TwoFactorChallenge -- the login step where the user enters a TOTP or backup code
+ *   - TwoFactorSettings  -- the settings page where staff can enable, disable, and manage 2FA
  *
  * 2FA in AEGIS uses TOTP (Time-based One-Time Password), the same standard as
  * Google Authenticator and Authy.  After username/password login succeeds, the server
@@ -9,7 +9,7 @@
  * TOTP code to api2FAAuthenticate.  On success the server returns a full JWT.
  *
  * Glossary:
- *   2FA / MFA             = Two-Factor / Multi-Factor Authentication — requires a second
+ *   2FA / MFA             = Two-Factor / Multi-Factor Authentication -- requires a second
  *                           proof of identity beyond password
  *   TOTP                  = Time-based One-Time Password; a 6-digit code that changes every
  *                           30 seconds; calculated by an authenticator app using a shared secret
@@ -51,11 +51,9 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
-// ---------------------------------------------------------------------------
-// Module-level mocks — declared before imports so vi.mock() hoisting works
-// ---------------------------------------------------------------------------
+//Module-level mocks -- declared before imports so vi.mock() hoisting works
 
-// i18n mock: t(key) returns the key itself so assertions can use raw i18n keys
+//i18n mock: t(key) returns the key itself so assertions can use raw i18n keys
 vi.mock('../utils/i18n', () => ({
   t: (key: string) => key,
   getLanguage: () => 'en',
@@ -71,13 +69,13 @@ vi.mock('../contexts/ThemeContext', () => ({
   useTheme: () => ({ dark: false, toggle: vi.fn() }), // light theme, no-op toggle
 }))
 
-// react-router-dom: render <Link> as a plain <a>; useSearchParams → empty params
+//react-router-dom: render <Link> as a plain <a>; useSearchParams -> empty params
 vi.mock('react-router-dom', () => ({
   Link: ({ children, ...props }: any) => <a {...props}>{children}</a>,
   useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }))
 
-// vi.fn() created once per test run; vi.clearAllMocks() resets them in each beforeEach
+//vi.fn() created once per test run; vi.clearAllMocks() resets them in each beforeEach
 const mockApi2FAGetStatus = vi.fn()           // fetch current 2FA status
 const mockApi2FASetup = vi.fn()               // initiate 2FA setup (returns QR code + secret)
 const mockApi2FAVerify = vi.fn()              // verify TOTP code during setup
@@ -86,7 +84,7 @@ const mockApi2FADisable = vi.fn()             // turn off 2FA (requires password
 const mockApi2FARegenerateBackupCodes = vi.fn() // generate fresh set of backup codes
 const mockApiLogin = vi.fn()                  // regular login (used in some integration flows)
 
-// vi.importActual spreads the real api module then overrides only the 2FA functions
+//vi.importActual spreads the real api module then overrides only the 2FA functions
 vi.mock('../utils/api', async () => {
   const actual = await vi.importActual('../utils/api') as any
   return {
@@ -110,11 +108,9 @@ vi.mock('../utils/api', async () => {
 import TwoFactorChallenge from '../components/admin/TwoFactorChallenge'
 import TwoFactorSettings from '../components/admin/TwoFactorSettings'
 
-// ---------------------------------------------------------------------------
-// TwoFactorChallenge — the mid-login 2FA step after username/password succeed
-// ---------------------------------------------------------------------------
+//TwoFactorChallenge -- the mid-login 2FA step after username/password succeed
 describe('TwoFactorChallenge', () => {
-  // Props passed to every TwoFactorChallenge test render
+  //Props passed to every TwoFactorChallenge test render
   const defaultProps = {
     tempToken: 'test-temp-token-abc123', // short-lived JWT from password auth step
     onSuccess: vi.fn(),                  // callback fired with full JWT after 2FA passes
@@ -125,26 +121,24 @@ describe('TwoFactorChallenge', () => {
     vi.clearAllMocks() // reset call counts on all mocks before each test
   })
 
-  // ---------------------------------------------------------------------------
-  // Initial rendering
-  // ---------------------------------------------------------------------------
+  //Initial rendering
   describe('initial rendering', () => {
     test('renders the challenge screen with title and TOTP input', () => {
-      // i18n mock returns the key strings — assertions use raw keys
+      //i18n mock returns the key strings -- assertions use raw keys
       render(<TwoFactorChallenge {...defaultProps} />)
       expect(screen.getByText('twofa.title')).toBeInTheDocument()
       expect(screen.getByLabelText('twofa.aria.totpCode')).toBeInTheDocument()
     })
 
     test('starts in TOTP mode by default', () => {
-      // Default mode = TOTP (authenticator app); backup code mode is off
+      //Default mode = TOTP (authenticator app); backup code mode is off
       render(<TwoFactorChallenge {...defaultProps} />)
       expect(screen.getByLabelText('twofa.aria.totpCode')).toBeInTheDocument()
       expect(screen.queryByLabelText('twofa.aria.backupCode')).not.toBeInTheDocument()
     })
 
     test('shows descriptive text for TOTP mode', () => {
-      // Instruction text tells the user where to find the code
+      //Instruction text tells the user where to find the code
       render(<TwoFactorChallenge {...defaultProps} />)
       expect(screen.getByText('twofa.enterTotpDesc')).toBeInTheDocument()
     })
@@ -155,18 +149,16 @@ describe('TwoFactorChallenge', () => {
     })
 
     test('shows "Back to login" link', () => {
-      // Allows user to abort the 2FA step and return to credentials screen
+      //Allows user to abort the 2FA step and return to credentials screen
       render(<TwoFactorChallenge {...defaultProps} />)
       expect(screen.getByText('twofa.backToLogin')).toBeInTheDocument()
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // TOTP input validation — the field only accepts exactly 6 numeric characters
-  // ---------------------------------------------------------------------------
+  //TOTP input validation -- the field only accepts exactly 6 numeric characters
   describe('TOTP input validation', () => {
     test('accepts only digits, max 6', () => {
-      // Non-numeric characters are silently stripped; only digits 0-9 pass through
+      //Non-numeric characters are silently stripped; only digits 0-9 pass through
       render(<TwoFactorChallenge {...defaultProps} />)
       const input = screen.getByLabelText('twofa.aria.totpCode')
       fireEvent.change(input, { target: { value: '12abc34567' } })
@@ -191,18 +183,18 @@ describe('TwoFactorChallenge', () => {
       render(<TwoFactorChallenge {...defaultProps} />)
       const input = screen.getByLabelText('twofa.aria.totpCode')
 
-      // Trigger an error
+      //Trigger an error
       const form = input.closest('form')!
       fireEvent.change(input, { target: { value: '123' } })
       fireEvent.submit(form)
 
-      // Error should appear, then clear on input
+      //Error should appear, then clear on input
       fireEvent.change(input, { target: { value: '1234' } })
-      // Error clears on input change in the component
+      //Error clears on input change in the component
     })
 
     test('prevents submission with empty code (button disabled)', () => {
-      // Submit button disabled until input has exactly 6 digits (avoids pointless API calls)
+      //Submit button disabled until input has exactly 6 digits (avoids pointless API calls)
       render(<TwoFactorChallenge {...defaultProps} />)
       const submitBtn = screen.getByText('twofa.verifySignIn')
       expect(submitBtn.closest('button')).toBeDisabled()
@@ -230,12 +222,10 @@ describe('TwoFactorChallenge', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Mode switching — toggle between TOTP and backup code input
-  // ---------------------------------------------------------------------------
+  //Mode switching -- toggle between TOTP and backup code input
   describe('mode switching', () => {
     test('switches to backup code mode', () => {
-      // Click the 'twofa.backupCode' tab/button to reveal the backup code field
+      //Click the 'twofa.backupCode' tab/button to reveal the backup code field
       render(<TwoFactorChallenge {...defaultProps} />)
       fireEvent.click(screen.getByText('twofa.backupCode'))
       expect(screen.getByLabelText('twofa.aria.backupCode')).toBeInTheDocument()
@@ -253,7 +243,7 @@ describe('TwoFactorChallenge', () => {
       const input = screen.getByLabelText('twofa.aria.totpCode')
       fireEvent.change(input, { target: { value: '123456' } })
 
-      // Switch to backup mode
+      //Switch to backup mode
       fireEvent.click(screen.getByText('twofa.backupCode'))
       const backupInput = screen.getByLabelText('twofa.aria.backupCode')
       expect(backupInput).toHaveValue('')
@@ -268,14 +258,12 @@ describe('TwoFactorChallenge', () => {
     test('shows one-time use warning for backup codes', () => {
       render(<TwoFactorChallenge {...defaultProps} />)
       fireEvent.click(screen.getByText('twofa.backupCode'))
-      // Description text is shown in backup mode (translation key returned by mock)
+      //Description text is shown in backup mode (translation key returned by mock)
       expect(screen.getByText('twofa.enterBackupDesc')).toBeInTheDocument()
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Backup code input — XXXX-XXXX format; uppercased; alphanumeric + dash only
-  // ---------------------------------------------------------------------------
+  //Backup code input -- XXXX-XXXX format; uppercased; alphanumeric + dash only
   describe('backup code input', () => {
     test('accepts alphanumeric and dash characters', () => {
       render(<TwoFactorChallenge {...defaultProps} />)
@@ -310,12 +298,10 @@ describe('TwoFactorChallenge', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // API submission — calls api2FAAuthenticate and invokes callbacks on result
-  // ---------------------------------------------------------------------------
+  //API submission -- calls api2FAAuthenticate and invokes callbacks on result
   describe('API submission', () => {
     test('calls api2FAAuthenticate with correct params on TOTP submit', async () => {
-      // Verify the component passes (tempToken, code, isBackupCode=false) to the API
+      //Verify the component passes (tempToken, code, isBackupCode=false) to the API
       mockApi2FAAuthenticate.mockResolvedValue({
         success: true,
         token: 'jwt-token-123',
@@ -355,8 +341,8 @@ describe('TwoFactorChallenge', () => {
     })
 
     test('disables submit button during loading', async () => {
-      // mockImplementation(() => new Promise(() => {})) — a promise that never resolves
-      // simulates a slow network; the component shows 'twofa.verifying' spinner text
+      //mockImplementation(() => new Promise(() => {})) -- a promise that never resolves
+      //simulates a slow network; the component shows 'twofa.verifying' spinner text
       mockApi2FAAuthenticate.mockImplementation(() => new Promise(() => {}))
 
       render(<TwoFactorChallenge {...defaultProps} />)
@@ -370,12 +356,10 @@ describe('TwoFactorChallenge', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Error handling — various server-side error messages and client-side responses
-  // ---------------------------------------------------------------------------
+  //Error handling -- various server-side error messages and client-side responses
   describe('error handling', () => {
     test('displays error on failed authentication', async () => {
-      // Generic wrong-code error; message surfaced directly to the user
+      //Generic wrong-code error; message surfaced directly to the user
       mockApi2FAAuthenticate.mockRejectedValue(new Error('Invalid code.'))
 
       render(<TwoFactorChallenge {...defaultProps} />)
@@ -389,8 +373,8 @@ describe('TwoFactorChallenge', () => {
     })
 
     test('shows expired token message for expired sessions', async () => {
-      // tempToken has a short TTL; if the user takes too long the server rejects it
-      // Component translates this to the 'twofa.sessionExpired' i18n key
+      //tempToken has a short TTL; if the user takes too long the server rejects it
+      //Component translates this to the 'twofa.sessionExpired' i18n key
       mockApi2FAAuthenticate.mockRejectedValue(new Error('Temporary token has expired. Please log in again.'))
 
       render(<TwoFactorChallenge {...defaultProps} />)
@@ -417,7 +401,7 @@ describe('TwoFactorChallenge', () => {
     })
 
     test('handles lockout error messages', async () => {
-      // After N consecutive failures the server locks the account for a cooling-off period
+      //After N consecutive failures the server locks the account for a cooling-off period
       mockApi2FAAuthenticate.mockRejectedValue(
         new Error('Account locked for 10 minutes due to too many failed attempts.')
       )
@@ -446,7 +430,7 @@ describe('TwoFactorChallenge', () => {
     })
 
     test('handles replay protection error', async () => {
-      // Server tracks used codes within the current 30-second window to prevent replays
+      //Server tracks used codes within the current 30-second window to prevent replays
       mockApi2FAAuthenticate.mockRejectedValue(
         new Error('This code has already been used. Please wait for a new code.')
       )
@@ -488,8 +472,8 @@ describe('TwoFactorChallenge', () => {
     })
 
     test('displays error with alert role for accessibility', async () => {
-      // Error container must have role='alert' and aria-live='assertive' so screen readers
-      // announce the message immediately without the user having to navigate to it
+      //Error container must have role='alert' and aria-live='assertive' so screen readers
+      //announce the message immediately without the user having to navigate to it
       mockApi2FAAuthenticate.mockRejectedValue(new Error('Invalid code.'))
 
       render(<TwoFactorChallenge {...defaultProps} />)
@@ -498,16 +482,14 @@ describe('TwoFactorChallenge', () => {
       fireEvent.submit(input.closest('form')!)
 
       await waitFor(() => {
-        const errorEl = screen.getByRole('alert') // role='alert' → screen reader reads immediately
+ const errorEl = screen.getByRole('alert') // role='alert' -> screen reader reads immediately
         expect(errorEl).toBeInTheDocument()
         expect(errorEl).toHaveAttribute('aria-live', 'assertive') // do not wait, announce now
       })
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Backup code warning — shown after successful login via a backup (recovery) code
-  // ---------------------------------------------------------------------------
+  //Backup code warning -- shown after successful login via a backup (recovery) code
   describe('backup code warning', () => {
     test('shows generic backup code warning when backup was used', async () => {
       mockApi2FAAuthenticate.mockResolvedValue({
@@ -548,9 +530,7 @@ describe('TwoFactorChallenge', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Cancel and navigation — back-to-login link
-  // ---------------------------------------------------------------------------
+  //Cancel and navigation -- back-to-login link
   describe('cancel and navigation', () => {
     test('calls onCancel when back button is clicked', () => {
       render(<TwoFactorChallenge {...defaultProps} />)
@@ -565,12 +545,10 @@ describe('TwoFactorChallenge', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Accessibility — ARIA attributes, mobile-friendly input hints
-  // ---------------------------------------------------------------------------
+  //Accessibility -- ARIA attributes, mobile-friendly input hints
   describe('accessibility', () => {
     test('TOTP input has proper aria-label', () => {
-      // aria-label links input to its semantic label for screen readers
+      //aria-label links input to its semantic label for screen readers
       render(<TwoFactorChallenge {...defaultProps} />)
       expect(screen.getByLabelText('twofa.aria.totpCode')).toBeInTheDocument()
     })
@@ -602,20 +580,16 @@ describe('TwoFactorChallenge', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// TwoFactorSettings — settings page for enabling/disabling/managing 2FA
-// ---------------------------------------------------------------------------
+//TwoFactorSettings -- settings page for enabling/disabling/managing 2FA
 describe('TwoFactorSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks() // reset mock call counts before each test
   })
 
-  // ---------------------------------------------------------------------------
-  // Loading state — spinner while api2FAGetStatus resolves
-  // ---------------------------------------------------------------------------
+  //Loading state -- spinner while api2FAGetStatus resolves
   describe('loading state', () => {
     test('shows loading spinner initially', () => {
-      // new Promise(() => {}) — never resolves, keeps the component in loading state
+      //new Promise(() => {}) -- never resolves, keeps the component in loading state
       // .animate-spin = Tailwind CSS class on the spinner element
       mockApi2FAGetStatus.mockReturnValue(new Promise(() => {}))
       render(<TwoFactorSettings />)
@@ -623,9 +597,7 @@ describe('TwoFactorSettings', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // 2FA disabled state — shows enable button, no management actions yet
-  // ---------------------------------------------------------------------------
+  //2FA disabled state -- shows enable button, no management actions yet
   describe('2FA disabled state', () => {
     test('shows "Enable" button when 2FA is disabled', async () => {
       mockApi2FAGetStatus.mockResolvedValue({
@@ -654,11 +626,9 @@ describe('TwoFactorSettings', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // 2FA enabled state — shows management actions (regenerate backup codes, disable)
-  // ---------------------------------------------------------------------------
+  //2FA enabled state -- shows management actions (regenerate backup codes, disable)
   describe('2FA enabled state', () => {
-    // Typical response from api2FAGetStatus when 2FA is active
+    //Typical response from api2FAGetStatus when 2FA is active
     const enabledStatus = {
       enabled: true,
       enabledAt: '2026-03-15T10:00:00Z',
@@ -688,12 +658,10 @@ describe('TwoFactorSettings', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Setup flow — enable 2FA: show QR code, verify TOTP, receive backup codes
-  // ---------------------------------------------------------------------------
+  //Setup flow -- enable 2FA: show QR code, verify TOTP, receive backup codes
   describe('setup flow', () => {
     test('starts setup and shows QR code', async () => {
-      // api2FASetup returns qrCodeDataUrl + manualKey; user scans QR or types the key
+      //api2FASetup returns qrCodeDataUrl + manualKey; user scans QR or types the key
       mockApi2FAGetStatus.mockResolvedValue({
         enabled: false, enabledAt: null, lastVerifiedAt: null,
         recoveryCodesGeneratedAt: null, backupCodesRemaining: null,
@@ -759,12 +727,10 @@ describe('TwoFactorSettings', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Backup codes display — shown once after verification; must be saved by the user
-  // ---------------------------------------------------------------------------
+  //Backup codes display -- shown once after verification; must be saved by the user
   describe('backup codes display', () => {
     test('shows backup codes after successful verification', async () => {
-      // mockResolvedValueOnce = first call returns disabled status; subsequent calls return enabled
+      //mockResolvedValueOnce = first call returns disabled status; subsequent calls return enabled
       mockApi2FAGetStatus
         .mockResolvedValueOnce({
           enabled: false, enabledAt: null, lastVerifiedAt: null,
@@ -808,12 +774,10 @@ describe('TwoFactorSettings', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Disable flow — requires current password + TOTP code for security
-  // ---------------------------------------------------------------------------
+  //Disable flow -- requires current password + TOTP code for security
   describe('disable flow', () => {
     test('shows password and code inputs for disable', async () => {
-      // Both fields required; prevents disabling 2FA without proof of identity
+      //Both fields required; prevents disabling 2FA without proof of identity
       mockApi2FAGetStatus.mockResolvedValue({
         enabled: true, enabledAt: '2026-03-15T10:00:00Z',
         lastVerifiedAt: '2026-03-18T08:00:00Z',
@@ -851,7 +815,7 @@ describe('TwoFactorSettings', () => {
       fireEvent.change(screen.getByPlaceholderText('Current password'), { target: { value: 'wrongpass' } })
       fireEvent.change(screen.getByPlaceholderText('6-digit TOTP code or backup code'), { target: { value: '123456' } })
 
-      // Find and click the confirm disable button
+      //Find and click the confirm disable button
       const buttons = screen.getAllByRole('button')
       const confirmBtn = buttons.find(b => b.textContent?.includes('Disable'))
       if (confirmBtn) fireEvent.click(confirmBtn)
@@ -862,12 +826,10 @@ describe('TwoFactorSettings', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Regenerate flow — create fresh backup codes (old ones are invalidated)
-  // ---------------------------------------------------------------------------
+  //Regenerate flow -- create fresh backup codes (old ones are invalidated)
   describe('regenerate flow', () => {
     test('shows TOTP input for regenerate', async () => {
-      // Regeneration requires current TOTP to prevent abuse
+      //Regeneration requires current TOTP to prevent abuse
       mockApi2FAGetStatus.mockResolvedValue({
         enabled: true, enabledAt: '2026-03-15T10:00:00Z',
         lastVerifiedAt: '2026-03-18T08:00:00Z',
@@ -903,13 +865,13 @@ describe('TwoFactorSettings', () => {
 
       await waitFor(() => screen.getByPlaceholderText('6-digit TOTP code'))
 
-      // Fill in the form
+      //Fill in the form
       const passwordInput = screen.getByPlaceholderText('Current password')
       const codeInput = screen.getByPlaceholderText('6-digit TOTP code')
       fireEvent.change(passwordInput, { target: { value: 'mypassword' } })
       fireEvent.change(codeInput, { target: { value: '123456' } })
 
-      // Find and click the submit button for regeneration
+      //Find and click the submit button for regeneration
       const buttons = screen.getAllByRole('button')
       const regenBtn = buttons.find(b =>
         b.textContent?.includes('Generate New Codes') || b.textContent?.includes('Regenerate')
@@ -922,19 +884,17 @@ describe('TwoFactorSettings', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // API error handling — component must not crash when the server is unreachable
-  // ---------------------------------------------------------------------------
+  //API error handling -- component must not crash when the server is unreachable
   describe('API error handling', () => {
     test('handles status fetch failure gracefully', async () => {
-      // Network error on initial status fetch; component should dismiss the spinner
-      // and show an error state rather than crashing or spinning forever
+      //Network error on initial status fetch; component should dismiss the spinner
+      //and show an error state rather than crashing or spinning forever
       mockApi2FAGetStatus.mockRejectedValue(new Error('Network error'))
 
       render(<TwoFactorSettings />)
 
       await waitFor(() => {
-        // Spinner gone means the component handled the rejection and updated state
+        //Spinner gone means the component handled the rejection and updated state
         expect(document.querySelector('.animate-spin')).not.toBeInTheDocument()
       })
     })

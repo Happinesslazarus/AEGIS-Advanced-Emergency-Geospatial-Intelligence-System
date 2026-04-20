@@ -9,10 +9,10 @@ import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
 const STEPS = [
-  { icon: Shield, title: 'Welcome to AEGIS', desc: 'Your emergency intelligence assistant. No login needed. Everything is anonymous and private.', color: 'from-aegis-600 to-aegis-700', tip: 'Your location is only collected when you submit a report — never in the background.' },
-  { icon: AlertTriangle, title: 'Report Emergencies', desc: 'Tap the red "Report" button to submit an emergency. Just describe what you see — AI verifies it automatically.', color: 'from-red-500 to-red-700', tip: 'Reports are anonymous. You can attach photos and pin a location on the map.' },
+  { icon: Shield, title: 'Welcome to AEGIS', desc: 'Your emergency intelligence assistant. No login needed. Everything is anonymous and private.', color: 'from-aegis-600 to-aegis-700', tip: 'Your location is only collected when you submit a report -- never in the background.' },
+  { icon: AlertTriangle, title: 'Report Emergencies', desc: 'Tap the red "Report" button to submit an emergency. Just describe what you see -- AI verifies it automatically.', color: 'from-red-500 to-red-700', tip: 'Reports are anonymous. You can attach photos and pin a location on the map.' },
   { icon: MapPin, title: 'Live Map', desc: 'See real-time reports and flood zones on the interactive map. Red = severe, amber = moderate, blue = low risk.', color: 'from-blue-500 to-blue-700', tip: 'Switch between satellite, topographic, and dark map styles with the tile picker.' },
-  { icon: MessageCircle, title: 'AI Assistant', desc: 'Chat with our AI for safety guidance in 9 languages. It covers floods, earthquakes, fires, storms, and more.', color: 'from-purple-500 to-purple-700', tip: 'The chatbot works offline too — it switches to a rule-based fallback when there\'s no internet.' },
+  { icon: MessageCircle, title: 'AI Assistant', desc: 'Chat with our AI for safety guidance in 9 languages. It covers floods, earthquakes, fires, storms, and more.', color: 'from-purple-500 to-purple-700', tip: 'The chatbot works offline too -- it switches to a rule-based fallback when there\'s no internet.' },
   { icon: Users, title: 'Community Help', desc: 'Find local resources, offer help, or request assistance. All anonymous with safety controls.', color: 'from-green-500 to-green-700', tip: 'Community posts are moderated by AI and human operators for your safety.' },
   { icon: BookOpen, title: 'Be Prepared', desc: 'Interactive scenarios, quizzes, and emergency kit checklists to help you prepare before disaster strikes.', color: 'from-amber-500 to-amber-700', tip: 'Complete drills and quizzes to earn badges and track your readiness score.' },
   { icon: Accessibility, title: 'Accessibility', desc: 'Tap the floating button (bottom-left) for screen reader, high contrast, large text, dyslexia mode and more.', color: 'from-cyan-500 to-cyan-700', tip: 'Seven accessibility modes available. Works with screen readers and keyboard navigation.' },
@@ -32,7 +32,7 @@ export default function OnboardingTutorial(): JSX.Element | null {
     if (!seen) setShow(true)
   }, [])
 
-  // Auto-progress bar (8 seconds per step)
+  //Auto-progress bar (8 seconds per step)
   useEffect(() => {
     if (!show) return
     setProgress(0)
@@ -68,7 +68,7 @@ export default function OnboardingTutorial(): JSX.Element | null {
     setTimeout(() => { setStep(s => s - 1); setAnimating(false) }, 250)
   }, [animating, step])
 
-  // Keyboard navigation
+  //Keyboard navigation
   useEffect(() => {
     if (!show) return
     const handler = (e: KeyboardEvent) => {
@@ -174,7 +174,7 @@ export default function OnboardingTutorial(): JSX.Element | null {
 
           {/* Keyboard hint */}
           <p className="text-[10px] text-gray-400 dark:text-gray-600 text-center mt-3">
-            Use ← → arrow keys to navigate &middot; Esc to close
+ Use <- -> arrow keys to navigate &middot; Esc to close
           </p>
         </div>
       </div>

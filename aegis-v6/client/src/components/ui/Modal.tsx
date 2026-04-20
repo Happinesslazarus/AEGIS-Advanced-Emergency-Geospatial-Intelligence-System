@@ -10,7 +10,7 @@ import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { CloseButton } from './Button'
 
-// TYPES
+//TYPES
 
 type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full'
 
@@ -47,7 +47,7 @@ interface ModalProps {
   children: React.ReactNode
 }
 
-// STYLES
+//STYLES
 
 const sizeClasses: Record<ModalSize, string> = {
   sm: 'max-w-sm',
@@ -57,7 +57,7 @@ const sizeClasses: Record<ModalSize, string> = {
   full: 'max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)]',
 }
 
-// SCROLL LOCK HOOK
+//SCROLL LOCK HOOK
 
 const useScrollLock = (isLocked: boolean) => {
   useEffect(() => {
@@ -68,7 +68,7 @@ const useScrollLock = (isLocked: boolean) => {
     const isRtl = document.documentElement.dir === 'rtl' || document.body.dir === 'rtl'
     
     document.body.style.overflow = 'hidden'
-    // Apply padding to correct side based on text direction (RTL fix)
+    //Apply padding to correct side based on text direction (RTL fix)
     if (isRtl) {
       document.body.style.paddingLeft = `${scrollbarWidth}px`
     } else {
@@ -83,7 +83,7 @@ const useScrollLock = (isLocked: boolean) => {
   }, [isLocked])
 }
 
-// MODAL COMPONENT
+//MODAL COMPONENT
 
 export const Modal = memo<ModalProps>(({
   isOpen,
@@ -113,22 +113,22 @@ export const Modal = memo<ModalProps>(({
   
   const savedFocusRef = useRef<HTMLElement | null>(null)
   
-  // Lock scroll when open
+  //Lock scroll when open
   useScrollLock(isOpen && lockScroll)
   
-  // Handle mounting/unmounting with animation
+  //Handle mounting/unmounting with animation
   useEffect(() => {
     if (isOpen) {
-      // Save current focus
+      //Save current focus
       savedFocusRef.current = document.activeElement as HTMLElement
       setMounted(true)
-      // Small delay for CSS transition
+      //Small delay for CSS transition
       requestAnimationFrame(() => setVisible(true))
     } else if (mounted) {
       setVisible(false)
       const timer = setTimeout(() => {
         setMounted(false)
-        // Return focus
+        //Return focus
         const focusTarget = finalFocusRef?.current || savedFocusRef.current
         focusTarget?.focus()
       }, prefersReduced ? 0 : 200)
@@ -136,21 +136,21 @@ export const Modal = memo<ModalProps>(({
     }
   }, [isOpen, finalFocusRef, mounted, prefersReduced])
   
-  // Initial focus
+  //Initial focus
   useEffect(() => {
     if (isOpen && mounted && initialFocusRef?.current) {
       initialFocusRef.current.focus()
     }
   }, [isOpen, mounted, initialFocusRef])
   
-  // Handle overlay click
+  //Handle overlay click
   const handleOverlayClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget && closeOnOverlayClick) {
       onClose()
     }
   }, [closeOnOverlayClick, onClose])
   
-  // Don't render if not mounted
+  //Don't render if not mounted
   if (!mounted) return null
   
   const modalContent = (
@@ -238,7 +238,7 @@ export const Modal = memo<ModalProps>(({
 
 Modal.displayName = 'Modal'
 
-// MODAL BODY
+//MODAL BODY
 
 interface ModalBodyProps {
   children: React.ReactNode
@@ -256,7 +256,7 @@ export const ModalBody = memo<ModalBodyProps>(({
 
 ModalBody.displayName = 'ModalBody'
 
-// MODAL FOOTER
+//MODAL FOOTER
 
 interface ModalFooterProps {
   children: React.ReactNode
@@ -280,7 +280,7 @@ export const ModalFooter = memo<ModalFooterProps>(({
 
 ModalFooter.displayName = 'ModalFooter'
 
-// CONFIRMATION DIALOG
+//CONFIRMATION DIALOG
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -353,7 +353,7 @@ export const ConfirmDialog = memo<ConfirmDialogProps>(({
 
 ConfirmDialog.displayName = 'ConfirmDialog'
 
-// ALERT DIALOG
+//ALERT DIALOG
 
 interface AlertDialogProps {
   isOpen: boolean
@@ -413,7 +413,7 @@ export const AlertDialog = memo<AlertDialogProps>(({
 
 AlertDialog.displayName = 'AlertDialog'
 
-// ICONS
+//ICONS
 
 const AlertIcon: React.FC<{ variant: 'info' | 'success' | 'warning' | 'error' }> = ({ variant }) => {
   const className = 'h-6 w-6'
@@ -442,7 +442,7 @@ const AlertIcon: React.FC<{ variant: 'info' | 'success' | 'warning' | 'error' }>
   }
 }
 
-// EXPORTS
+//EXPORTS
 
 export default {
   Modal,

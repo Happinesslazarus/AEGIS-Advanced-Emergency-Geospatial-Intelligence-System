@@ -7,10 +7,10 @@
  * - Uses floodPredictionService and evacuationService
  * - Threat levels broadcast in real-time via Socket.IO
  *
- * GET  /api/flood/prediction        — Current flood predictions
- * GET  /api/flood/threat            — Threat level assessment
- * POST /api/flood/evacuation/route  — Calculate evacuation route
- * GET  /api/flood/extents/:river    — Flood extent GeoJSON
+ * GET  /api/flood/prediction        -- Current flood predictions
+ * GET  /api/flood/threat            -- Threat level assessment
+ * POST /api/flood/evacuation/route  -- Calculate evacuation route
+ * GET  /api/flood/extents/:river    -- Flood extent GeoJSON
  * */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -27,7 +27,7 @@ import { remember, buildCacheKey, CACHE_TTL } from '../services/cacheService.js'
 
 const router = Router()
 
-//  Allowlist for river name parameter (path traversal prevention)
+// Allowlist for river name parameter (path traversal prevention)
 const SAFE_RIVER_NAME = /^[a-z0-9_-]{1,64}$/i
 
 function resolveIncidentType(req: Request): string {
@@ -36,7 +36,7 @@ function resolveIncidentType(req: Request): string {
 
  /*
  * Validate incident type is known and enabled.
- * Unlike the old version, this does NOT block non-flood types — it delegates
+ * Unlike the old version, this does NOT block non-flood types -- it delegates
  * to the incident module registry so all 11 hazard types work.
   */
 function validateIncidentType(req: Request, res: Response): string | null {
@@ -54,7 +54,7 @@ function validateIncidentType(req: Request, res: Response): string | null {
   return incidentType
 }
 
-// Flood Prediction (canonical flood path)
+//Flood Prediction (canonical flood path)
 
 router.get('/flood/prediction', async (_req: Request, res: Response, next: NextFunction) => {
   try {
@@ -86,7 +86,7 @@ router.get('/incidents/:incidentType/prediction', async (req: Request, res: Resp
       return
     }
 
-    // Delegate to the registered incident module
+    //Delegate to the registered incident module
     const mod = getIncidentModule(incidentType)
     if (!mod) {
       throw AppError.notFound(`No module registered for incident type: ${incidentType}`)
@@ -133,7 +133,7 @@ router.post('/incidents/:incidentType/prediction/refresh', async (req: Request, 
   }
 })
 
-// Threat Level
+//Threat Level
 
 router.get('/flood/threat', async (_req: Request, res: Response, next: NextFunction) => {
   try {
@@ -183,10 +183,10 @@ router.get('/incidents/:incidentType/threat', async (req: Request, res: Response
   }
 })
 
-// Flood Extents — SAFE file loading with allowlist validation
+//Flood Extents -- SAFE file loading with allowlist validation
 
 function loadExtentFile(riverParam: string, res: Response): boolean {
-  // SECURITY: strict allowlist — prevents path traversal attacks
+  //SECURITY: strict allowlist -- prevents path traversal attacks
   if (!SAFE_RIVER_NAME.test(riverParam)) {
     throw AppError.badRequest('Invalid river name. Only alphanumeric characters, hyphens and underscores are allowed.')
   }
@@ -200,7 +200,7 @@ function loadExtentFile(riverParam: string, res: Response): boolean {
   ]
 
   for (const candidate of candidates) {
-    // Resolve to absolute and ensure it stays within the expected directory
+    //Resolve to absolute and ensure it stays within the expected directory
     const resolved = path.resolve(candidate)
     const expectedDir = path.resolve(path.dirname(candidate))
     if (!resolved.startsWith(expectedDir)) continue  // Prevent traversal even with allowlist bypass
@@ -265,7 +265,7 @@ router.get('/incidents/:incidentType/extents/:river', (req: Request, res: Respon
   res.status(404).json({ error: `Incident extent data not found for: ${riverParam}` })
 })
 
-// Evacuation — canonical paths under /flood/ prefix + legacy aliases
+//Evacuation -- canonical paths under /flood/ prefix + legacy aliases
 
 const evacuationPostHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -329,7 +329,7 @@ const evacuationGetHandler = async (req: Request, res: Response, next: NextFunct
   }
 }
 
-// Canonical paths
+//Canonical paths
 router.post('/flood/evacuation/route', evacuationPostHandler)
 router.get('/flood/evacuation/routes', evacuationGetHandler)
 router.post('/incidents/:incidentType/evacuation/route', async (req: Request, res: Response, next: NextFunction) => {
@@ -341,7 +341,7 @@ router.get('/incidents/:incidentType/evacuation/routes', async (req: Request, re
   await evacuationGetHandler(req, res, next)
 })
 
-// Legacy aliases
+//Legacy aliases
 router.post('/evacuation/route', evacuationPostHandler)
 router.get('/evacuation/routes', evacuationGetHandler)
 

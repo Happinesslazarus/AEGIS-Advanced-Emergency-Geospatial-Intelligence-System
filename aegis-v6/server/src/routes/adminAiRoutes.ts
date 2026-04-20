@@ -7,11 +7,11 @@
  * - Reads AI analytics from the database and LLM provider APIs
  * - Requires admin authentication
  *
- * GET  /api/admin/ai/token-usage     — Token usage stats
- * GET  /api/admin/ai/provider-health — LLM provider statuses
- * GET  /api/admin/ai/analytics       — Session analytics
- * CRUD /api/admin/ai/canned-replies  — Canned reply management
- * POST /api/admin/ai/draft-reply     — AI-drafted reply
+ * GET  /api/admin/ai/token-usage     -- Token usage stats
+ * GET  /api/admin/ai/provider-health -- LLM provider statuses
+ * GET  /api/admin/ai/analytics       -- Session analytics
+ * CRUD /api/admin/ai/canned-replies  -- Canned reply management
+ * POST /api/admin/ai/draft-reply     -- AI-drafted reply
  * */
 
 import { Router, Response, NextFunction } from 'express'
@@ -23,12 +23,12 @@ import { logger } from '../services/logger.js'
 
 const router = Router()
 
-// All routes require at least operator role
+//All routes require at least operator role
 router.use(authMiddleware)
 router.use(requireRole('admin', 'operator', 'super_admin', 'superadmin'))
 
 /**
- * GET /api/admin/ai/token-usage — Token usage statistics
+ * GET /api/admin/ai/token-usage -- Token usage statistics
  * Returns today/week breakdown of local vs API usage, per-provider totals.
  */
 router.get('/token-usage', async (_req: AuthRequest, res: Response, next: NextFunction) => {
@@ -41,7 +41,7 @@ router.get('/token-usage', async (_req: AuthRequest, res: Response, next: NextFu
 })
 
 /**
- * GET /api/admin/ai/provider-health — All LLM provider health statuses
+ * GET /api/admin/ai/provider-health -- All LLM provider health statuses
  */
 router.get('/provider-health', async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -69,12 +69,12 @@ router.get('/provider-health', async (_req: AuthRequest, res: Response, next: Ne
 })
 
 /**
- * GET /api/admin/ai/analytics — Aggregated chat analytics
+ * GET /api/admin/ai/analytics -- Aggregated chat analytics
  * Returns conversation metrics: total sessions, avg quality, agent distribution, etc.
  */
 router.get('/analytics', async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    // Aggregate from chat_sessions and chat_messages
+    //Aggregate from chat_sessions and chat_messages
     const [sessionStats, recentMessages, modelDistribution] = await Promise.all([
       pool.query(`
         SELECT 
@@ -118,7 +118,7 @@ router.get('/analytics', async (_req: AuthRequest, res: Response, next: NextFunc
 })
 
 /**
- * GET /api/admin/ai/canned-replies — List all canned reply templates
+ * GET /api/admin/ai/canned-replies -- List all canned reply templates
  */
 router.get('/canned-replies', async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -130,7 +130,7 @@ router.get('/canned-replies', async (_req: AuthRequest, res: Response, next: Nex
     `)
     res.json({ replies: rows })
   } catch (err: any) {
-    // Table may not exist yet
+    //Table may not exist yet
     if (err.code === '42P01') {
       return res.json({ replies: [], notice: 'canned_replies table not yet created. Run migration.' })
     }
@@ -139,7 +139,7 @@ router.get('/canned-replies', async (_req: AuthRequest, res: Response, next: Nex
 })
 
 /**
- * POST /api/admin/ai/canned-replies — Create a new canned reply
+ * POST /api/admin/ai/canned-replies -- Create a new canned reply
  * Body: { title: string, content: string, category?: string, shortcut?: string }
  */
 router.post('/canned-replies', async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -160,14 +160,14 @@ router.post('/canned-replies', async (req: AuthRequest, res: Response, next: Nex
     res.status(201).json(rows[0])
   } catch (err: any) {
     if (err.code === '42P01') {
-      return res.status(503).json({ error: 'The canned replies feature is not yet set up. A database migration needs to be run — please contact your system administrator.' })
+      return res.status(503).json({ error: 'The canned replies feature is not yet set up. A database migration needs to be run -- please contact your system administrator.' })
     }
     next(err)
   }
 })
 
 /**
- * PUT /api/admin/ai/canned-replies/:id — Update a canned reply
+ * PUT /api/admin/ai/canned-replies/:id -- Update a canned reply
  */
 router.put('/canned-replies/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -193,7 +193,7 @@ router.put('/canned-replies/:id', async (req: AuthRequest, res: Response, next: 
 })
 
 /**
- * DELETE /api/admin/ai/canned-replies/:id — Soft-delete a canned reply
+ * DELETE /api/admin/ai/canned-replies/:id -- Soft-delete a canned reply
  */
 router.delete('/canned-replies/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -209,7 +209,7 @@ router.delete('/canned-replies/:id', async (req: AuthRequest, res: Response, nex
 })
 
 /**
- * POST /api/admin/ai/draft-reply — Generate AI draft reply for admin messaging
+ * POST /api/admin/ai/draft-reply -- Generate AI draft reply for admin messaging
  * Body: { threadId: string, citizenMessage: string, context?: string }
  * Returns: { draft: string, model: string, tokensUsed: number }
  */
@@ -220,7 +220,7 @@ router.post('/draft-reply', async (req: AuthRequest, res: Response, next: NextFu
       return res.status(400).json({ error: 'A citizen message is required to generate a suggested reply.' })
     }
 
-    // Load thread context if threadId provided
+    //Load thread context if threadId provided
     let threadContext = ''
     if (threadId) {
       try {
@@ -236,14 +236,14 @@ router.post('/draft-reply', async (req: AuthRequest, res: Response, next: NextFu
             rows.reverse().map((m: any) => `[${m.sender_type}]: ${m.content?.slice(0, 200)}`).join('\n')
         }
       } catch {
-        // Thread lookup failure is non-critical
+        //Thread lookup failure is non-critical
       }
     }
 
     const systemPrompt = `You are an emergency management operator AI assistant. Draft a professional, empathetic response to a citizen's message.
 
 Guidelines:
-- Be professional but warm — these are real people in potential distress
+- Be professional but warm -- these are real people in potential distress
 - Provide actionable information and next steps
 - Reference specific resources (shelters, emergency numbers) when relevant
 - Keep responses concise but thorough (2-4 paragraphs)

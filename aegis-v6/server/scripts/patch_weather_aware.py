@@ -176,7 +176,7 @@ NEW_METHOD = '''    def _get_nearest_weather(
 
 assert OLD_METHOD in content, "Could not find _get_nearest_weather method!"
 content = content.replace(OLD_METHOD, NEW_METHOD)
-print("✓ Patched _get_nearest_weather: now label-aware")
+print(" Patched _get_nearest_weather: now label-aware")
 
 # PATCH 2: Update the call site to pass is_positive and hazard_type
 
@@ -185,7 +185,7 @@ NEW_CALL = '            wx = self._get_nearest_weather(weather_cache, ts, lat, l
 
 assert OLD_CALL in content, "Could not find _get_nearest_weather call site!"
 content = content.replace(OLD_CALL, NEW_CALL)
-print("✓ Patched call site: passing is_positive and hazard_type")
+print(" Patched call site: passing is_positive and hazard_type")
 
 with open(FILE, 'w', encoding='utf-8') as f:
     f.write(content)

@@ -1,9 +1,9 @@
 """
-Unit tests for the SatelliteFloodExtentService — validates:
-  • NDWI computation logic
-  • Population estimation fallback
-  • Flood extent classification from backscatter change
-  • Service initialisation
+Unit tests for the SatelliteFloodExtentService -- validates:
+  - NDWI computation logic
+  - Population estimation fallback
+  - Flood extent classification from backscatter change
+  - Service initialisation
 """
 
 import sys
@@ -18,21 +18,21 @@ if str(AI_ROOT) not in sys.path:
     sys.path.insert(0, str(AI_ROOT))
 
 
-# ── NDWI computation ──────────────────────────────────────────────────────
+# NDWI computation
 
 
 class TestNDWIComputation:
     """Normalized Difference Water Index = (Green - NIR) / (Green + NIR)."""
 
     def test_ndwi_water_pixels(self):
-        """Water pixels: Green > NIR → NDWI > 0."""
+        """Water pixels: Green > NIR -> NDWI > 0."""
         green = np.array([[0.3, 0.4], [0.5, 0.6]], dtype=np.float32)
         nir   = np.array([[0.1, 0.1], [0.2, 0.1]], dtype=np.float32)
         ndwi  = (green - nir) / (green + nir + 1e-10)
         assert np.all(ndwi > 0), "Water should have positive NDWI"
 
     def test_ndwi_vegetation_pixels(self):
-        """Vegetation pixels: NIR > Green → NDWI < 0."""
+        """Vegetation pixels: NIR > Green -> NDWI < 0."""
         green = np.array([[0.1, 0.1]], dtype=np.float32)
         nir   = np.array([[0.5, 0.6]], dtype=np.float32)
         ndwi  = (green - nir) / (green + nir + 1e-10)
@@ -44,9 +44,9 @@ class TestNDWIComputation:
         nir   = np.array([[0.1, 0.18, 0.05]], dtype=np.float32)
         ndwi  = (green - nir) / (green + nir + 1e-10)
         water_mask = ndwi > 0.2
-        # First: (0.4-0.1)/(0.4+0.1)=0.6 → water
-        # Second: (0.2-0.18)/(0.2+0.18)≈0.053 → not water
-        # Third: (0.5-0.05)/(0.5+0.05)≈0.818 → water
+        # First: (0.4-0.1)/(0.4+0.1)=0.6 -> water
+        # Second: (0.2-0.18)/(0.2+0.18)≈0.053 -> not water
+        # Third: (0.5-0.05)/(0.5+0.05)≈0.818 -> water
         assert water_mask[0, 0] == True
         assert water_mask[0, 1] == False
         assert water_mask[0, 2] == True
@@ -59,7 +59,7 @@ class TestNDWIComputation:
         assert np.all(np.isfinite(ndwi))
 
 
-# ── Population estimation ─────────────────────────────────────────────────
+# Population estimation
 
 
 class TestPopulationEstimation:
@@ -73,7 +73,7 @@ class TestPopulationEstimation:
         assert pop == 2700
 
     def test_density_zero_area(self):
-        """Zero area → zero population."""
+        """Zero area -> zero population."""
         assert 0.0 * 270 == 0.0
 
     def test_density_large_area(self):
@@ -83,7 +83,7 @@ class TestPopulationEstimation:
         assert 400_000 < pop < 500_000  # Rough UK-average density
 
 
-# ── Backscatter change detection ──────────────────────────────────────────
+# Backscatter change detection
 
 
 class TestBackscatterChangeDetection:
@@ -95,22 +95,22 @@ class TestBackscatterChangeDetection:
         post = np.array([[-9, -9, -14], [-7, -8, -20]], dtype=np.float32)
         change_db = pre - post  # positive = backscatter dropped (water)
         flood_mask = change_db > 3.0
-        # Pixel (0,0): -5 - (-9) = 4 > 3 → flood
+        # Pixel (0,0): -5 - (-9) = 4 > 3 -> flood
         assert flood_mask[0, 0] == True
-        # Pixel (0,1): -8 - (-9) = 1 < 3 → no flood
+        # Pixel (0,1): -8 - (-9) = 1 < 3 -> no flood
         assert flood_mask[0, 1] == False
-        # Pixel (1,2): -12 - (-20) = 8 > 3 → flood
+        # Pixel (1,2): -12 - (-20) = 8 > 3 -> flood
         assert flood_mask[1, 2] == True
 
     def test_no_change_no_flood(self):
-        """Identical pre/post → no flood pixels."""
+        """Identical pre/post -> no flood pixels."""
         arr = np.full((5, 5), -10.0, dtype=np.float32)
         change_db = arr - arr
         flood_mask = change_db > 3.0
         assert not flood_mask.any()
 
 
-# ── Service initialisation ────────────────────────────────────────────────
+# Service initialisation
 
 
 class TestServiceInit:

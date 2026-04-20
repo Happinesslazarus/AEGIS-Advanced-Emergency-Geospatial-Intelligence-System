@@ -1,5 +1,5 @@
 ﻿/**
- * n8n workflow server health monitor — pings n8n every 60 seconds and
+ * n8n workflow server health monitor -- pings n8n every 60 seconds and
  * activates fallback cron jobs after 3 consecutive failures. Deactivates
  * fallbacks when n8n reconnects.
  *
@@ -54,7 +54,7 @@ function n8nHeaders(): Record<string, string> {
 async function checkN8nHealth(): Promise<boolean> {
   const n8nUrl = process.env.N8N_BASE_URL
 
-  // If n8n is not configured, assume it's not available — run fallback mode
+  //If n8n is not configured, assume it's not available -- run fallback mode
   if (!n8nUrl) {
     return false
   }
@@ -64,7 +64,7 @@ async function checkN8nHealth(): Promise<boolean> {
     const timeoutId = setTimeout(() => controller.abort(), 5000)
     const headers = n8nHeaders()
 
-    // Fetch workflows (also proves API is reachable)
+    //Fetch workflows (also proves API is reachable)
     const response = await fetch(`${n8nUrl}/api/v1/workflows?limit=100`, {
       method: 'GET',
       headers,
@@ -74,7 +74,7 @@ async function checkN8nHealth(): Promise<boolean> {
     clearTimeout(timeoutId)
     if (!response.ok) return false
 
-    // Parse workflow stats
+    //Parse workflow stats
     try {
       const body = await response.json()
       const workflows = body.data || body || []
@@ -82,9 +82,9 @@ async function checkN8nHealth(): Promise<boolean> {
         state.workflowCount = workflows.length
         state.activeWorkflowCount = workflows.filter((w: any) => w.active).length
       }
-    } catch { /* parse failure — still reachable */ }
+    } catch { /* parse failure -- still reachable */ }
 
-    // Try to get n8n version from /api/v1/info or /healthz
+    //Try to get n8n version from /api/v1/info or /healthz
     try {
       const versionRes = await fetch(`${n8nUrl}/api/v1/info`, {
         method: 'GET',
@@ -96,7 +96,7 @@ async function checkN8nHealth(): Promise<boolean> {
         state.version = info.versionCli || info.version || null
       }
     } catch {
-      // Version endpoint not available — try healthz
+      //Version endpoint not available -- try healthz
       try {
         const hz = await fetch(`${n8nUrl}/healthz`, { signal: AbortSignal.timeout(3000) })
         if (hz.ok) {
@@ -126,12 +126,12 @@ async function runCheck(): Promise<void> {
     state.lastHealthy = new Date()
     state.status = 'connected'
 
-    // Auto-register workflows on first connect or recovery
+    //Auto-register workflows on first connect or recovery
     tryRegisterWorkflows().catch(() => {})
 
     if (wasDown && state.fallbackActive) {
-      // n8n recovered — deactivate fallback
-      logger.info('[n8n] n8n recovered — deactivating fallback cron jobs')
+      //n8n recovered -- deactivate fallback
+      logger.info('[n8n] n8n recovered -- deactivating fallback cron jobs')
       state.fallbackActive = false
       deactivateFallbackJobs()
     }
@@ -141,8 +141,8 @@ async function runCheck(): Promise<void> {
     state.status = 'unreachable'
 
     if (state.consecutiveFailures >= MAX_FAILURES_BEFORE_FALLBACK && !state.fallbackActive) {
-      // n8n has been down for 3+ checks — activate fallback
-      logger.warn({ failures: state.consecutiveFailures }, '[n8n] n8n unreachable — activating fallback cron jobs')
+      //n8n has been down for 3+ checks -- activate fallback
+      logger.warn({ failures: state.consecutiveFailures }, '[n8n] n8n unreachable -- activating fallback cron jobs')
       state.fallbackActive = true
       resetRegistration() // re-register workflows when n8n recovers
       activateFallbackJobs()
@@ -159,9 +159,9 @@ async function runCheck(): Promise<void> {
 export function startN8nHealthMonitor(): void {
   if (intervalId) return // already running
 
-  // If N8N_BASE_URL is not configured, immediately activate fallback
+  //If N8N_BASE_URL is not configured, immediately activate fallback
   if (!process.env.N8N_BASE_URL) {
-    logger.info('[n8n] Standalone mode — built-in scheduler active (no external orchestrator)')
+    logger.info('[n8n] Standalone mode -- built-in scheduler active (no external orchestrator)')
     state.isHealthy = true
     state.fallbackActive = true
     state.lastChecked = new Date()
@@ -172,10 +172,10 @@ export function startN8nHealthMonitor(): void {
 
   logger.info({ intervalSec: CHECK_INTERVAL_MS / 1000, maxFailures: MAX_FAILURES_BEFORE_FALLBACK }, '[n8n] Starting health monitor')
 
-  // Initial check
+  //Initial check
   runCheck()
 
-  // Periodic checks
+  //Periodic checks
   intervalId = setInterval(runCheck, CHECK_INTERVAL_MS)
 }
 

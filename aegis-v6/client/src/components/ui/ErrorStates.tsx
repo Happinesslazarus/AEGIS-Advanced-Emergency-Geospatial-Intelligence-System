@@ -7,7 +7,7 @@
 import React, { Component, memo, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
-// ERROR BOUNDARY
+//ERROR BOUNDARY
 
 interface ErrorBoundaryState {
   hasError: boolean
@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     this.setState({ errorInfo })
     this.props.onError?.(error, errorInfo)
     
-    // Log to error tracking service in production
+    //Log to error tracking service in production
     if (process.env.NODE_ENV === 'production') {
       console.error('ErrorBoundary caught an error:', error, errorInfo)
     }
@@ -74,7 +74,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 }
 
-// ERROR DISPLAY
+//ERROR DISPLAY
 
 interface ErrorDisplayProps {
   /** Error object or message */
@@ -191,7 +191,7 @@ export const ErrorDisplay = memo<ErrorDisplayProps>(({
 
 ErrorDisplay.displayName = 'ErrorDisplay'
 
-// INLINE ERROR
+//INLINE ERROR
 
 interface InlineErrorProps {
   /** Error message */
@@ -221,7 +221,7 @@ export const InlineError = memo<InlineErrorProps>(({
 
 InlineError.displayName = 'InlineError'
 
-// EMPTY STATE
+//EMPTY STATE
 
 interface EmptyStateProps {
   /** Icon component */
@@ -301,7 +301,7 @@ export const EmptyState = memo<EmptyStateProps>(({
 
 EmptyState.displayName = 'EmptyState'
 
-// OFFLINE INDICATOR
+//OFFLINE INDICATOR
 
 interface OfflineIndicatorProps {
   /** Is currently offline */
@@ -343,7 +343,7 @@ export const OfflineIndicator = memo<OfflineIndicatorProps>(({
 
 OfflineIndicator.displayName = 'OfflineIndicator'
 
-// RETRY WRAPPER
+//RETRY WRAPPER
 
 interface RetryWrapperProps {
   /** Async function to retry */
@@ -402,7 +402,7 @@ export const RetryWrapper: React.FC<RetryWrapperProps> = ({
   return <>{children({ loading, error, retry, retryCount })}</>
 }
 
-// NOT FOUND
+//NOT FOUND
 
 interface NotFoundProps {
   /** Resource type that wasn't found */
@@ -459,7 +459,7 @@ export const NotFound = memo<NotFoundProps>(({
 
 NotFound.displayName = 'NotFound'
 
-// ACCESS DENIED
+//ACCESS DENIED
 
 interface AccessDeniedProps {
   /** Title override */
@@ -524,7 +524,7 @@ export const AccessDenied = memo<AccessDeniedProps>(({
 
 AccessDenied.displayName = 'AccessDenied'
 
-// ICONS (Inline SVG for tree-shaking)
+//ICONS (Inline SVG for tree-shaking)
 
 const ErrorIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -556,7 +556,7 @@ const LockIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 )
 
-// EXPORTS
+//EXPORTS
 
 export default {
   ErrorBoundary,

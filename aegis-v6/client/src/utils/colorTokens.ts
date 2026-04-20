@@ -6,9 +6,9 @@
  * alert states, incident types, status indicators, and feedback states.
  *
  * Three formats are exported for different rendering contexts:
- *   1. Hex strings  (#rrggbb)   — Leaflet / Mapbox GL map markers, SVG, Canvas
- *   2. RGBA tuples  [R,G,B,A]   — deck.gl GPU-accelerated layers
- *   3. Tailwind class strings   — JSX React components (theme-aware with dark: variants)
+ *   1. Hex strings  (#rrggbb)   -- Leaflet / Mapbox GL map markers, SVG, Canvas
+ *   2. RGBA tuples  [R,G,B,A]   -- deck.gl GPU-accelerated layers
+ *   3. Tailwind class strings   -- JSX React components (theme-aware with dark: variants)
  *
  * Glossary:
  *   as const          = TypeScript modifier: makes the object a readonly literal type;
@@ -41,16 +41,16 @@
  */
 
 /* ---------------------------------------------------------------------------
-   Hex color palette — raw #rrggbb strings for map/canvas/SVG rendering
+   Hex color palette -- raw #rrggbb strings for map/canvas/SVG rendering
 ---------------------------------------------------------------------------*/
 
 /* Severity level colours (used on map markers, chart fills, etc.) */
 export const SEVERITY_HEX = {
-  critical: '#dc2626', // bold red   — life-threatening
-  high:     '#f97316', // orange     — significant danger
-  medium:   '#eab308', // amber/gold — moderate risk
-  low:      '#3b82f6', // blue       — minor concern
-  info:     '#0ea5e9', // sky blue   — informational only
+  critical: '#dc2626', // bold red   -- life-threatening
+  high:     '#f97316', // orange     -- significant danger
+  medium:   '#eab308', // amber/gold -- moderate risk
+  low:      '#3b82f6', // blue       -- minor concern
+  info:     '#0ea5e9', // sky blue   -- informational only
 } as const
 
 /* Title-cased keys for Leaflet / Mapbox GL marker use (these APIs expect capitalised keys) */
@@ -96,22 +96,22 @@ export const INCIDENT_HEX = {
 
 /* Colours for SEPA river/weather station icons: maps the station's current alert level to a hex colour */
 export const STATION_HEX = {
-  critical: '#dc2626', // above alert level — immediate danger
+  critical: '#dc2626', // above alert level -- immediate danger
   high:     '#f97316',
   elevated: '#eab308', // above normal but below warning threshold
   normal:   '#22c55e', // within expected range
   active:   '#22c55e', // alias for 'normal' (station is live and healthy)
   warning:  '#eab308', // approaching alert threshold
   alert:    '#dc2626', // at or above alert threshold
-  offline:  '#6b7280', // grey — station is not reporting data
+  offline:  '#6b7280', // grey -- station is not reporting data
 } as const
 
 /* ---------------------------------------------------------------------------
-   RGBA tuple palette — [R, G, B, A] arrays for deck.gl GPU layers
+   RGBA tuple palette -- [R, G, B, A] arrays for deck.gl GPU layers
    Alpha (A) is 0-255; lower values produce semi-transparent overlays
 ---------------------------------------------------------------------------*/
 
-/* Severity as [R,G,B,A] for deck.gl ScatterplotLayer / ColumnLayer —
+/* Severity as [R,G,B,A] for deck.gl ScatterplotLayer / ColumnLayer --
    Title-cased keys match the severity strings returned by the AI engine */
 export const SEVERITY_RGBA: Record<string, [number, number, number, number]> = {
   High:   [239, 68, 68, 220],   // near-opaque red
@@ -128,7 +128,7 @@ export const STATUS_RGBA: Record<string, [number, number, number, number]> = {
 }
 
 /* ---------------------------------------------------------------------------
-   Tailwind CSS class strings — used in JSX className props
+   Tailwind CSS class strings -- used in JSX className props
    All include dark: variants so the colour adapts to the active theme
    (dark mode is toggled by adding the 'dark' class to <html> in ThemeContext)
 ---------------------------------------------------------------------------*/
@@ -161,32 +161,32 @@ export const SEVERITY_BG = {
   low:      'border-blue-400 bg-blue-50 dark:bg-blue-900/20',
 } as const
 
-/* Report severity → Tailwind bg class for admin table severity pill badge
+/* Report severity -> Tailwind bg class for admin table severity pill badge
    Note: 'bg-aegis-400' is a custom brand colour defined in tailwind.config.js,
    not a built-in Tailwind colour */
 export const SEVERITY_BG_PILL: Record<string, string> = {
   High:   'bg-red-500',
-  Medium: 'bg-aegis-400', // custom AEGIS brand amber/orange — see tailwind.config.js
+  Medium: 'bg-aegis-400', // custom AEGIS brand amber/orange -- see tailwind.config.js
   Low:    'bg-blue-400',
 }
 
-/* Report status → Tailwind bg class for admin table status pill badge
+/* Report status -> Tailwind bg class for admin table status pill badge
    Keys match the 'status' field values returned by the reports API */
 export const STATUS_BG_PILL: Record<string, string> = {
   Urgent:       'bg-red-600',
   Unverified:   'bg-gray-400',
   Verified:     'bg-green-500',
-  Flagged:      'bg-aegis-500', // custom brand colour — see tailwind.config.js
+  Flagged:      'bg-aegis-500', // custom brand colour -- see tailwind.config.js
   Resolved:     'bg-gray-300',
   Archived:     'bg-slate-500',
   False_Report: 'bg-rose-700',
 }
 
 /* ---------------------------------------------------------------------------
-   Text-only colour classes — no background; used in label and heading text
+   Text-only colour classes -- no background; used in label and heading text
 ---------------------------------------------------------------------------*/
 
-/* Risk tier text colour — used in prediction and AI output labels */
+/* Risk tier text colour -- used in prediction and AI output labels */
 export const RISK_CLASSES = {
   CRITICAL: 'text-red-600 dark:text-red-400',
   HIGH:     'text-orange-600 dark:text-orange-400',
@@ -195,7 +195,7 @@ export const RISK_CLASSES = {
   NONE:     'text-green-600 dark:text-green-400',
 } as const
 
-/* Incident type text colour — used in incident-type labels and headings */
+/* Incident type text colour -- used in incident-type labels and headings */
 export const INCIDENT_CLASSES = {
   flood:                   'text-blue-600 dark:text-blue-400',
   severe_storm:            'text-purple-600 dark:text-purple-400',
@@ -216,14 +216,14 @@ export const INCIDENT_CLASSES = {
    Specialised colour sets for specific panels / widgets
 ---------------------------------------------------------------------------*/
 
-/* Security dashboard alerts panel — severity badge (bg + text + border) */
+/* Security dashboard alerts panel -- severity badge (bg + text + border) */
 export const SECURITY_SEVERITY_CLASSES = {
   critical: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800',
   warning:  'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800',
   info:     'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800',
 } as const
 
-/* Toast / notification feedback colours — each state has 5 sub-properties:
+/* Toast / notification feedback colours -- each state has 5 sub-properties:
    bg (gradient background), border, text, icon (icon tint), progress (progress bar fill) */
 export const FEEDBACK_CLASSES = {
   success: {
@@ -256,7 +256,7 @@ export const FEEDBACK_CLASSES = {
   },
 } as const
 
-/* Activity log event-type → icon text colour + icon background pill
+/* Activity log event-type -> icon text colour + icon background pill
    Used in the admin activity log list to visually distinguish event types */
 export const ACTIVITY_COLORS: Record<string, string> = {
   verify:  'text-green-500 bg-green-50',
@@ -269,7 +269,7 @@ export const ACTIVITY_COLORS: Record<string, string> = {
   export:  'text-cyan-500 bg-cyan-50',
 }
 
-/* Dashboard StatCard colour → left-border accent class + metric value text colour
+/* Dashboard StatCard colour -> left-border accent class + metric value text colour
    The 'border-l-*' class adds the coloured left border that distinguishes each card */
 export const STAT_CARD_COLORS: Record<string, string> = {
   red:    'border-l-red-500 text-red-600 dark:text-red-400',

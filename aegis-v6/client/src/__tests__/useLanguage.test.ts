@@ -8,10 +8,10 @@
  *   test()                  = a single scenario with one expected outcome
  *   vi.fn()                 = creates a mock (fake) function that records calls + return values
  *   vi.mock()               = replaces a real module import with controlled fakes (hoisted by Vitest)
- *   mockReturnValue()       = sets what the mock returns when called — lets each test pick a language
+ *   mockReturnValue()       = sets what the mock returns when called -- lets each test pick a language
  *   vi.clearAllMocks()      = resets call history and return values on all mocks before each test
  *   renderHook()            = mounts a React hook in a minimal test component; returns { result }
- *   i18n                    = internationalisation — the system for translating the UI into
+ *   i18n                    = internationalisation -- the system for translating the UI into
  *                             different natural languages (English, Welsh, Arabic, etc.)
  *   i18next                 = the JavaScript library that manages translations; the real module
  *                             is mocked here so tests don't need real translation files
@@ -29,7 +29,7 @@
  *   cy                      = ISO 639-1 language code for Welsh (Cymraeg)
  *   gd                      = ISO 639-1 code for Scottish Gaelic
  *   ga                      = ISO 639-1 code for Irish Gaelic
- *   test.each()             = runs the same test with multiple data values — avoids copy-paste
+ *   test.each()             = runs the same test with multiple data values -- avoids copy-paste
  *
  * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
@@ -38,16 +38,16 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 
-// Create mock functions BEFORE vi.mock so the factory can close over them
+//Create mock functions BEFORE vi.mock so the factory can close over them
 const mockGetLanguage = vi.fn(() => 'en')           // returns current language code
 const mockOnLanguageChange = vi.fn((callback: (lang: string) => void) => {
-  // Default stub: immediately returns a no-op cleanup function
+  //Default stub: immediately returns a no-op cleanup function
   return () => {}
 })
 const mockIsRtl = vi.fn((lang: string) => ['ar', 'he', 'fa', 'ur'].includes(lang))
-// isRtl = true for Arabic (ar), Hebrew (he), Farsi (fa), Urdu (ur) — all RTL languages
+//isRtl = true for Arabic (ar), Hebrew (he), Farsi (fa), Urdu (ur) -- all RTL languages
 
-// Replace the real i18n module with stubs so tests don't touch real translation files
+//Replace the real i18n module with stubs so tests don't touch real translation files
 vi.mock('../utils/i18n', () => ({
   getLanguage: () => mockGetLanguage(),
   onLanguageChange: (cb: (lang: string) => void) => mockOnLanguageChange(cb),
@@ -60,14 +60,14 @@ describe('useLanguage', () => {
   beforeEach(() => {
     vi.clearAllMocks() // reset call counts so each test starts with a clean slate
     mockGetLanguage.mockReturnValue('en') // default to English for every test
-    // Reset <html> attributes so tests don't interfere with each other
+    //Reset <html> attributes so tests don't interfere with each other
     document.documentElement.lang = ''
     document.documentElement.dir = ''
   })
 
   describe('initialization', () => {
     test('returns current language', () => {
-      // Hook should read the current language from getLanguage() on mount
+      //Hook should read the current language from getLanguage() on mount
       mockGetLanguage.mockReturnValue('en')
       
       const { result } = renderHook(() => useLanguage())
@@ -76,7 +76,7 @@ describe('useLanguage', () => {
     })
 
     test('returns different initial language', () => {
-      // Same hook, but configured to start in Welsh
+      //Same hook, but configured to start in Welsh
       mockGetLanguage.mockReturnValue('cy')
       
       const { result } = renderHook(() => useLanguage())
@@ -87,16 +87,16 @@ describe('useLanguage', () => {
 
   describe('language subscription', () => {
     test('subscribes to language changes', () => {
-      // On mount the hook must call onLanguageChange() to register a listener
-      // so it reacts when the user switches language in the UI
+      //On mount the hook must call onLanguageChange() to register a listener
+      //so it reacts when the user switches language in the UI
       renderHook(() => useLanguage())
       
       expect(mockOnLanguageChange).toHaveBeenCalledWith(expect.any(Function))
     })
 
     test('cleans up subscription on unmount', () => {
-      // The cleanup function returned by onLanguageChange must be called when the
-      // component unmounts — failing to do so leaks the listener
+      //The cleanup function returned by onLanguageChange must be called when the
+      //component unmounts -- failing to do so leaks the listener
       const cleanup = vi.fn()
       mockOnLanguageChange.mockReturnValue(cleanup) // stub returns our spy as cleanup
       
@@ -118,7 +118,7 @@ describe('useLanguage', () => {
     })
 
     test('sets ltr direction for English', () => {
-      // English reads left-to-right — dir="ltr"
+      //English reads left-to-right -- dir="ltr"
       mockGetLanguage.mockReturnValue('en')
       mockIsRtl.mockReturnValue(false)
       
@@ -128,7 +128,7 @@ describe('useLanguage', () => {
     })
 
     test('sets rtl direction for Arabic', () => {
-      // Arabic reads right-to-left — dir="rtl"; CSS layout must mirror for RTL languages
+      //Arabic reads right-to-left -- dir="rtl"; CSS layout must mirror for RTL languages
       mockGetLanguage.mockReturnValue('ar')
       mockIsRtl.mockReturnValue(true)
       
@@ -138,7 +138,7 @@ describe('useLanguage', () => {
     })
 
     test('sets translate attribute', () => {
-      // translate="yes" allows browser extensions (e.g. Google Translate) to work
+      //translate="yes" allows browser extensions (e.g. Google Translate) to work
       renderHook(() => useLanguage())
       
       expect(document.documentElement.getAttribute('translate')).toBe('yes')
@@ -146,8 +146,8 @@ describe('useLanguage', () => {
   })
 
   describe('supported languages', () => {
-    // test.each() runs the same assertions for every language in the array —
-    // English (en), Welsh (cy), Scottish Gaelic (gd), Irish Gaelic (ga)
+    //test.each() runs the same assertions for every language in the array
+    //English (en), Welsh (cy), Scottish Gaelic (gd), Irish Gaelic (ga)
     const supportedLanguages = ['en', 'cy', 'gd', 'ga']
     
     test.each(supportedLanguages)('handles %s language', (lang) => {

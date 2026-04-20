@@ -74,7 +74,7 @@ async def run_complete_training_pipeline():
                 logger.info(f"Total Reports Ingested: {ingestion_stats['flood_ingested']}")
                 logger.info(f"Total Weather Observations: {ingestion_stats['weather_ingested']}")
                 logger.info(f"Final Report Count: {ingestion_stats['final_reports']}")
-                logger.info(f"Data Validation: {'✓ PASSED' if ingestion_stats['validation_passed'] else '✗ FAILED'}")
+                logger.info(f"Data Validation: {' PASSED' if ingestion_stats['validation_passed'] else 'x FAILED'}")
                 logger.info("")
 
             except ValueError as e:
@@ -91,7 +91,7 @@ async def run_complete_training_pipeline():
                 logger.error("  3. Database has correct schema (run migrations)")
                 return
         else:
-            logger.success(f"✓ Sufficient data available: {total_initial_reports} rows >= {RealDatasetIngestion.MINIMUM_REQUIRED_ROWS} required")
+            logger.success(f" Sufficient data available: {total_initial_reports} rows >= {RealDatasetIngestion.MINIMUM_REQUIRED_ROWS} required")
 
         await ingestion.cleanup()
 
@@ -135,15 +135,15 @@ async def run_complete_training_pipeline():
                 metrics = result.get('metrics', {})
                 logger.info("")
                 logger.info("Final Training Metrics:")
-                logger.info(f"  • Accuracy: {metrics.get('accuracy', 0):.4f}")
-                logger.info(f"  • Precision: {metrics.get('precision', 0):.4f}")
-                logger.info(f"  • Recall: {metrics.get('recall', 0):.4f}")
-                logger.info(f"  • F1 Score: {metrics.get('f1', 0):.4f}")
-                logger.info(f"  • ROC AUC: {metrics.get('roc_auc', 0):.4f}")
+                logger.info(f"  - Accuracy: {metrics.get('accuracy', 0):.4f}")
+                logger.info(f"  - Precision: {metrics.get('precision', 0):.4f}")
+                logger.info(f"  - Recall: {metrics.get('recall', 0):.4f}")
+                logger.info(f"  - F1 Score: {metrics.get('f1', 0):.4f}")
+                logger.info(f"  - ROC AUC: {metrics.get('roc_auc', 0):.4f}")
                 logger.info("")
 
             except Exception as e:
-                logger.error(f"✗ Training failed for {hazard}: {e}")
+                logger.error(f"x Training failed for {hazard}: {e}")
                 training_results[hazard] = {"status": "failed", "error": str(e)}
 
         # PHASE 3: FINAL REPORT
@@ -158,13 +158,13 @@ async def run_complete_training_pipeline():
         successful = sum(1 for r in training_results.values() if r.get('metrics'))
         failed = len(training_results) - successful
 
-        logger.info(f"  • Total hazards trained: {len(hazards)}")
-        logger.info(f"  • Successful: {successful}")
-        logger.info(f"  • Failed: {failed}")
+        logger.info(f"  - Total hazards trained: {len(hazards)}")
+        logger.info(f"  - Successful: {successful}")
+        logger.info(f"  - Failed: {failed}")
         logger.info("")
 
         for hazard, result in training_results.items():
-            status = "✓ SUCCESS" if result.get('metrics') else "✗ FAILED"
+            status = " SUCCESS" if result.get('metrics') else "x FAILED"
             logger.info(f"  {hazard.ljust(12)}: {status}")
 
         logger.info("")

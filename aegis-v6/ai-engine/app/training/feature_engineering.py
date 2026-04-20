@@ -21,7 +21,7 @@ from loguru import logger
 # Constants
 
 _MAGNUS_A = 17.27
-_MAGNUS_B = 237.7  # —C
+_MAGNUS_B = 237.7  # --C
 
 _HEAT_INDEX_C = [
     -42.379, 2.04901523, 10.14333127, -0.22475541,
@@ -96,7 +96,7 @@ class FeatureEngineer:
             shift_6h = _periods(6)
             out["rate_of_rise_6h"] = g["level_m"] - g["level_m"].shift(shift_6h)
 
-            # Percentile rank — causal expanding rank (never uses future data).
+            # Percentile rank -- causal expanding rank (never uses future data).
             # Using .rank(pct=True) on the full series would give the final
             # percentile at each point (leaks test distribution into training
             # features). Expanding rank at time T uses only observations [0, T].
@@ -143,7 +143,7 @@ class FeatureEngineer:
             results.append(out)
 
         if not results:
-            logger.warning("compute_river_features: empty input — returning empty DataFrame")
+            logger.warning("compute_river_features: empty input -- returning empty DataFrame")
             return pd.DataFrame()
 
         combined = pd.concat(results)
@@ -218,7 +218,7 @@ class FeatureEngineer:
                 hourly_rate.rolling(_p(24), min_periods=1).max()
             )
 
-            # Monthly climatology anomaly — causal expanding mean to prevent leakage.
+            # Monthly climatology anomaly -- causal expanding mean to prevent leakage.
             # Using full-dataset .transform("mean") would include val/test months in the
             # monthly climatology, leaking future information into training features.
             # Causal fix: for each calendar month, compute the expanding mean of only the
@@ -237,7 +237,7 @@ class FeatureEngineer:
             results.append(out)
 
         if not results:
-            logger.warning("compute_rainfall_features: empty input — returning empty DataFrame")
+            logger.warning("compute_rainfall_features: empty input -- returning empty DataFrame")
             return pd.DataFrame()
 
         combined = pd.concat(results)
@@ -315,7 +315,7 @@ class FeatureEngineer:
         df["freeze_thaw_cycles_48h"] = sign_changes.rolling(p48, min_periods=1).sum()
 
         # Wind chill index (JAG/TI formula)
-        # Valid for T <= 10 —C and V > 4.8 km/h
+        # Valid for T <= 10 --C and V > 4.8 km/h
         t = df["temperature_2m"]
         v_kmh = df["wind_speed_10m"] * 3.6  # m/s ? km/h
         wc = (
@@ -328,7 +328,7 @@ class FeatureEngineer:
         df["wind_chill_index"] = np.where(mask_wc, wc, t)
 
         # Heat index (Rothfusz regression)
-        t_f = t * 9.0 / 5.0 + 32.0  # —C ? —F
+        t_f = t * 9.0 / 5.0 + 32.0  # --C ? --F
         rh = df["relative_humidity_2m"]
         c = _HEAT_INDEX_C
         hi_f = (
@@ -342,8 +342,8 @@ class FeatureEngineer:
             + c[7] * t_f * rh ** 2
             + c[8] * t_f ** 2 * rh ** 2
         )
-        hi_c = (hi_f - 32.0) * 5.0 / 9.0  # back to —C
-        # Only meaningful when T >= 27 —C and RH >= 40%
+        hi_c = (hi_f - 32.0) * 5.0 / 9.0  # back to --C
+        # Only meaningful when T >= 27 --C and RH >= 40%
         heat_mask = (t >= 27) & (rh >= 40)
         df["heat_index"] = np.where(heat_mask, hi_c, t)
 
@@ -396,7 +396,7 @@ class FeatureEngineer:
 
         # Hargreaves ET0 (simplified daily, mm/day)
         #   ET0 = 0.0023 * Ra * (T_mean + 17.8) * (T_max - T_min)^0.5
-        #   Use constant extraterrestrial radiation — 15 MJ/m—/day (mid-latitude avg)
+        #   Use constant extraterrestrial radiation -- 15 MJ/m--/day (mid-latitude avg)
         ra_approx = 15.0
         t_mean = wx["temperature_2m"]
         daily_tmax = t_mean.resample("D").max().reindex(wx.index, method="ffill")
@@ -931,7 +931,7 @@ class SPEIFeatures:
     SPEI (Standardised Precipitation-Evapotranspiration Index) is the
     UN-endorsed gold-standard drought indicator (Vicente-Serrano et al., 2010,
     J. Climate 23:1696-1718).  It accounts for both precipitation deficit and
-    evaporative demand — superior to SPI (precipitation-only) for predicting
+    evaporative demand -- superior to SPI (precipitation-only) for predicting
     flash drought onset and water supply disruption.
 
     Data: SPEI-3 (3-month timescale, drought onset) and SPEI-12 (12-month,
@@ -1031,7 +1031,7 @@ class SPEIFeatures:
         mask = (times >= start_dt) & (times <= end_dt)
         sel_times = times[mask]
 
-        # data shape may be (time, lat, lon) or (time, lon, lat) — detect by comparing sizes
+        # data shape may be (time, lat, lon) or (time, lon, lat) -- detect by comparing sizes
         if data.ndim == 3:
             if data.shape[1] == len(lats):
                 vals = data[mask, lat_idx, lon_idx]
@@ -1054,7 +1054,7 @@ class SPEIFeatures:
     ) -> pd.DataFrame:
         """Merge SPEI features into a feature DataFrame indexed by timestamp.
 
-        SPEI is monthly — each month's value is forward-filled to hourly rows
+        SPEI is monthly -- each month's value is forward-filled to hourly rows
         within that month (causal: no future data leaks in).
 
         Parameters
@@ -1082,7 +1082,7 @@ class SPEIFeatures:
                 out[col] = spei_reindexed.values
 
                 # Derived features
-                # Consecutive months below threshold — severity accumulation
+                # Consecutive months below threshold -- severity accumulation
                 out[f"spei_{scale:02d}_drought_flag"] = (out[col] < -1.0).astype(float)
                 # Running consecutive drought months (causal)
                 streak = (out[f"spei_{scale:02d}_drought_flag"]

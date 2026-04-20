@@ -1,10 +1,10 @@
 """
-setup_credentials.py — Interactive wizard to configure all external API credentials.
+setup_credentials.py -- Interactive wizard to configure all external API credentials.
 
 Sets up:
-  1. Copernicus CDS (~/.cdsapirc)           — ERA5, CHIRPS, SPEI via cdsapi
-  2. NASA Earthdata (~/.netrc)               — FIRMS, MODIS, SMAP via requests
-  3. Weights & Biases (wandb login)          — Experiment tracking
+  1. Copernicus CDS (~/.cdsapirc)           -- ERA5, CHIRPS, SPEI via cdsapi
+  2. NASA Earthdata (~/.netrc)               -- FIRMS, MODIS, SMAP via requests
+  3. Weights & Biases (wandb login)          -- Experiment tracking
 
 Usage:
   python scripts/setup/setup_credentials.py
@@ -27,9 +27,7 @@ CDS_RC   = HOME / ".cdsapirc"
 NETRC    = HOME / ".netrc"
 
 
-# ---------------------------------------------------------------------------
 # CDS setup
-# ---------------------------------------------------------------------------
 CDS_REGISTER_URL = "https://cds.climate.copernicus.eu/api-how-to"
 
 def setup_cds() -> None:
@@ -48,7 +46,7 @@ def setup_cds() -> None:
     api_key = input("  Enter your CDS API key: ").strip()
 
     if not uid or not api_key:
-        print("  Skipped — empty input.")
+        print("  Skipped -- empty input.")
         return
 
     content = f"url: https://cds.climate.copernicus.eu/api/v2\nkey: {uid}:{api_key}\n"
@@ -62,12 +60,10 @@ def setup_cds() -> None:
         print("  CDS connection OK.")
     except Exception as exc:
         print(f"  Warning: CDS verification failed: {exc}")
-        print("  This is OK if you just set it up — try again in a few minutes.")
+        print("  This is OK if you just set it up -- try again in a few minutes.")
 
 
-# ---------------------------------------------------------------------------
 # NASA Earthdata setup
-# ---------------------------------------------------------------------------
 NASA_REGISTER_URL = "https://urs.earthdata.nasa.gov/users/new"
 
 def setup_nasa() -> None:
@@ -91,7 +87,7 @@ def setup_nasa() -> None:
     password = input("  Enter your NASA Earthdata password: ").strip()
 
     if not username or not password:
-        print("  Skipped — empty input.")
+        print("  Skipped -- empty input.")
         return
 
     # Append or create .netrc entry
@@ -123,9 +119,7 @@ def setup_nasa() -> None:
     print("  NASA Earthdata credentials configured.")
 
 
-# ---------------------------------------------------------------------------
 # W&B setup
-# ---------------------------------------------------------------------------
 WANDB_REGISTER_URL = "https://wandb.ai/authorize"
 
 def setup_wandb() -> None:
@@ -149,9 +143,7 @@ def setup_wandb() -> None:
         print("  Run manually: wandb login")
 
 
-# ---------------------------------------------------------------------------
 # Verification
-# ---------------------------------------------------------------------------
 def verify_all() -> None:
     print("\n=== Credential Verification ===")
 
@@ -190,9 +182,7 @@ def verify_all() -> None:
         print(f"  [MISSING] GEE not configured: {exc}")
 
 
-# ---------------------------------------------------------------------------
 # CLI
-# ---------------------------------------------------------------------------
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Set up AEGIS external API credentials")
     p.add_argument("--cds-only",   action="store_true")

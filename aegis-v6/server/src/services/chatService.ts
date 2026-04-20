@@ -6,16 +6,16 @@
  * scoring, analytics, and streaming.
  *
  * Public API:
- * - processChat()              — single-turn completion, returns JSON
- * - processChatStream()        — streaming completion via SSE
- * - getChatHistory()           — loads previous messages for a session
- * - listSessions()             — lists a user's chat sessions
- * - endChatSession()           — closes session, generates AI summary
+ * - processChat()              -- single-turn completion, returns JSON
+ * - processChatStream()        -- streaming completion via SSE
+ * - getChatHistory()           -- loads previous messages for a session
+ * - listSessions()             -- lists a user's chat sessions
+ * - endChatSession()           -- closes session, generates AI summary
  *
  * Routes:
- * - server/src/routes/chatRoutes.ts          — HTTP and SSE endpoints
- * - server/src/services/llmRouter.ts         — LLM provider selection
- * - server/src/services/personalizationEngine.ts — user memory and behaviour
+ * - server/src/routes/chatRoutes.ts          -- HTTP and SSE endpoints
+ * - server/src/services/llmRouter.ts         -- LLM provider selection
+ * - server/src/services/personalizationEngine.ts -- user memory and behaviour
  */
 import pool from '../models/db.js'
 import {
@@ -126,14 +126,14 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     }
   }
 
-  // Emergency detection — run early so we can influence the entire response
+  //Emergency detection -- run early so we can influence the entire response
   const emergency = detectEmergency(sanitizedMessage)
 
   const queryHash = hashQuery(sanitizedMessage)
 
-  // Check cache first (skip cache for emergencies — always provide live data)
+  //Check cache first (skip cache for emergencies -- always provide live data)
   if (!emergency.isEmergency) {
-    // Layer 1: Exact hash match
+    //Layer 1: Exact hash match
     const cached = await getCachedResponse(queryHash)
     if (cached) {
       return {
@@ -150,7 +150,7 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
       }
     }
 
-    // Layer 2: Semantic similarity cache — find cached responses with similar meaning
+    //Layer 2: Semantic similarity cache -- find cached responses with similar meaning
     try {
       const { rows: similar } = await pool.query(
         `SELECT query_hash, response_text,
@@ -163,7 +163,7 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
         [await getQueryEmbedding(sanitizedMessage)],
       )
       if (similar.length > 0) {
-        // Bump hit count on the matched cache entry
+        //Bump hit count on the matched cache entry
         pool.query(`UPDATE response_cache SET hit_count = hit_count + 1 WHERE query_hash = $1`, [similar[0].query_hash]).catch(() => {})
         devLog(`[Chat] Semantic cache hit (similarity: ${similar[0].similarity.toFixed(3)})`)
         return {
@@ -180,14 +180,14 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
         }
       }
     } catch {
-      // Semantic cache is best-effort — proceed if embedding fails
+      //Semantic cache is best-effort -- proceed if embedding fails
     }
   }
 
-  // Get or create session
+  //Get or create session
   let sessionId = req.sessionId
   if (sessionId) {
-    // Check if session exists; if not, create it with the provided ID
+    //Check if session exists; if not, create it with the provided ID
     const existing = await pool.query(`SELECT id FROM chat_sessions WHERE id = $1`, [sessionId])
     if (existing.rows.length === 0) {
       await pool.query(
@@ -228,26 +228,26 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     }
   }
 
-  // Persist user message
+  //Persist user message
   await pool.query(
     `INSERT INTO chat_messages (session_id, role, content) VALUES ($1, 'user', $2)`,
     [sessionId, sanitizedMessage],
   )
 
-  // Skip RAG for document-analysis messages — the document itself is the context;
-  // searching the emergency knowledge base with lecture/PDF text only adds noise.
+  //Skip RAG for document-analysis messages -- the document itself is the context;
+  //searching the emergency knowledge base with lecture/PDF text only adds noise.
   const isDocumentUpload = sanitizedMessage.includes('[DOCUMENT UPLOAD')
   const ragContext = isDocumentUpload ? '' : await retrieveRAGContext(sanitizedMessage)
 
-  // Build live situational context from DB
+  //Build live situational context from DB
   const liveContext = await buildLiveContext()
 
-  // Auto-execute image analysis when citizen attaches a photo
-  // Instead of relying on the LLM to decide to call the tool, we proactively
-  // run vision analysis and inject the result so the LLM always has it.
+  //Auto-execute image analysis when citizen attaches a photo
+  //Instead of relying on the LLM to decide to call the tool, we proactively
+  //run vision analysis and inject the result so the LLM always has it.
   let imageAnalysisContext = ''
   let rawVisionHeader = ''  // Prepended to reply so structured data is always present
-  const imageMarkerMatch = sanitizedMessage.match(/\[The citizen attached an image:\s*([^\]—]+)/)
+  const imageMarkerMatch = sanitizedMessage.match(/\[The citizen attached an image:\s*([^\]]+)/)
   if (imageMarkerMatch) {
     const imageUrl = imageMarkerMatch[1].trim()
     const userText = sanitizedMessage.replace(/\[The citizen attached an image:[^\]]*\]\s*/i, '').trim()
@@ -256,20 +256,20 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
       const sid = sessionId || ''
       const analysisResult = await executeImageAnalysis(imageUrl, userText || undefined, sid || undefined)
       if (analysisResult === '__VISION_UNAVAILABLE__') {
-        imageAnalysisContext = `\n\n[IMAGE UPLOAD RECEIVED — VISION ANALYSIS UNAVAILABLE]\nThe citizen uploaded a photo (${imageUrl}) but our vision AI could not analyze it at this time. DO NOT pretend to analyze the image. DO NOT make up what the image shows. Instead, tell the citizen: "I received your image but my visual analysis system is temporarily unavailable. Please describe what you see in the photo and I will provide safety guidance based on your description." Then ask specific questions about what they see.`
+        imageAnalysisContext = `\n\n[IMAGE UPLOAD RECEIVED -- VISION ANALYSIS UNAVAILABLE]\nThe citizen uploaded a photo (${imageUrl}) but our vision AI could not analyze it at this time. DO NOT pretend to analyze the image. DO NOT make up what the image shows. Instead, tell the citizen: "I received your image but my visual analysis system is temporarily unavailable. Please describe what you see in the photo and I will provide safety guidance based on your description." Then ask specific questions about what they see.`
       } else {
-        // Extract the structured header line (?? **Image Analysis** ...) to prepend to reply
+        //Extract the structured header line (?? **Image Analysis** ...) to prepend to reply
         const headerMatch = analysisResult.match(/^(.{0,4}\*\*Image Analysis\*\*.*?\n\*\*Detected:\*\*.*?\n)/)
         if (headerMatch) {
           rawVisionHeader = headerMatch[1] + '\n'
         }
 
-        // Build image memory comparison if multiple images in session
+        //Build image memory comparison if multiple images in session
         const lastEntry = sid ? sessionImageMemory.get(sid) : undefined
         const lastAnalysis = lastEntry?.[lastEntry.length - 1]?.analysis
         const imageMemoryCtx = (sid && lastAnalysis) ? buildImageMemoryContext(sid, lastAnalysis) : ''
 
-        imageAnalysisContext = `\n\n[IMAGE ANALYSIS COMPLETED — VISION AI RESULTS]\nThe citizen uploaded a photo and it has been analyzed by our vision AI. Here are the ACTUAL findings from the vision model:\n\n${analysisResult}\n\nIMPORTANT: Base your response primarily on this image analysis. The analysis above was performed by a real vision model that can SEE the image. Trust these findings and provide safety guidance based on what the vision model detected. Address the citizen's specific question about the image.${imageMemoryCtx}`
+        imageAnalysisContext = `\n\n[IMAGE ANALYSIS COMPLETED -- VISION AI RESULTS]\nThe citizen uploaded a photo and it has been analyzed by our vision AI. Here are the ACTUAL findings from the vision model:\n\n${analysisResult}\n\nIMPORTANT: Base your response primarily on this image analysis. The analysis above was performed by a real vision model that can SEE the image. Trust these findings and provide safety guidance based on what the vision model detected. Address the citizen's specific question about the image.${imageMemoryCtx}`
       }
       devLog(`[Chat] Image auto-analysis complete (${analysisResult.length} chars)`)
     } catch (err: any) {
@@ -278,7 +278,7 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     }
   }
 
-  // Language: detect ACTUAL message language, not browser locale.
+  //Language: detect ACTUAL message language, not browser locale.
   let detectedLanguage = 'en'
   let languageInstruction = ''
   try {
@@ -290,15 +290,15 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
       languageInstruction = '\n\n=== LANGUAGE RULE === You MUST respond ONLY in English. Do NOT use German, French, Spanish, or any other language. Every single word of your response must be in English. This is a hard requirement. ==='
     }
   } catch {
-    // Language detection failure — default to English
+    //Language detection failure -- default to English
     languageInstruction = '\n\n=== LANGUAGE RULE === You MUST respond ONLY in English. Do NOT use German, French, Spanish, or any other language. Every single word of your response must be in English. This is a hard requirement. ==='
   }
 
-  // Route to specialist agent based on emotion/intent
+  //Route to specialist agent based on emotion/intent
   const routing = await routeToAgent(sanitizedMessage)
   const agent = AGENTS[routing.agent]
 
-  // Load conversation history (last 20 messages)
+  //Load conversation history (last 20 messages)
   const { rows: history } = await pool.query(
     `SELECT role, content FROM chat_messages
      WHERE session_id = $1
@@ -317,47 +317,47 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     }
   })
 
-  // Conversation memory management — compress older messages if needed
+  //Conversation memory management -- compress older messages if needed
   const { compressedHistory, memory } = await manageConversationMemory(redactedHistory)
 
-  // Detect topic shifts
+  //Detect topic shifts
   const topicShiftDetected = detectTopicShift(sanitizedMessage, memory.topics)
 
-  // Infer dialogue state for context continuity
+  //Infer dialogue state for context continuity
   const dialogueState = inferDialogueState(redactedHistory, sanitizedMessage, emergency, routing.emotion)
   const dialogueStateContext = buildDialogueStateContext(dialogueState)
 
-  // Load user long-term memory for returning users
+  //Load user long-term memory for returning users
   const userProfile = await loadUserProfile(req.citizenId)
   const userProfileContext = buildUserProfileContext(userProfile)
 
-  // ADVANCED PERSONALIZATION — Cross-session memory, behavior profiles,
-  // conversation summaries, and smart suggestions for signed-in users.
-  // Anonymous citizens get baseline responses; signed-in users get the
-  // full intelligence experience.
+  //ADVANCED PERSONALIZATION -- Cross-session memory, behavior profiles,
+  //conversation summaries, and smart suggestions for signed-in users.
+  //Anonymous citizens get baseline responses; signed-in users get the
+  //full intelligence experience.
 
-  // —P1: Cross-session memory — persistent facts remembered across chats
+  // P1: Cross-session memory -- persistent facts remembered across chats
   let memoryContext = ''
   let episodicContext = ''
   if (req.citizenId) {
     const memories = await loadCitizenMemories(req.citizenId)
     memoryContext = buildMemoryContext(memories)
-    // Episodic memory — specific past incidents this citizen experienced
+    //Episodic memory -- specific past incidents this citizen experienced
     const episodes = await loadEpisodicMemories(req.citizenId)
     episodicContext = buildEpisodicContext(episodes)
-    // Fire-and-forget: extract new memories + episodes from this message
+    //Fire-and-forget: extract new memories + episodes from this message
     extractAndSaveMemories(req.citizenId, sanitizedMessage, sessionId!).catch(() => {})
     extractEpisodicEvents(req.citizenId, sanitizedMessage, '').catch(() => {})
   }
 
-  // —P2: Behavioral profiling — adapt communication style to learned preferences
+  // P2: Behavioral profiling -- adapt communication style to learned preferences
   let behaviorContext = ''
   if (req.citizenId) {
     const behaviorProfile = await loadBehaviorProfile(req.citizenId)
     behaviorContext = buildBehaviorContext(behaviorProfile)
   }
 
-  // —P3: Operator profiling — enhanced admin intelligence
+  // P3: Operator profiling -- enhanced admin intelligence
   let operatorContext = ''
   if (req.operatorId) {
     const opProfile = await loadOperatorProfile(req.operatorId)
@@ -381,49 +381,49 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     }
   }
 
-  // —P4: Cross-session conversation summaries — continuity across chats
+  // P4: Cross-session conversation summaries -- continuity across chats
   let summaryContext = ''
   if (req.citizenId) {
     const recentSummaries = await loadRecentSummaries(req.citizenId)
     summaryContext = buildSummaryContext(recentSummaries)
   } else if (req.operatorId) {
-    // Operators also benefit from cross-shift continuity
+    //Operators also benefit from cross-shift continuity
     const recentSummaries = await loadRecentSummaries(req.operatorId)
     summaryContext = buildSummaryContext(recentSummaries)
   }
 
-  // Build emergency context for the prompt
+  //Build emergency context for the prompt
   const emergencyInstruction = emergency.isEmergency
     ? `\n\n?? EMERGENCY DETECTED: The user appears to be in a ${emergency.type || 'unknown'} emergency (severity: ${emergency.severity}). Prioritize immediate safety guidance. Lead with the most critical actions.`
     : ''
 
-  // Build entity context for continuity
+  //Build entity context for continuity
   const entityContext = (memory.entities.locations.length > 0 || memory.entities.hazardTypes.length > 0)
-    ? `\n\nConversation context — previously mentioned: locations=[${memory.entities.locations.join(', ')}], hazards=[${memory.entities.hazardTypes.join(', ')}]. Maintain continuity with these references.`
+    ? `\n\nConversation context -- previously mentioned: locations=[${memory.entities.locations.join(', ')}], hazards=[${memory.entities.hazardTypes.join(', ')}]. Maintain continuity with these references.`
     : ''
 
-  // Admin mode — append operator system prompt and tools
+  //Admin mode -- append operator system prompt and tools
   const adminAddendum = req.adminMode ? COMPACT_ADMIN_ADDENDUM : ''
   const tools = req.adminMode ? [...AVAILABLE_TOOLS, ...ADMIN_TOOLS] : AVAILABLE_TOOLS
 
-  // For document uploads: override the system with a focused analysis instruction
-  // and suppress live emergency context so the AI doesn't blend AEGIS dashboard
-  // data into a lecture/document summary.
+  //For document uploads: override the system with a focused analysis instruction
+  //and suppress live emergency context so the AI doesn't blend AEGIS dashboard
+  //data into a lecture/document summary.
   const documentOverride = isDocumentUpload
-    ? `\n\n[DOCUMENT ANALYSIS MODE]\nThe user has uploaded a document for analysis. Your ENTIRE response must be a structured summary/analysis of that document's content. Do NOT reference AEGIS alerts, live conditions, weather, flood data, or emergency dashboards — those are irrelevant to this request. Treat this exactly like ChatGPT or Claude would: read the document and explain what it says.`
+    ? `\n\n[DOCUMENT ANALYSIS MODE]\nThe user has uploaded a document for analysis. Your ENTIRE response must be a structured summary/analysis of that document's content. Do NOT reference AEGIS alerts, live conditions, weather, flood data, or emergency dashboards -- those are irrelevant to this request. Treat this exactly like ChatGPT or Claude would: read the document and explain what it says.`
     : ''
   const effectiveLiveContext = isDocumentUpload ? '' : liveContext
 
-  // Build messages array with full personalization stack:
-  // System prompt + Creator Profile + Agent + Admin + Language + Emergency + Entity + Dialogue +
-  // User Profile + Cross-Session Memory + Episodic Memory + Behavior Profile +
-  // Operator Profile + Session Summaries + Live Context + RAG
+  //Build messages array with full personalization stack:
+  //System prompt + Creator Profile + Agent + Admin + Language + Emergency + Entity + Dialogue +
+  //User Profile + Cross-Session Memory + Episodic Memory + Behavior Profile +
+  //Operator Profile + Session Summaries + Live Context + RAG
   const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
     { role: 'system', content: languageInstruction + '\n\n' + COMPACT_SYSTEM_PROMPT + '\n\n' + CREATOR_PROFILE + agent.systemAddendum + adminAddendum + emergencyInstruction + entityContext + dialogueStateContext + userProfileContext + memoryContext + episodicContext + behaviorContext + operatorContext + summaryContext + imageAnalysisContext + effectiveLiveContext + ragContext + documentOverride + '\n\n' + languageInstruction },
     ...compressedHistory.map(m => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
   ]
 
-  // Append language instruction to the LAST user message for non-streaming path
+  //Append language instruction to the LAST user message for non-streaming path
   if (detectedLanguage === 'en') {
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === 'user') {
@@ -433,17 +433,17 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     }
   }
 
-  // Classify query for intelligent model selection
+  //Classify query for intelligent model selection
   const queryClassification = classifyQuery(sanitizedMessage)
 
-  // Fire-and-forget: preload the optimal model while we build the request
+  //Fire-and-forget: preload the optimal model while we build the request
   preloadModelForClassification(queryClassification).catch(() => {})
 
-  // Document uploads need a large context window — route to Gemini (1M tokens free)
-  // rather than Ollama which cannot fit the system prompt + document content.
+  //Document uploads need a large context window -- route to Gemini (1M tokens free)
+  //rather than Ollama which cannot fit the system prompt + document content.
   const docPreferredProvider = isDocumentUpload ? 'gemini' : undefined
 
-  // Call LLM — LOCAL-FIRST via Ollama, cloud APIs as fallback. Propagate error if all providers fail.
+  //Call LLM -- LOCAL-FIRST via Ollama, cloud APIs as fallback. Propagate error if all providers fail.
   let response: { content: string; model: string; tokensUsed: number; latencyMs: number }
   try {
     response = await chatCompletion({
@@ -454,7 +454,7 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
       preferredProvider: docPreferredProvider,
     } as any)
   } catch (llmErr: any) {
-    // Propagate a clear, actionable error — do NOT silently fall back to heuristic
+    //Propagate a clear, actionable error -- do NOT silently fall back to heuristic
     logger.error({ err: llmErr }, '[Chat] LLM ERROR')
 
     const errorReply =
@@ -487,9 +487,9 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
   const toolsUsed: string[] = []
   let finalReply = response.content
 
-  // MULTI-HOP TOOL CALLING — up to 3 reasoning loops
-  // Each iteration: parse tool calls ? execute ? feed results back to
-  // the LLM for synthesis and possible further tool calls.
+  //MULTI-HOP TOOL CALLING -- up to 3 reasoning loops
+  //Each iteration: parse tool calls ? execute ? feed results back to
+  //the LLM for synthesis and possible further tool calls.
   const MAX_TOOL_HOPS = 3
   for (let hop = 0; hop < MAX_TOOL_HOPS; hop++) {
     const toolCallPattern = /\[TOOL_CALL: (\w+)\((.*?)\)\]/g
@@ -504,9 +504,9 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
       }
     }
 
-    if (toolCalls.length === 0) break  // No more tools — done
+    if (toolCalls.length === 0) break  // No more tools -- done
 
-    // Execute tool calls
+    //Execute tool calls
     const toolResults: string[] = []
     if (toolCalls.length > 1) {
       const composite = await executeCompositeToolCalls(
@@ -523,7 +523,7 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
       toolsUsed.push(toolCalls[0].name)
     }
 
-    // Build a synthesis prompt with tool results and re-call the LLM
+    //Build a synthesis prompt with tool results and re-call the LLM
     const toolResultsBlock = toolResults.join('\n\n')
     messages.push({ role: 'assistant', content: finalReply })
     messages.push({
@@ -545,7 +545,7 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
       response = hopResponse  // Update for token tracking
     } catch (err: any) {
       logger.error({ err, hop: hop + 1 }, '[Chat] Multi-hop LLM call failed')
-      // Fall back to simple replacement on the last good reply
+      //Fall back to simple replacement on the last good reply
       for (let i = 0; i < toolCalls.length; i++) {
         const result = toolResults[i]?.replace(/^\[[^\]]+\]: /, '') || '[Tool unavailable]'
         finalReply = finalReply.replace(toolCalls[i].fullMatch, result)
@@ -554,20 +554,20 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     }
   }
 
-  // Prepend emergency preamble if emergency was detected
+  //Prepend emergency preamble if emergency was detected
   if (emergency.isEmergency) {
     finalReply = buildEmergencyPreamble(emergency) + finalReply
   }
 
-  // Prepend raw vision header so structured detection data is always in the reply
+  //Prepend raw vision header so structured detection data is always in the reply
   if (rawVisionHeader) {
     finalReply = rawVisionHeader + finalReply
   }
 
-  // Safety check
+  //Safety check
   finalReply = reinjectPii(finalReply, piiReplacements)
 
-  // Output validation — catch local model hallucinations
+  //Output validation -- catch local model hallucinations
   const outputValidation = validateOutputSafety(finalReply)
   if (!outputValidation.safe) {
     logger.warn({ flags: outputValidation.flags }, '[Chat] Output safety flags triggered')
@@ -583,11 +583,11 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
       'You are not alone. Help is available.'
   }
 
-  // Self-Consistency Verification
-  // Check response for contradictions, numerical errors, and tool data mismatches
+  //Self-Consistency Verification
+  //Check response for contradictions, numerical errors, and tool data mismatches
   let consistencyConfidenceAdj = 0
   if (safetyFlags.length === 0) {
-    // Collect any tool output strings that were injected into the conversation
+    //Collect any tool output strings that were injected into the conversation
     const allToolOutputs = toolsUsed.length > 0
       ? messages.filter(m => m.role === 'user' && typeof m.content === 'string' && m.content.includes('tool results are now available')).map(m => m.content as string)
       : []
@@ -601,10 +601,10 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     }
   }
 
-  // Generate follow-up questions
+  //Generate follow-up questions
   const followUpQuestions = generateFollowUpQuestions(sanitizedMessage, finalReply, emergency, routing.agent)
 
-  // Score response quality
+  //Score response quality
   const qualityScore = scoreResponseQuality(
     sanitizedMessage,
     finalReply,
@@ -613,7 +613,7 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     liveContext.length > 0,
   )
 
-  // Record analytics
+  //Record analytics
   const latencyMs = Date.now() - startTime
   const analytics = recordAnalytics(
     sessionId!,
@@ -624,14 +624,14 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     topicShiftDetected,
   )
 
-  // Persist assistant message
+  //Persist assistant message
   await pool.query(
     `INSERT INTO chat_messages (session_id, role, content, model_used, tokens_used, latency_ms)
      VALUES ($1, 'assistant', $2, $3, $4, $5)`,
     [sessionId, finalReply, response.model, response.tokensUsed, response.latencyMs],
   )
 
-  // Update session stats
+  //Update session stats
   await pool.query(
     `UPDATE chat_sessions
      SET total_tokens = total_tokens + $1, model_used = $2, updated_at = now()
@@ -639,12 +639,12 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     [response.tokensUsed, response.model, sessionId],
   )
 
-  // Update user long-term memory (non-blocking)
+  //Update user long-term memory (non-blocking)
   updateUserProfile(req.citizenId, memory.entities, detectedLanguage).catch(() => {})
 
-  // ADVANCED PERSONALIZATION — Post-response learning (non-blocking)
+  //ADVANCED PERSONALIZATION -- Post-response learning (non-blocking)
 
-  // —P5: Update behavior profile — learn from this interaction
+  // P5: Update behavior profile -- learn from this interaction
   if (req.citizenId) {
     updateBehaviorProfile(req.citizenId, {
       messageCount: 1,
@@ -655,18 +655,18 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     }).catch(() => {})
   }
 
-  // —P6: Update operator profile
+  // P6: Update operator profile
   if (req.operatorId) {
     updateOperatorProfile(req.operatorId, toolsUsed).catch(() => {})
   }
 
-  // —P7: Auto-summarize conversations that are getting long (>15 messages)
+  // P7: Auto-summarize conversations that are getting long (>15 messages)
   const messageCount = history.length
   if (messageCount >= 15 && messageCount % 10 === 0 && (req.citizenId || req.operatorId)) {
     generateAndSaveSummary(sessionId!, req.citizenId, req.operatorId).catch(() => {})
   }
 
-  // —P8: Generate smart suggestions personalized to this user
+  // P8: Generate smart suggestions personalized to this user
   let smartSuggestions: SmartSuggestion[] = []
   if (req.citizenId || req.operatorId) {
     const memories = req.citizenId ? await loadCitizenMemories(req.citizenId) : []
@@ -681,12 +681,12 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     })
   }
 
-  // Cache the response (only if no tools were used, no safety flags, and not an emergency)
+  //Cache the response (only if no tools were used, no safety flags, and not an emergency)
   if (toolsUsed.length === 0 && safetyFlags.length === 0 && !emergency.isEmergency) {
     await cacheResponse(queryHash, req.message, finalReply, response.model)
   }
 
-  // Extract source citations from RAG context
+  //Extract source citations from RAG context
   const sources: Array<{ title: string; relevance: number }> = []
   if (ragContext) {
     const sourcePattern = /\[([^\]]+)\] ([^:]+):/g
@@ -758,7 +758,7 @@ export async function processChatStream(
     }
   }
 
-  // Emergency detection
+  //Emergency detection
   const emergency = detectEmergency(sanitizedMessage)
 
   let sessionId = req.sessionId
@@ -809,13 +809,13 @@ export async function processChatStream(
     [sessionId, sanitizedMessage],
   )
 
-  // PARALLEL WAVE 1: Independent data-fetching operations (was sequential — saves ~200-400ms)
+  //PARALLEL WAVE 1: Independent data-fetching operations (was sequential -- saves ~200-400ms)
   const isDocumentUpload = sanitizedMessage.includes('[DOCUMENT UPLOAD')
   const [ragContext, liveContext, routingResult, langClassResult, historyResult] = await Promise.all([
     isDocumentUpload ? Promise.resolve('') : retrieveRAGContext(sanitizedMessage),
     buildLiveContext(),
     routeToAgent(sanitizedMessage),
-    // Language classification (only if client didn't send explicit language)
+    //Language classification (only if client didn't send explicit language)
     !req.language
       ? classify({ text: sanitizedMessage, task: 'language' }).catch(() => null)
       : Promise.resolve(null),
@@ -828,41 +828,41 @@ export async function processChatStream(
     ),
   ])
 
-  // Auto-execute image analysis when citizen attaches a photo
+  //Auto-execute image analysis when citizen attaches a photo
   let imageAnalysisContext = ''
   let imageAnalysisSucceeded = false
-  const imageMarkerMatchStream = sanitizedMessage.match(/\[The citizen attached an image:\s*([^\]—]+)/)
+  const imageMarkerMatchStream = sanitizedMessage.match(/\[The citizen attached an image:\s*([^\]]+)/)
   if (imageMarkerMatchStream) {
     const imageUrl = imageMarkerMatchStream[1].trim()
     const userText = sanitizedMessage.replace(/\[The citizen attached an image:[^\]]*\]\s*/i, '').trim()
-    // Stream a progress indicator so the user sees something while vision processes
+    //Stream a progress indicator so the user sees something while vision processes
     await handlers.onToken('?? **ANALYZING YOUR IMAGE...**\n\n')
     try {
       devLog(`[ChatStream] Auto-analyzing uploaded image: ${imageUrl}`)
       const sid = sessionId || ''
       const analysisResult = await executeImageAnalysis(imageUrl, userText || undefined, sid || undefined)
       if (analysisResult === '__VISION_UNAVAILABLE__') {
-        devLog(`[ChatStream] Vision unavailable — will instruct LLM not to fake analysis`)
-        imageAnalysisContext = `\n\n[IMAGE UPLOAD RECEIVED — VISION ANALYSIS UNAVAILABLE]\nThe citizen uploaded a photo (${imageUrl}) but our vision AI could not analyze it at this time. DO NOT pretend to analyze the image. DO NOT make up what the image shows. Instead, tell the citizen: "I received your image but my visual analysis system is temporarily unavailable. Please describe what you see in the photo and I will provide safety guidance based on your description." Then ask specific questions about what they see.`
+        devLog(`[ChatStream] Vision unavailable -- will instruct LLM not to fake analysis`)
+        imageAnalysisContext = `\n\n[IMAGE UPLOAD RECEIVED -- VISION ANALYSIS UNAVAILABLE]\nThe citizen uploaded a photo (${imageUrl}) but our vision AI could not analyze it at this time. DO NOT pretend to analyze the image. DO NOT make up what the image shows. Instead, tell the citizen: "I received your image but my visual analysis system is temporarily unavailable. Please describe what you see in the photo and I will provide safety guidance based on your description." Then ask specific questions about what they see.`
       } else {
         imageAnalysisSucceeded = true
-        // Build image memory comparison if multiple images in session
+        //Build image memory comparison if multiple images in session
         const lastEntry = sid ? sessionImageMemory.get(sid) : undefined
         const lastAnalysis = lastEntry?.[lastEntry.length - 1]?.analysis
         const imageMemoryCtx = (sid && lastAnalysis) ? buildImageMemoryContext(sid, lastAnalysis) : ''
 
-        imageAnalysisContext = `\n\n[IMAGE ANALYSIS COMPLETED — VISION AI RESULTS]\nThe citizen uploaded a photo and it has been analyzed by our vision AI. Here are the ACTUAL findings from the vision model:\n\n${analysisResult}\n\nIMPORTANT: Base your response primarily on this image analysis. The analysis above was performed by a real vision model that can SEE the image. Trust these findings and provide safety guidance based on what the vision model detected. Address the citizen's specific question about the image.${imageMemoryCtx}`
+        imageAnalysisContext = `\n\n[IMAGE ANALYSIS COMPLETED -- VISION AI RESULTS]\nThe citizen uploaded a photo and it has been analyzed by our vision AI. Here are the ACTUAL findings from the vision model:\n\n${analysisResult}\n\nIMPORTANT: Base your response primarily on this image analysis. The analysis above was performed by a real vision model that can SEE the image. Trust these findings and provide safety guidance based on what the vision model detected. Address the citizen's specific question about the image.${imageMemoryCtx}`
         devLog(`[ChatStream] Image auto-analysis complete (${analysisResult.length} chars)`)
       }
     } catch (err: any) {
       devLog(`[ChatStream] Image auto-analysis failed: ${err.message}`)
-      imageAnalysisContext = `\n\n[IMAGE UPLOAD RECEIVED — VISION ANALYSIS FAILED]\nThe citizen uploaded a photo but analysis failed with error: ${err.message}. DO NOT pretend to analyze the image. Ask the citizen to describe what they see.`
+      imageAnalysisContext = `\n\n[IMAGE UPLOAD RECEIVED -- VISION ANALYSIS FAILED]\nThe citizen uploaded a photo but analysis failed with error: ${err.message}. DO NOT pretend to analyze the image. Ask the citizen to describe what they see.`
     }
   }
 
-  // Language: use classifier to detect ACTUAL message language, not browser locale.
-  // The client sends req.language from the browser's navigator.language, but
-  // we must respond in the language the user is WRITING in, not their UI locale.
+  //Language: use classifier to detect ACTUAL message language, not browser locale.
+  //The client sends req.language from the browser's navigator.language, but
+  //we must respond in the language the user is WRITING in, not their UI locale.
   let detectedLanguage = 'en'
   let languageInstruction = ''
   const messageIsNonEnglish = langClassResult && langClassResult.label && langClassResult.score > 0.85 && langClassResult.label !== 'en'
@@ -870,7 +870,7 @@ export async function processChatStream(
     detectedLanguage = langClassResult.label
     languageInstruction = `\n\n=== LANGUAGE RULE === You MUST respond in language code "${langClassResult.label}". The user is writing in that language. ===`
   } else {
-    // Message is English or uncertain — always respond in English.
+    //Message is English or uncertain -- always respond in English.
     languageInstruction = '\n\n=== LANGUAGE RULE === You MUST respond ONLY in English. Do NOT use German, French, Spanish, or any other language. Every single word of your response must be in English. This is a hard requirement. ==='
   }
 
@@ -889,23 +889,23 @@ export async function processChatStream(
     }
   })
 
-  // Conversation memory management
+  //Conversation memory management
   const { compressedHistory, memory } = await manageConversationMemory(redactedHistory)
   const topicShiftDetected = detectTopicShift(sanitizedMessage, memory.topics)
 
-  // Emergency and entity context for the prompt
+  //Emergency and entity context for the prompt
   const emergencyInstruction = emergency.isEmergency
     ? `\n\n?? EMERGENCY DETECTED: The user appears to be in a ${emergency.type || 'unknown'} emergency (severity: ${emergency.severity}). Prioritize immediate safety guidance.`
     : ''
 
   const entityContext = (memory.entities.locations.length > 0 || memory.entities.hazardTypes.length > 0)
-    ? `\n\nConversation context — previously mentioned: locations=[${memory.entities.locations.join(', ')}], hazards=[${memory.entities.hazardTypes.join(', ')}]. Maintain continuity with these references.`
+    ? `\n\nConversation context -- previously mentioned: locations=[${memory.entities.locations.join(', ')}], hazards=[${memory.entities.hazardTypes.join(', ')}]. Maintain continuity with these references.`
     : ''
 
-  // ADVANCED PERSONALIZATION — Stream variant
+  //ADVANCED PERSONALIZATION -- Stream variant
 
-  // Load user profile for basic personalization
-  // PARALLEL WAVE 2: All profile/memory loads (was 5 sequential awaits — saves ~100-200ms)
+  //Load user profile for basic personalization
+  //PARALLEL WAVE 2: All profile/memory loads (was 5 sequential awaits -- saves ~100-200ms)
   const [userProfile, citizenMemories, citizenEpisodes, behaviorProfile, opProfile, recentSummaries] = await Promise.all([
     loadUserProfile(req.citizenId),
     req.citizenId ? loadCitizenMemories(req.citizenId) : Promise.resolve(null),
@@ -944,15 +944,15 @@ export async function processChatStream(
     summaryContext = buildSummaryContext(recentSummaries)
   }
 
-  // Dialogue state for context continuity
+  //Dialogue state for context continuity
   const dialogueState = inferDialogueState(redactedHistory, sanitizedMessage, emergency, routing.emotion)
   const dialogueStateContext = buildDialogueStateContext(dialogueState)
 
-  // Admin mode — append operator system prompt
+  //Admin mode -- append operator system prompt
   const adminAddendum = req.adminMode ? COMPACT_ADMIN_ADDENDUM : ''
 
   const documentOverrideStream = isDocumentUpload
-    ? `\n\n[DOCUMENT ANALYSIS MODE]\nThe user has uploaded a document for analysis. Your ENTIRE response must be a structured summary/analysis of that document's content. Do NOT reference AEGIS alerts, live conditions, weather, flood data, or emergency dashboards — those are irrelevant to this request. Treat this exactly like ChatGPT or Claude would: read the document and explain what it says.`
+    ? `\n\n[DOCUMENT ANALYSIS MODE]\nThe user has uploaded a document for analysis. Your ENTIRE response must be a structured summary/analysis of that document's content. Do NOT reference AEGIS alerts, live conditions, weather, flood data, or emergency dashboards -- those are irrelevant to this request. Treat this exactly like ChatGPT or Claude would: read the document and explain what it says.`
     : ''
   const effectiveLiveContextStream = isDocumentUpload ? '' : liveContext
 
@@ -961,8 +961,8 @@ export async function processChatStream(
     ...compressedHistory.map(m => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
   ]
 
-  // Append language instruction to the LAST user message so the model sees it
-  // right before generating — models weight the most recent messages most heavily.
+  //Append language instruction to the LAST user message so the model sees it
+  //right before generating -- models weight the most recent messages most heavily.
   if (detectedLanguage === 'en') {
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === 'user') {
@@ -972,19 +972,19 @@ export async function processChatStream(
     }
   }
 
-  // Stream emergency preamble first if detected
+  //Stream emergency preamble first if detected
   if (emergency.isEmergency) {
     const preamble = buildEmergencyPreamble(emergency)
     await handlers.onToken(preamble)
   }
 
-  // Classify query for intelligent model selection
+  //Classify query for intelligent model selection
   const queryClassification = classifyQuery(sanitizedMessage)
 
-  // Fire-and-forget: preload the optimal model while we build the request
+  //Fire-and-forget: preload the optimal model while we build the request
   preloadModelForClassification(queryClassification).catch(() => {})
 
-  // Document uploads need a large context window — route to Gemini (1M tokens free)
+  //Document uploads need a large context window -- route to Gemini (1M tokens free)
   const docPreferredProviderStream = isDocumentUpload ? 'gemini' : req.preferredProvider
 
   let rawReply = ''
@@ -1042,14 +1042,14 @@ export async function processChatStream(
     }
   }
 
-  // Prepend emergency preamble to the stored reply
+  //Prepend emergency preamble to the stored reply
   if (emergency.isEmergency) {
     rawReply = buildEmergencyPreamble(emergency) + rawReply
   }
 
-  // MULTI-HOP TOOL CALLING (STREAMING) — up to 3 reasoning loops
-  // After initial stream, parse any tool calls, execute, re-call LLM
-  // with tool results, and stream the synthesis back.
+  //MULTI-HOP TOOL CALLING (STREAMING) -- up to 3 reasoning loops
+  //After initial stream, parse any tool calls, execute, re-call LLM
+  //with tool results, and stream the synthesis back.
   const streamToolsUsed: string[] = []
   const MAX_STREAM_HOPS = 3
   for (let hop = 0; hop < MAX_STREAM_HOPS; hop++) {
@@ -1067,10 +1067,10 @@ export async function processChatStream(
 
     if (toolCalls.length === 0) break
 
-    // Notify client that tools are being executed
+    //Notify client that tools are being executed
     if (handlers.onThinking) await handlers.onThinking('Executing tools...')
 
-    // Execute all tool calls
+    //Execute all tool calls
     const toolResults: string[] = []
     if (toolCalls.length > 1) {
       for (const tc of toolCalls) {
@@ -1093,10 +1093,10 @@ export async function processChatStream(
       if (handlers.onToolCall) await handlers.onToolCall(toolCalls[0].name, 'complete')
     }
 
-    // Notify client that synthesis is starting
+    //Notify client that synthesis is starting
     if (handlers.onThinking) await handlers.onThinking('Synthesizing response...')
 
-    // Re-call LLM with tool results — stream the synthesis to the client
+    //Re-call LLM with tool results -- stream the synthesis to the client
     const toolResultsBlock = toolResults.join('\n\n')
     messages.push({ role: 'assistant', content: rawReply })
     messages.push({
@@ -1108,7 +1108,7 @@ export async function processChatStream(
     })
 
     try {
-      // Replace the streamed content with the synthesized answer
+      //Replace the streamed content with the synthesized answer
       if (handlers.onReplace) await handlers.onReplace('')
       rawReply = ''
 
@@ -1124,7 +1124,7 @@ export async function processChatStream(
       response = hopResponse
     } catch (err: any) {
       logger.error({ err, hop: hop + 1 }, '[Chat] Streaming multi-hop failed')
-      // Fall back to raw tool results inlined
+      //Fall back to raw tool results inlined
       for (const tc of toolCalls) {
         const resultStr = toolResults.find(r => r.startsWith(`[${tc.name}]:`))?.replace(/^\[[^\]]+\]: /, '') || ''
         rawReply = rawReply.replace(tc.fullMatch, resultStr)
@@ -1136,7 +1136,7 @@ export async function processChatStream(
 
   let finalReply = reinjectPii(rawReply, piiReplacements)
 
-  // Output validation — catch local model hallucinations
+  //Output validation -- catch local model hallucinations
   const outputValidation = validateOutputSafety(finalReply)
   if (!outputValidation.safe) {
     logger.warn({ flags: outputValidation.flags }, '[Chat Stream] Output safety flags triggered')
@@ -1154,7 +1154,7 @@ export async function processChatStream(
     if (handlers.onReplace) await handlers.onReplace(finalReply)
   }
 
-  // Self-consistency verification
+  //Self-consistency verification
   let consistencyConfidenceAdj = 0
   if (safetyFlags.length === 0) {
     const toolOutputs: string[] = []
@@ -1174,7 +1174,7 @@ export async function processChatStream(
     }
   }
 
-  // Follow-up questions and quality scoring
+  //Follow-up questions and quality scoring
   const followUpQuestions = generateFollowUpQuestions(sanitizedMessage, finalReply, emergency, routing.agent)
   const qualityScore = scoreResponseQuality(sanitizedMessage, finalReply, streamToolsUsed, safetyFlags, liveContext.length > 0)
 
@@ -1201,12 +1201,12 @@ export async function processChatStream(
     [response.tokensUsed, response.model, sessionId],
   )
 
-  // ADVANCED PERSONALIZATION — Post-stream learning (non-blocking)
+  //ADVANCED PERSONALIZATION -- Post-stream learning (non-blocking)
 
-  // Update user profile (legacy)
+  //Update user profile (legacy)
   updateUserProfile(req.citizenId, memory.entities, detectedLanguage).catch(() => {})
 
-  // Update behavior profile
+  //Update behavior profile
   if (req.citizenId) {
     updateBehaviorProfile(req.citizenId, {
       messageCount: 1,
@@ -1217,18 +1217,18 @@ export async function processChatStream(
     }).catch(() => {})
   }
 
-  // Update operator profile
+  //Update operator profile
   if (req.operatorId) {
     updateOperatorProfile(req.operatorId, streamToolsUsed).catch(() => {})
   }
 
-  // Auto-summarize long conversations
+  //Auto-summarize long conversations
   const streamMessageCount = history.length
   if (streamMessageCount >= 15 && streamMessageCount % 10 === 0 && (req.citizenId || req.operatorId)) {
     generateAndSaveSummary(sessionId!, req.citizenId, req.operatorId).catch(() => {})
   }
 
-  // Generate smart suggestions
+  //Generate smart suggestions
   let smartSuggestions: SmartSuggestion[] = []
   if (req.citizenId || req.operatorId) {
     const memories = req.citizenId ? await loadCitizenMemories(req.citizenId) : []
@@ -1348,13 +1348,13 @@ export async function endChatSession(
       `UPDATE chat_sessions SET status = 'completed', ended_at = NOW(), updated_at = NOW() WHERE id = $1`,
       [sessionId],
     )
-    // Generate and persist summary for future session context
+    //Generate and persist summary for future session context
     await generateAndSaveSummary(sessionId, citizenId, operatorId)
   } catch (err) {
     logger.warn({ err }, '[Chat] Failed to end session cleanly')
   }
 }
 
-// Re-export personalization utilities for route handlers
+//Re-export personalization utilities for route handlers
 export { logSuggestionClick, generateSmartSuggestions } from './personalizationEngine.js'
 

@@ -27,7 +27,7 @@ export interface ReportValidationInput {
   incidentCategory?: string | null
 }
 
-// validateReport()
+//validateReport()
 export function validateReport(data: ReportValidationInput): { valid: boolean; errors: string[] } {
   const errors: string[] = []
   if (!data.description || data.description.length < 10) errors.push('Description must be at least 10 characters')
@@ -39,6 +39,6 @@ export function validateReport(data: ReportValidationInput): { valid: boolean; e
   return { valid: errors.length === 0, errors }
 }
 
-// validateEmail() and sanitizeInput() are used in auth forms and profile forms to validate email formats and sanitize user inputs to prevent XSS attacks. These functions can be imported and used in any component that handles user input, such as client/src/components/auth/LoginForm.tsx or client/src/components/profile/ProfileEditForm.tsx.
+//validateEmail() and sanitizeInput() are used in auth forms and profile forms to validate email formats and sanitize user inputs to prevent XSS attacks. These functions can be imported and used in any component that handles user input, such as client/src/components/auth/LoginForm.tsx or client/src/components/profile/ProfileEditForm.tsx.
 export function validateEmail(e: string): boolean { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) }
 export function sanitizeInput(s: string): string { return s.replace(/[<>'"]/g, '') }

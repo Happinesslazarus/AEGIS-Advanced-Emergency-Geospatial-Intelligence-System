@@ -31,7 +31,7 @@ interface Props {
   locationName: string
 }
 
-/*  Report → Alert mapping helpers  */
+/* Report -> Alert mapping helpers */
 
 const SUBTYPE_TO_ALERT_TYPE: Record<string, string> = {
   flood: 'flood', river_flood: 'flood', flash_flood: 'flood', coastal_flood: 'flood',
@@ -91,13 +91,13 @@ const DISASTER_GUIDANCE: Record<string, {
   flood: {
     impactProfile: 'Floodwater inundation with potential for rapid water-level rise, structural undermining, and contaminated water hazards.',
     protectiveActions: [
-      'Move immediately to higher ground — do not walk, swim, or drive through floodwaters',
+      'Move immediately to higher ground -- do not walk, swim, or drive through floodwaters',
       'Turn off gas, electricity, and water at mains if safe to do so',
-      'Avoid contact with floodwater — risk of sewage contamination and waterborne disease',
+      'Avoid contact with floodwater -- risk of sewage contamination and waterborne disease',
       'Do not return to flood-damaged buildings until assessed by structural engineers',
       'Prepare emergency supplies: drinking water, medications, torch, charged phone',
     ],
-    evacuationGuidance: 'Evacuate via designated routes AWAY from watercourses. Do not cross flooded roads — 15cm of fast-flowing water can knock an adult off their feet; 60cm can float a vehicle.',
+    evacuationGuidance: 'Evacuate via designated routes AWAY from watercourses. Do not cross flooded roads -- 15cm of fast-flowing water can knock an adult off their feet; 60cm can float a vehicle.',
     healthRisks: ['Hypothermia from cold water exposure', 'Waterborne diseases (E. coli, Leptospirosis)', 'Electrical hazards from submerged wiring', 'Carbon monoxide from generator misuse'],
     infrastructureImpact: 'Roads, bridges, and culverts may be compromised. Water treatment systems may be overwhelmed. Power substations at risk of inundation.',
     estimatedImpactRadius: '2-10km from primary watercourse depending on topography and rainfall intensity',
@@ -107,7 +107,7 @@ const DISASTER_GUIDANCE: Record<string, {
   severe_storm: {
     impactProfile: 'High-velocity winds, heavy precipitation, potential for flying debris, fallen trees, and structural damage to exposed buildings.',
     protectiveActions: [
-      'Stay indoors — shelter in an interior room away from windows',
+      'Stay indoors -- shelter in an interior room away from windows',
       'Secure or bring in loose outdoor objects (bins, garden furniture, trampolines)',
       'Avoid coastal areas, exposed headlands, and clifftop walks',
       'Do not shelter under trees or near overhead power lines',
@@ -123,14 +123,14 @@ const DISASTER_GUIDANCE: Record<string, {
   wildfire: {
     impactProfile: 'Rapid fire spread driven by wind and dry conditions. Smoke inhalation is the primary immediate health threat. Ember transport can ignite spot fires up to 2km ahead of the fire front.',
     protectiveActions: [
-      'Evacuate immediately if instructed — do not delay to protect property',
+      'Evacuate immediately if instructed -- do not delay to protect property',
       'Close all windows and doors to reduce smoke ingress',
       'Wear a damp cloth over nose and mouth if caught in smoke',
       'If trapped, move to a cleared area such as a road, car park, or bare ground',
       'Keep vehicle headlights on and drive slowly if visibility is reduced by smoke',
     ],
-    evacuationGuidance: 'Evacuate perpendicular to the fire front — never try to outrun a wildfire uphill. Follow designated evacuation routes. Assemble at community evacuation points.',
-    healthRisks: ['Smoke inhalation — particulate matter PM2.5 dangerous to respiratory system', 'Burns from radiant heat and direct flame contact', 'Carbon monoxide poisoning', 'Exacerbation of asthma and cardiovascular conditions'],
+    evacuationGuidance: 'Evacuate perpendicular to the fire front -- never try to outrun a wildfire uphill. Follow designated evacuation routes. Assemble at community evacuation points.',
+    healthRisks: ['Smoke inhalation -- particulate matter PM2.5 dangerous to respiratory system', 'Burns from radiant heat and direct flame contact', 'Carbon monoxide poisoning', 'Exacerbation of asthma and cardiovascular conditions'],
     infrastructureImpact: 'Power lines at risk of thermal damage. Roads may be blocked by fire fronts. Water pressure may drop as fire services draw supply.',
     estimatedImpactRadius: '1-5km active fire perimeter; smoke hazard extends 20-50km downwind',
     historicalContext: 'Gorse and heather fires are an increasing risk in Ireland during prolonged dry spells, particularly in upland areas.',
@@ -139,10 +139,10 @@ const DISASTER_GUIDANCE: Record<string, {
   earthquake: {
     impactProfile: 'Ground shaking with potential for structural damage, aftershocks, and secondary hazards including gas leaks and landslides.',
     protectiveActions: [
-      'DROP, COVER, HOLD ON — shelter under sturdy furniture, protect head and neck',
+      'DROP, COVER, HOLD ON -- shelter under sturdy furniture, protect head and neck',
       'If outdoors, move to an open area away from buildings, trees, and power lines',
-      'After shaking stops, check for gas leaks (smell, hissing) — if detected, leave immediately',
-      'Expect aftershocks — do not re-enter damaged buildings',
+      'After shaking stops, check for gas leaks (smell, hissing) -- if detected, leave immediately',
+      'Expect aftershocks -- do not re-enter damaged buildings',
       'Check on neighbours, especially elderly or mobility-impaired persons',
     ],
     healthRisks: ['Crush injuries from structural collapse', 'Cuts and lacerations from broken glass', 'Gas inhalation from ruptured lines', 'Psychological trauma and acute stress'],
@@ -154,25 +154,25 @@ const DISASTER_GUIDANCE: Record<string, {
   heatwave: {
     impactProfile: 'Sustained high temperatures exceeding physiological tolerance thresholds, particularly dangerous for vulnerable populations.',
     protectiveActions: [
-      'Stay hydrated — drink water regularly even if not thirsty',
+      'Stay hydrated -- drink water regularly even if not thirsty',
       'Avoid outdoor exertion between 11:00-15:00',
-      'Keep living spaces cool — close curtains on sun-facing windows',
+      'Keep living spaces cool -- close curtains on sun-facing windows',
       'Check on elderly neighbours, those living alone, and those with chronic conditions',
       'Never leave children or animals in parked vehicles',
     ],
     healthRisks: ['Heat exhaustion and heatstroke', 'Dehydration', 'Cardiovascular strain in vulnerable populations', 'UV radiation burns', 'Ozone-related respiratory issues'],
     infrastructureImpact: 'Rail tracks may buckle. Road surfaces may soften. Increased power demand may cause grid stress. Water supply may be restricted.',
-    estimatedImpactRadius: 'Regional — typically affects entire counties or provinces simultaneously',
+    estimatedImpactRadius: 'Regional -- typically affects entire counties or provinces simultaneously',
     historicalContext: 'Climate change is increasing heatwave frequency and intensity in Ireland. 2022 and 2023 saw record-breaking temperatures exceeding 33C.',
     recoveryTimeline: 'Health impacts resolve within 24-48 hours of temperature drop; drought conditions may persist 2-6 weeks',
   },
   landslide: {
     impactProfile: 'Mass movement of earth, rock, or debris which can bury structures, block roads, and dam waterways causing secondary flooding.',
     protectiveActions: [
-      'Move away from the path of the slide immediately — move uphill or to the side',
+      'Move away from the path of the slide immediately -- move uphill or to the side',
       'Listen for unusual sounds: cracking trees, rumbling, or sudden water flow changes',
       'Avoid river valleys and low-lying drainage channels during heavy rain',
-      'Do not attempt to cross a landslide area — the ground may still be unstable',
+      'Do not attempt to cross a landslide area -- the ground may still be unstable',
       'Report any new cracks in ground, walls, or foundations to emergency services',
     ],
     healthRisks: ['Burial and asphyxiation', 'Crush injuries', 'Drowning if watercourse is dammed', 'Exposure if roads are blocked'],
@@ -184,15 +184,15 @@ const DISASTER_GUIDANCE: Record<string, {
   drought: {
     impactProfile: 'Prolonged precipitation deficit leading to water supply stress, agricultural impacts, and increased wildfire risk.',
     protectiveActions: [
-      'Conserve water — fix leaks, take shorter showers, reuse greywater for gardens',
+      'Conserve water -- fix leaks, take shorter showers, reuse greywater for gardens',
       'Follow any water restrictions or hosepipe bans issued by Irish Water',
-      'Be aware of increased wildfire risk — do not burn rubbish or light campfires',
+      'Be aware of increased wildfire risk -- do not burn rubbish or light campfires',
       'Farmers should engage with DAFM drought support measures',
       'Monitor water supply updates from your local authority',
     ],
     healthRisks: ['Dehydration in vulnerable populations', 'Reduced air quality from dust', 'Mental health impacts on farming communities', 'Waterborne disease risk from low reservoir levels'],
     infrastructureImpact: 'Water treatment plants may operate at reduced capacity. Ground subsidence risk to foundations. Agriculture sector heavily impacted.',
-    estimatedImpactRadius: 'Regional to national — drought conditions typically affect large areas simultaneously',
+    estimatedImpactRadius: 'Regional to national -- drought conditions typically affect large areas simultaneously',
     historicalContext: 'Ireland experienced notable droughts in 2018 and 2022. Climate projections suggest increasing frequency of summer drought periods.',
     recoveryTimeline: '2-8 weeks of sustained rainfall needed for water table recovery; agricultural impact lasts one growing season',
   },
@@ -202,7 +202,7 @@ const DISASTER_GUIDANCE: Record<string, {
       'Report the outage to ESB Networks (1800 372 999) if not already logged',
       'Unplug sensitive electronics to protect from power surges when supply is restored',
       'Use torches instead of candles to reduce fire risk',
-      'Keep fridge and freezer doors closed — food stays safe for 4hrs (fridge) / 24-48hrs (freezer)',
+      'Keep fridge and freezer doors closed -- food stays safe for 4hrs (fridge) / 24-48hrs (freezer)',
       'Check on medically vulnerable neighbours who depend on powered equipment',
     ],
     healthRisks: ['Hypothermia in cold weather without heating', 'Carbon monoxide from indoor generator use', 'Food safety risks from spoilage', 'Medical device failure for home-care patients'],
@@ -214,7 +214,7 @@ const DISASTER_GUIDANCE: Record<string, {
   infrastructure_damage: {
     impactProfile: 'Structural compromise to built infrastructure including roads, bridges, buildings, or utility networks.',
     protectiveActions: [
-      'Do not enter or approach damaged structures — risk of further collapse',
+      'Do not enter or approach damaged structures -- risk of further collapse',
       'Follow road closure diversions and barrier instructions',
       'Report any structural damage you observe to your local authority',
       'If you hear cracking or groaning from a structure, evacuate the area immediately',
@@ -230,10 +230,10 @@ const DISASTER_GUIDANCE: Record<string, {
     impactProfile: 'Incident affecting public safety requiring emergency response coordination and potential area restrictions.',
     protectiveActions: [
       'Follow all instructions from An Garda Siochana and emergency services',
-      'Avoid the incident area — do not approach out of curiosity',
+      'Avoid the incident area -- do not approach out of curiosity',
       'If you have information relevant to a missing person, contact Gardai immediately',
       'Keep phone lines clear for emergency communications',
-      'Share only verified information — do not spread rumours on social media',
+      'Share only verified information -- do not spread rumours on social media',
     ],
     healthRisks: ['Varies by incident type', 'Psychological impact on witnesses and community', 'Secondary risks from crowd dynamics'],
     infrastructureImpact: 'Road closures and cordons likely. Public spaces may be restricted. Transport services may be rerouted.',
@@ -244,7 +244,7 @@ const DISASTER_GUIDANCE: Record<string, {
   environmental_hazard: {
     impactProfile: 'Release of pollutants or hazardous substances into the environment affecting air, water, or soil quality.',
     protectiveActions: [
-      'Stay away from the contamination source — maintain safe distance upwind/upstream',
+      'Stay away from the contamination source -- maintain safe distance upwind/upstream',
       'Close windows and doors, switch off ventilation systems',
       'Do not consume water from potentially affected sources (rivers, wells)',
       'If exposed to unknown substances, wash skin thoroughly and seek medical advice',
@@ -259,7 +259,7 @@ const DISASTER_GUIDANCE: Record<string, {
   chemical_spill: {
     impactProfile: 'Release of hazardous chemical substances with potential for toxic exposure, fire, or explosion risk.',
     protectiveActions: [
-      'EVACUATE IMMEDIATELY if instructed — move upwind and uphill from the spill',
+      'EVACUATE IMMEDIATELY if instructed -- move upwind and uphill from the spill',
       'Do not touch, smell, or taste any unidentified substances',
       'Remove contaminated clothing and bag it separately',
       'If exposed: wash skin with copious water for 20 minutes minimum',
@@ -275,9 +275,9 @@ const DISASTER_GUIDANCE: Record<string, {
   tsunami: {
     impactProfile: 'Ocean wave event with potential for coastal inundation, powerful currents, and debris-laden water impact.',
     protectiveActions: [
-      'Move immediately to high ground or inland — 30m elevation or 3km from coast minimum',
-      'Do not wait for visual confirmation — act on warnings immediately',
-      'Waves may arrive in a series over hours — do not return to coast after first wave',
+      'Move immediately to high ground or inland -- 30m elevation or 3km from coast minimum',
+      'Do not wait for visual confirmation -- act on warnings immediately',
+      'Waves may arrive in a series over hours -- do not return to coast after first wave',
       'If caught in water, grab a floating object and allow current to carry you',
       'Stay away from harbours, marinas, and river mouths',
     ],
@@ -292,7 +292,7 @@ const DISASTER_GUIDANCE: Record<string, {
     impactProfile: 'Public health emergency with potential for mass casualty, healthcare system strain, and communal resource depletion.',
     protectiveActions: [
       'Follow all HSE and public health guidance',
-      'Maintain hygiene protocols — handwashing, respiratory etiquette',
+      'Maintain hygiene protocols -- handwashing, respiratory etiquette',
       'If symptomatic, self-isolate and contact your GP by phone',
       'Keep essential medications stocked for 2 weeks minimum',
       'Check on vulnerable neighbours while maintaining appropriate precautions',
@@ -314,7 +314,7 @@ const DISASTER_GUIDANCE: Record<string, {
     ],
     healthRisks: ['Dependent on specific incident type', 'Stress and anxiety from uncertainty'],
     infrastructureImpact: 'Localised disruption possible to transport and utilities.',
-    estimatedImpactRadius: 'Variable — follow exclusion zone instructions from responding agencies',
+    estimatedImpactRadius: 'Variable -- follow exclusion zone instructions from responding agencies',
     historicalContext: 'Ireland maintains comprehensive emergency management frameworks through the National Emergency Coordination Group.',
     recoveryTimeline: 'Variable depending on incident scope and severity.',
   },
@@ -329,7 +329,7 @@ function generateSmartTitle(report: Report): string {
   const locParts = (report.location || '').split(',').map(s => s.trim()).filter(Boolean)
   const loc = locParts.length >= 2 ? `${locParts[0]}, ${locParts[1]}` : locParts[0] || 'Affected Area'
   const time = new Date().toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' })
-  return `${sevWord}: ${capType} Alert — ${loc} [${time}]`
+  return `${sevWord}: ${capType} Alert -- ${loc} [${time}]`
 }
 
 function generateSmartMessage(report: Report): string {
@@ -339,13 +339,13 @@ function generateSmartMessage(report: Report): string {
   const typeLabel = ALERT_TYPE_LABELS[alertType] || report.type || subtype.replace(/_/g, ' ') || 'Incident'
   const guidance = DISASTER_GUIDANCE[alertType] || DISASTER_GUIDANCE.general
   const sevLabel = report.severity === 'High' ? 'CRITICAL' : report.severity === 'Medium' ? 'WARNING' : 'ADVISORY'
-  const sevDesc = report.severity === 'High' ? 'Immediate life-threatening danger' : report.severity === 'Medium' ? 'Elevated threat — take precautions' : 'Situational awareness — monitor developments'
+  const sevDesc = report.severity === 'High' ? 'Immediate life-threatening danger' : report.severity === 'Medium' ? 'Elevated threat -- take precautions' : 'Situational awareness -- monitor developments'
   const locParts = (report.location || '').split(',').map(s => s.trim()).filter(Boolean)
   const loc = locParts.length >= 2 ? `${locParts[0]}, ${locParts[1]}` : locParts[0] || 'Affected Area'
   const now = new Date()
   const timestamp = now.toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + now.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' })
 
-  lines.push(`AEGIS EMERGENCY ALERT — ${sevLabel}`)
+  lines.push(`AEGIS EMERGENCY ALERT -- ${sevLabel}`)
   lines.push(`Type: ${typeLabel} | Severity: ${sevDesc}`)
   lines.push(`Location: ${report.location || 'Affected Area'}`)
   lines.push(`Issued: ${timestamp}`)
@@ -363,7 +363,7 @@ function generateSmartMessage(report: Report): string {
 
   if (report.trappedPersons === 'yes') {
     lines.push('')
-    lines.push('PERSONS REPORTED TRAPPED — Search and rescue operations are being coordinated. If you are trapped: make noise, conserve energy, and cover your mouth to filter dust.')
+    lines.push('PERSONS REPORTED TRAPPED -- Search and rescue operations are being coordinated. If you are trapped: make noise, conserve energy, and cover your mouth to filter dust.')
   }
 
   lines.push('')
@@ -445,7 +445,7 @@ const SEVERITY_CONFIG = {
   },
   warning: {
     label: 'Warning',
-    desc: 'Potential threat — take precautions',
+    desc: 'Potential threat -- take precautions',
     gradient: 'from-amber-700 via-amber-800 to-orange-800',
     headerBg: 'bg-gradient-to-br from-amber-700 via-amber-800 to-orange-800',
     dot: 'bg-amber-500',
@@ -505,12 +505,12 @@ export default function AdminAlertBroadcast({
   const lang = useLanguage()
   const channelOptions = useMemo(() => getChannels(lang), [lang])
 
-  // Report-linked mode state
+  //Report-linked mode state
   const [mode, setMode] = useState<'report' | 'custom'>('report')
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
   const [reportSearch, setReportSearch] = useState('')
 
-  //  Form state
+  // Form state
   const [form, setForm] = useState({ title: '', message: '', severity: 'warning' as Severity, location: '', alertType: 'general', expiresAt: '' })
   const [channels, setChannels] = useState<ChannelState>({ web: true, telegram: true, email: true, sms: true, whatsapp: true })
   const [sending, setSending] = useState(false)
@@ -519,7 +519,7 @@ export default function AdminAlertBroadcast({
   const [previewChannel, setPreviewChannel] = useState<'card' | 'sms' | 'email' | 'telegram' | 'whatsapp' | 'web'>('card')
   const [showHistory, setShowHistory] = useState(true)
 
-  // Filtered & sorted reports for picker
+  //Filtered & sorted reports for picker
   const actionableReports = useMemo(() => {
     const active = reports.filter(r =>
       r.status !== 'Resolved' && r.status !== 'Archived' && r.status !== 'False_Report'
@@ -547,7 +547,7 @@ export default function AdminAlertBroadcast({
     selectedReportId ? reports.find(r => r.id === selectedReportId) || null : null,
   [reports, selectedReportId])
 
-  // When a report is selected, auto-populate all form fields
+  //When a report is selected, auto-populate all form fields
   const handleSelectReport = useCallback((report: Report) => {
     setSelectedReportId(report.id)
     const alertType = SUBTYPE_TO_ALERT_TYPE[report.incidentSubtype] || SUBTYPE_TO_ALERT_TYPE[report.type?.toLowerCase()] || 'general'
@@ -574,7 +574,7 @@ export default function AdminAlertBroadcast({
   const activeChannels = useMemo(() => Object.entries(channels).filter(([, v]) => v).map(([k]) => k), [channels])
   const canSend = form.title.trim().length > 0 && form.message.trim().length > 0 && activeChannels.length > 0
 
-  // Keyboard shortcuts
+  //Keyboard shortcuts
   const [showKeyboard, setShowKeyboard] = useState(false)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -589,7 +589,7 @@ export default function AdminAlertBroadcast({
     return () => document.removeEventListener('keydown', handler)
   }, [])
 
-  // SMS info
+  //SMS info
   const fullSmsText = useMemo(() => {
     const sev = form.severity === 'critical' ? 'CRITICAL' : form.severity === 'warning' ? 'WARNING' : 'ADVISORY'
     const area = form.location || ''
@@ -597,7 +597,7 @@ export default function AdminAlertBroadcast({
   }, [form])
   const segments = smsSegments(fullSmsText)
 
-  //  Send handler
+  // Send handler
   const handleSend = useCallback(async () => {
     if (!canSend || sending) return
     setSending(true)
@@ -636,7 +636,7 @@ export default function AdminAlertBroadcast({
       if (attempted === 0) {
         pushNotification(t('broadcast.noSubscribers', lang), 'warning')
       } else if (failed > 0) {
-        pushNotification(`${t('broadcast.partialDelivery', lang)}: ${delivered}/${attempted} — ${failed} ${t('delivery.failed', lang)}`, 'warning')
+        pushNotification(`${t('broadcast.partialDelivery', lang)}: ${delivered}/${attempted} -- ${failed} ${t('delivery.failed', lang)}`, 'warning')
       } else {
         pushNotification(`${t('broadcast.successDelivery', lang)}: ${delivered}/${attempted} via ${activeChannels.join(', ')}`, 'success')
       }
@@ -651,7 +651,7 @@ export default function AdminAlertBroadcast({
     }
   }, [canSend, sending, form, activeChannels, user, refreshAlerts, setAuditLog, pushNotification])
 
-  // Mock alert for live card preview
+  //Mock alert for live card preview
   const previewAlert = useMemo((): Alert => ({
     id: 'preview',
     severity: form.severity === 'critical' ? 'critical' : form.severity === 'warning' ? 'medium' : 'low',
@@ -667,7 +667,7 @@ export default function AdminAlertBroadcast({
     expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
   }), [form, activeChannels, lang])
 
-  //  Channel message preview
+  // Channel message preview
   const previewText = useMemo(() => {
     const sev = form.severity.toUpperCase()
     const title = form.title || 'Alert Title'
@@ -734,7 +734,7 @@ export default function AdminAlertBroadcast({
                   {form.location.split(',').slice(0, 2).join(',').trim()}
                 </p>
               ) : (
-                <p className="text-lg font-bold text-white/30">—</p>
+                <p className="text-lg font-bold text-white/30">--</p>
               )}
             </div>
             {/* Operator */}

@@ -17,15 +17,15 @@
  *                      original text is returned so the UI never breaks
  *   cache TTL        = Time-To-Live: how long (15 minutes) a cached translation is
  *                      considered fresh before being discarded
- *   in-flight map    = a Map from cacheKey → pending Promise; ensures that two
+ * in-flight map = a Map from cacheKey -> pending Promise; ensures that two
  *                      simultaneous requests for the same text share one HTTP call
  *   cacheKey         = compact string '{source}:{target}:{text}' used as the Map key;
  *                      includes the source language so 'auto' and 'fr' are stored separately
  *   normalise        = standardise: convert language codes to lowercase BCP-47 base tags
- *                      (e.g. 'en-GB' → 'en', 'FR' → 'fr')
+ * (e.g. 'en-GB' -> 'en', 'FR' -> 'fr')
  *   BCP-47           = RFC 5646 language tag standard; 'en', 'fr', 'zh' are base tags
  *   batch endpoint   = POST /api/translate/batch; translates multiple texts in one request
- *   buildTranslationMap = returns a {original → translated} lookup object;
+ * buildTranslationMap = returns a {original -> translated} lookup object;
  *                         used by pages that need to translate many strings at once
  *
  * How it connects:
@@ -48,7 +48,7 @@ export interface TranslationResponse {
   status: 'translated' | 'passthrough' | 'unavailable'
 }
 
-// List of supported translation languages with their BCP-47 codes and English names
+//List of supported translation languages with their BCP-47 codes and English names
 export const TRANSLATION_LANGUAGES: Array<{ code: string; name: string }> = [
   { code: 'en', name: 'English' },
   { code: 'ar', name: 'Arabic' },
@@ -73,38 +73,32 @@ export const TRANSLATION_LANGUAGES: Array<{ code: string; name: string }> = [
   { code: 'zh', name: 'Chinese' },
 ]
 
-// ---------------------------------------------------------------------------
-// Module-level configuration constants
-// ---------------------------------------------------------------------------
+//Module-level configuration constants
 
-// Set of valid target language codes for fast O(1) membership tests
+//Set of valid target language codes for fast O(1) membership tests
 const TRANSLATION_CODES = new Set(TRANSLATION_LANGUAGES.map((language) => language.code))
 
-// How long (milliseconds) a cached translation stays fresh before being evicted
+//How long (milliseconds) a cached translation stays fresh before being evicted
 const CACHE_TTL_MS = 15 * 60 * 1000 // 15 minutes
 
-// ---------------------------------------------------------------------------
-// In-memory cache and in-flight request tracker
-// ---------------------------------------------------------------------------
+//In-memory cache and in-flight request tracker
 
-// Stores completed translations keyed by '{source}:{target}:{text}'
+//Stores completed translations keyed by '{source}:{target}:{text}'
 const cache = new Map<string, { result: TranslationResponse; expiresAt: number }>()
 
-// Tracks pending fetch promises to deduplicate concurrent identical requests
+//Tracks pending fetch promises to deduplicate concurrent identical requests
 const inflight = new Map<string, Promise<TranslationResponse>>()
 
-// ---------------------------------------------------------------------------
-// Normalisation helpers
-// ---------------------------------------------------------------------------
+//Normalisation helpers
 
 /**
  * Normalises a target language code to a lowercase BCP-47 base tag.
  * Falls back to 'en' if the code is empty or unrecognised.
- * Examples: 'EN' → 'en', 'en-GB' → 'en', 'xx' → 'en' (fallback)
+ * Examples: 'EN' -> 'en', 'en-GB' -> 'en', 'xx' -> 'en' (fallback)
  */
 function normalizeTranslationCode(value?: string, fallback = 'en'): string {
   if (!value) return fallback
-  const normalized = String(value).trim().toLowerCase().replace('_', '-') // 'zh_TW' → 'zh-TW'
+ const normalized = String(value).trim().toLowerCase().replace('_', '-') // 'zh_TW' -> 'zh-TW'
   const base = normalized.split('-')[0] // take only the primary language tag ('en', not 'en-GB')
   return TRANSLATION_CODES.has(base) ? base : fallback
 }
@@ -125,9 +119,7 @@ function trimText(text: string): string {
   return String(text || '').trim()
 }
 
-// ---------------------------------------------------------------------------
-// Result factory helpers
-// ---------------------------------------------------------------------------
+//Result factory helpers
 
 /** Creates a cache key that uniquely identifies a (text, source, target) tuple */
 function createCacheKey(text: string, sourceLanguage: string, targetLanguage: string): string {
@@ -138,7 +130,7 @@ function createCacheKey(text: string, sourceLanguage: string, targetLanguage: st
 function createPassthroughResult(text: string, sourceLanguage: string, targetLanguage: string): TranslationResponse {
   return {
     originalText: text,
-    translatedText: text,       // unchanged — source equals target
+    translatedText: text,       // unchanged -- source equals target
     targetLanguage,
     sourceLanguage: sourceLanguage === 'auto' ? null : sourceLanguage,
     detectedLanguage: sourceLanguage === 'auto' ? undefined : sourceLanguage,
@@ -163,9 +155,7 @@ function createUnavailableResult(text: string, sourceLanguage: string, targetLan
   }
 }
 
-// ---------------------------------------------------------------------------
-// Cache read/write helpers
-// ---------------------------------------------------------------------------
+//Cache read/write helpers
 
 /**
  * Returns a cached translation if one exists and has not expired.
@@ -198,9 +188,7 @@ function shouldCacheResult(result: TranslationResponse): boolean {
   return result.available || result.status === 'passthrough'
 }
 
-// ---------------------------------------------------------------------------
-// HTTP call
-// ---------------------------------------------------------------------------
+//HTTP call
 
 /** Makes the actual POST request to the translation proxy.
  *  Throws on non-200 responses so the caller can handle retries or fallbacks. */
@@ -222,9 +210,7 @@ async function requestTranslation(
   return response.json()
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
+//Public API
 
 /**
  * Translates a single piece of text.
@@ -247,19 +233,19 @@ export async function translateText(
   const normalizedTarget = normalizeTranslationCode(targetLanguage, 'en')
   const normalizedSource = normalizeSourceLanguage(sourceLanguage)
 
-  // Empty text — nothing to translate
+  //Empty text -- nothing to translate
   if (!trimmed) return createPassthroughResult('', normalizedSource, normalizedTarget)
 
-  // Source and target are the same known language — skip the API call
+  //Source and target are the same known language -- skip the API call
   if (normalizedSource !== 'auto' && normalizedSource === normalizedTarget) {
     return createPassthroughResult(trimmed, normalizedSource, normalizedTarget)
   }
 
-  // Return a cached result if still fresh
+  //Return a cached result if still fresh
   const cached = getCachedResult(trimmed, normalizedSource, normalizedTarget)
   if (cached) return cached
 
-  // Deduplicate: if the same request is already in-flight, share its Promise
+  //Deduplicate: if the same request is already in-flight, share its Promise
   const cacheKey = createCacheKey(trimmed, normalizedSource, normalizedTarget)
   if (!inflight.has(cacheKey)) {
     inflight.set(
@@ -298,7 +284,7 @@ export async function translateTexts(
   const results = new Map<string, TranslationResponse>() // accumulates per-text results
   const uncachedTexts: string[] = []                     // texts that need an API call
 
-  // Resolve cache hits first to minimise the batch request size
+  //Resolve cache hits first to minimise the batch request size
   for (const text of [...new Set(trimmedTexts.filter(Boolean))]) {
     const cached = getCachedResult(text, normalizedSource, normalizedTarget)
     if (cached) {
@@ -347,7 +333,7 @@ export async function translateTexts(
 
 /**
  * Convenience wrapper that converts translateTexts output into a plain
- * {originalText → translatedText} lookup object.
+ * {originalText -> translatedText} lookup object.
  * Only includes texts where translation actually changed the content
  * (skips passthrough and unavailable results where translatedText === originalText).
  */
@@ -363,7 +349,7 @@ export async function buildTranslationMap(
   return translations.reduce<Record<string, string>>((acc, result, index) => {
     const sourceText = trimmedTexts[index]
     if (!sourceText) return acc
-    // Only include entries where the text was actually changed by the provider
+    //Only include entries where the text was actually changed by the provider
     if (result.available && result.translatedText && result.translatedText !== sourceText) {
       acc[sourceText] = result.translatedText
     }

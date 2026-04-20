@@ -6,11 +6,11 @@
   *
   * How it connects:
   * - Tests server/src/utils/twoFactor.ts encryption helpers
-  * - Pure unit test — no DB or network calls
+  * - Pure unit test -- no DB or network calls
   * - Run via: npm test -- twoFactor
  */
 
-// Set env before any imports
+//Set env before any imports
 process.env.TWO_FACTOR_ENCRYPTION_KEY = 'a'.repeat(64)
 process.env.JWT_SECRET = 'test-jwt-secret-that-is-at-least-32-chars-long'
 process.env.NODE_ENV = 'test'
@@ -23,7 +23,7 @@ import {
   check2FALockout, should2FALockout,
 } from '../utils/twoFactorCrypto'
 
-// AES-256-GCM Encryption / Decryption
+//AES-256-GCM Encryption / Decryption
 
 describe('AES-256-GCM encryption layer', () => {
   describe('basic encrypt/decrypt round-trip', () => {
@@ -71,7 +71,7 @@ describe('AES-256-GCM encryption layer', () => {
       for (let i = 0; i < 50; i++) {
         results.add(encrypt2FASecret(secret))
       }
-      // All 50 should be unique (probabilistically guaranteed by 128-bit IV)
+      //All 50 should be unique (probabilistically guaranteed by 128-bit IV)
       expect(results.size).toBe(50)
     })
 
@@ -162,10 +162,10 @@ describe('AES-256-GCM encryption layer', () => {
     it('should not allow decryption of different secrets with same key', () => {
       const enc1 = encrypt2FASecret('SECRET_A')
       const enc2 = encrypt2FASecret('SECRET_B')
-      // Each decrypts only to its own plaintext
+      //Each decrypts only to its own plaintext
       expect(decrypt2FASecret(enc1)).toBe('SECRET_A')
       expect(decrypt2FASecret(enc2)).toBe('SECRET_B')
-      // Mixing parts should fail
+      //Mixing parts should fail
       const [iv1, tag1] = enc1.split(':')
       const [, , ct2] = enc2.split(':')
       expect(() => decrypt2FASecret(`${iv1}:${tag1}:${ct2}`)).toThrow()
@@ -173,7 +173,7 @@ describe('AES-256-GCM encryption layer', () => {
   })
 })
 
-// Backup Code Generation & Verification
+//Backup Code Generation & Verification
 
 describe('backup code system', () => {
   describe('code generation', () => {
@@ -191,7 +191,7 @@ describe('backup code system', () => {
     })
 
     it('should never contain ambiguous characters (0, O, 1, I, L)', () => {
-      // Run multiple generations to increase confidence
+      //Run multiple generations to increase confidence
       for (let i = 0; i < 20; i++) {
         const { plainCodes } = generateBackupCodes()
         plainCodes.forEach(code => {
@@ -211,7 +211,7 @@ describe('backup code system', () => {
         const { plainCodes } = generateBackupCodes()
         plainCodes.forEach(c => allCodes.add(c))
       }
-      // 100 codes should all be unique (probabilistically near-certain)
+      //100 codes should all be unique (probabilistically near-certain)
       expect(allCodes.size).toBe(100)
     })
 
@@ -257,8 +257,8 @@ describe('backup code system', () => {
     })
 
     it('should handle codes with leading/trailing spaces after normalization', () => {
-      // hashBackupCode strips dashes and uppercases, but doesn't trim
-      // This tests the robustness expectation
+      //hashBackupCode strips dashes and uppercases, but doesn't trim
+      //This tests the robustness expectation
       const h1 = hashBackupCode('ABCDEFGH')
       const h2 = hashBackupCode('ABCD-EFGH')
       expect(h1).toBe(h2)
@@ -305,7 +305,7 @@ describe('backup code system', () => {
       const { plainCodes, hashedCodes } = generateBackupCodes()
       const storedCodes = [...hashedCodes]
 
-      // Use codes 0, 3, 7 in order
+      //Use codes 0, 3, 7 in order
       const codesToUse = [0, 3, 7]
       const usedPlainCodes: string[] = []
 
@@ -317,12 +317,12 @@ describe('backup code system', () => {
         usedPlainCodes.push(code)
       }
 
-      // Used codes should no longer verify
+      //Used codes should no longer verify
       for (const usedCode of usedPlainCodes) {
         expect(verifyBackupCode(usedCode, storedCodes)).toBe(-1)
       }
 
-      // Remaining codes should still work
+      //Remaining codes should still work
       expect(storedCodes).toHaveLength(7)
       const remainingPlain = plainCodes.filter((_, i) => !codesToUse.includes(i))
       for (const code of remainingPlain) {
@@ -341,7 +341,7 @@ describe('backup code system', () => {
       }
 
       expect(storedCodes).toHaveLength(0)
-      // No codes should verify now
+      //No codes should verify now
       for (const code of plainCodes) {
         expect(verifyBackupCode(code, storedCodes)).toBe(-1)
       }
@@ -353,18 +353,18 @@ describe('backup code system', () => {
 
       const code = plainCodes[0]
 
-      // First use succeeds
+      //First use succeeds
       const idx = verifyBackupCode(code, storedCodes)
       expect(idx).toBe(0)
       storedCodes.splice(idx, 1)
 
-      // Second use fails
+      //Second use fails
       expect(verifyBackupCode(code, storedCodes)).toBe(-1)
     })
   })
 })
 
-// Temp Token Generation & Hashing
+//Temp Token Generation & Hashing
 
 describe('temp token system', () => {
   describe('generation', () => {
@@ -384,13 +384,13 @@ describe('temp token system', () => {
 
     it('should have sufficient entropy (no repeating patterns)', () => {
       const token = generateTempToken()
-      // No single hex char should dominate (rough entropy check)
+      //No single hex char should dominate (rough entropy check)
       const charCounts = new Map<string, number>()
       for (const c of token) {
         charCounts.set(c, (charCounts.get(c) || 0) + 1)
       }
-      // With 96 chars and 16 possible values, max expected is ~6
-      // If any char appears >20 times, entropy is suspiciously low
+      //With 96 chars and 16 possible values, max expected is ~6
+      //If any char appears >20 times, entropy is suspiciously low
       for (const count of charCounts.values()) {
         expect(count).toBeLessThan(20)
       }
@@ -430,7 +430,7 @@ describe('temp token system', () => {
   })
 })
 
-// TOTP Replay Protection
+//TOTP Replay Protection
 
 describe('TOTP replay protection', () => {
   describe('hashTOTPCode', () => {
@@ -500,10 +500,10 @@ describe('TOTP replay protection', () => {
       const hash = hashTOTPCode('123456')
       const fiftySecondsAgo = new Date(Date.now() - 50_000)
 
-      // 60s window: 50s ago → inside → replay
+ //60s window: 50s ago -> inside -> replay
       expect(isTOTPReplay(hash, hash, fiftySecondsAgo, 60)).toBe(true)
 
-      // 30s window: 50s ago → outside → not replay
+ //30s window: 50s ago -> outside -> not replay
       expect(isTOTPReplay(hash, hash, fiftySecondsAgo, 30)).toBe(false)
     })
 
@@ -511,26 +511,26 @@ describe('TOTP replay protection', () => {
       const hash = hashTOTPCode('123456')
       const tenMinutesAgo = new Date(Date.now() - 600_000)
 
-      // 15-minute window: 10 minutes ago → inside
+ //15-minute window: 10 minutes ago -> inside
       expect(isTOTPReplay(hash, hash, tenMinutesAgo, 900)).toBe(true)
 
-      // 5-minute window: 10 minutes ago → outside
+ //5-minute window: 10 minutes ago -> outside
       expect(isTOTPReplay(hash, hash, tenMinutesAgo, 300)).toBe(false)
     })
 
     it('should handle future timestamp gracefully', () => {
       const hash = hashTOTPCode('123456')
       const futureDate = new Date(Date.now() + 60_000)
-      // Future date → elapsed is negative → not a replay
+ //Future date -> elapsed is negative -> not a replay
       expect(isTOTPReplay(hash, hash, futureDate)).toBe(true)
-      // Actually, elapsed = now - future = negative, which is < windowSeconds * 1000
-      // Since elapsed is negative, it's < 0 < window, so it IS flagged as replay
-      // This is correct behavior: if lastTOTPAt is in the future (clock skew), be cautious
+      //Actually, elapsed = now - future = negative, which is < windowSeconds * 1000
+      //Since elapsed is negative, it's < 0 < window, so it IS flagged as replay
+      //This is correct behavior: if lastTOTPAt is in the future (clock skew), be cautious
     })
   })
 })
 
-// Brute-Force Protection
+//Brute-Force Protection
 
 describe('brute-force protection helpers', () => {
   describe('check2FALockout', () => {
@@ -561,17 +561,17 @@ describe('brute-force protection helpers', () => {
     })
 
     it('should handle exactly-now boundary (edge case)', () => {
-      // lockedUntil = now → not locked (past)
+ //lockedUntil = now -> not locked (past)
       const now = new Date()
       const result = check2FALockout(5, now)
-      // Could be locked or not depending on millisecond timing
-      // Just verify it doesn't throw
+      //Could be locked or not depending on millisecond timing
+      //Just verify it doesn't throw
       expect(typeof result.locked).toBe('boolean')
     })
 
     it('should ignore attempt count (only checks time)', () => {
       const futureDate = new Date(Date.now() + 60_000)
-      // Even with 0 attempts, if lockedUntil is future, it's locked
+      //Even with 0 attempts, if lockedUntil is future, it's locked
       expect(check2FALockout(0, futureDate).locked).toBe(true)
     })
 
@@ -621,7 +621,7 @@ describe('brute-force protection helpers', () => {
   })
 })
 
-// Security Properties
+//Security Properties
 
 describe('security properties', () => {
   describe('no information leakage from error paths', () => {
@@ -637,8 +637,8 @@ describe('security properties', () => {
     it('verifyBackupCode should take similar time regardless of match position', () => {
       const { plainCodes, hashedCodes } = generateBackupCodes()
 
-      // This is a smoke test — true timing attack testing needs a specialized framework
-      // We just verify the function uses the timing-safe path
+      //This is a smoke test -- true timing attack testing needs a specialized framework
+      //We just verify the function uses the timing-safe path
       const firstResult = verifyBackupCode(plainCodes[0], hashedCodes)
       const lastResult = verifyBackupCode(plainCodes[9], hashedCodes)
       const noMatchResult = verifyBackupCode('ZZZZ-YYYY', hashedCodes)
@@ -652,7 +652,7 @@ describe('security properties', () => {
   describe('crypto entropy', () => {
     it('generated tokens should have high Shannon entropy', () => {
       const token = generateTempToken()
-      // Calculate Shannon entropy
+      //Calculate Shannon entropy
       const freq = new Map<string, number>()
       for (const c of token) {
         freq.set(c, (freq.get(c) || 0) + 1)
@@ -662,13 +662,13 @@ describe('security properties', () => {
         const p = count / token.length
         entropy -= p * Math.log2(p)
       }
-      // Hex string should have entropy close to log2(16) = 4 bits per char
-      // A good random hex string of 96 chars should have entropy > 3.5
+      //Hex string should have entropy close to log2(16) = 4 bits per char
+      //A good random hex string of 96 chars should have entropy > 3.5
       expect(entropy).toBeGreaterThan(3.0)
     })
 
     it('generated backup codes should use the full character set', () => {
-      // Generate many sets to verify character distribution
+      //Generate many sets to verify character distribution
       const allChars = new Set<string>()
       for (let i = 0; i < 50; i++) {
         const { plainCodes } = generateBackupCodes()
@@ -678,42 +678,42 @@ describe('security properties', () => {
           }
         }
       }
-      // Should use most of the 27-char alphabet (ABCDEFGHJKMNPQRSTUVWXYZ23456789)
+      //Should use most of the 27-char alphabet (ABCDEFGHJKMNPQRSTUVWXYZ23456789)
       expect(allChars.size).toBeGreaterThanOrEqual(20)
     })
   })
 
   describe('key management', () => {
     it('should derive same encryption from same key (deterministic key derivation)', () => {
-      // Encrypt/decrypt should work consistently within same process
+      //Encrypt/decrypt should work consistently within same process
       const secret = 'KEY_MANAGEMENT_TEST'
       const encrypted = encrypt2FASecret(secret)
       expect(decrypt2FASecret(encrypted)).toBe(secret)
 
-      // Second round should also work
+      //Second round should also work
       const encrypted2 = encrypt2FASecret(secret)
       expect(decrypt2FASecret(encrypted2)).toBe(secret)
     })
   })
 })
 
-// Integration: Full Round-Trip Scenarios
+//Integration: Full Round-Trip Scenarios
 
 describe('end-to-end scenarios', () => {
   it('should simulate complete 2FA setup + authentication + backup code use lifecycle', () => {
-    // 1. Generate a TOTP secret and encrypt it
+    //1. Generate a TOTP secret and encrypt it
     const secret = 'JBSWY3DPEHPK3PXP'
     const encryptedSecret = encrypt2FASecret(secret)
 
-    // 2. Verify the secret can be decrypted
+    //2. Verify the secret can be decrypted
     expect(decrypt2FASecret(encryptedSecret)).toBe(secret)
 
-    // 3. Generate backup codes
+    //3. Generate backup codes
     const { plainCodes, hashedCodes } = generateBackupCodes()
     expect(plainCodes).toHaveLength(10)
     expect(hashedCodes).toHaveLength(10)
 
-    // 4. Simulate using backup code #3
+    //4. Simulate using backup code #3
     const backupCode = plainCodes[3]
     const storedCodes = [...hashedCodes]
     const matchIdx = verifyBackupCode(backupCode, storedCodes)
@@ -721,10 +721,10 @@ describe('end-to-end scenarios', () => {
     storedCodes.splice(matchIdx, 1)
     expect(storedCodes).toHaveLength(9)
 
-    // 5. Verify used code is rejected
+    //5. Verify used code is rejected
     expect(verifyBackupCode(backupCode, storedCodes)).toBe(-1)
 
-    // 6. Verify remaining codes still work
+    //6. Verify remaining codes still work
     for (let i = 0; i < 10; i++) {
       if (i === 3) continue
       const idx = verifyBackupCode(plainCodes[i], storedCodes)
@@ -732,19 +732,19 @@ describe('end-to-end scenarios', () => {
     }
   })
 
-  it('should simulate temp token lifecycle (create → hash → verify → expire)', () => {
-    // 1. Generate temp token
+ it('should simulate temp token lifecycle (create -> hash -> verify -> expire)', () => {
+    //1. Generate temp token
     const raw = generateTempToken()
     expect(raw).toHaveLength(96)
 
-    // 2. Hash it (simulates DB storage)
+    //2. Hash it (simulates DB storage)
     const stored = hashTempToken(raw)
     expect(stored).toHaveLength(64)
 
-    // 3. Verify by re-hashing (simulates lookup)
+    //3. Verify by re-hashing (simulates lookup)
     expect(hashTempToken(raw)).toBe(stored)
 
-    // 4. Different token should not match
+    //4. Different token should not match
     const otherToken = generateTempToken()
     expect(hashTempToken(otherToken)).not.toBe(stored)
   })
@@ -755,25 +755,25 @@ describe('end-to-end scenarios', () => {
     const hash1 = hashTOTPCode(code1)
     const hash2 = hashTOTPCode(code2)
 
-    // First authentication: no previous → allowed
+ //First authentication: no previous -> allowed
     expect(isTOTPReplay(hash1, null, null)).toBe(false)
 
-    // Record the code (simulates DB update)
+    //Record the code (simulates DB update)
     const usedAt = new Date()
 
-    // Same code immediately after → replay
+ //Same code immediately after -> replay
     expect(isTOTPReplay(hash1, hash1, usedAt)).toBe(true)
 
-    // Different code immediately after → allowed
+ //Different code immediately after -> allowed
     expect(isTOTPReplay(hash2, hash1, usedAt)).toBe(false)
 
-    // Same code after window → allowed
+ //Same code after window -> allowed
     const pastWindow = new Date(Date.now() - 100_000)
     expect(isTOTPReplay(hash1, hash1, pastWindow)).toBe(false)
   })
 
   it('should simulate brute-force lockout escalation', () => {
-    // Simulate 5 failed attempts
+    //Simulate 5 failed attempts
     let attempts = 0
     let locked = false
     let lockedUntil: Date | null = null
@@ -789,17 +789,17 @@ describe('end-to-end scenarios', () => {
       }
     }
 
-    // Should be locked after 5 failures
+    //Should be locked after 5 failures
     expect(locked).toBe(true)
     expect(attempts).toBe(5)
     expect(lockedUntil).not.toBeNull()
 
-    // check2FALockout should confirm the lockout
+    //check2FALockout should confirm the lockout
     const lockStatus = check2FALockout(attempts, lockedUntil)
     expect(lockStatus.locked).toBe(true)
     expect(lockStatus.remainingMinutes).toBeGreaterThan(0)
 
-    // After lockout expires, should be unlocked
+    //After lockout expires, should be unlocked
     const pastLockout = new Date(Date.now() - 60_000)
     expect(check2FALockout(attempts, pastLockout).locked).toBe(false)
   })

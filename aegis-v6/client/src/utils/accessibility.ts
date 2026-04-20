@@ -1,20 +1,19 @@
 /**
- * Accessibility client utility (helper functions).
+ * Shared a11y utilities — focus trapping, ARIA helpers, and screen-reader
+ * announcements used across the entire UI layer.
  *
- * How it connects:
- * - Imported by UI components that need focus trapping or ARIA attributes
+ * - Imported by components that need focus trapping or ARIA attributes
  * - Meets WCAG 2.1 AA and Section 508 requirements
- * Simple explanation:
- * Shared a11y utilities used across the entire UI layer. */
+ */
 
-// FOCUS MANAGEMENT
+//FOCUS MANAGEMENT
 
-// FOCUSABLE_SELECTORS: a CSS selector string that matches every element a
-// keyboard user can navigate to using Tab or Shift+Tab.
-// Each rule follows WCAG 2.1 Success Criterion 2.1.1 (Keyboard Accessible):
-// - :not([disabled]) — skip form controls that are disabled
-// - :not([aria-hidden="true"]) — skip elements hidden from assistive tech
-// - [tabindex]:not([tabindex="-1"]) — skip elements removed from tab order
+//FOCUSABLE_SELECTORS: a CSS selector string that matches every element a
+//keyboard user can navigate to using Tab or Shift+Tab.
+//Each rule follows WCAG 2.1 Success Criterion 2.1.1 (Keyboard Accessible):
+// :not([disabled]) -- skip form controls that are disabled
+// :not([aria-hidden="true"]) -- skip elements hidden from assistive tech
+// [tabindex]:not([tabindex="-1"]) -- skip elements removed from tab order
 export const FOCUSABLE_SELECTORS = [
   'a[href]:not([disabled]):not([aria-hidden="true"])',
   'button:not([disabled]):not([aria-hidden="true"])',
@@ -34,11 +33,11 @@ export const FOCUSABLE_SELECTORS = [
 export function getFocusableElements(container: HTMLElement): HTMLElement[] {
   const elements = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS)
   return Array.from(elements).filter(el => {
-    // getComputedStyle checks actual visual state, not just attributes.
-    // An element can match the selector yet still be visually invisible
-    // due to inherited CSS rules, so we filter those out.
-    // el.offsetParent === null means the element (or an ancestor) has
-    // display:none, making it unfocusable even without a disabled attribute.
+    //getComputedStyle checks actual visual state, not just attributes.
+    //An element can match the selector yet still be visually invisible
+    //due to inherited CSS rules, so we filter those out.
+    //el.offsetParent === null means the element (or an ancestor) has
+    //display:none, making it unfocusable even without a disabled attribute.
     const style = window.getComputedStyle(el)
     return style.display !== 'none' && 
            style.visibility !== 'hidden' && 
@@ -90,13 +89,13 @@ export function createFocusTrap(container: HTMLElement): {
     const lastElement = elements[elements.length - 1]
     
     if (e.shiftKey) {
-      // Shift + Tab
+      //Shift + Tab
       if (document.activeElement === firstElement) {
         e.preventDefault()
         lastElement.focus()
       }
     } else {
-      // Tab
+      //Tab
       if (document.activeElement === lastElement) {
         e.preventDefault()
         firstElement.focus()
@@ -108,12 +107,12 @@ export function createFocusTrap(container: HTMLElement): {
     activate() {
       previouslyFocused = document.activeElement as HTMLElement
       document.addEventListener('keydown', handleKeyDown)
-      // Focus first element after slight delay
+      //Focus first element after slight delay
       requestAnimationFrame(() => focusFirstElement(container))
     },
     deactivate() {
       document.removeEventListener('keydown', handleKeyDown)
-      // Return focus to previously focused element
+      //Return focus to previously focused element
       if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
         previouslyFocused.focus()
       }
@@ -134,7 +133,7 @@ export function createRovingTabindex(
   
   if (items.length === 0) return { cleanup: () => {} }
   
-  // Initialize - first item is focusable
+  //Initialize - first item is focusable
   items.forEach((item, index) => {
     item.setAttribute('tabindex', index === 0 ? '0' : '-1')
   })
@@ -202,7 +201,7 @@ export function createRovingTabindex(
   }
 }
 
-// REDUCED MOTION
+//REDUCED MOTION
 
 /**
  * Check if user prefers reduced motion
@@ -234,7 +233,7 @@ export function onReducedMotionChange(
   return () => mediaQuery.removeEventListener('change', handler)
 }
 
-// COLOR CONTRAST
+//COLOR CONTRAST
 
 /**
  * Parse hex color to RGB
@@ -312,7 +311,7 @@ export function getAccessibleTextColor(backgroundColor: string): '#000000' | '#f
   return luminance > 0.179 ? '#000000' : '#ffffff'
 }
 
-// ARIA UTILITIES
+//ARIA UTILITIES
 
 /**
  * Generate unique ID for ARIA relationships
@@ -413,7 +412,7 @@ export function createAlertDialogAttrs(
   }
 }
 
-// KEYBOARD NAVIGATION
+//KEYBOARD NAVIGATION
 
 /**
  * Common keyboard keys
@@ -454,7 +453,7 @@ export function createKeyboardClickHandler(
   }
 }
 
-// SCREEN READER UTILITIES
+//SCREEN READER UTILITIES
 
 /**
  * Visually hidden styles (for screen reader only content)
@@ -486,17 +485,17 @@ export function announceToScreenReader(
   
   document.body.appendChild(announcement)
   
-  // Set content after a tick to ensure it's announced
+  //Set content after a tick to ensure it's announced
   requestAnimationFrame(() => {
     announcement.textContent = message
-    // Remove after announcement
+    //Remove after announcement
     setTimeout(() => {
       document.body.removeChild(announcement)
     }, 1000)
   })
 }
 
-// SKIP LINKS
+//SKIP LINKS
 
 /**
  * Skip link targets for main landmarks
@@ -519,7 +518,7 @@ export function createSkipLinks(): Array<{ href: string; label: string }> {
   ]
 }
 
-// HIGH CONTRAST MODE
+//HIGH CONTRAST MODE
 
 /**
  * Check if user prefers high contrast
@@ -538,7 +537,7 @@ export function prefersDarkColorScheme(): boolean {
   return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
-// FORM ACCESSIBILITY
+//FORM ACCESSIBILITY
 
 /**
  * Create accessible form field props
@@ -585,7 +584,7 @@ export function createFormFieldProps(config: {
   }
 }
 
-// Default export
+//Default export
 export default {
   FOCUSABLE_SELECTORS,
   getFocusableElements,

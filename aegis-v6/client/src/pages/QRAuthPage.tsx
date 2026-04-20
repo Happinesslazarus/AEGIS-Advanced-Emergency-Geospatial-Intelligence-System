@@ -1,9 +1,9 @@
 /**
- * QRAuthPage.tsx — Emergency QR Code Authentication
+ * QRAuthPage.tsx -- Emergency QR Code Authentication
  *
  * Two QR modes on the desktop (generator):
- *   📱 Phone Browser  — QR points to a server-side mini login page on the phone
- *   🔑 Authenticator  — QR encodes an otpauth:// URI; user scans with Google
+ *   📱 Phone Browser  -- QR points to a server-side mini login page on the phone
+ *   🔑 Authenticator  -- QR encodes an otpauth:// URI; user scans with Google
  *                        Authenticator / Authy, then enters email + 6-digit code here
  *
  * The "approve" sub-page (when user arrives via /citizen/qr-auth?session=xxx) is
@@ -27,11 +27,11 @@ export default function QRAuthPage() {
   return <QRGenerate />
 }
 
-// ─── Mode types ─────────────────────────────────────────────────────────────
+//Mode types
 
 type Mode = 'phone' | 'totp'
 
-// ─── Combined generator wrapper ─────────────────────────────────────────────
+//Combined generator wrapper
 
 function QRGenerate() {
   const [mode, setMode] = useState<Mode>('phone')
@@ -98,7 +98,7 @@ function QRGenerate() {
   )
 }
 
-// ─── Mode 1: Phone Browser ───────────────────────────────────────────────────
+//Mode 1: Phone Browser
 
 function PhoneBrowserMode() {
   const [qrCode, setQrCode] = useState('')
@@ -163,7 +163,7 @@ function PhoneBrowserMode() {
     <div className="space-y-5 text-center">
       <div>
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Scan with your phone camera</p>
-        <p className="text-xs text-gray-400 mt-0.5">Opens a sign-in page on your phone — no app needed</p>
+        <p className="text-xs text-gray-400 mt-0.5">Opens a sign-in page on your phone -- no app needed</p>
       </div>
 
       {status === 'loading' && (
@@ -185,7 +185,7 @@ function PhoneBrowserMode() {
             </div>
           ) : (
             <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-2.5 text-left">
-              <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">⚠️ Restart needed for LAN mode</p>
+ <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">!️ Restart needed for LAN mode</p>
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">Re-run <span className="font-mono">node start-dev.mjs</span> to detect your network IP.</p>
             </div>
           )}
@@ -227,7 +227,7 @@ function PhoneBrowserMode() {
   )
 }
 
-// ─── Mode 2: Authenticator App (TOTP) ────────────────────────────────────────
+//Mode 2: Authenticator App (TOTP)
 
 function AuthenticatorMode() {
   const [qrCode, setQrCode] = useState('')
@@ -241,8 +241,8 @@ function AuthenticatorMode() {
   const navigate = useNavigate()
   const { complete2FA } = useCitizenAuth()
   const timerRef = useRef<ReturnType<typeof setInterval>>()
-  // Default false: assume user already has the entry in their authenticator.
-  // Showing the QR every time causes duplicate entries in Google Authenticator.
+  //Default false: assume user already has the entry in their authenticator.
+  //Showing the QR every time causes duplicate entries in Google Authenticator.
   const [showQr, setShowQr] = useState(false)
   const [isNewSetup, setIsNewSetup] = useState(false)
 
@@ -271,13 +271,13 @@ function AuthenticatorMode() {
         setLabel(data.data.label || '')
         setTimeLeft(data.data.expiresIn)
         setEmail(normalizedEmail)
-        // First-time setup: auto-show QR so user can scan it
+        //First-time setup: auto-show QR so user can scan it
         if (data.data.isNewSetup) {
           setShowQr(true)
           setIsNewSetup(true)
         }
         setStatus('ready')
-        // Countdown
+        //Countdown
         if (timerRef.current) clearInterval(timerRef.current)
         timerRef.current = setInterval(() => {
           setTimeLeft(t => {
@@ -292,7 +292,7 @@ function AuthenticatorMode() {
       }
     } catch {
       setStatus('error')
-      setErrorMsg('Network error — could not connect to server. Try again.')
+      setErrorMsg('Network error -- could not connect to server. Try again.')
     }
   }
 
@@ -315,7 +315,7 @@ function AuthenticatorMode() {
       const res = await fetch(`${API_BASE}/api/auth/qr/totp/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Include email for backward compatibility with older backend nodes.
+        //Include email for backward compatibility with older backend nodes.
         body: JSON.stringify({ sessionId, email: email.trim(), code: code.replace(/\s/g, '') }),
       })
       const data = await res.json()
@@ -328,12 +328,12 @@ function AuthenticatorMode() {
         }, 1500)
       } else {
         setStatus('ready')
-        const errMsg = typeof data.error === 'string' ? data.error : data.error?.message || 'Verification failed — please try again'
+        const errMsg = typeof data.error === 'string' ? data.error : data.error?.message || 'Verification failed -- please try again'
         setErrorMsg(errMsg)
       }
     } catch {
       setStatus('ready')
-      setErrorMsg('Network error — please try again')
+      setErrorMsg('Network error -- please try again')
     }
   }
 
@@ -385,10 +385,10 @@ function AuthenticatorMode() {
             Session expires in <span className="font-mono">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
           </div>
 
-          {/* QR code — shown automatically for first-time, hidden by default for returning users */}
+          {/* QR code -- shown automatically for first-time, hidden by default for returning users */}
           {showQr && (
             <div className="space-y-2 border-t border-gray-200 dark:border-gray-700 pt-3 mt-1">
-              {!isNewSetup && <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Only scan this if you don't already have an AEGIS entry — scanning again creates a duplicate.</p>}
+              {!isNewSetup && <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Only scan this if you don't already have an AEGIS entry -- scanning again creates a duplicate.</p>}
               <div className="bg-white p-3 rounded-xl inline-block border-2 border-indigo-200">
                 <img src={qrCode} alt="Scan with authenticator app" className="w-48 h-48" />
               </div>
@@ -458,7 +458,7 @@ function AuthenticatorMode() {
   )
 }
 
-// ─── QR Approve (phone arrived via scan in Phone Browser mode) ───────────────
+//QR Approve (phone arrived via scan in Phone Browser mode)
 
 /** Approve a QR session (citizen scanned QR on their phone) */
 function QRApprove({ sessionId }: { sessionId: string }) {
@@ -471,8 +471,8 @@ function QRApprove({ sessionId }: { sessionId: string }) {
     const justLoggedIn = sessionStorage.getItem('aegis_qr_just_logged_in') === '1'
 
     if (isAuthenticated && justLoggedIn) {
-      // User just came back after logging in via the QR flow — session was
-      // already auto-approved inside complete2FA / login. Show success & go to app.
+      //User just came back after logging in via the QR flow -- session was
+      //already auto-approved inside complete2FA / login. Show success & go to app.
       sessionStorage.removeItem('aegis_pending_qr_session')
       sessionStorage.removeItem('aegis_qr_return_to')
       sessionStorage.removeItem('aegis_qr_just_logged_in')
@@ -481,9 +481,9 @@ function QRApprove({ sessionId }: { sessionId: string }) {
       return
     }
 
-    // Normal path (user was already logged in, or not logged in yet):
-    //   aegis_pending_qr_session — auto-approve fetch in complete2FA / login
-    //   aegis_qr_return_to       — tells CitizenAuthPage to come back here after sign-in
+    //Normal path (user was already logged in, or not logged in yet):
+    //  aegis_pending_qr_session -- auto-approve fetch in complete2FA / login
+    //  aegis_qr_return_to       -- tells CitizenAuthPage to come back here after sign-in
     sessionStorage.setItem('aegis_pending_qr_session', sessionId)
     sessionStorage.setItem('aegis_qr_return_to', `/citizen/qr-auth?session=${sessionId}`)
 
@@ -537,8 +537,8 @@ function QRApprove({ sessionId }: { sessionId: string }) {
   }
 
   const handleGoogleSignIn = () => {
-    // Pass the current page URL as ?next= so the OAuth callback redirects
-    // back to THIS origin (handles LAN IP phones, localhost desktop, etc.)
+    //Pass the current page URL as ?next= so the OAuth callback redirects
+    //back to THIS origin (handles LAN IP phones, localhost desktop, etc.)
     const next = encodeURIComponent(window.location.href)
     window.location.href = `${API_BASE}/api/auth/google?next=${next}`
   }

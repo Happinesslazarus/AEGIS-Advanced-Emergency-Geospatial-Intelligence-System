@@ -12,7 +12,7 @@
  */
 
 export interface RegionEntry {
-  /* Two-letter ISO code (lowercase) for flag — or '' for continents/generic */
+  /* Two-letter ISO code (lowercase) for flag -- or '' for continents/generic */
   code: string
   /* Display label */
   label: string
@@ -133,7 +133,7 @@ export const WORLD_REGIONS: RegionGroup[] = [
       { code: 'km', label: 'Comoros' },
       { code: 'cg', label: 'Congo' },
       { code: 'cd', label: 'DR Congo' },
-      { code: 'ci', label: "C—te d'Ivoire" },
+      { code: 'ci', label: "C--te d'Ivoire" },
       { code: 'dj', label: 'Djibouti' },
       { code: 'eg', label: 'Egypt' },
       { code: 'gq', label: 'Equatorial Guinea' },
@@ -160,7 +160,7 @@ export const WORLD_REGIONS: RegionGroup[] = [
       { code: 'ne', label: 'Niger' },
       { code: 'ng', label: 'Nigeria',         locationKey: 'ng' },
       { code: 'rw', label: 'Rwanda' },
-      { code: 'st', label: 'S—o Tom— & Pr—ncipe' },
+      { code: 'st', label: 'S--o Tom-- & Pr--ncipe' },
       { code: 'sn', label: 'Senegal' },
       { code: 'sc', label: 'Seychelles' },
       { code: 'sl', label: 'Sierra Leone' },
@@ -312,15 +312,15 @@ export const WORLD_REGIONS: RegionGroup[] = [
 ]
 
 /**
- * COUNTRY_DATA — center coordinates + zoom for every country.
+ * COUNTRY_DATA -- center coordinates + zoom for every country.
  * Used by LocationContext to dynamically generate LocationConfig for any ISO code.
  */
 export const COUNTRY_DATA: Record<string, { name: string; center: [number, number]; zoom: number; emergency: string }> = {
-  // UK Nations
+  //UK Nations
   england:         { name: 'England',              center: [52.5, -1.5],     zoom: 7,  emergency: '999' },
   wales:           { name: 'Wales',                center: [52.1, -3.7],     zoom: 8,  emergency: '999' },
   northernireland: { name: 'Northern Ireland',     center: [54.6, -6.6],     zoom: 9,  emergency: '999' },
-  // Europe
+  //Europe
   al: { name: 'Albania',                center: [41.3, 19.8],     zoom: 8,  emergency: '112' },
   ad: { name: 'Andorra',                center: [42.5, 1.5],      zoom: 12, emergency: '112' },
   fr: { name: 'France',                 center: [46.2, 2.2],      zoom: 6,  emergency: '112' },
@@ -366,7 +366,7 @@ export const COUNTRY_DATA: Record<string, { name: string; center: [number, numbe
   se: { name: 'Sweden',                 center: [60.1, 18.6],     zoom: 5,  emergency: '112' },
   ch: { name: 'Switzerland',            center: [46.8, 8.2],      zoom: 8,  emergency: '112' },
   ua: { name: 'Ukraine',                center: [48.4, 31.2],     zoom: 6,  emergency: '112' },
-  // Africa
+  //Africa
   ng: { name: 'Nigeria',                center: [9.1, 8.7],       zoom: 6,  emergency: '112' },
   sd: { name: 'Sudan',                  center: [12.9, 30.2],     zoom: 5,  emergency: '999' },
   dz: { name: 'Algeria',                center: [28.0, 1.7],      zoom: 5,  emergency: '14' },
@@ -382,7 +382,7 @@ export const COUNTRY_DATA: Record<string, { name: string; center: [number, numbe
   km: { name: 'Comoros',                 center: [-11.9, 43.9],    zoom: 10, emergency: '17' },
   cg: { name: 'Congo',                  center: [-4.3, 15.3],     zoom: 6,  emergency: '117' },
   cd: { name: 'DR Congo',               center: [-4.0, 21.8],     zoom: 5,  emergency: '112' },
-  ci: { name: "C—te d'Ivoire",          center: [7.5, -5.5],      zoom: 7,  emergency: '111' },
+  ci: { name: "C--te d'Ivoire",          center: [7.5, -5.5],      zoom: 7,  emergency: '111' },
   dj: { name: 'Djibouti',               center: [11.6, 43.1],     zoom: 9,  emergency: '17' },
   eg: { name: 'Egypt',                  center: [26.8, 30.8],     zoom: 6,  emergency: '122' },
   gq: { name: 'Equatorial Guinea',      center: [1.6, 10.3],      zoom: 9,  emergency: '112' },
@@ -408,7 +408,7 @@ export const COUNTRY_DATA: Record<string, { name: string; center: [number, numbe
   na: { name: 'Namibia',                center: [-22.0, 17.1],    zoom: 5,  emergency: '10111' },
   ne: { name: 'Niger',                  center: [17.6, 8.1],      zoom: 5,  emergency: '17' },
   rw: { name: 'Rwanda',                 center: [-1.9, 29.9],     zoom: 9,  emergency: '112' },
-  st: { name: 'S—o Tom— & Pr—ncipe',    center: [0.2, 6.6],       zoom: 10, emergency: '112' },
+  st: { name: 'S--o Tom-- & Pr--ncipe',    center: [0.2, 6.6],       zoom: 10, emergency: '112' },
   sn: { name: 'Senegal',                center: [14.5, -14.5],    zoom: 7,  emergency: '17' },
   sc: { name: 'Seychelles',             center: [-4.7, 55.5],     zoom: 10, emergency: '999' },
   sl: { name: 'Sierra Leone',           center: [8.5, -11.8],     zoom: 8,  emergency: '999' },
@@ -421,7 +421,7 @@ export const COUNTRY_DATA: Record<string, { name: string; center: [number, numbe
   ug: { name: 'Uganda',                 center: [1.4, 32.3],      zoom: 7,  emergency: '999' },
   zm: { name: 'Zambia',                 center: [-13.1, 28.3],    zoom: 6,  emergency: '999' },
   zw: { name: 'Zimbabwe',               center: [-20.0, 30.0],    zoom: 7,  emergency: '999' },
-  // Asia
+  //Asia
   bd: { name: 'Bangladesh',             center: [23.7, 90.4],     zoom: 7,  emergency: '999' },
   cn: { name: 'China',                  center: [35.9, 104.2],    zoom: 4,  emergency: '110' },
   in: { name: 'India',                  center: [20.6, 79.0],     zoom: 5,  emergency: '112' },
@@ -470,7 +470,7 @@ export const COUNTRY_DATA: Record<string, { name: string; center: [number, numbe
   uz: { name: 'Uzbekistan',             center: [41.4, 64.6],     zoom: 6,  emergency: '112' },
   vn: { name: 'Vietnam',                center: [14.1, 108.3],    zoom: 6,  emergency: '113' },
   ye: { name: 'Yemen',                  center: [15.6, 48.5],     zoom: 6,  emergency: '199' },
-  // North America
+  //North America
   us: { name: 'United States',           center: [37.1, -95.7],    zoom: 4,  emergency: '911' },
   ag: { name: 'Antigua & Barbuda',      center: [17.1, -61.8],    zoom: 11, emergency: '911' },
   bs: { name: 'Bahamas',                center: [25.0, -77.4],    zoom: 7,  emergency: '911' },
@@ -494,7 +494,7 @@ export const COUNTRY_DATA: Record<string, { name: string; center: [number, numbe
   lc: { name: 'Saint Lucia',            center: [13.9, -61.0],    zoom: 11, emergency: '911' },
   vc: { name: 'Saint Vincent & Grenadines', center: [13.3, -61.2], zoom: 11, emergency: '911' },
   tt: { name: 'Trinidad & Tobago',      center: [10.7, -61.2],    zoom: 9,  emergency: '999' },
-  // South America
+  //South America
   br: { name: 'Brazil',                  center: [-14.2, -51.9],   zoom: 4,  emergency: '190' },
   ar: { name: 'Argentina',              center: [-38.4, -63.6],   zoom: 4,  emergency: '911' },
   bo: { name: 'Bolivia',                center: [-16.3, -63.6],   zoom: 6,  emergency: '110' },
@@ -507,7 +507,7 @@ export const COUNTRY_DATA: Record<string, { name: string; center: [number, numbe
   sr: { name: 'Suriname',               center: [3.9, -56.0],     zoom: 7,  emergency: '115' },
   uy: { name: 'Uruguay',                center: [-32.5, -55.8],   zoom: 7,  emergency: '911' },
   ve: { name: 'Venezuela',              center: [6.4, -66.6],     zoom: 6,  emergency: '171' },
-  // Oceania
+  //Oceania
   au: { name: 'Australia',               center: [-25.3, 133.8],   zoom: 4,  emergency: '000' },
   fj: { name: 'Fiji',                   center: [-17.7, 178.0],   zoom: 7,  emergency: '911' },
   ki: { name: 'Kiribati',               center: [1.4, 173.0],     zoom: 8,  emergency: '999' },
@@ -527,7 +527,7 @@ export const COUNTRY_DATA: Record<string, { name: string; center: [number, numbe
 /* Helper: get flag image URL from ISO code via flagcdn.com */
 export function getFlagUrl(code: string, size: 16 | 20 | 24 | 32 | 40 | 48 | 64 = 20): string {
   if (!code) return ''
-  // flagcdn uses w20 style for width-based sizing
+  //flagcdn uses w20 style for width-based sizing
   return `https://flagcdn.com/w${size}/${code}.png`
 }
 

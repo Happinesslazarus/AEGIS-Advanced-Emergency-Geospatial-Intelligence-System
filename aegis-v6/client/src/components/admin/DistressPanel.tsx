@@ -33,7 +33,7 @@ interface DistressCall {
   acknowledged_at: string | null
   created_at: string
   last_gps_at: string | null
-  // joined data
+  //joined data
   phone?: string
   email?: string
   avatar_url?: string
@@ -83,17 +83,17 @@ const DistressPanel = memo(function DistressPanel({ socket, operatorId, operator
 
   useEffect(() => { fetchActive() }, [fetchActive])
 
-  // Socket.IO listeners
+  //Socket.IO listeners
   useEffect(() => {
     if (!socket) return
 
     const onNewAlert = (data: any) => {
       setDistressCalls(prev => {
-        // Avoid duplicates
+        //Avoid duplicates
         if (prev.find(d => d.id === data.id)) return prev
         return [data, ...prev]
       })
-      // Play alarm sound
+      //Play alarm sound
       if (alarmEnabled) playAlarm()
     }
 
@@ -134,7 +134,7 @@ const DistressPanel = memo(function DistressPanel({ socket, operatorId, operator
     }
   }, [socket, alarmEnabled])
 
-  // Cleanup AudioContext on unmount
+  //Cleanup AudioContext on unmount
   useEffect(() => {
     return () => { audioCtxRef.current?.close().catch(() => {}) }
   }, [])
@@ -240,7 +240,7 @@ const DistressPanel = memo(function DistressPanel({ socket, operatorId, operator
             <div className="mx-3 mt-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 flex items-center gap-2">
               <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
               <span className="text-xs text-red-600 dark:text-red-400">{socketError}</span>
-              <button onClick={() => setSocketError(null)} className="ml-auto text-red-400 hover:text-red-600" aria-label={t('common.dismiss', lang)}>✕</button>
+              <button onClick={() => setSocketError(null)} className="ml-auto text-red-400 hover:text-red-600" aria-label={t('common.dismiss', lang)}>x</button>
             </div>
           )}
           {loading && distressCalls.length === 0 ? (
@@ -277,7 +277,7 @@ const DistressPanel = memo(function DistressPanel({ socket, operatorId, operator
                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-600 text-white">{t('distress.vulnerable', lang)}</span>
                           )}
                         </div>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-300">{timeAgo(dc.created_at)} — {dc.latitude.toFixed(4)}, {dc.longitude.toFixed(4)}</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-300">{timeAgo(dc.created_at)} -- {dc.latitude.toFixed(4)}, {dc.longitude.toFixed(4)}</p>
                       </div>
 
                       {/* Triage badge */}
@@ -373,7 +373,7 @@ const DistressPanel = memo(function DistressPanel({ socket, operatorId, operator
                         )}
                         <button
                           onClick={() => {
-                            // Open Google Maps directions
+                            //Open Google Maps directions
                             window.open(`https://www.google.com/maps/dir/?api=1&destination=${dc.latitude},${dc.longitude}`, '_blank', 'noopener,noreferrer')
                           }}
                           className="px-3 py-2 bg-blue-600 rounded-lg text-xs font-bold text-white hover:bg-blue-500 transition flex items-center gap-1.5"

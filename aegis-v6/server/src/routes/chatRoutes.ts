@@ -12,17 +12,17 @@
  * - SSE streaming responses write directly to the response stream (no queue)
  * - Client UI: client/src/components/Chatbot.tsx (or FloatingChatWidget) sends POST /api/chat
  *
- * POST /api/chat          — Send a message, receive an AI reply (JSON)
- * POST /api/chat/stream   — Same, but streamed character-by-character (SSE)
- * GET  /api/chat/sessions — List authenticated user's past chat sessions
- * GET  /api/chat/:id      — Fetch message history for a specific session
- * GET  /api/chat/status   — LLM provider health and availability
- * POST /api/chat/:id/end  — Close and summarise a session
+ * POST /api/chat          -- Send a message, receive an AI reply (JSON)
+ * POST /api/chat/stream   -- Same, but streamed character-by-character (SSE)
+ * GET  /api/chat/sessions -- List authenticated user's past chat sessions
+ * GET  /api/chat/:id      -- Fetch message history for a specific session
+ * GET  /api/chat/status   -- LLM provider health and availability
+ * POST /api/chat/:id/end  -- Close and summarise a session
  *
- * - server/src/services/chatService.ts   — where messages are stored and AI response built
- * - server/src/services/llmRouter.ts     — picks Gemini/Groq/OpenRouter/Ollama at runtime
- * - server/src/services/chatPromptBuilder.ts — shapes the prompt sent to the LLM
- * - server/src/middleware/validate.ts    — chatMessageSchema validates message length/content
+ * - server/src/services/chatService.ts   -- where messages are stored and AI response built
+ * - server/src/services/llmRouter.ts     -- picks Gemini/Groq/OpenRouter/Ollama at runtime
+ * - server/src/services/chatPromptBuilder.ts -- shapes the prompt sent to the LLM
+ * - server/src/middleware/validate.ts    -- chatMessageSchema validates message length/content
  * */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -41,7 +41,7 @@ import pool from '../models/db.js'
 
 const router = Router()
 
-// Per-user/IP rate limiting for chat endpoints
+//Per-user/IP rate limiting for chat endpoints
 const chatRateLimits = new Map<string, { count: number; windowStart: number }>()
 const CHAT_RATE_LIMIT = 20 // max requests per window
 const CHAT_RATE_WINDOW = 60_000 // 1 minute window
@@ -58,7 +58,7 @@ function checkChatRateLimit(identifier: string): boolean {
   return true
 }
 
-// Cleanup stale rate limit entries every 5 minutes
+//Cleanup stale rate limit entries every 5 minutes
 setInterval(() => {
   const now = Date.now()
   for (const [key, entry] of chatRateLimits) {
@@ -68,7 +68,7 @@ setInterval(() => {
 
 /**
  * Extract user from token if present (optional auth).
- * Doesn't reject unauthenticated requests — just returns null.
+ * Doesn't reject unauthenticated requests -- just returns null.
  */
 function optionalAuth(req: Request): { id: string; type: 'citizen' | 'operator' } | null {
   const header = req.headers.authorization
@@ -82,13 +82,13 @@ function optionalAuth(req: Request): { id: string; type: 'citizen' | 'operator' 
     if (role === 'citizen') return { id: userId, type: 'citizen' }
     if (['admin', 'operator', 'manager'].includes(role)) return { id: userId, type: 'operator' }
   } catch {
-    // Invalid token — treat as anonymous
+    //Invalid token -- treat as anonymous
   }
   return null
 }
 
 /**
- * POST /api/chat — Send a message to the AI chatbot
+ * POST /api/chat -- Send a message to the AI chatbot
  *
  * Body: { message: string, sessionId?: string }
  * Returns: { sessionId, reply, model, tokensUsed, toolsUsed, sources, safetyFlags }
@@ -118,7 +118,7 @@ router.post('/', validate(chatMessageSchema), async (req: Request, res: Response
 })
 
 /**
- * POST /api/chat/upload-image — Upload an image for AI analysis in chat
+ * POST /api/chat/upload-image -- Upload an image for AI analysis in chat
  * Returns the image URL so the client can include it in a chat message.
  * Accepts: JPEG, PNG, GIF, WebP (max 10MB)
  */
@@ -168,7 +168,7 @@ router.post('/upload-image', chatImageUpload.single('image'), (req: Request, res
 })
 
 /**
- * POST /api/chat/upload-file — Upload a document (PDF, CSV, TXT) for contextual analysis
+ * POST /api/chat/upload-file -- Upload a document (PDF, CSV, TXT) for contextual analysis
  * Extracts text content from the file so the chatbot can reason over it.
  * Accepts: PDF, CSV, TXT, JSON, Markdown (max 5MB)
  */
@@ -215,7 +215,7 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
       let rawText = ''
       let pageCount = 0
 
-      // ── Quality gate ──────────────────────────────────────────────────────────
+      //Quality gate
       const isGarbageText = (text: string, pages: number): boolean => {
         if (text.length < 30) return true
         const readable = (text.match(/[a-zA-Z0-9\s.,;:!?'"()\-\u00C0-\u024F]/g) || []).length
@@ -226,8 +226,8 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
         return false
       }
 
-      // ── Strategy 1: pdfjs-dist text layer (no canvas — pure text extraction) ─
-      // Handles embedded-font PDFs that pdf-parse / BT-ET extraction can't read
+      //Strategy 1: pdfjs-dist text layer (no canvas -- pure text extraction)
+      //Handles embedded-font PDFs that pdf-parse / BT-ET extraction can't read
       try {
         const { pathToFileURL } = await import('node:url')
         const { resolve } = await import('node:path')
@@ -275,9 +275,9 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
         logger.warn({ err: pdfjsErr?.message }, 'pdfjs text extraction failed')
       }
 
-      // ── Strategy 2: OCR (scanned / image-based PDFs where text layer is empty) ─
+      //Strategy 2: OCR (scanned / image-based PDFs where text layer is empty)
       if (rawText.length < 30 || isGarbageText(rawText, pageCount)) {
-        logger.info('PDF text layer empty — falling back to OCR')
+        logger.info('PDF text layer empty -- falling back to OCR')
         const MAX_OCR_PAGES = 8
 
         try {
@@ -303,7 +303,7 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
                 if (data.text.trim()) ocrParts.push(data.text.trim())
               }
             } catch {
-              // skip unrenderable pages
+              //skip unrenderable pages
             }
           }
 
@@ -317,7 +317,7 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
         }
       }
 
-      // ── Decide what to send the LLM ───────────────────────────────────────────
+      //Decide what to send the LLM
       if (rawText.length > 30 && !isGarbageText(rawText, pageCount)) {
         extractedText = rawText.slice(0, 50000)
       } else {
@@ -326,22 +326,22 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
           `It has ${pageCount} page${pageCount === 1 ? '' : 's'} but no readable text could be recovered.`,
           '',
           'What you can do:',
-          '• Describe what the document contains and I will help you work with it',
-          '• Take a screenshot and upload the image (📷) for visual analysis',
-          '• If this is a typed document, re-export it as a text-based PDF from the original app',
-          '• Paste key sections as plain text in the chat]',
+          '- Describe what the document contains and I will help you work with it',
+          '- Take a screenshot and upload the image (📷) for visual analysis',
+          '- If this is a typed document, re-export it as a text-based PDF from the original app',
+          '- Paste key sections as plain text in the chat]',
         ].join('\n')
       }
     } else if (['.csv', '.txt', '.md', '.json'].includes(ext)) {
       extractedText = fs.readFileSync(filePath, 'utf-8').slice(0, 50000)
     } else if (['.xlsx', '.xls'].includes(ext)) {
-      // Basic CSV-like output for Excel — just read as buffer for now
-      extractedText = '[Excel file uploaded — please describe the data you want analyzed]'
+      //Basic CSV-like output for Excel -- just read as buffer for now
+      extractedText = '[Excel file uploaded -- please describe the data you want analyzed]'
     }
 
-    // Limit total size to prevent overwhelming the LLM context
+    //Limit total size to prevent overwhelming the LLM context
     if (extractedText.length > 50000) {
-      extractedText = extractedText.slice(0, 50000) + '\n\n[...truncated — file too large for full analysis]'
+      extractedText = extractedText.slice(0, 50000) + '\n\n[...truncated -- file too large for full analysis]'
     }
 
     res.json({
@@ -358,7 +358,7 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
 })
 
 /**
- * POST /api/chat/stream — Stream chat tokens with SSE
+ * POST /api/chat/stream -- Stream chat tokens with SSE
  * Body: { message: string, sessionId?: string }
  */
 router.post('/stream', validate(chatMessageSchema), async (req: Request, res: Response) => {
@@ -371,8 +371,8 @@ router.post('/stream', validate(chatMessageSchema), async (req: Request, res: Re
     return
   }
   const { message, fileContent, sessionId, preferredProvider, language } = req.body
-  // fileContent is sent separately by doc uploads to avoid message length issues;
-  // merge it back so the rest of the pipeline sees one unified message.
+  //fileContent is sent separately by doc uploads to avoid message length issues;
+  //merge it back so the rest of the pipeline sees one unified message.
   const fullMessage = fileContent ? `${message}\n\n${fileContent}` : message
   const streamStart = Date.now()
   sseConnectionsActive.inc()
@@ -387,9 +387,9 @@ router.post('/stream', validate(chatMessageSchema), async (req: Request, res: Re
     res.write(`data: ${JSON.stringify(data)}\n\n`)
   }
 
-    // Silently absorb write errors (EPIPE) that occur when a client disconnects
-    // mid-stream. Node.js 18+ fires req 'close' on normal request completion too,
-    // so we guard writes with res.writableEnded instead of a clientClosed flag.
+    //Silently absorb write errors (EPIPE) that occur when a client disconnects
+    //mid-stream. Node.js 18+ fires req 'close' on normal request completion too,
+    //so we guard writes with res.writableEnded instead of a clientClosed flag.
     res.on('error', () => { /* client disconnected */ })
 
   req.on('close', () => {
@@ -452,9 +452,9 @@ router.post('/stream', validate(chatMessageSchema), async (req: Request, res: Re
     chatStreamTotal.inc({ status: 'success' })
     chatStreamLatency.observe((Date.now() - streamStart) / 1000)
 
-    // Audit trail: persist admin chat interactions for accountability.
-    // Every operator message + AI response pair is written to audit_logs so
-    // administrators' use of the Command AI is reviewable and non-repudiable.
+    //Audit trail: persist admin chat interactions for accountability.
+    //Every operator message + AI response pair is written to audit_logs so
+    //administrators' use of the Command AI is reviewable and non-repudiable.
     if (user?.type === 'operator' && result.sessionId) {
       pool.query(
         `INSERT INTO audit_logs
@@ -464,7 +464,7 @@ router.post('/stream', validate(chatMessageSchema), async (req: Request, res: Re
         [
           user.id,
           null, // operator_name resolved by caller context; null is acceptable
-          `Admin AI chat: "${fullMessage.slice(0, 120)}${fullMessage.length > 120 ? '…' : ''}"`,
+          `Admin AI chat: "${fullMessage.slice(0, 120)}${fullMessage.length > 120 ? '...' : ''}"`,
           result.sessionId,
           JSON.stringify({
             model: result.model,
@@ -487,7 +487,7 @@ router.post('/stream', validate(chatMessageSchema), async (req: Request, res: Re
 })
 
 /**
- * GET /api/chat/sessions — List authenticated user's chat sessions
+ * GET /api/chat/sessions -- List authenticated user's chat sessions
  */
 router.get('/sessions', async (req: Request, res: Response, next: NextFunction) => {
   const user = optionalAuth(req)
@@ -504,7 +504,7 @@ router.get('/sessions', async (req: Request, res: Response, next: NextFunction) 
 })
 
 /**
- * GET /api/chat/status — LLM provider health information
+ * GET /api/chat/status -- LLM provider health information
  * (Public endpoint for transparency dashboard)
  */
 router.get('/status', async (_req: Request, res: Response, next: NextFunction) => {
@@ -520,7 +520,7 @@ router.get('/status', async (_req: Request, res: Response, next: NextFunction) =
 })
 
 /**
- * GET /api/chat/:id/budget — Session token budget state
+ * GET /api/chat/:id/budget -- Session token budget state
  */
 router.get('/:id/budget', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -547,19 +547,19 @@ router.get('/:id/budget', async (req: Request, res: Response, next: NextFunction
 })
 
 /**
- * GET /api/chat/:id — Get message history for a session
+ * GET /api/chat/:id -- Get message history for a session
  * SECURITY: Requires authentication and ownership verification
  */
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = optionalAuth(req)
     
-    // Require authentication for chat history access
+    //Require authentication for chat history access
     if (!user) {
       throw AppError.unauthorized('Authentication required to view chat history.')
     }
     
-    // Verify ownership of the session
+    //Verify ownership of the session
     const isOwner = await verifySessionOwnership(req.params.id, user.id, user.type)
     if (!isOwner) {
       throw AppError.forbidden('Access denied. You do not own this chat session.')
@@ -573,7 +573,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 })
 
 /**
- * POST /api/chat/sessions/:id/end — End and summarize a chat session
+ * POST /api/chat/sessions/:id/end -- End and summarize a chat session
  * Called when user closes the chatbot to trigger auto-summarization
  */
 router.post('/sessions/:id/end', async (req: Request, res: Response, next: NextFunction) => {
@@ -596,7 +596,7 @@ router.post('/sessions/:id/end', async (req: Request, res: Response, next: NextF
 })
 
 /**
- * POST /api/chat/suggestion-click — Log when a user clicks a smart suggestion
+ * POST /api/chat/suggestion-click -- Log when a user clicks a smart suggestion
  * Body: { sessionId: string, suggestionText: string, category: string }
  */
 router.post('/suggestion-click', async (req: Request, res: Response, next: NextFunction) => {
@@ -615,7 +615,7 @@ router.post('/suggestion-click', async (req: Request, res: Response, next: NextF
 })
 
 /**
- * POST /api/chat/feedback — Submit feedback on a chat message
+ * POST /api/chat/feedback -- Submit feedback on a chat message
  * Body: { messageId: string, rating: 'up' | 'down', sessionId?: string }
  */
 router.post('/feedback', async (req: Request, res: Response, next: NextFunction) => {
@@ -625,7 +625,7 @@ router.post('/feedback', async (req: Request, res: Response, next: NextFunction)
       return res.status(400).json({ error: 'messageId and rating (up/down) required' })
     }
 
-    // Update cache boost score based on feedback
+    //Update cache boost score based on feedback
     try {
       if (sessionId) {
         const boostDelta = rating === 'up' ? 1 : -1
@@ -640,7 +640,7 @@ router.post('/feedback', async (req: Request, res: Response, next: NextFunction)
         )
       }
     } catch {
-      // Best-effort cache update
+      //Best-effort cache update
     }
 
     logger.info({ messageId, rating, sessionId }, '[Chat] Feedback received')

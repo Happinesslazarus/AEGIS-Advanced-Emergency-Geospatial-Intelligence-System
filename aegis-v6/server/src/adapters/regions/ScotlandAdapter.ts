@@ -12,7 +12,7 @@
  * - Weather/rain: Open-Meteo (via BaseRegionAdapter.getWeatherForecast)
  *
  * Severity normalisation: 'severe' > 'warning' > 'alert' > 'info'
- * Maps SEPA numeric levels (1–4) and text labels to this 4-point scale.
+ * Maps SEPA numeric levels (1-4) and text labels to this 4-point scale.
  * Max 50 warnings returned per request to prevent unbounded payloads.
  *
  * - Registered automatically in RegionRegistry.ensureBuiltIns()
@@ -108,7 +108,7 @@ export class ScotlandAdapter extends BaseRegionAdapter {
           })
         }
       } catch {
-        // Individual river failure shouldn't abort the entire fetch
+        //Individual river failure shouldn't abort the entire fetch
       }
     }
 
@@ -120,7 +120,7 @@ export class ScotlandAdapter extends BaseRegionAdapter {
     const useLat = lat ?? centre.lat
     const useLng = lng ?? centre.lng
 
-    // Try OpenWeatherMap first (more detailed for UK)
+    //Try OpenWeatherMap first (more detailed for UK)
     const apiKey = process.env.OPENWEATHER_API_KEY
     if (apiKey) {
       try {
@@ -148,7 +148,7 @@ export class ScotlandAdapter extends BaseRegionAdapter {
       } catch { /* fall through to Open-Meteo */ }
     }
 
-    // Fallback: Open-Meteo (no API key needed)
+    //Fallback: Open-Meteo (no API key needed)
     return this.fetchOpenMeteoWeather(useLat, useLng)
   }
 

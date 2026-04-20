@@ -14,7 +14,7 @@ export class EnvironmentalHazardAlertRules {
     const results: AlertRuleResult[] = []
     const { recentReports, sensorData, predictions } = context
 
-    // Rule 1: Health advisory issued
+    //Rule 1: Health advisory issued
     const healthAdvisoryReports = recentReports.filter(r => r.customFields?.healthAdvisory === true)
     if (healthAdvisoryReports.length >= 1) {
       results.push({
@@ -25,7 +25,7 @@ export class EnvironmentalHazardAlertRules {
       })
     }
 
-    // Rule 2: AQI threshold (if sensor data available)
+    //Rule 2: AQI threshold (if sensor data available)
     if (sensorData?.aqi) {
       const aqi = Number(sensorData.aqi)
       if (aqi >= 300) {
@@ -52,7 +52,7 @@ export class EnvironmentalHazardAlertRules {
       }
     }
 
-    // Rule 3: Report density threshold
+    //Rule 3: Report density threshold
     if (recentReports.length >= 10) {
       results.push({
         shouldAlert: true,
@@ -76,7 +76,7 @@ export class EnvironmentalHazardAlertRules {
       })
     }
 
-    // Rule 4: Chemical spill
+    //Rule 4: Chemical spill
     const chemicalSpillReports = recentReports.filter(r => 
       r.customFields?.hazardType === 'Chemical Spill'
     )
@@ -89,7 +89,7 @@ export class EnvironmentalHazardAlertRules {
       })
     }
 
-    // Rule 5: Water contamination
+    //Rule 5: Water contamination
     const waterContaminationReports = recentReports.filter(r => 
       r.customFields?.hazardType === 'Water Contamination'
     )
@@ -102,7 +102,7 @@ export class EnvironmentalHazardAlertRules {
       })
     }
 
-    // Rule 6: ML prediction threshold
+    //Rule 6: ML prediction threshold
     const highRiskPredictions = predictions?.filter(p => p.probability > 0.7)
     if (highRiskPredictions && highRiskPredictions.length > 0) {
       results.push({

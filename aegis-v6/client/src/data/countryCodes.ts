@@ -12,8 +12,8 @@
   * - Used by phone-number inputs throughout the client
  */
 
-// Converts a 2-letter ISO country code to its flag emoji
-// using Unicode regional indicator symbols (U+1F1E6 to U+1F1FF)
+//Converts a 2-letter ISO country code to its flag emoji
+//using Unicode regional indicator symbols (U+1F1E6 to U+1F1FF)
 export function codeToFlag(code: string): string {
   return [...code.toUpperCase()].map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('')
 }
@@ -87,7 +87,7 @@ export function getCountryByDial(dial: string): CountryCode | undefined {
 }
 
 export function formatPhoneWithCountry(country: CountryCode, number: string): string {
-  // Remove any existing country code or +
+  //Remove any existing country code or +
   const cleaned = number.replace(/^\+?\d{1,4}\s*/, '').replace(/\D/g, '')
   return `${country.dial}${cleaned}`
 }

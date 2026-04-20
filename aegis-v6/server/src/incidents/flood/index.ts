@@ -39,7 +39,7 @@ class FloodModule extends BaseIncidentModule {
   }
 
   protected setupCustomRoutes(): void {
-    // Flood-specific: threat level
+    //Flood-specific: threat level
     this.router.get('/threat', async (_req: Request, res: Response) => {
       try {
         const assessment = await calculateThreatLevel()
@@ -49,7 +49,7 @@ class FloodModule extends BaseIncidentModule {
       }
     })
 
-    // Flood-specific: evacuation routes
+    //Flood-specific: evacuation routes
     this.router.post('/evacuation/route', async (req: Request, res: Response) => {
       try {
         const { startLat, startLng, floodExtentGeoJSON, destinationType } = req.body
@@ -72,10 +72,10 @@ class FloodModule extends BaseIncidentModule {
       res.json({ routes, count: routes.length, note: 'Pre-calculated evacuation corridors' })
     })
 
-    // Flood-specific: river extents GeoJSON
+    //Flood-specific: river extents GeoJSON
     this.router.get('/extents/:river', (req: Request, res: Response) => {
       try {
-        // Validate river name to prevent path traversal
+        //Validate river name to prevent path traversal
         const river = req.params.river
         if (!/^[a-zA-Z0-9_-]+$/.test(river)) {
           res.status(400).json({ error: 'Invalid river name' })
@@ -89,7 +89,7 @@ class FloodModule extends BaseIncidentModule {
           path.resolve('server', 'src', 'data', 'floodExtents', filename),
         ]
         for (const c of candidates) {
-          // Ensure resolved path stays within expected directories
+          //Ensure resolved path stays within expected directories
           const resolved = path.resolve(c)
           if (!resolved.includes('floodExtents')) continue
           if (fs.existsSync(resolved)) {
@@ -106,7 +106,7 @@ class FloodModule extends BaseIncidentModule {
 
   async getPredictions(region: string): Promise<IncidentPrediction[]> {
     try {
-      // Use the existing ML-powered flood prediction service
+      //Use the existing ML-powered flood prediction service
       const predictions = await getFloodPredictions()
       return predictions.map((p: any) => ({
         incidentType: 'flood',
@@ -123,7 +123,7 @@ class FloodModule extends BaseIncidentModule {
         modelVersion: p.model_version,
       }))
     } catch {
-      // Fallback to rule-based if ML service is unavailable
+      //Fallback to rule-based if ML service is unavailable
       return this.ruleBasedPrediction(region)
     }
   }
@@ -132,7 +132,7 @@ class FloodModule extends BaseIncidentModule {
     const base = await super.getMapData(region)
     const regionConfig = getActiveCityRegion()
 
-    // Add WMS layer references for flood visualization
+    //Add WMS layer references for flood visualization
     if (regionConfig.wmsLayers) {
       base.layers = regionConfig.wmsLayers.map(wms => ({
         type: 'FeatureCollection' as const,
@@ -150,7 +150,7 @@ class FloodModule extends BaseIncidentModule {
   }
 
   async ingestData(region: string): Promise<{ recordsIngested: number; source: string }> {
-    // Flood data ingestion handled by existing cronJobs (SEPA/EA feeds)
+    //Flood data ingestion handled by existing cronJobs (SEPA/EA feeds)
     return { recordsIngested: 0, source: 'sepa_ea_feeds' }
   }
 }

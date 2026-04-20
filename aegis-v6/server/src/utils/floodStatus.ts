@@ -28,7 +28,7 @@ export function calculateFloodStatus(
   currentLevel: number,
   station: RiverStation,
 ): FloodStatusResult {
-  // Method 1: Percentage of historical flood level (preferred — self-calibrating)
+  //Method 1: Percentage of historical flood level (preferred -- self-calibrating)
   if (station.historicalFloodLevel && station.historicalFloodLevel > 0) {
     const percentageOfFloodLevel = currentLevel / station.historicalFloodLevel
 
@@ -51,7 +51,7 @@ export function calculateFloodStatus(
     }
   }
 
-  // Method 2: Fixed thresholds from region config (fallback)
+  //Method 2: Fixed thresholds from region config (fallback)
   const { normal, elevated, high, severe } = station.floodThresholds
   let status: FloodStatus = 'NORMAL'
   if (currentLevel >= severe) status = 'CRITICAL'

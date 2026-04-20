@@ -9,22 +9,22 @@
  * 1. Flatten the English namespace JSON into leaf { dotPath: "string value" } pairs.
  * 2. Split into batches (≤100 strings, ≤25 000 characters each) to respect the
  *    server's /api/translate/batch limits.
- * 3. POST each batch to /api/translate/batch — the server cascades through
- *    Azure Cognitive Translator → DeepL → LibreTranslate and caches in PostgreSQL.
+ * 3. POST each batch to /api/translate/batch -- the server cascades through
+ * Azure Cognitive Translator -> DeepL -> LibreTranslate and caches in PostgreSQL.
  * 4. Reassemble the translated leaf values back into the original nested structure.
  * 5. Persist the result in localStorage (7-day TTL) so subsequent language
  *    switches load instantly without another round-trip.
  *
  * Fallback: if the API is unreachable, the original English namespace is returned
- * unchanged — the app stays fully functional, just in English.
+ * unchanged -- the app stays fully functional, just in English.
  *
  * How it connects:
- * - Called by client/src/i18n/config.ts → loadLanguage()
+ * - Called by client/src/i18n/config.ts -> loadLanguage()
  * - Calls server/src/routes/translationRoutes.ts POST /api/translate/batch
  * - Reads/writes localStorage for client-side caching
  */
 
-// ─── Constants ──────────────────────────────────────────────────────────────
+//Constants
 
 /** Bump this when the English source changes significantly to bust all caches. */
 const CACHE_VERSION = 1
@@ -38,12 +38,12 @@ const BATCH_MAX_ITEMS = 100
 /** Must match MAX_TRANSLATION_BATCH_CHARACTERS in server/src/services/translationService.ts */
 const BATCH_MAX_CHARS = 25_000
 
-// ─── Flatten / Unflatten ────────────────────────────────────────────────────
+//Flatten / Unflatten
 
 /**
  * Recursively flatten a nested object to dot-path leaf strings.
- * { nav: { home: "Home" } } → { "nav.home": "Home" }
- * Non-string leaves (arrays, numbers, booleans) are ignored — they don't need
+ * { nav: { home: "Home" } } -> { "nav.home": "Home" }
+ * Non-string leaves (arrays, numbers, booleans) are ignored -- they don't need
  * translation and will fall through to the English value automatically.
  */
 function flattenObject(
@@ -64,7 +64,7 @@ function flattenObject(
 
 /**
  * Reassemble a flat dot-path map back into a nested object.
- * { "nav.home": "Accueil" } → { nav: { home: "Accueil" } }
+ * { "nav.home": "Accueil" } -> { nav: { home: "Accueil" } }
  */
 function unflattenObject(flat: Record<string, string>): Record<string, unknown> {
   const result: Record<string, unknown> = {}
@@ -82,7 +82,7 @@ function unflattenObject(flat: Record<string, string>): Record<string, unknown> 
   return result
 }
 
-// ─── Batching ────────────────────────────────────────────────────────────────
+//Batching
 
 /**
  * Split a flat entry array into chunks that each respect both the item-count
@@ -110,7 +110,7 @@ function chunkBatch(entries: [string, string][]): [string, string][][] {
   return chunks
 }
 
-// ─── localStorage Cache ──────────────────────────────────────────────────────
+//localStorage Cache
 
 const cacheKey = (lng: string, ns: string): string =>
   `aegis_i18n_v${CACHE_VERSION}_${lng}_${ns}`
@@ -137,11 +137,11 @@ function writeCache(lng: string, ns: string, data: Record<string, unknown>): voi
       JSON.stringify({ data, expiresAt: Date.now() + CACHE_TTL_MS }),
     )
   } catch {
-    // localStorage quota exceeded — silently skip caching; will re-fetch next time
+    //localStorage quota exceeded -- silently skip caching; will re-fetch next time
   }
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+//Public API
 
 /**
  * Translate a single i18next namespace bundle from English into `lng`.
@@ -156,16 +156,16 @@ export async function translateNamespace(
   lng: string,
   ns: string,
 ): Promise<Record<string, unknown>> {
-  // 1. Check localStorage first — fastest path (~0 ms)
+  //1. Check localStorage first -- fastest path (~0 ms)
   const cached = readCache(lng, ns)
   if (cached) return cached
 
-  // 2. Flatten English bundle to leaf string entries
+  //2. Flatten English bundle to leaf string entries
   const flat = flattenObject(enBundle)
   const entries = Object.entries(flat)
   if (entries.length === 0) return enBundle
 
-  // 3. Send batches to the AEGIS translation microservice
+  //3. Send batches to the AEGIS translation microservice
   const chunks = chunkBatch(entries)
   const translatedFlat: Record<string, string> = {}
 
@@ -185,20 +185,20 @@ export async function translateNamespace(
       }
 
       chunk.forEach(([path], i) => {
-        // Fall back to English value if a particular string was not translated
+        //Fall back to English value if a particular string was not translated
         translatedFlat[path] = translations[i]?.translatedText ?? flat[path]
       })
     }
 
-    // 4. Reassemble flat translations back to nested namespace structure
+    //4. Reassemble flat translations back to nested namespace structure
     const result = unflattenObject(translatedFlat)
 
-    // 5. Persist to localStorage so future switches are instant
+    //5. Persist to localStorage so future switches are instant
     writeCache(lng, ns, result)
 
     return result
   } catch {
-    // API unreachable or quota exceeded — return English, app stays functional
+    //API unreachable or quota exceeded -- return English, app stays functional
     return enBundle
   }
 }

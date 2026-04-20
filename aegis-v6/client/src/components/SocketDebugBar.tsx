@@ -14,7 +14,7 @@ import { useCitizenAuth } from '../contexts/CitizenAuthContext'
 import { getSession } from '../utils/auth'
 
 function getSocketUrl(): string {
-  // Use window.location.origin so Socket.IO connects to the same origin as the page
+  //Use window.location.origin so Socket.IO connects to the same origin as the page
   const API_BASE = ''
   if (typeof window === 'undefined') return API_BASE || 'http://localhost:3001'
   if (API_BASE.startsWith('/')) return window.location.origin

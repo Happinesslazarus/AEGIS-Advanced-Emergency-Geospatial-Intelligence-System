@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState, useRef } from 'react'
 import { useQueryClient, QueryKey } from '@tanstack/react-query'
 
-// Types
+//Types
 
 interface PendingOperation {
   id: string
@@ -60,28 +60,28 @@ interface UseOfflineFirstResult<T> {
   syncPendingOperations: () => Promise<void>
 }
 
-// IndexedDB helpers
+//IndexedDB helpers
 //
-// IndexedDB = browser-side database that persists across page reloads and can
-// store megabytes of structured data (arrays, objects, binary files).  Unlike
-// localStorage (synchronous, string-only, ~5MB), IndexedDB is asynchronous
-// and well-suited to caching large API responses for offline use.
+//IndexedDB = browser-side database that persists across page reloads and can
+//store megabytes of structured data (arrays, objects, binary files).  Unlike
+//localStorage (synchronous, string-only, ~5MB), IndexedDB is asynchronous
+//and well-suited to caching large API responses for offline use.
 
 const DB_NAME = 'aegis-offline-cache'
 const DB_VERSION = 1
 const CACHE_STORE = 'cache'  // stores previously fetched API responses
 const QUEUE_STORE = 'queue'  // stores mutations (create/update/delete) that failed while offline
 
-// Module-level singleton: reuse the same IDBDatabase connection across all
-// useOfflineFirst hook instances so we don't open duplicate connections.
+//Module-level singleton: reuse the same IDBDatabase connection across all
+//useOfflineFirst hook instances so we don't open duplicate connections.
 let dbInstance: IDBDatabase | null = null
 
 async function openDB(): Promise<IDBDatabase> {
   if (dbInstance) return dbInstance
   
   return new Promise((resolve, reject) => {
-    // indexedDB.open() is asynchronous; it fires onsuccess when ready and
-    // onupgradeneeded when the DB is brand-new or when DB_VERSION increases.
+    //indexedDB.open() is asynchronous; it fires onsuccess when ready and
+    //onupgradeneeded when the DB is brand-new or when DB_VERSION increases.
     const request = indexedDB.open(DB_NAME, DB_VERSION)
     
     request.onerror = () => reject(request.error)
@@ -91,21 +91,21 @@ async function openDB(): Promise<IDBDatabase> {
       resolve(dbInstance)
     }
     
-    // onupgradeneeded: runs once on first install (or version increment).
-    // This is the ONLY place we can create or alter object stores (tables).
+    //onupgradeneeded: runs once on first install (or version increment).
+    //This is the ONLY place we can create or alter object stores (tables).
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result
       
       if (!db.objectStoreNames.contains(CACHE_STORE)) {
-        // keyPath: 'key' — each cached entry is identified by a string key
+        //keyPath: 'key' -- each cached entry is identified by a string key
         // (typically the serialised React Query query key).
         db.createObjectStore(CACHE_STORE, { keyPath: 'key' })
       }
       
       if (!db.objectStoreNames.contains(QUEUE_STORE)) {
-        // keyPath: 'id' — each pending operation has a UUID for dedup.
+        //keyPath: 'id' -- each pending operation has a UUID for dedup.
         const store = db.createObjectStore(QUEUE_STORE, { keyPath: 'id' })
-        // Index by timestamp so we can replay operations in chronological order
+        //Index by timestamp so we can replay operations in chronological order
         // (avoid replaying a DELETE before its own CREATE).
         store.createIndex('timestamp', 'timestamp')
       }
@@ -179,7 +179,7 @@ async function removePendingOperation(id: string): Promise<void> {
   })
 }
 
-// Hook
+//Hook
 
 export function useOfflineFirst<T>({
   queryKey,
@@ -199,7 +199,7 @@ export function useOfflineFirst<T>({
   
   const cacheKey = `${storeName}:${JSON.stringify(queryKey)}`
   
-  // Track online/offline status
+  //Track online/offline status
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
@@ -213,7 +213,7 @@ export function useOfflineFirst<T>({
     }
   }, [])
   
-  // Load cached data on mount
+  //Load cached data on mount
   useEffect(() => {
     const loadCached = async () => {
       try {
@@ -223,11 +223,11 @@ export function useOfflineFirst<T>({
           setData(cached.data)
           setIsLoading(false)
           
-          // Check if stale
+          //Check if stale
           const isStale = Date.now() - cached.timestamp > staleTime
           
           if (isStale && isOnline && staleWhileRevalidate) {
-            // Revalidate in background
+            //Revalidate in background
             setIsRevalidating(true)
             try {
               const freshData = await queryFn()
@@ -237,17 +237,17 @@ export function useOfflineFirst<T>({
                 timestamp: Date.now(),
                 queryKey,
               })
-              // Update React Query cache too
+              //Update React Query cache too
               queryClient.setQueryData(queryKey, freshData)
             } catch (err) {
-              // Keep stale data, don't throw
+              //Keep stale data, don't throw
               console.warn('Background revalidation failed:', err)
             } finally {
               setIsRevalidating(false)
             }
           }
         } else if (isOnline) {
-          // No cache, fetch fresh
+          //No cache, fetch fresh
           try {
             const freshData = await queryFn()
             setData(freshData)
@@ -262,7 +262,7 @@ export function useOfflineFirst<T>({
           }
           setIsLoading(false)
         } else {
-          // Offline and no cache
+          //Offline and no cache
           setIsLoading(false)
           setError(new Error('No cached data available offline'))
         }
@@ -275,7 +275,7 @@ export function useOfflineFirst<T>({
     loadCached()
   }, [cacheKey, queryKey, queryFn, staleTime, staleWhileRevalidate, isOnline, queryClient])
   
-  // Update pending count
+  //Update pending count
   useEffect(() => {
     const updateCount = async () => {
       const pending = await getPendingOperations()
@@ -284,7 +284,7 @@ export function useOfflineFirst<T>({
     updateCount()
   }, [])
   
-  // Sync pending operations when coming online
+  //Sync pending operations when coming online
   const syncPendingOperations = useCallback(async () => {
     if (syncingRef.current || !isOnline) return
     syncingRef.current = true
@@ -303,13 +303,13 @@ export function useOfflineFirst<T>({
           
           if (response.ok) {
             await removePendingOperation(op.id)
-            // Invalidate related queries
+            //Invalidate related queries
             queryClient.invalidateQueries({ queryKey: op.queryKey })
           } else if (op.retries < 3) {
-            // Retry later
-            // Could implement exponential backoff here
+            //Retry later
+            //Could implement exponential backoff here
           } else {
-            // Max retries reached, remove and notify
+            //Max retries reached, remove and notify
             await removePendingOperation(op.id)
             console.error('Operation failed after max retries:', op)
           }
@@ -325,14 +325,14 @@ export function useOfflineFirst<T>({
     }
   }, [isOnline, queryClient])
   
-  // Auto-sync when coming online
+  //Auto-sync when coming online
   useEffect(() => {
     if (isOnline) {
       syncPendingOperations()
     }
   }, [isOnline, syncPendingOperations])
   
-  // Queue an operation for offline processing
+  //Queue an operation for offline processing
   const queueOperation = useCallback(async (
     op: Omit<PendingOperation, 'id' | 'timestamp' | 'retries'>
   ) => {
@@ -343,14 +343,14 @@ export function useOfflineFirst<T>({
       retries: 0,
     }
     
-    // Apply optimistic update
+    //Apply optimistic update
     if (op.optimisticData !== undefined) {
       setData(op.optimisticData as T)
       queryClient.setQueryData(queryKey, op.optimisticData)
     }
     
     if (isOnline) {
-      // Execute immediately
+      //Execute immediately
       try {
         const response = await fetch(op.endpoint, {
           method: op.method,
@@ -361,24 +361,24 @@ export function useOfflineFirst<T>({
         
         if (!response.ok) throw new Error('Request failed')
         
-        // Invalidate and refetch
+        //Invalidate and refetch
         queryClient.invalidateQueries({ queryKey: op.queryKey })
       } catch {
-        // Rollback optimistic update
+        //Rollback optimistic update
         if (op.optimisticData !== undefined) {
-          // Refetch to rollback
+          //Refetch to rollback
           queryClient.invalidateQueries({ queryKey })
         }
         throw error
       }
     } else {
-      // Queue for later
+      //Queue for later
       await addPendingOperation(pendingOp)
       setPendingCount(prev => prev + 1)
     }
   }, [isOnline, queryKey, queryClient, error])
   
-  // Force refresh
+  //Force refresh
   const refresh = useCallback(async () => {
     if (!isOnline) {
       setError(new Error('Cannot refresh while offline'))
@@ -418,7 +418,7 @@ export function useOfflineFirst<T>({
 }
 
 /**
- * OfflineIndicatorBadge — Shows pending operation count
+ * OfflineIndicatorBadge -- Shows pending operation count
  */
 export function OfflineIndicatorBadge({ count }: { count: number }) {
   if (count === 0) return null

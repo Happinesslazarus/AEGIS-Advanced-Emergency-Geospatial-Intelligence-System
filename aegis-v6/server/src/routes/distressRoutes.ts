@@ -9,19 +9,19 @@
  * - Real-time location updates broadcast via Socket.IO
  *   (server/src/services/socket.ts emits to the 'admin' room)
  * - Vulnerability status pulled from the citizens table in PostgreSQL
- * - Client activation UI: client/src/pages/CitizenDashboard.tsx → distress button
- * - Operator view: client/src/pages/AdminPage.tsx → distress panel
+ * - Client activation UI: client/src/pages/CitizenDashboard.tsx -> distress button
+ * - Operator view: client/src/pages/AdminPage.tsx -> distress panel
  *
- * POST /api/distress/activate             — Citizen activates SOS
- * POST /api/distress/location             — Push a GPS coordinate update
- * POST /api/distress/cancel               — Citizen cancels their SOS
- * GET  /api/distress/active               — List all active beacons (operator)
- * POST /api/distress/:id/acknowledge      — Operator acknowledges a call
- * POST /api/distress/:id/resolve          — Operator marks call as resolved
- * GET  /api/distress/history              — Resolved/archived calls (operator)
+ * POST /api/distress/activate             -- Citizen activates SOS
+ * POST /api/distress/location             -- Push a GPS coordinate update
+ * POST /api/distress/cancel               -- Citizen cancels their SOS
+ * GET  /api/distress/active               -- List all active beacons (operator)
+ * POST /api/distress/:id/acknowledge      -- Operator acknowledges a call
+ * POST /api/distress/:id/resolve          -- Operator marks call as resolved
+ * GET  /api/distress/history              -- Resolved/archived calls (operator)
  *
- * - server/src/services/socket.ts          — how real-time updates are pushed
- * - server/src/middleware/auth.ts          — citizenOnly / operatorOnly guards used here
+ * - server/src/services/socket.ts          -- how real-time updates are pushed
+ * - server/src/middleware/auth.ts          -- citizenOnly / operatorOnly guards used here
  * */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -32,10 +32,10 @@ import { AppError } from '../utils/AppError.js'
 const router = Router()
 const operatorRoles = new Set(['admin', 'operator', 'manager'])
 
-// All distress endpoints require authentication
+//All distress endpoints require authentication
 router.use(authMiddleware)
 
-// Citizen: Activate SOS
+//Citizen: Activate SOS
 
 router.post('/activate', citizenOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -47,7 +47,7 @@ router.post('/activate', citizenOnly, async (req: AuthRequest, res: Response, ne
       throw AppError.badRequest('latitude and longitude are required')
     }
 
-    // Check for existing active distress call from this citizen
+    //Check for existing active distress call from this citizen
     const existing = await pool.query(
       `SELECT id FROM distress_calls WHERE citizen_id = $1 AND status IN ('active', 'acknowledged')`,
       [citizenId]
@@ -60,7 +60,7 @@ router.post('/activate', citizenOnly, async (req: AuthRequest, res: Response, ne
       return
     }
 
-    // Look up citizen's vulnerability status and phone
+    //Look up citizen's vulnerability status and phone
     let isVulnerable = false
     let phone = contactNumber || null
     try {
@@ -83,15 +83,15 @@ router.post('/activate', citizenOnly, async (req: AuthRequest, res: Response, ne
 
     const distressCall = result.rows[0]
 
-    // The Socket.IO broadcast is handled by the socket handler — the client
-    // emits distress:activate which triggers the broadcast to operators
+    //The Socket.IO broadcast is handled by the socket handler -- the client
+    //emits distress:activate which triggers the broadcast to operators
     res.status(201).json({ distress: distressCall })
   } catch (err) {
     next(err)
   }
 })
 
-// Citizen: Push GPS Location Update
+//Citizen: Push GPS Location Update
 
 router.post('/location', citizenOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -113,7 +113,7 @@ router.post('/location', citizenOnly, async (req: AuthRequest, res: Response, ne
       throw AppError.notFound('Active distress call not found')
     }
 
-    // Insert into location history
+    //Insert into location history
     await pool.query(
       `INSERT INTO distress_location_history (distress_id, latitude, longitude, accuracy, heading, speed)
        VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -126,7 +126,7 @@ router.post('/location', citizenOnly, async (req: AuthRequest, res: Response, ne
   }
 })
 
-// Citizen: Cancel SOS
+//Citizen: Cancel SOS
 
 router.post('/cancel', citizenOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -153,7 +153,7 @@ router.post('/cancel', citizenOnly, async (req: AuthRequest, res: Response, next
   }
 })
 
-// Operator: List Active Distress Calls
+//Operator: List Active Distress Calls
 
 router.get('/active', operatorOnly, async (_req: Request, res: Response, next: NextFunction) => {
   try {
@@ -170,7 +170,7 @@ router.get('/active', operatorOnly, async (_req: Request, res: Response, next: N
   }
 })
 
-// Historical Distress Calls
+//Historical Distress Calls
 
 router.get('/history', operatorOnly, async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -189,7 +189,7 @@ router.get('/history', operatorOnly, async (req: Request, res: Response, next: N
   }
 })
 
-// Operator: Get Single Distress Call
+//Operator: Get Single Distress Call
 
 router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -216,7 +216,7 @@ router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction) =
   }
 })
 
-// Operator: Acknowledge
+//Operator: Acknowledge
 
 router.post('/:id/acknowledge', operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -240,7 +240,7 @@ router.post('/:id/acknowledge', operatorOnly, async (req: AuthRequest, res: Resp
   }
 })
 
-// Operator: Resolve
+//Operator: Resolve
 
 router.post('/:id/resolve', operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

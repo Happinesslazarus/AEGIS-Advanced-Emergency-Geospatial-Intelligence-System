@@ -34,7 +34,7 @@ class PowerOutageModule extends BaseIncidentModule {
   async evaluateAlertRules(context: AlertRuleContext): Promise<AlertRuleResult[]> {
     const results = await super.evaluateAlertRules(context)
 
-    // Additional rule: check for critical services affected
+    //Additional rule: check for critical services affected
     const criticalReports = context.recentReports.filter(
       r => r.customFields?.criticalServicesImpacted === true
     )
@@ -47,7 +47,7 @@ class PowerOutageModule extends BaseIncidentModule {
       })
     }
 
-    // Rule: check outage duration
+    //Rule: check outage duration
     const longOutages = context.recentReports.filter(
       r => (r.customFields?.outageDurationHours || 0) > 6
     )

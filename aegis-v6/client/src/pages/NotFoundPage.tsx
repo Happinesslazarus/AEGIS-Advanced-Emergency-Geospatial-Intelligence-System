@@ -13,7 +13,7 @@ import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 import EmergencyBanner from '../components/shared/EmergencyBanner'
 
-// Static route directory for search suggestions
+//Static route directory for search suggestions
 
 interface RouteEntry { path: string; labelKey: string; icon: typeof Home }
 
@@ -31,12 +31,12 @@ export default function NotFoundPage() {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const [query, setQuery] = useState('')
 
-  // Focus heading on mount
+  //Focus heading on mount
   useEffect(() => {
     headingRef.current?.focus()
   }, [])
 
-  // Record 404 in Sentry as a breadcrumb
+  //Record 404 in Sentry as a breadcrumb
   useEffect(() => {
     Sentry.addBreadcrumb({
       category: 'navigation',
@@ -50,19 +50,19 @@ export default function NotFoundPage() {
     })
   }, [location.pathname, location.search])
 
-  // Search handler
+  //Search handler
   const handleSearch = useCallback(
     (e: FormEvent) => {
       e.preventDefault()
       const trimmed = query.trim()
       if (!trimmed) return
-      // Navigate to citizen dashboard with a search param (primary search surface)
+      //Navigate to citizen dashboard with a search param (primary search surface)
       navigate(`/citizen/dashboard?search=${encodeURIComponent(trimmed)}`)
     },
     [query, navigate],
   )
 
-  // Filter route suggestions based on query
+  //Filter route suggestions based on query
   const filteredRoutes = query.trim()
     ? ROUTES.filter(r =>
         t(r.labelKey, lang).toLowerCase().includes(query.toLowerCase()) ||
@@ -97,7 +97,7 @@ export default function NotFoundPage() {
             {t('notFound.message', lang)}
           </p>
 
-          {/* Attempted path — helps support diagnose mistyped URLs */}
+          {/* Attempted path -- helps support diagnose mistyped URLs */}
           <p className="text-xs font-mono text-gray-400 dark:text-gray-500 mb-6 max-w-sm mx-auto truncate select-all">
             {location.pathname}
           </p>
@@ -154,7 +154,7 @@ export default function NotFoundPage() {
       </main>
 
       <footer className="py-4 text-center text-xs text-gray-400 dark:text-gray-600">
-        AEGIS — Emergency Management Platform
+        AEGIS -- Emergency Management Platform
       </footer>
     </div>
   )

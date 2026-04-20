@@ -2,12 +2,11 @@
 data_fetch_cams_openmeteo.py
 
 Fetches CAMS (Copernicus Atmosphere Monitoring Service) air quality data
-from the Open-Meteo Air Quality API — FREE, no API key required.
+from the Open-Meteo Air Quality API -- FREE, no API key required.
 
 Data source
------------
 Open-Meteo Air Quality Historical API uses CAMS EAC4 global reanalysis
-for 2015–2021 and CAMS GLOBAL forecast for 2022+:
+for 2015-2021 and CAMS GLOBAL forecast for 2022+:
   https://air-quality-api.open-meteo.com/v1/air-quality
 
 CAMS EAC4 is the Copernicus Atmosphere Monitoring Service 4D-Var
@@ -16,7 +15,6 @@ reanalysis, produced by ECMWF.  It assimilates satellite radiances
 an observation-constrained product rather than a pure model output.
 
 Independence from ERA5 features
---------------------------------
 CAMS pollutant concentrations (PM2.5, PM10, NO2, O3) are driven by:
   1. Emission inventories (CAMS-GLOB-ANT anthropogenic, GFAS fires)
   2. Atmospheric chemistry (photolysis, oxidation reactions)
@@ -30,7 +28,6 @@ CAMS labels are NOT a simple function of any single ERA5 variable, making
 them scientifically independent of the feature set.
 
 Label thresholds
------------------
 DEFRA UK Air Quality Index (UKAQI 2012) High band (index >= 7):
   PM2.5  > 35.4 µg/m³   (WHO IT-2 standard)
   PM10   > 50.4 µg/m³
@@ -69,7 +66,7 @@ DEFRA_THRESHOLDS = {
     "ozone":             100.0,
 }
 
-# UK AQ station locations — matched to GLOBAL_HEATWAVE_LOCATIONS grid
+# UK AQ station locations -- matched to GLOBAL_HEATWAVE_LOCATIONS grid
 # (same coordinates as UK_AQ_STATIONS in data_fetch_openaq.py)
 UK_AQ_LOCATIONS = [
     {"id": "aq_london_c",     "lat": 51.5226, "lon": -0.1543, "name": "London Centre"},
@@ -116,7 +113,7 @@ def _fetch_station_year(
             resp = requests.get(_OM_AQ_URL, params=params, timeout=30)
             if resp.status_code == 429:
                 wait = 60 * (2 ** attempt)
-                logger.debug(f"    OM AQ 429 — waiting {wait}s …")
+                logger.debug(f"    OM AQ 429 -- waiting {wait}s ...")
                 time.sleep(wait)
                 continue
             if resp.status_code != 200:
@@ -149,14 +146,13 @@ def build_cams_label_df(
     threshold is exceeded.  Results are cached locally.
 
     Parameters
-    ----------
     start_date, end_date : "YYYY-MM-DD"
     station_locations    : list of {id, lat, lon, name} dicts.
                            Defaults to UK_AQ_LOCATIONS (13 UK cities).
     cache                : whether to read/write local CSV cache
 
     Returns
-    -------
+
     pd.DataFrame with columns [timestamp, station_id, label]
     """
     if station_locations is None:
@@ -177,7 +173,7 @@ def build_cams_label_df(
 
     logger.info(
         f"  Fetching CAMS AQ from Open-Meteo for {len(station_locations)} "
-        f"UK stations {start_date}→{end_date} …"
+ f"UK stations {start_date}->{end_date} ..."
     )
 
     # Split into annual chunks to keep requests small
@@ -207,14 +203,14 @@ def build_cams_label_df(
                 station_rows.append(df_chunk)
             else:
                 logger.warning(
-                    f"  CAMS AQ: no data for {loc_name} {s_str}→{e_str}"
+ f" CAMS AQ: no data for {loc_name} {s_str}->{e_str}"
                 )
 
             chunk_start = chunk_end + pd.Timedelta(days=1)
             time.sleep(_INTER_REQUEST_SLEEP)
 
         if not station_rows:
-            logger.warning(f"  CAMS AQ: skipping {loc_name} — no data")
+            logger.warning(f"  CAMS AQ: skipping {loc_name} -- no data")
             continue
 
         station_df = pd.concat(station_rows, ignore_index=True)

@@ -40,7 +40,7 @@ class EnvironmentalHazardPipeline(BaseHazardPipeline):
         "(moderate-to-unhealthy threshold on US EPA scale). "
         "AQI proxy is derived from meteorological dispersion conditions "
         "when real AQI data (OpenAQ) is not available. "
-        "WEAKLY SUPERVISED — proxy AQI, not measured."
+        "WEAKLY SUPERVISED -- proxy AQI, not measured."
     )
     KNOWN_LIMITATIONS = (
         "Without real AQI measurements, the proxy is based solely on "
@@ -91,7 +91,7 @@ class EnvironmentalHazardPipeline(BaseHazardPipeline):
             0, 1
         )
 
-        # AQI proxy: poor dispersion → high proxy AQI
+        # AQI proxy: poor dispersion -> high proxy AQI
         # Scale 0-300 (EPA ranges: 0-50 good, 51-100 moderate, 101-150 USG, 151-200 unhealthy)
         df["aqi_proxy"] = np.clip(
             300 * (1 - df["dispersion_factor"]) ** 1.5,
@@ -106,7 +106,7 @@ class EnvironmentalHazardPipeline(BaseHazardPipeline):
         return df
 
     def generate_labels(self, df: pd.DataFrame) -> pd.Series:
-        """AQI-proxy > 100 (Unhealthy for Sensitive Groups) → hazard=1."""
+        """AQI-proxy > 100 (Unhealthy for Sensitive Groups) -> hazard=1."""
         labels = (df["aqi_proxy"] > 100).astype(int)
         logger.info(f"Label distribution: {labels.value_counts().to_dict()}")
         return labels

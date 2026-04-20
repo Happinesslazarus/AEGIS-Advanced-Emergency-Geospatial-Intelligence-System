@@ -30,13 +30,13 @@ export class SEPAAdapter implements RiverDataAdapter {
   readonly name = 'SEPA'
 
   isAvailable(): boolean {
-    // SEPA is publicly available — no API key needed
+    //SEPA is publicly available -- no API key needed
     return true
   }
 
   async fetchCurrentLevel(stationId: string, stationName?: string, riverName?: string): Promise<RiverReading | null> {
     try {
-      // Get latest time-series value for the station
+      //Get latest time-series value for the station
       const url = new URL(SEPA_BASE)
       url.searchParams.set('service', 'kisters')
       url.searchParams.set('type', 'queryServices')
@@ -71,14 +71,14 @@ export class SEPAAdapter implements RiverDataAdapter {
         return null
       }
 
-      // Get the most recent reading (last element)
+      //Get the most recent reading (last element)
       const latest = values[values.length - 1]
       const timestamp = Array.isArray(latest) ? latest[0] : latest?.Timestamp || latest?.timestamp
       const level = Array.isArray(latest) ? parseFloat(latest[1]) : parseFloat(latest?.Value || latest?.value)
 
       if (isNaN(level)) return null
 
-      // Try to get flow if available
+      //Try to get flow if available
       let flowCumecs: number | null = null
       try {
         const flowUrl = new URL(SEPA_BASE)
@@ -107,7 +107,7 @@ export class SEPAAdapter implements RiverDataAdapter {
           }
         }
       } catch {
-        // Flow data is optional — continue without it
+        //Flow data is optional -- continue without it
       }
 
       return {

@@ -21,7 +21,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 
-// Mock matchMedia
+//Mock matchMedia
 let mockMatchesReducedMotion = false
 let mockMediaQueryListeners: ((event: MediaQueryListEvent) => void)[] = []
 
@@ -76,7 +76,7 @@ describe('useReducedMotion', () => {
       
       expect(result.current.prefersReduced).toBe(false)
       
-      // Simulate preference change
+      //Simulate preference change
       act(() => {
         mockMatchesReducedMotion = true
         mockMediaQueryListeners.forEach(listener => {
@@ -148,7 +148,7 @@ describe('useReducedMotion', () => {
     test('removes media query listener on unmount', () => {
       const removeEventListenerSpy = vi.fn()
       
-      // Override matchMedia to track removeEventListener
+      //Override matchMedia to track removeEventListener
       const originalMatchMedia = window.matchMedia
       window.matchMedia = vi.fn((query: string) => ({
         matches: false,
@@ -168,7 +168,7 @@ describe('useReducedMotion', () => {
       
       expect(removeEventListenerSpy).toHaveBeenCalledWith('change', expect.any(Function))
       
-      // Restore
+      //Restore
       window.matchMedia = originalMatchMedia
     })
   })

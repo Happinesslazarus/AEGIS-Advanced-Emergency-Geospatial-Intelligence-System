@@ -26,8 +26,8 @@ import deviceManagement from '../services/deviceManagementService.js'
 
 const router = Router()
 
-// 100 requests/15 min: generous enough for dashboard refreshes, device
-// management, and passkey auth attempts without blocking legitimate users.
+//100 requests/15 min: generous enough for dashboard refreshes, device
+//management, and passkey auth attempts without blocking legitimate users.
 const securityLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -36,7 +36,7 @@ const securityLimiter = rateLimit({
   legacyHeaders: false,
 })
 
-// Device Trust Management (authenticated operator)
+//Device Trust Management (authenticated operator)
 
 router.get('/devices', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -79,7 +79,7 @@ router.delete('/devices', authMiddleware, securityLimiter, async (req: AuthReque
   }
 })
 
-// Operator Security Summary
+//Operator Security Summary
 
 router.get('/summary', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -90,7 +90,7 @@ router.get('/summary', authMiddleware, securityLimiter, async (req: AuthRequest,
   }
 })
 
-// Alert Preferences
+//Alert Preferences
 
 router.get('/preferences', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -100,9 +100,9 @@ router.get('/preferences', authMiddleware, securityLimiter, async (req: AuthRequ
     )
 
     if (result.rows.length === 0) {
-      // No preferences row yet: return safe defaults rather than 404.
-      // Row is only created on first PUT, keeping the table sparse until
-      // the operator explicitly changes their settings.
+      //No preferences row yet: return safe defaults rather than 404.
+      //Row is only created on first PUT, keeping the table sparse until
+      //the operator explicitly changes their settings.
       res.json({
         alert_on_2fa_disabled: true,
         alert_on_backup_code_used: true,
@@ -138,8 +138,8 @@ router.put('/preferences', authMiddleware, securityLimiter, async (req: AuthRequ
     } = req.body
 
     await pool.query(
-      // UPSERT: COALESCE keeps the existing column value when the request body
-      // omits a field (null), enabling partial updates without a full replace.
+      //UPSERT: COALESCE keeps the existing column value when the request body
+      //omits a field (null), enabling partial updates without a full replace.
       `INSERT INTO operator_security_preferences
          (operator_id, alert_on_2fa_disabled, alert_on_backup_code_used,
           alert_on_new_device_login, alert_on_suspicious_access, alert_on_lockout, updated_at)
@@ -168,10 +168,10 @@ router.put('/preferences', authMiddleware, securityLimiter, async (req: AuthRequ
   }
 })
 
-// Admin Security Dashboard
+//Admin Security Dashboard
 
-// Inline guard middleware instead of a separate service or extending authMiddleware.
-// Keeps admin-only logic local to this router without polluting shared middleware.
+//Inline guard middleware instead of a separate service or extending authMiddleware.
+//Keeps admin-only logic local to this router without polluting shared middleware.
 function requireAdmin(req: AuthRequest, _res: Response, next: NextFunction): void {
   if (req.user?.role !== 'admin') {
     next(AppError.forbidden('Admin access required.'))
@@ -210,11 +210,11 @@ router.get('/dashboard/failures', authMiddleware, requireAdmin, securityLimiter,
   }
 })
 
-// Password Breach Checking (HIBP Integration)
+//Password Breach Checking (HIBP Integration)
 
-// No authMiddleware on password breach check: users should be able to verify
-// a proposed password before account creation or from a password reset flow.
-// The securityLimiter still guards against enumeration abuse.
+//No authMiddleware on password breach check: users should be able to verify
+//a proposed password before account creation or from a password reset flow.
+//The securityLimiter still guards against enumeration abuse.
 router.post('/check-password', securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { password } = req.body
@@ -237,14 +237,14 @@ router.post('/check-password', securityLimiter, async (req: AuthRequest, res: Re
   }
 })
 
-// Passkeys/WebAuthn Endpoints
+//Passkeys/WebAuthn Endpoints
 
 router.get('/passkeys', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const credentials = await passkeysService.getUserCredentials(req.user!.id)
     
-    // Strip raw public key material before sending to the client:
-    // only the ID and display metadata are needed for the management UI.
+    //Strip raw public key material before sending to the client:
+    //only the ID and display metadata are needed for the management UI.
     const safeCredentials = credentials.map(c => ({
       id: c.id,
       deviceName: c.deviceName,
@@ -258,11 +258,11 @@ router.get('/passkeys', authMiddleware, securityLimiter, async (req: AuthRequest
   }
 })
 
-// Two-step WebAuthn registration ceremony:
-// 1. GET /passkeys/register — generates a challenge + allowed credentials
-//    and stores the pending challenge server-side.
-// 2. POST /passkeys/verify — verifies the signed response and saves the
-//    new credential to the database.
+//Two-step WebAuthn registration ceremony:
+//1. GET /passkeys/register -- generates a challenge + allowed credentials
+//   and stores the pending challenge server-side.
+//2. POST /passkeys/verify -- verifies the signed response and saves the
+//   new credential to the database.
 router.post('/passkeys/register', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const options = await passkeysService.generateRegistrationOptions(
@@ -312,13 +312,13 @@ router.delete('/passkeys/:id', authMiddleware, securityLimiter, async (req: Auth
 })
 
 /**
- * Passkey Authentication (no auth required — user is logging in)
- * POST /passkeys/auth-options  — Generate challenge for passkey login
- * POST /passkeys/auth-verify   — Verify signed challenge and return JWT
+ * Passkey Authentication (no auth required -- user is logging in)
+ * POST /passkeys/auth-options  -- Generate challenge for passkey login
+ * POST /passkeys/auth-verify   -- Verify signed challenge and return JWT
  */
 router.post('/passkeys/auth-options', securityLimiter, async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Check if any passkeys have been registered at all
+    //Check if any passkeys have been registered at all
     const countResult = await pool.query('SELECT COUNT(*) FROM passkey_credentials')
     if (parseInt(countResult.rows[0].count) === 0) {
       res.status(404).json({ success: false, error: 'No passkeys registered yet. Sign in first (via Google or any method), then go to Security settings to add a passkey.' })
@@ -338,7 +338,7 @@ router.post('/passkeys/auth-verify', securityLimiter, async (req: Request, res: 
       res.status(401).json({ success: false, error: result.error || 'Authentication failed' })
       return
     }
-    // Look up user — try citizens first, then operators/users
+    //Look up user -- try citizens first, then operators/users
     let user: any = null
     const citizenResult = await pool.query(
       `SELECT id, email, display_name, role, avatar_url FROM citizens WHERE id = $1 AND deleted_at IS NULL`,
@@ -393,7 +393,7 @@ router.post('/passkeys/auth-verify', securityLimiter, async (req: Request, res: 
   }
 })
 
-// Login History
+//Login History
 
 router.get('/login-history', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -405,7 +405,7 @@ router.get('/login-history', authMiddleware, securityLimiter, async (req: AuthRe
   }
 })
 
-// Admin IP Security Endpoints
+//Admin IP Security Endpoints
 
 router.get('/admin/ip-blocklist', authMiddleware, requireAdmin, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -428,9 +428,9 @@ router.post('/admin/ip-block', authMiddleware, requireAdmin, securityLimiter, as
       throw AppError.badRequest('Block reason is required.')
     }
     
-    // autoBlocked: false marks this as a human-initiated block (vs automatic
-    // blocks triggered by the rate-limit / anomaly detection system), so the
-    // audit log and UI can distinguish manual operator actions.
+    //autoBlocked: false marks this as a human-initiated block (vs automatic
+    //blocks triggered by the rate-limit / anomaly detection system), so the
+    //audit log and UI can distinguish manual operator actions.
     await ipSecurity.blockIP(ip, reason, {
       durationMs: durationMs || undefined,
       blockedBy: req.user!.id,

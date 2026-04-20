@@ -17,7 +17,7 @@ import { IncidentProvider } from './IncidentContext'
 import { SocketProvider } from './SocketContext'
 import { ToastProvider } from './ToastContext'
 
-// PROVIDER COMPOSITION UTILITY
+//PROVIDER COMPOSITION UTILITY
 
 type ProviderComponent = ComponentType<{ children: ReactNode }>
 
@@ -34,11 +34,11 @@ type ProviderComponent = ComponentType<{ children: ReactNode }>
  */
 export function composeProviders(providers: ProviderComponent[]): FC<{ children: ReactNode }> {
   return function ComposedProviders({ children }: { children: ReactNode }) {
-    // reduceRight iterates the array from RIGHT to LEFT, wrapping each
-    // provider around the accumulated tree.  The last provider in the
-    // array ends up as the INNERMOST wrapper (closest to the children),
-    // and the first provider is the OUTERMOST (rendered first on screen).
-    // Example: [A, B, C].reduceRight wraps as A > B > C > children
+    //reduceRight iterates the array from RIGHT to LEFT, wrapping each
+    //provider around the accumulated tree.  The last provider in the
+    //array ends up as the INNERMOST wrapper (closest to the children),
+    //and the first provider is the OUTERMOST (rendered first on screen).
+    //Example: [A, B, C].reduceRight wraps as A > B > C > children
     return providers.reduceRight(
       (acc, Provider) => <Provider>{acc}</Provider>,
       children
@@ -46,18 +46,18 @@ export function composeProviders(providers: ProviderComponent[]): FC<{ children:
   }
 }
 
-// PROVIDER LAYERS
+//PROVIDER LAYERS
 
 /**
  * Core providers that don't depend on other contexts.
  * These form the foundation of the app.
  */
 const CoreProviders: ProviderComponent[] = [
-  // Query client for data fetching
+  //Query client for data fetching
   ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>,
-  // Theme (dark/light mode, color schemes)
+  //Theme (dark/light mode, color schemes)
   ThemeProvider,
-  // WebSocket connection
+  //WebSocket connection
   SocketProvider,
 ]
 
@@ -66,9 +66,9 @@ const CoreProviders: ProviderComponent[] = [
  * Location and region are foundational for data filtering.
  */
 const DataProviders: ProviderComponent[] = [
-  // User's geographic location
+  //User's geographic location
   LocationProvider,
-  // Active region configuration (UK, Scotland, etc.)
+  //Active region configuration (UK, Scotland, etc.)
   RegionProvider,
 ]
 
@@ -77,19 +77,19 @@ const DataProviders: ProviderComponent[] = [
  * These provide domain-specific state management.
  */
 const FeatureProviders: ProviderComponent[] = [
-  // Citizen authentication state
+  //Citizen authentication state
   CitizenAuthProvider,
-  // Emergency reports management
+  //Emergency reports management
   ReportsProvider,
-  // Alert/broadcast management
+  //Alert/broadcast management
   AlertsProvider,
-  // Incident lifecycle management
+  //Incident lifecycle management
   IncidentProvider,
-  // Global toast notifications
+  //Global toast notifications
   ToastProvider,
 ]
 
-// COMPOSED PROVIDER COMPONENT
+//COMPOSED PROVIDER COMPONENT
 
 /**
  * All application providers composed in the correct order.
@@ -128,7 +128,7 @@ export function AppProviders({ children }: { children: ReactNode }): JSX.Element
   return <AllProviders>{children}</AllProviders>
 }
 
-// SELECTIVE PROVIDER COMPOSITIONS
+//SELECTIVE PROVIDER COMPOSITIONS
 
 /**
  * Minimal providers for testing or lightweight components.
@@ -160,7 +160,7 @@ export const CitizenProviders = composeProviders([
   AlertsProvider,
 ])
 
-// PROVIDER DEBUGGING (development only)
+//PROVIDER DEBUGGING (development only)
 
 /**
  * Debug wrapper that logs when providers mount/unmount.

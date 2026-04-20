@@ -1,6 +1,6 @@
 ﻿/**
  * Static informational page describing the AEGIS project, its mission,
- * technology stack, and team. No API calls — purely presentational.
+ * technology stack, and team. No API calls -- purely presentational.
  *
  * - Routed by client/src/App.tsx at /about
  * - Linked from LandingPage.tsx footer
@@ -13,7 +13,7 @@ import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 
 /**
- * FadeIn — lazy reveal animation driven by IntersectionObserver.
+ * FadeIn -- lazy reveal animation driven by IntersectionObserver.
  *
  * Sets `visible` to true once the element's top edge enters the viewport
  * (threshold 0.1 = 10% visible).  The CSS class transition then slides the
@@ -37,7 +37,7 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 }
 
 /**
- * useCounter — animates a number from 0 to `end` using an easeOut cubic curve.
+ * useCounter -- animates a number from 0 to `end` using an easeOut cubic curve.
  *
  * The counter only starts once the attached ref element scrolls into view
  * (threshold 0.3).  `hasRun` prevents restarting if the user scrolls away and
@@ -143,7 +143,7 @@ export default function AboutPage(): JSX.Element {
           </div>
         </FadeIn>
 
-        {/* Key Features — interactive card grid */}
+        {/* Key Features -- interactive card grid */}
         <FadeIn>
           <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-5 flex items-center gap-2">
             <Zap className="w-5 h-5 text-amber-500" /> {t('about.keyFeatures', lang)}
@@ -193,7 +193,7 @@ export default function AboutPage(): JSX.Element {
           </div>
         </FadeIn>
 
-        {/* Research — compact */}
+        {/* Research -- compact */}
         <FadeIn>
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
             <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
@@ -228,7 +228,7 @@ export default function AboutPage(): JSX.Element {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-white mb-1">Meet the Creator</h3>
-                <p className="text-white/80 text-sm">Learn about Happiness Ada Lazarus — the visionary behind AEGIS</p>
+                <p className="text-white/80 text-sm">Learn about Happiness Ada Lazarus -- the visionary behind AEGIS</p>
               </div>
               <ArrowRight className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all flex-shrink-0" />
             </div>

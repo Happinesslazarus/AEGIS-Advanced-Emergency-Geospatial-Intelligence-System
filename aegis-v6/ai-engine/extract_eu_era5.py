@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-EU-focused ERA5 extraction — fast overnight job.
+EU-focused ERA5 extraction -- fast overnight job.
 
 Extracts only UK + European locations (lat 28-60N, lon 15W-35E).
-These all fall within 1-2 S3 HDF5 chunk bands → ~3 min per month.
+These all fall within 1-2 S3 HDF5 chunk bands -> ~3 min per month.
 Total runtime for 96 months: ~5 hours.
 
 Generates cache files for: flood, heatwave, wildfire, infrastructure (EU part),
@@ -33,9 +33,7 @@ ERA5_BUCKET = "nsf-ncar-era5"
 START_YEAR, END_YEAR = 2016, 2023
 N_WORKERS = 4
 
-# ---------------------------------------------------------------------------
-# EU + UK locations only (fast extraction — same S3 chunk band)
-# ---------------------------------------------------------------------------
+# EU + UK locations only (fast extraction -- same S3 chunk band)
 UK_GRID = [
     {"id": "london",      "lat": 51.51, "lon": -0.13, "region": "se_england"},
     {"id": "cambridge",   "lat": 52.21, "lon":  0.12, "region": "se_england"},
@@ -208,9 +206,7 @@ EU_HAZARD_SETS = {
     "water_supply":   WATER_EU_LOCS,
 }
 
-# ---------------------------------------------------------------------------
 # S3 clients
-# ---------------------------------------------------------------------------
 _fs = s3fs.S3FileSystem(anon=True)
 _s3 = boto3.client("s3", region_name="us-east-1", config=Config(signature_version=UNSIGNED))
 
@@ -256,7 +252,7 @@ def stream_extract(key, nc_var, lats, lons_360):
             la = xr.DataArray(lats, dims="points")
             lo = xr.DataArray(lons_360, dims="points")
 
-            # --- Layout 1: simple time dimension ---
+            # Layout 1: simple time dimension
             if "time" in ds.dims or "valid_time" in ds.dims:
                 pts = ds[nc_var].sel(latitude=la, longitude=lo, method="nearest")
                 arr = pts.values.astype(np.float32)
@@ -269,7 +265,7 @@ def stream_extract(key, nc_var, lats, lons_360):
                 ds.close()
                 return arr, ts
 
-            # --- Layout 2: forecast_initial_time × forecast_hour ---
+            # Layout 2: forecast_initial_time × forecast_hour
             if "forecast_initial_time" in ds.dims and "forecast_hour" in ds.dims:
                 pts = ds[nc_var].sel(latitude=la, longitude=lo, method="nearest")
                 # shape: (n_init, n_fh, n_locs)
@@ -452,13 +448,13 @@ def generate_caches(all_months):
         loc_id_set = {l["id"] for l in locs}
         df_h = df_all[df_all["station_id"].isin(loc_id_set)].copy()
         df_h.to_csv(out, index=False)
-        print(f"  {hazard:25s} → weather_{ck}.csv  ({len(df_h):,} rows)", flush=True)
+        print(f"  {hazard:25s} -> weather_{ck}.csv  ({len(df_h):,} rows)", flush=True)
 
 
 def main():
     print(f"=== AEGIS EU ERA5 Extraction ===")
     print(f"EU locations     : {len(ALL_EU_LOCS)}")
-    print(f"Years            : {START_YEAR}–{END_YEAR}")
+    print(f"Years            : {START_YEAR}-{END_YEAR}")
     print(f"Parallel workers : {N_WORKERS}")
     print(f"Target hazards   : {', '.join(EU_HAZARD_SETS)}")
     print()

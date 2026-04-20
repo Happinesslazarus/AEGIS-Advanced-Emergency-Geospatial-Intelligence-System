@@ -15,11 +15,11 @@ import os from 'os'
 import type { Request, Response, NextFunction } from 'express'
 
 /**
-// Strategy:
-//   1. Write real bytes to a temp file on disk
-//   2. Point the Multer-style req.file at that path
-//   3. Call validateMagicBytes with a mock req/res
-//   4. Assert on status code, response body, and whether the file was deleted
+//Strategy:
+//  1. Write real bytes to a temp file on disk
+//  2. Point the Multer-style req.file at that path
+//  3. Call validateMagicBytes with a mock req/res
+//  4. Assert on status code, response body, and whether the file was deleted
 
  */
 /** Write bytes to a real temp file and return the path */
@@ -52,7 +52,7 @@ function buildMockReqRes(file: { originalname: string; path: string }) {
   return { req, res: mockRes as unknown as Response, mockRes, next }
 }
 
-// Dynamically import — keeps the module graph clean
+//Dynamically import -- keeps the module graph clean
 let validateMagicBytes: (req: Request, res: Response, next: NextFunction) => void
 
 beforeAll(async () => {
@@ -60,9 +60,9 @@ beforeAll(async () => {
   validateMagicBytes = mod.validateMagicBytes
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
-// JPEG (FF D8 FF)
-// ─────────────────────────────────────────────────────────────────────────────
+// -
+//JPEG (FF D8 FF)
+// -
 
 describe('validateMagicBytes', () => {
   describe('valid files', () => {
@@ -75,7 +75,7 @@ describe('validateMagicBytes', () => {
 
       expect(next).toHaveBeenCalled()
       expect((res as any)._status).toBe(200)
-      // File must still exist (not deleted on success)
+      //File must still exist (not deleted on success)
       expect(fs.existsSync(tmpPath)).toBe(true)
       fs.rmSync(path.dirname(tmpPath), { recursive: true })
     })
@@ -92,7 +92,7 @@ describe('validateMagicBytes', () => {
     })
 
     it('passes a genuine GIF through to next()', () => {
-      // GIF89a starts with 47 49 46 38 39 61
+      //GIF89a starts with 47 49 46 38 39 61
       const gifMagic = Buffer.from([0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00])
       const tmpPath = writeTempFile(gifMagic, 'anim.gif')
       const { req, res, next } = buildMockReqRes({ originalname: 'anim.gif', path: tmpPath })
@@ -106,7 +106,7 @@ describe('validateMagicBytes', () => {
 
   describe('rejected files', () => {
     it('rejects and deletes a file whose bytes do not match its .jpg extension', () => {
-      // Write PNG bytes but claim the file is a .jpg
+      //Write PNG bytes but claim the file is a .jpg
       const pngBytesInJpgFile = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D])
       const tmpPath = writeTempFile(pngBytesInJpgFile, 'disguised.jpg')
       const { req, res, next } = buildMockReqRes({ originalname: 'disguised.jpg', path: tmpPath })
@@ -116,12 +116,12 @@ describe('validateMagicBytes', () => {
       expect(next).not.toHaveBeenCalled()
       expect((res as any)._status).toBe(400)
       expect((res as any)._body).toMatchObject({ error: expect.stringContaining('magic bytes') })
-      // File must have been deleted
+      //File must have been deleted
       expect(fs.existsSync(tmpPath)).toBe(false)
     })
 
     it('rejects and deletes an executable disguised as a .jpg', () => {
-      // MZ header = Windows PE executable
+      //MZ header = Windows PE executable
       const exeBytes = Buffer.from([0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00])
       const tmpPath = writeTempFile(exeBytes, 'malware.jpg')
       const { req, res, next } = buildMockReqRes({ originalname: 'malware.jpg', path: tmpPath })

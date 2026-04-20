@@ -22,9 +22,7 @@ from botocore.config import Config
 
 warnings.filterwarnings("ignore")
 
-# ---------------------------------------------------------------------------
 # Paths
-# ---------------------------------------------------------------------------
 HERE       = Path(__file__).resolve().parent
 CACHE_DIR  = HERE / "data" / "cache" / "multi_location_weather"
 CHECKPOINT_DIR = HERE / "data" / "cache" / "era5_checkpoints"
@@ -36,9 +34,7 @@ START_YEAR   = 2016
 END_YEAR     = 2023
 N_WORKERS    = 4   # parallel variable-file reads per month
 
-# ---------------------------------------------------------------------------
-# Location sets — copied from multi_location_weather.py
-# ---------------------------------------------------------------------------
+# Location sets -- copied from multi_location_weather.py
 UK_GRID = [
     {"id": "london",      "lat": 51.51, "lon": -0.13, "region": "se_england"},
     {"id": "cambridge",   "lat": 52.21, "lon":  0.12, "region": "se_england"},
@@ -285,9 +281,7 @@ def _dedup_locs(locs_list):
 
 ALL_LOCS = _dedup_locs(HAZARD_SETS.values())
 
-# ---------------------------------------------------------------------------
 # S3 client (anonymous)
-# ---------------------------------------------------------------------------
 _fs = s3fs.S3FileSystem(anon=True)
 _s3 = boto3.client("s3", region_name="us-east-1", config=Config(signature_version=UNSIGNED))
 
@@ -344,9 +338,7 @@ def deaccumulate(arr: np.ndarray, ts: pd.DatetimeIndex) -> np.ndarray:
     return out
 
 
-# ---------------------------------------------------------------------------
 # Per-month extraction
-# ---------------------------------------------------------------------------
 ANAL_VARS = {
     "128_167_2t":    ("VAR_2T",    "temperature_2m"),
     "128_168_2d":    ("VAR_2D",    "dewpoint_2m"),
@@ -536,7 +528,7 @@ def generate_hazard_caches(all_months: list[pd.DataFrame]) -> None:
         loc_id_set = {l["id"] for l in locs}
         df_h = df_all[df_all["station_id"].isin(loc_id_set)].copy()
         df_h.to_csv(cache_path, index=False)
-        print(f"  {hazard:25s} → {cache_path.name}  ({len(df_h):,} rows)", flush=True)
+        print(f"  {hazard:25s} -> {cache_path.name}  ({len(df_h):,} rows)", flush=True)
 
     print("Cache generation complete.", flush=True)
 
@@ -544,7 +536,7 @@ def generate_hazard_caches(all_months: list[pd.DataFrame]) -> None:
 def main():
     print(f"=== AEGIS ERA5 Local Extraction ===")
     print(f"Unique locations : {len(ALL_LOCS)}")
-    print(f"Years            : {START_YEAR}–{END_YEAR}")
+    print(f"Years            : {START_YEAR}-{END_YEAR}")
     print(f"Parallel workers : {N_WORKERS}")
     print(f"Checkpoint dir   : {CHECKPOINT_DIR}")
     print()

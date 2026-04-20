@@ -79,7 +79,7 @@ class WaterSupplyPipeline(BaseHazardPipeline):
         loc_avg = df.groupby("location_id")["rainfall_30d"].transform("mean")
         df["rainfall_deficit_30d"] = loc_avg - df["rainfall_30d"]
 
-        # Demand proxy: higher temperature → higher water demand
+ # Demand proxy: higher temperature -> higher water demand
         df["demand_proxy"] = np.clip((df["temperature"] - 15) / 20, 0, 1)
 
         # Freeze risk

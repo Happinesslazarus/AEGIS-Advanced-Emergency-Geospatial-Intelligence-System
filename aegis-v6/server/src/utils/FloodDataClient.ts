@@ -81,13 +81,13 @@ type GeoFeatureCollection = {
   features: GeoFeature[]
 }
 
-// In-process TTL cache for flood API responses.
-// Separate from the shared cacheService to avoid Redis dependency in this utility.
-// getStale() returns expired data as a last-resort fallback when the API is down.
+//In-process TTL cache for flood API responses.
+//Separate from the shared cacheService to avoid Redis dependency in this utility.
+//getStale() returns expired data as a last-resort fallback when the API is down.
 export class RegionDataCache {
   private store = new Map<string, { data: unknown; expiresAt: number; source: CacheSource; cachedAt: string }>()
 
-  // get(): only return data if still within TTL
+  //get(): only return data if still within TTL
   get<T>(key: string): { data: T; source: CacheSource; cachedAt: string } | null {
     const entry = this.store.get(key)
     if (!entry) return null
@@ -95,7 +95,7 @@ export class RegionDataCache {
     return { data: entry.data as T, source: entry.source, cachedAt: entry.cachedAt }
   }
 
-  // getStale(): return expired data anyway (used as circuit-breaker fallback when live API is unreachable)
+  //getStale(): return expired data anyway (used as circuit-breaker fallback when live API is unreachable)
   getStale<T>(key: string): { data: T; source: CacheSource; cachedAt: string } | null {
     const entry = this.store.get(key)
     if (!entry) return null
@@ -117,7 +117,7 @@ export class RegionDataCache {
     return Date.now() > entry.expiresAt
   }
 
-  // Invalidate all cache keys for a region — called when an admin triggers a manual refresh.
+  //Invalidate all cache keys for a region -- called when an admin triggers a manual refresh.
   invalidate(regionId: string): void {
     for (const key of this.store.keys()) {
       if (key.includes(`:${regionId}:`)) this.store.delete(key)
@@ -125,10 +125,10 @@ export class RegionDataCache {
   }
 }
 
-// Fetch with exponential backoff + jitter.
-// Only retries on 5xx (server errors); 4xx responses are returned immediately
-// because retrying a 404 or 403 is pointless. Jitter prevents thundering herd
-// when multiple services restart simultaneously.
+//Fetch with exponential backoff + jitter.
+//Only retries on 5xx (server errors); 4xx responses are returned immediately
+//because retrying a 404 or 403 is pointless. Jitter prevents thundering herd
+//when multiple services restart simultaneously.
 export async function fetchWithRetry(url: string, opts?: RequestInit, retries = 3): Promise<Response> {
   let attempt = 0
   let delayMs = 300
@@ -148,7 +148,7 @@ export async function fetchWithRetry(url: string, opts?: RequestInit, retries = 
     if (attempt >= retries) break
     const jitter = Math.floor(Math.random() * 120) // ±120ms random jitter to spread retries
     await new Promise(resolve => setTimeout(resolve, delayMs + jitter))
-    delayMs *= 2 // double delay each attempt: 300ms → 600ms → 1200ms
+ delayMs *= 2 // double delay each attempt: 300ms -> 600ms -> 1200ms
   }
 
   throw lastError ?? new Error(`Failed request: ${url}`)
@@ -158,8 +158,8 @@ function emptyFeatureCollection(): GeoFeatureCollection {
   return { type: 'FeatureCollection', features: [] }
 }
 
-// Defensively parse an unknown API response as a GeoJSON FeatureCollection.
-// Returns an empty collection instead of throwing if the shape is wrong.
+//Defensively parse an unknown API response as a GeoJSON FeatureCollection.
+//Returns an empty collection instead of throwing if the shape is wrong.
 function asFeatureCollection(data: unknown): GeoFeatureCollection {
   if (typeof data === 'object' && data !== null) {
     const candidate = data as { type?: unknown; features?: unknown }
@@ -170,7 +170,7 @@ function asFeatureCollection(data: unknown): GeoFeatureCollection {
   return emptyFeatureCollection()
 }
 
-// Map free-text severity strings from flood authority APIs to our standard 4-level enum.
+//Map free-text severity strings from flood authority APIs to our standard 4-level enum.
 function toSeverity(value: string | undefined): 'normal' | 'elevated' | 'high' | 'critical' {
   const text = (value ?? '').toLowerCase()
   if (text.includes('critical') || text.includes('severe')) return 'critical'
@@ -191,8 +191,8 @@ export class FloodDataClient {
     }))
   }
 
-  // Walk through all enabled regions and return the first match.
-  // If no match, fall back to the first enabled region, then scotland as last resort.
+  //Walk through all enabled regions and return the first match.
+  //If no match, fall back to the first enabled region, then scotland as last resort.
   resolveRegion(regionId?: string): RegionApiConfig {
     const enabled = Object.values(REGION_APIS).filter(r => r.enabled)
     const fallback = enabled[0] ?? REGION_APIS.scotland
@@ -238,7 +238,7 @@ export class FloodDataClient {
     const cached = this.cache.get<GeoFeatureCollection>(cacheKey)
     if (cached) return cached.data
 
-    // If lat/lng provided, request nearby stations; otherwise get all
+    //If lat/lng provided, request nearby stations; otherwise get all
     let apiUrl = `${region.gaugeApiUrl}?parameter=level&_limit=500`
     if (Number.isFinite(lat) && Number.isFinite(lng)) {
       apiUrl = `${region.gaugeApiUrl}?parameter=level&lat=${lat}&long=${lng}&dist=${dist}&_limit=50`

@@ -1,17 +1,17 @@
 ﻿/**
  * Admin-side messaging: operators view citizen message threads, send
  * replies, and mark conversations as read. This is the operator half
- * of the citizen ↔ admin messaging system.
+ * of the citizen <-> admin messaging system.
  *
  * - Mounted at /api/admin/messages in index.ts
  * - Citizens send messages via citizenRoutes.ts; operators reply here
  * - Real-time notifications pushed via Socket.IO
  * - Requires operator or admin authentication
  *
- * GET  /api/admin/threads           — List all threads
- * GET  /api/admin/threads/:id       — Get thread with messages
- * POST /api/admin/threads/:id/messages — Send reply
- * PUT  /api/admin/threads/:id/read  — Mark as read
+ * GET  /api/admin/threads           -- List all threads
+ * GET  /api/admin/threads/:id       -- Get thread with messages
+ * POST /api/admin/threads/:id/messages -- Send reply
+ * PUT  /api/admin/threads/:id/read  -- Mark as read
  * */
 
 import { Router, Response, NextFunction } from 'express'
@@ -21,7 +21,7 @@ import { AppError } from '../utils/AppError.js'
 
 const router = Router()
 
-// All routes require at least operator role
+//All routes require at least operator role
 router.use(authMiddleware)
 router.use(requireRole('admin', 'operator', 'super_admin', 'superadmin'))
 
@@ -71,7 +71,7 @@ router.get('/', async (req: AuthRequest, res: Response, next: NextFunction): Pro
  */
 router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Get thread metadata
+    //Get thread metadata
     const threadResult = await pool.query(`
       SELECT 
         mt.*,
@@ -89,7 +89,7 @@ router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction): 
       throw AppError.notFound('Thread not found.')
     }
 
-    // Get all messages in thread
+    //Get all messages in thread
     const messagesResult = await pool.query(`
       SELECT 
         m.*,
@@ -103,7 +103,7 @@ router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction): 
       ORDER BY m.created_at ASC
     `, [req.params.id])
 
-    // Mark citizen messages as read by operator
+    //Mark citizen messages as read by operator
     await pool.query(
       `UPDATE messages SET status = 'read', read_at = NOW()
        WHERE thread_id = $1 AND sender_type = 'citizen' AND (read_at IS NULL OR status != 'read')`,
@@ -138,7 +138,7 @@ router.post('/:id/messages', async (req: AuthRequest, res: Response, next: NextF
       throw AppError.badRequest('Message content exceeds maximum length of 10,000 characters.')
     }
 
-    // Verify thread exists
+    //Verify thread exists
     const threadCheck = await pool.query(
       'SELECT id, citizen_id FROM message_threads WHERE id = $1',
       [req.params.id]
@@ -150,14 +150,14 @@ router.post('/:id/messages', async (req: AuthRequest, res: Response, next: NextF
 
     const thread = threadCheck.rows[0]
 
-    // Insert message
+    //Insert message
     const result = await pool.query(`
       INSERT INTO messages (thread_id, sender_type, sender_id, operator_id, content, image_url, status)
       VALUES ($1, 'operator', $2, $2, $3, $4, 'sent')
       RETURNING *
     `, [req.params.id, req.user!.id, content?.trim() || null, image_url || null])
 
-    // Update thread metadata
+    //Update thread metadata
     await pool.query(`
       UPDATE message_threads 
       SET updated_at = NOW(),
@@ -177,7 +177,7 @@ router.post('/:id/messages', async (req: AuthRequest, res: Response, next: NextF
  */
 router.put('/:id/read', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Verify thread exists
+    //Verify thread exists
     const threadCheck = await pool.query(
       'SELECT id FROM message_threads WHERE id = $1',
       [req.params.id]
@@ -187,7 +187,7 @@ router.put('/:id/read', async (req: AuthRequest, res: Response, next: NextFuncti
       throw AppError.notFound('Thread not found.')
     }
 
-    // Reset operator's unread count for this thread
+    //Reset operator's unread count for this thread
     await pool.query(
       'UPDATE message_threads SET operator_unread = 0 WHERE id = $1',
       [req.params.id]

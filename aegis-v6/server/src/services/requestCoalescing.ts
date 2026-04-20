@@ -1,5 +1,5 @@
 ﻿/**
- * Request de-duplication — if multiple callers request the same data
+ * Request de-duplication -- if multiple callers request the same data
  * simultaneously, only one query runs and all callers share the result.
  * Also provides a DataLoader for batching individual lookups into bulk queries.
  *
@@ -12,7 +12,7 @@ import crypto from 'crypto'
 import client from 'prom-client'
 import { logger } from './logger.js'
 
-// Prometheus metrics
+//Prometheus metrics
 const coalescedRequests = new client.Counter({
   name: 'aegis_coalesced_requests_total',
   help: 'Total requests coalesced',
@@ -32,7 +32,7 @@ const batchSize = new client.Histogram({
   buckets: [1, 2, 5, 10, 25, 50, 100],
 })
 
-// In-flight request tracking
+//In-flight request tracking
 interface InflightRequest<T> {
   promise: Promise<T>
   timestamp: number
@@ -41,7 +41,7 @@ interface InflightRequest<T> {
 
 const inflightRequests = new Map<string, InflightRequest<any>>()
 
-// Batching
+//Batching
 interface BatchEntry<K, V> {
   key: K
   resolve: (value: V) => void
@@ -81,7 +81,7 @@ export async function coalesce<T>(
   const ttlMs = options.ttlMs ?? 100 // Short TTL for coalescing
   const now = Date.now()
 
-  // Check for in-flight request
+  //Check for in-flight request
   const inflight = inflightRequests.get(key)
   if (inflight && now - inflight.timestamp < ttlMs) {
     inflight.refCount++
@@ -90,12 +90,12 @@ export async function coalesce<T>(
     return inflight.promise
   }
 
-  // Execute new request
+  //Execute new request
   coalescedRequests.labels(operation).inc()
 
   const promise = fn()
     .finally(() => {
-      // Clean up after TTL
+      //Clean up after TTL
       setTimeout(() => {
         const current = inflightRequests.get(key)
         if (current?.promise === promise) {
@@ -114,7 +114,7 @@ export async function coalesce<T>(
 }
 
 /**
- * DataLoader class — batches individual requests into batch queries
+ * DataLoader class -- batches individual requests into batch queries
  */
 export class DataLoader<K, V> {
   private queue: BatchEntry<K, V>[] = []
@@ -128,7 +128,7 @@ export class DataLoader<K, V> {
   }
 
   /**
-   * Load a single key — will be batched with other concurrent loads
+   * Load a single key -- will be batched with other concurrent loads
    */
   async load(key: K): Promise<V> {
     return new Promise((resolve, reject) => {
@@ -139,7 +139,7 @@ export class DataLoader<K, V> {
         setTimeout(() => this.dispatch(), this.config.batchDelayMs)
       }
 
-      // Dispatch immediately if batch is full
+      //Dispatch immediately if batch is full
       if (this.queue.length >= this.config.maxBatchSize) {
         this.dispatch()
       }
@@ -182,13 +182,13 @@ export class DataLoader<K, V> {
         }
       }
     } catch (err) {
-      // Reject all entries in batch
+      //Reject all entries in batch
       for (const entry of batch) {
         entry.reject(err as Error)
       }
     }
 
-    // Dispatch remaining if any
+    //Dispatch remaining if any
     if (this.queue.length > 0) {
       this.scheduled = true
       setTimeout(() => this.dispatch(), this.config.batchDelayMs)
@@ -271,7 +271,7 @@ export function getCoalescingStats(): {
   }
 }
 
-// Pre-built DataLoaders for common AEGIS operations
+//Pre-built DataLoaders for common AEGIS operations
 export function createUserLoader(pool: any): DataLoader<string, any> {
   return getDataLoader<string, any>('users', async (userIds) => {
     const result = await pool.query(

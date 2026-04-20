@@ -1,5 +1,5 @@
 /**
- * KeyboardShortcutsOverlay — press ? to toggle.
+ * KeyboardShortcutsOverlay -- press ? to toggle.
  * Shows all admin keyboard shortcuts in a modal.
  */
 import { useEffect } from 'react'
@@ -114,7 +114,7 @@ export default function KeyboardShortcutsOverlay({ open, onClose }: Props) {
 
         <div className="px-6 pb-5 text-center">
           <p className="text-[10px] text-gray-400 dark:text-gray-500">
-            Shortcuts work when no input is focused • <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-[9px] font-mono">Esc</kbd> to close
+            Shortcuts work when no input is focused - <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-[9px] font-mono">Esc</kbd> to close
           </p>
         </div>
       </div>

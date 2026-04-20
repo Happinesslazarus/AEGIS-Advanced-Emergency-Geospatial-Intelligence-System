@@ -82,7 +82,7 @@ class FakeDetectorTrainable:
         submission_frequency: int = 1,
         similar_reports_count: int = 0
     ) -> np.ndarray:
-        """Extract 25+ numeric features from report data (v4.0 — enhanced)."""
+        """Extract 25+ numeric features from report data (v4.0 -- enhanced)."""
         full_text = f"{text} {description}".lower()
         original_text = f"{text} {description}"
         words = full_text.split()
@@ -233,7 +233,7 @@ class FakeDetectorTrainable:
             return self._rule_detect(metadata_features, text, description, 0.5)
 
     def _rule_detect(self, features: np.ndarray, text: str, description: str, reputation: float) -> Dict[str, Any]:
-        """Rule-based fallback — clearly marked as heuristic."""
+        """Rule-based fallback -- clearly marked as heuristic."""
         full_text = f"{text} {description}".lower()
         score = 0.0
         flags = []
@@ -282,17 +282,17 @@ class FakeDetectorTrainable:
         import asyncio
         try:
             asyncio.get_running_loop()
-            # Already inside an async loop (e.g. FastAPI) — run in a separate thread
+            # Already inside an async loop (e.g. FastAPI) -- run in a separate thread
             import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(asyncio.run, self._train_async(db_url))
                 return future.result(timeout=300)
         except RuntimeError:
-            # No running loop — safe to create one
+            # No running loop -- safe to create one
             return asyncio.run(self._train_async(db_url))
 
     async def async_train(self, db_url: str = DB_URL) -> Dict[str, Any]:
-        """Train fake detector (async — call from within running event loop)."""
+        """Train fake detector (async -- call from within running event loop)."""
         return await self._train_async(db_url)
 
     async def _train_async(self, db_url: str) -> Dict[str, Any]:
@@ -305,7 +305,7 @@ class FakeDetectorTrainable:
         from sklearn.feature_extraction.text import TfidfVectorizer
         from sklearn.preprocessing import StandardScaler
 
-        logger.info("Starting fake detector training (v3.0 — text+metadata ensemble)...")
+        logger.info("Starting fake detector training (v3.0 -- text+metadata ensemble)...")
         conn = await asyncio.wait_for(asyncpg.connect(db_url), timeout=30.0)
 
         try:
@@ -440,7 +440,7 @@ class FakeDetectorTrainable:
                     X_train, y_train = smote.fit_resample(X_train, y_train)
                     logger.info(f"SMOTE: {dict(zip(*np.unique(y_train, return_counts=True)))}")
             except ImportError:
-                logger.warning("imbalanced-learn not installed — skipping SMOTE")
+                logger.warning("imbalanced-learn not installed -- skipping SMOTE")
             except Exception as e:
                 logger.warning(f"SMOTE failed: {e}")
 
@@ -595,7 +595,7 @@ class FakeDetectorTrainable:
                 self.training_metrics = metrics
                 logger.info(f"Active model updated to {version}")
             else:
-                logger.info(f"Keeping previous model — candidate {version} not promoted")
+                logger.info(f"Keeping previous model -- candidate {version} not promoted")
 
             return metrics
 

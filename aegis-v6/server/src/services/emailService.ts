@@ -1,5 +1,5 @@
 ﻿/**
- * Transactional email service — sends verification, password reset, and alert
+ * Transactional email service -- sends verification, password reset, and alert
  * emails via SMTP in production. In dev mode, logs emails and stores them in
  * a dev_emails table for inspection. Enforces HTTPS links in production.
  *
@@ -12,13 +12,13 @@ import nodemailer from 'nodemailer'
 import pool from '../models/db.js'
 import { logger } from './logger.js'
 
-// Configuration
+//Configuration
 
 const EMAIL_MODE = (process.env.EMAIL_MODE || 'dev').toLowerCase() as 'dev' | 'production'
 const SMTP_FROM = process.env.SMTP_FROM || 'noreply@aegis.gov.uk'
 const SMTP_FROM_NAME = process.env.SMTP_FROM_NAME || 'AEGIS Platform'
 const _rawClientUrl = process.env.CLIENT_URL || 'http://localhost:5173'
-// Enforce HTTPS for password reset/verification links sent via email in production
+//Enforce HTTPS for password reset/verification links sent via email in production
 if (EMAIL_MODE === 'production' && !_rawClientUrl.startsWith('https://')) {
   console.error('[SECURITY] CLIENT_URL must use HTTPS in production. Password reset/verification emails will contain insecure links.')
 }
@@ -43,7 +43,7 @@ if (EMAIL_MODE === 'production') {
   logger.info('Email service: DEV mode (emails logged + dev_emails table)')
 }
 
-// Core Send Function
+//Core Send Function
 
 interface EmailOptions {
   to: string
@@ -62,10 +62,10 @@ async function sendEmail(options: EmailOptions): Promise<void> {
       html: options.html,
     })
   } else {
-    // DEV MODE - log to console + store in DB
+    //DEV MODE - log to console + store in DB
     logger.info({ to: options.to, subject: options.subject, body: options.text }, '[DEV EMAIL] (not actually sent)')
 
-    // Store in dev_emails table for easy inspection
+    //Store in dev_emails table for easy inspection
     try {
       await pool.query(
         `INSERT INTO dev_emails (to_email, subject, body_text, body_html)
@@ -73,12 +73,12 @@ async function sendEmail(options: EmailOptions): Promise<void> {
         [options.to, options.subject, options.text, options.html]
       )
     } catch {
-      // Table might not exist yet if migration hasn't run - that's OK
+      //Table might not exist yet if migration hasn't run - that's OK
     }
   }
 }
 
-// Email Templates
+//Email Templates
 
 /**
  * Send email verification link to a newly registered user.

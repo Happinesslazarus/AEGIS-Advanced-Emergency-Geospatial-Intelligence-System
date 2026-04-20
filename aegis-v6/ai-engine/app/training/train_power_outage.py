@@ -39,7 +39,7 @@ class PowerOutagePipeline(BaseHazardPipeline):
         "Heuristic proxy: outage=1 when extreme wind (>25 m/s) OR "
         "ice conditions (temp < -2°C AND precipitation > 0.5 mm/h) OR "
         "combined wind+rain stress. Synthetic infrastructure age proxy. "
-        "No real outage event data used — HEURISTIC MODEL."
+        "No real outage event data used -- HEURISTIC MODEL."
     )
     KNOWN_LIMITATIONS = (
         "No real power outage records. Infrastructure age is a random proxy. "
@@ -79,7 +79,7 @@ class PowerOutagePipeline(BaseHazardPipeline):
 
         # Infrastructure age proxy: derived from REAL elevation via Open-Elevation API
         # Higher elevation = older, more remote infrastructure (longer lines, harder maintenance)
-        # Mapping: elevation_m / 10 → capped at 60 years
+ # Mapping: elevation_m / 10 -> capped at 60 years
         import aiohttp
 
         ELEVATION_URL = "https://api.open-elevation.com/api/v1/lookup"

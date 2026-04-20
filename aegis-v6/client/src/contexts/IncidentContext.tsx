@@ -15,7 +15,7 @@ import {
   type IncidentDashboardSummary,
 } from '../utils/incidentApi'
 
-// Types
+//Types
 export type IncidentTypeId =
   | 'flood' | 'severe_storm' | 'heatwave' | 'wildfire' | 'landslide'
   | 'power_outage' | 'water_supply' | 'infrastructure_damage'
@@ -92,9 +92,9 @@ const FALLBACK_INCIDENT_CONTEXT: IncidentContextType = {
 
 const IncidentContext = createContext<IncidentContextType | null>(null)
 
-// Use same origin so Vite's /socket.io proxy forwards WebSocket to port 3001.
-// An empty string means "connect to the same host the page was loaded from",
-// which lets the Vite dev server proxy the WebSocket connection automatically.
+//Use same origin so Vite's /socket.io proxy forwards WebSocket to port 3001.
+//An empty string means "connect to the same host the page was loaded from",
+//which lets the Vite dev server proxy the WebSocket connection automatically.
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 export function IncidentProvider({ children }: { children: ReactNode }): JSX.Element {
@@ -148,24 +148,24 @@ export function IncidentProvider({ children }: { children: ReactNode }): JSX.Ele
   }, [])
 
   useEffect(() => {
-    // io() opens a Socket.IO connection (WebSocket with auto-fallback to HTTP
-    // long-polling).  We pass both transports explicitly so the server doesn't
-    // have to negotiate from scratch on every reconnect.
+    //io() opens a Socket.IO connection (WebSocket with auto-fallback to HTTP
+    //long-polling).  We pass both transports explicitly so the server doesn't
+    //have to negotiate from scratch on every reconnect.
     const socket: Socket = io(API_BASE, {
       transports: ['websocket', 'polling'],
       path: '/socket.io',
     })
-    // 'incident:alert' — routine incoming prediction (appended to the end of the list).
+    // 'incident:alert' -- routine incoming prediction (appended to the end of the list).
     socket.on('incident:alert', (data: LiveIncidentAlert) => {
       setLiveAlerts(prev => [...prev, data])
     })
-    // 'incident:alert:priority' — high-urgency alert.  We prepend it so it
-    // appears at the top, and cap the list at 50 to avoid unbounded growth.
+    // 'incident:alert:priority' -- high-urgency alert.  We prepend it so it
+    //appears at the top, and cap the list at 50 to avoid unbounded growth.
     socket.on('incident:alert:priority', (data: LiveIncidentAlert) => {
       setLiveAlerts(prev => [data, ...prev].slice(0, 50))
     })
-    // When the AI engine finishes a retrain, it emits this event.  We refresh
-    // the dashboard so accuracy metrics and risk numbers are up to date.
+    //When the AI engine finishes a retrain, it emits this event.  We refresh
+    //the dashboard so accuracy metrics and risk numbers are up to date.
     socket.on('incident:predictions_updated', () => {
       refreshDashboard()
     })
@@ -227,7 +227,7 @@ export function IncidentProvider({ children }: { children: ReactNode }): JSX.Ele
 export function useIncidents(): IncidentContextType {
   const ctx = useContext(IncidentContext)
   if (!ctx) {
-    console.error('[IncidentContext] useIncidents called outside IncidentProvider — using safe fallback context')
+    console.error('[IncidentContext] useIncidents called outside IncidentProvider -- using safe fallback context')
     return FALLBACK_INCIDENT_CONTEXT
   }
   return ctx

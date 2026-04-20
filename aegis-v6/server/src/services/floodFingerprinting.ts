@@ -1,5 +1,5 @@
 ﻿/**
- * Flood event fingerprinting — builds multi-dimensional feature vectors for
+ * Flood event fingerprinting -- builds multi-dimensional feature vectors for
  * current conditions and matches them against historical flood patterns using
  * cosine similarity to predict probability, risk level, and propagation areas.
  *
@@ -59,7 +59,7 @@ export interface FloodPrediction {
 
 
 function cosineSimilarity(a: Record<string, number>, b: Record<string, number>): number {
-  // Get union of all keys
+  //Get union of all keys
   const allKeys = new Set([...Object.keys(a), ...Object.keys(b)])
   if (allKeys.size === 0) return 0
 
@@ -88,7 +88,7 @@ function buildCurrentVector(features: Array<{name: string; rawValue: number; nor
   for (const f of features) {
     const nameLower = f.name.toLowerCase().replace(/[\s_-]+/g, '_')
 
-    // Map feature names to vector keys using flexible matching
+    //Map feature names to vector keys using flexible matching
     if (nameLower.includes('water_level') || nameLower.includes('river_level')) {
       vector.water_level = f.normalised
     } else if (nameLower.includes('rainfall')) {
@@ -144,19 +144,19 @@ async function loadFingerprints(): Promise<FloodFingerprint[]> {
 
 /* Predict which areas will be affected next based on the best matching historical event */
 function predictNextAreas(bestMatch: FingerprintMatch, currentArea: string): string[] {
-  // Build dynamic propagation from the historical match data.
-  // bestMatch.affectedZones already contains real zones from flood_history DB table.
-  // We use those as the primary propagation prediction.
+  //Build dynamic propagation from the historical match data.
+  //bestMatch.affectedZones already contains real zones from flood_history DB table.
+  //We use those as the primary propagation prediction.
 
-  // Known propagation patterns by region (expandable - loaded from region config)
-  // This serves as a fallback when no historical zones are available.
+  //Known propagation patterns by region (expandable - loaded from region config)
+  //This serves as a fallback when no historical zones are available.
   const propagationFallbacks: Record<string, string[]> = regionRegistry.getActiveRegion().getPropagationMap()
 
   const matchAreas = bestMatch.affectedZones.length > 0
     ? bestMatch.affectedZones
     : propagationFallbacks[bestMatch.area] || propagationFallbacks[currentArea] || []
 
-  // Use historical propagation first, then the fallback map for the area
+  //Use historical propagation first, then the fallback map for the area
   const predicted = new Set<string>()
   for (const zone of matchAreas) predicted.add(zone)
   for (const zone of (propagationFallbacks[currentArea] || [])) predicted.add(zone)
@@ -181,20 +181,20 @@ export async function runFingerprinting(
 ): Promise<FloodPrediction> {
   const start = Date.now()
 
-  // Step 1: Gather live data and run fusion
+  //Step 1: Gather live data and run fusion
   const fusionInput = await gatherFusionData(regionId, latitude, longitude)
   const fusionResult = await runFusion(fusionInput)
 
-  // Step 2: Build current state vector
+  //Step 2: Build current state vector
   const currentVector = buildCurrentVector(fusionResult.features)
 
-  // Step 3: Load historical fingerprints
+  //Step 3: Load historical fingerprints
   const fingerprints = await loadFingerprints()
 
-  // Step 4: Compute similarity against each historical event (with recency decay)
+  //Step 4: Compute similarity against each historical event (with recency decay)
   const matches: FingerprintMatch[] = fingerprints.map(fp => {
     const rawSimilarity = cosineSimilarity(currentVector, fp.featureVector)
-    // Apply recency decay: older events lose 5% per year, floor at 20%
+    //Apply recency decay: older events lose 5% per year, floor at 20%
     const eventDate = new Date(fp.eventDate)
     const yearsAgo = (Date.now() - eventDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
     const recencyDecay = Math.max(0.2, 1 - 0.05 * yearsAgo)
@@ -210,7 +210,7 @@ export async function runFingerprinting(
     }
   }).sort((a, b) => b.similarity - a.similarity)
 
-  // Step 5: Best match
+  //Step 5: Best match
   const bestMatch = matches[0] || {
     eventName: 'No historical match',
     eventDate: '',
@@ -222,16 +222,16 @@ export async function runFingerprinting(
     affectedPeople: 0,
   }
 
-  // Step 6: Compute combined probability
-  // Fusion probability weighted by historical match confidence
+  //Step 6: Compute combined probability
+  //Fusion probability weighted by historical match confidence
   const historyWeight = bestMatch.similarity > 0.7 ? 0.3 : 0.15
   const combinedProbability = fusionResult.probability * (1 - historyWeight) +
     bestMatch.similarity * historyWeight
 
-  // Step 7: Predict next areas
+  //Step 7: Predict next areas
   const nextAreas = predictNextAreas(bestMatch, area)
 
-  // Step 8: Time to flood
+  //Step 8: Time to flood
   let timeToFlood = 'Unknown'
   if (fusionResult.timeToFloodMinutes !== null) {
     if (fusionResult.timeToFloodMinutes === 0) timeToFlood = 'Imminent'
@@ -264,7 +264,7 @@ export async function runFingerprinting(
               fusionResult.riskLevel === 'Medium' ? 'medium' : 'low',
   }
 
-  // Step 9: Store prediction in database
+  //Step 9: Store prediction in database
   try {
     const result = await pool.query(
       `INSERT INTO flood_predictions
@@ -287,7 +287,7 @@ export async function runFingerprinting(
     prediction.id = result.rows[0].id
     prediction.createdAt = result.rows[0].created_at
 
-    // Module 1: Auto-create draft deployment zone for high-probability automated predictions
+    //Module 1: Auto-create draft deployment zone for high-probability automated predictions
     if (prediction.id && prediction.probability >= 0.7) {
       const draftPriority = prediction.probability >= 0.85 ? 'Critical' : 'High'
       const draftAiRec = `Auto-created by flood fingerprinting engine. Confidence: ${prediction.confidence}%. ` +
@@ -332,13 +332,13 @@ export async function sendPreAlert(
   operatorId: string,
   operatorName: string,
 ): Promise<{ sent: number; channels: string[] }> {
-  // Mark pre-alert as sent
+  //Mark pre-alert as sent
   await pool.query(
     `UPDATE flood_predictions SET pre_alert_sent = true WHERE id = $1`,
     [predictionId],
   )
 
-  // Get prediction details
+  //Get prediction details
   const predResult = await pool.query(
     `SELECT area, probability, time_to_flood, severity, next_areas,
             ST_Y(coordinates::geometry) as lat, ST_X(coordinates::geometry) as lng
@@ -354,7 +354,7 @@ export async function sendPreAlert(
   const alertTitle = `Pre-Alert: ${pred.area} - ${(pred.probability * 100).toFixed(0)}% flood probability`
   const alertMessage = `Flood predicted in ${pred.time_to_flood}. Areas at risk: ${(pred.next_areas || []).join(', ')}. Severity: ${pred.severity}. Take precautionary action now.`
 
-  // Find subscribers in the affected area (within 20km)
+  //Find subscribers in the affected area (within 20km)
   const subscribers = await pool.query(
     `SELECT id, email, phone, telegram_id, whatsapp, channels
      FROM alert_subscriptions
@@ -381,14 +381,14 @@ export async function sendPreAlert(
     }
   }
 
-  // Create system alert
+  //Create system alert
   await pool.query(
     `INSERT INTO alerts (title, message, severity, alert_type, location_text, created_by)
      VALUES ($1, $2, $3, 'flood_pre_alert', $4, $5)`,
     [alertTitle, alertMessage, pred.severity === 'critical' ? 'critical' : 'warning', pred.area, operatorId],
   ).catch(() => {})
 
-  // Audit log
+  //Audit log
   await pool.query(
     `INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, after_state)
      VALUES ($1, $2, $3, 'pre_alert', 'prediction', $4, $5)`,

@@ -21,50 +21,50 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers = {}): void {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
-      // Don't fire shortcuts when the user is actively typing.  INPUT, TEXTAREA,
-      // and SELECT are native form controls; isContentEditable catches rich-text
-      // editors (e.g. the chatbot's draft area) which are plain divs with
-      // contenteditable="true".
+      //Don't fire shortcuts when the user is actively typing.  INPUT, TEXTAREA,
+      //and SELECT are native form controls; isContentEditable catches rich-text
+      //editors (e.g. the chatbot's draft area) which are plain divs with
+      //contenteditable="true".
       const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable
 
-      // Ctrl+K (Windows/Linux) OR Cmd+K (Mac) — Focus search.
-      // e.metaKey is true when the Mac ⌘ (Command) key is held.
+      //Ctrl+K (Windows/Linux) OR Cmd+K (Mac) -- Focus search.
+      //e.metaKey is true when the Mac ⌘ (Command) key is held.
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault()
         handlers.onFocusSearch?.()
         return
       }
 
-      // Ctrl+/ (or Cmd+/) — Toggle chatbot sidebar.
+      //Ctrl+/ (or Cmd+/) -- Toggle chatbot sidebar.
       if ((e.ctrlKey || e.metaKey) && e.key === '/') {
         e.preventDefault()
         handlers.onToggleChat?.()
         return
       }
 
-      // Ctrl+N — Open new incident report.  We guard against Shift to avoid
-      // accidentally triggering on Ctrl+Shift+N (incognito window shortcut).
+      //Ctrl+N -- Open new incident report.  We guard against Shift to avoid
+      //accidentally triggering on Ctrl+Shift+N (incognito window shortcut).
       if ((e.ctrlKey || e.metaKey) && e.key === 'n' && !e.shiftKey) {
         e.preventDefault()
         handlers.onNewReport?.()
         return
       }
 
-      // Ctrl+Shift+A — Jump to admin panel (operator shortcut).
+      //Ctrl+Shift+A -- Jump to admin panel (operator shortcut).
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'A') {
         e.preventDefault()
         navigate('/admin')
         return
       }
 
-      // Escape — Close modals, drawers, or any open panel.
+      //Escape -- Close modals, drawers, or any open panel.
       if (e.key === 'Escape') {
         handlers.onEscape?.()
         return
       }
 
-      // ? (question mark) — Show the shortcut help overlay.
-      // We skip this when the user is typing so '?' in a text box works normally.
+      // ? (question mark) -- Show the shortcut help overlay.
+      //We skip this when the user is typing so '?' in a text box works normally.
       if (e.key === '?' && !isInput) {
         e.preventDefault()
         handlers.onShowHelp?.()

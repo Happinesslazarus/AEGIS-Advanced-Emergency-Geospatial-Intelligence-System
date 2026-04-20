@@ -40,35 +40,35 @@ export function isValidE164(phone: string): boolean {
  * For other countries, assumes +1 (US/Canada) if no country code
  */
 export function normalizeToE164(phone: string, defaultCountryCode: string = getDefaultCountryCode()): string {
-  // Remove all whitespace, parentheses, dashes
+  //Remove all whitespace, parentheses, dashes
   let cleaned = phone.replace(/[\s\-\(\)]/g, '')
 
-  // Already in E.164 format
+  //Already in E.164 format
   if (isValidE164(cleaned)) {
     return cleaned
   }
 
-  // Starts with 00 (international prefix) - replace with +
+  //Starts with 00 (international prefix) - replace with +
   if (cleaned.startsWith('00')) {
     cleaned = '+' + cleaned.slice(2)
   }
 
-  // Starts with + but has (0) - remove the (0)
+  //Starts with + but has (0) - remove the (0)
   if (cleaned.startsWith('+')) {
     cleaned = cleaned.replace(/\(0\)/g, '').replace(/^(\+\d+)0/, '$1')
   }
 
-  // UK mobile starting with 0
+  //UK mobile starting with 0
   if (cleaned.startsWith('0') && defaultCountryCode === '44') {
     cleaned = '+44' + cleaned.slice(1)
   }
 
-  // No country code - add default
+  //No country code - add default
   if (!cleaned.startsWith('+')) {
     cleaned = '+' + defaultCountryCode + cleaned
   }
 
-  // Validate final result
+  //Validate final result
   if (isValidE164(cleaned)) {
     return cleaned
   }
@@ -83,23 +83,23 @@ export function normalizeToE164(phone: string, defaultCountryCode: string = getD
 export function formatPhoneDisplay(phone: string): string {
   if (!isValidE164(phone)) return phone
 
-  // Extract country code and number
+  //Extract country code and number
   const match = phone.match(/^\+(\d{1,3})(\d+)$/)
   if (!match) return phone
 
   const [, countryCode, number] = match
 
-  // UK formatting
+  //UK formatting
   if (countryCode === '44' && number.length === 10) {
     return `+44 ${number.slice(0, 4)} ${number.slice(4, 7)} ${number.slice(7)}`
   }
 
-  // US/Canada formatting
+  //US/Canada formatting
   if (countryCode === '1' && number.length === 10) {
     return `+1 (${number.slice(0, 3)}) ${number.slice(3, 6)}-${number.slice(6)}`
   }
 
-  // Generic formatting - add space after country code
+  //Generic formatting - add space after country code
   return `+${countryCode} ${number}`
 }
 

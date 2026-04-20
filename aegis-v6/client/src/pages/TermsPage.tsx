@@ -53,7 +53,7 @@ export default function TermsPage(): JSX.Element {
       const val = t(`${key}.p${p}`, lang) as string
       if (val && !val.startsWith(`${key}.p`)) paragraphs.push(val)
     }
-    // Pick up non-standard paragraph keys (intro, disclaimer, violations, verify, asIs)
+    //Pick up non-standard paragraph keys (intro, disclaimer, violations, verify, asIs)
     for (const suffix of ['intro', 'disclaimer', 'violations', 'verify', 'asIs']) {
       const val = t(`${key}.${suffix}`, lang) as string
       if (val && !val.startsWith(`${key}.${suffix}`)) paragraphs.push(val)

@@ -8,7 +8,7 @@ import { Router, Request, Response } from 'express'
 import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 
 export function setupEnvironmentalHazardRoutes(router: Router): void {
-  // GET /air-quality — current air quality readings
+  //GET /air-quality -- current air quality readings
   router.get('/air-quality', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
@@ -29,7 +29,7 @@ export function setupEnvironmentalHazardRoutes(router: Router): void {
     }
   })
 
-  // GET /pollutant-levels — detailed pollutant levels
+  //GET /pollutant-levels -- detailed pollutant levels
   router.get('/pollutant-levels', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
@@ -46,7 +46,7 @@ export function setupEnvironmentalHazardRoutes(router: Router): void {
     }
   })
 
-  // GET /health-advisory — health advisory based on air quality
+  //GET /health-advisory -- health advisory based on air quality
   router.get('/health-advisory', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)

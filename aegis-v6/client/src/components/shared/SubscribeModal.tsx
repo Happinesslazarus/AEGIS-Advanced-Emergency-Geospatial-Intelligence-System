@@ -100,7 +100,7 @@ export default function SubscribeModal({ isOpen, onClose, user, pushNotification
         'success'
       )
       onClose()
-      // Reset form for next open
+      //Reset form for next open
       setSubChannels([])
       setSubPhone('')
       setSubTelegramId('')
@@ -241,7 +241,7 @@ export default function SubscribeModal({ isOpen, onClose, user, pushNotification
                 </p>
               ) : (
                 <p className="text-xs text-amber-700 dark:text-amber-300">
-                  {t('citizenPage.webPushLoading', lang) || 'Checking browser push support…'}
+                  {t('citizenPage.webPushLoading', lang) || 'Checking browser push support...'}
                 </p>
               )}
             </div>
@@ -276,7 +276,7 @@ export default function SubscribeModal({ isOpen, onClose, user, pushNotification
             className="w-full bg-gradient-to-r from-aegis-500 to-aegis-700 hover:from-aegis-400 hover:to-aegis-600 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-aegis-600/20 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99]"
           >
             {webPushLoading
-              ? (t('citizenPage.settingUpWebPush', lang) || 'Setting up push…')
+              ? (t('citizenPage.settingUpWebPush', lang) || 'Setting up push...')
               : (t('subscribe.title', lang) || 'Subscribe to Alerts')}
           </button>
         </div>

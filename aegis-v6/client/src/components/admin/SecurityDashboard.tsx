@@ -101,7 +101,7 @@ export default function SecurityDashboard(): JSX.Element {
 
   useEffect(() => { loadData() }, [loadData])
 
-  // Keyboard shortcuts
+  //Keyboard shortcuts
   const [showKeyboard, setShowKeyboard] = useState(false)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -410,7 +410,7 @@ export default function SecurityDashboard(): JSX.Element {
   )
 }
 
-// Sub-components
+//Sub-components
 
 function StatCard({ icon: Icon, label, value, color }: {
   icon: React.ElementType; label: string; value: number; color: string

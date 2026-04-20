@@ -76,7 +76,7 @@ export class HeatwaveService {
    * Calculate heat index
    */
   static calculateHeatIndex(temperature: number, humidity: number): number {
-    // Simplified heat index calculation
+    //Simplified heat index calculation
     const heatIndex = temperature + (0.5555 * (6.11 * Math.exp(5417.7530 * ((1/273.16) - (1/(273.15 + temperature)))) * (humidity / 100) - 10))
     return Math.round(heatIndex * 10) / 10
   }

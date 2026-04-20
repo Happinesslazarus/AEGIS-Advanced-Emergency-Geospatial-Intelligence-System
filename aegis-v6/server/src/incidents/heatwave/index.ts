@@ -23,7 +23,7 @@ class HeatwaveModule extends BaseIncidentModule {
     enabledRegions: 'all',
     operationalStatus: 'fully_operational',
     fieldSchema: [
-      { key: 'temperatureC', label: 'Observed Temperature (—C)', type: 'number', required: false },
+      { key: 'temperatureC', label: 'Observed Temperature (--C)', type: 'number', required: false },
       { key: 'vulnerablePeopleAffected', label: 'Vulnerable People Affected', type: 'boolean', required: false },
       { key: 'waterAccessIssues', label: 'Water Access Issues', type: 'boolean', required: false },
     ],
@@ -33,7 +33,7 @@ class HeatwaveModule extends BaseIncidentModule {
 
   async getPredictions(region: string): Promise<IncidentPrediction[]> {
     try {
-      // Try AI engine first (heatwave model exists)
+      //Try AI engine first (heatwave model exists)
       const aiUrl = process.env.AI_ENGINE_URL || 'http://localhost:8000'
       try {
         const aiRes = await fetch(`${aiUrl}/api/predict`, {
@@ -60,7 +60,7 @@ class HeatwaveModule extends BaseIncidentModule {
         }
       } catch { /* AI engine unavailable, fall through to statistical */ }
 
-      // Statistical fallback: use weather API temperature data
+      //Statistical fallback: use weather API temperature data
       const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=57.15&longitude=-2.09&current=temperature_2m,apparent_temperature&daily=temperature_2m_max&timezone=auto&forecast_days=3`
       const res = await fetch(weatherUrl, { signal: AbortSignal.timeout(8000) })
       if (!res.ok) return this.ruleBasedPrediction(region)
@@ -71,7 +71,7 @@ class HeatwaveModule extends BaseIncidentModule {
       const maxTemps = data.daily?.temperature_2m_max || []
       const maxForecast = Math.max(...maxTemps, currentTemp)
 
-      // Statistical thresholds (adjusted for UK climate)
+      //Statistical thresholds (adjusted for UK climate)
       let severity = 'Low'
       let probability = 0.1
       if (maxForecast > 35) { severity = 'Critical'; probability = 0.9 }
@@ -86,7 +86,7 @@ class HeatwaveModule extends BaseIncidentModule {
         confidence: 0.6,
         confidenceSource: 'statistical',
         region,
-        description: `Current: ${currentTemp}—C (feels like ${apparentTemp}—C). Forecast max: ${maxForecast}—C over 3 days.`,
+        description: `Current: ${currentTemp}--C (feels like ${apparentTemp}--C). Forecast max: ${maxForecast}--C over 3 days.`,
         advisoryText: this.getAdvisoryText(severity),
         generatedAt: new Date().toISOString(),
         dataSourcesUsed: ['weather_api', 'statistical_model'],

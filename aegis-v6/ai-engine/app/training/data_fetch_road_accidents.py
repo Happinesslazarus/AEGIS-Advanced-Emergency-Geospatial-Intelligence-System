@@ -2,26 +2,24 @@
 Weather-related road accident data for public_safety_incident training labels.
 
 WHY ROAD ACCIDENT DATA
------------------------
 Road accidents that occur under adverse weather conditions are the most
 accessible, scientifically defensible, and globally scalable independent
 label source for weather-related public safety incidents.
 
 Two national datasets are integrated:
 
-1. UK DfT Stats19 (Great Britain, 1979–present)
-   ~130,000–160,000 reported injury accidents/year with weather conditions,
+1. UK DfT Stats19 (Great Britain, 1979-present)
+   ~130,000-160,000 reported injury accidents/year with weather conditions,
    road surface conditions, light conditions, GPS coordinates, and severity.
    Free from: https://data.gov.uk/dataset/road-safety-data
    Columns used: Weather_Conditions, Date, Time, Latitude, Longitude, Accident_Severity
 
-2. US NHTSA FARS (Fatality Analysis Reporting System, USA, 1975–present)
+2. US NHTSA FARS (Fatality Analysis Reporting System, USA, 1975-present)
    All fatal road accidents in the US with atmospheric conditions coded.
    Free from: https://www.nhtsa.gov/research-data/fatality-analysis-reporting-system-fars
    Columns used: ATMOSPH_COND, YEAR, MONTH, DAY, HOUR, LATITUDE, LONGITUD
 
 LABEL DEFINITION
-----------------
 A station-hour is labelled POSITIVE when at least one adverse-weather accident
 occurred within the station's spatial region on that day.
 
@@ -73,9 +71,7 @@ _STATS19_ADVERSE_WEATHER = {2, 3, 4, 5, 6, 7, 8}
 _FARS_ADVERSE_ATMO = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 98}
 
 
-# ---------------------------------------------------------------------------
 # Stats19 (UK DfT Road Safety Data)
-# ---------------------------------------------------------------------------
 
 _STATS19_HISTORICAL_URL = (
     "https://data.dft.gov.uk/road-accidents-safety-data/"
@@ -131,7 +127,7 @@ def _download_stats19_from_historical_bundle(years_needed: list[int], force: boo
         for chunk in pd.read_csv(bundle, low_memory=False, dtype=str, chunksize=50_000):
             year_col = next((c for c in chunk.columns if "year" in c.lower()), None)
             if year_col is None:
-                logger.warning("  Historical bundle: cannot find year column — skipping")
+                logger.warning("  Historical bundle: cannot find year column -- skipping")
                 break
             for yr in missing:
                 subset = chunk[pd.to_numeric(chunk[year_col], errors="coerce") == yr]
@@ -144,7 +140,7 @@ def _download_stats19_from_historical_bundle(years_needed: list[int], force: boo
                 combined = pd.concat(year_dfs[yr], ignore_index=True)
                 dest = _STATS19_DIR / f"stats19_accidents_{yr}.csv"
                 combined.to_csv(dest, index=False)
-                logger.success(f"  Stats19 {yr}: {len(combined):,} rows → {dest}")
+                logger.success(f"  Stats19 {yr}: {len(combined):,} rows -> {dest}")
                 extracted.append(dest)
             else:
                 logger.warning(f"  Stats19 {yr}: no rows found in historical bundle")
@@ -166,12 +162,11 @@ def download_stats19(
     """Download Stats19 accident CSV files for given years.
 
     Parameters
-    ----------
-    years : iterable of years (default: 2015–2023)
+    years : iterable of years (default: 2015-2023)
     force : re-download even if file exists
 
     Returns
-    -------
+
     List of paths to downloaded CSV files.
     """
     if years is None:
@@ -263,14 +258,12 @@ def load_all_stats19(start_year: int, end_year: int) -> pd.DataFrame:
     combined = pd.concat(frames, ignore_index=True)
     logger.info(
         f"  Stats19: {len(combined):,} adverse-weather accidents "
-        f"({start_year}–{end_year})"
+        f"({start_year}-{end_year})"
     )
     return combined
 
 
-# ---------------------------------------------------------------------------
 # NHTSA FARS (US Fatal Accident Reporting)
-# ---------------------------------------------------------------------------
 
 def _fars_url(year: int) -> str:
     """Return the NHTSA FARS data URL for a given year."""
@@ -287,12 +280,11 @@ def download_nhtsa_fars(
     """Download NHTSA FARS accident CSV ZIP files and extract accident data.
 
     Parameters
-    ----------
-    years : iterable of years (default: 2015–2022)
+    years : iterable of years (default: 2015-2022)
     force : re-download even if file exists
 
     Returns
-    -------
+
     List of paths to extracted accident CSV files.
     """
     if years is None:
@@ -307,7 +299,7 @@ def download_nhtsa_fars(
             continue
 
         url = _fars_url(year)
-        logger.info(f"Downloading NHTSA FARS {year} (~20–40 MB) ...")
+        logger.info(f"Downloading NHTSA FARS {year} (~20-40 MB) ...")
         try:
             with urllib.request.urlopen(url, timeout=120) as resp:
                 zip_bytes = io.BytesIO(resp.read())
@@ -382,14 +374,12 @@ def load_all_fars(start_year: int, end_year: int) -> pd.DataFrame:
     combined = pd.concat(frames, ignore_index=True)
     logger.info(
         f"  NHTSA FARS: {len(combined):,} adverse-weather fatal accidents "
-        f"({start_year}–{end_year})"
+        f"({start_year}-{end_year})"
     )
     return combined
 
 
-# ---------------------------------------------------------------------------
 # Shared label builder
-# ---------------------------------------------------------------------------
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     r = 6371.0
@@ -416,14 +406,13 @@ def build_accident_label_df(
     occurred within `radius_km` of the station on that day.
 
     Parameters
-    ----------
     station_locations : list of {"id", "lat", "lon"} dicts
     start_date        : "YYYY-MM-DD"
     end_date          : "YYYY-MM-DD"
     radius_km         : spatial match radius (default 80km ~county scale)
 
     Returns
-    -------
+
     pd.DataFrame: timestamp (hourly), station_id, label (0/1)
     """
     dt_start = datetime.strptime(start_date, "%Y-%m-%d")

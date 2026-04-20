@@ -11,7 +11,7 @@ export class DroughtAlertRules {
     const results: AlertRuleResult[] = []
     const { recentReports, predictions } = context
 
-    // Rule 1: Citizen reports of water restrictions or crop damage
+    //Rule 1: Citizen reports of water restrictions or crop damage
     const restrictionReports = recentReports.filter(r => r.customFields?.waterRestrictions === true)
     if (restrictionReports.length >= 3) {
       results.push({
@@ -32,7 +32,7 @@ export class DroughtAlertRules {
       })
     }
 
-    // Rule 2: Low river level reports
+    //Rule 2: Low river level reports
     const lowRiverReports = recentReports.filter(r => r.customFields?.riverLevelLow === true)
     if (lowRiverReports.length >= 2) {
       results.push({
@@ -43,7 +43,7 @@ export class DroughtAlertRules {
       })
     }
 
-    // Rule 3: General report volume
+    //Rule 3: General report volume
     if (recentReports.length >= 8) {
       results.push({
         shouldAlert: true,
@@ -60,7 +60,7 @@ export class DroughtAlertRules {
       })
     }
 
-    // Rule 4: High-probability AI prediction
+    //Rule 4: High-probability AI prediction
     const highRiskPredictions = predictions?.filter(p => p.probability > 0.60)
     if (highRiskPredictions && highRiskPredictions.length > 0) {
       results.push({

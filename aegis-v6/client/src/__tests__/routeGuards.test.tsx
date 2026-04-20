@@ -2,8 +2,8 @@
  * Tests for the route-guard components and utilities that control page access
  * based on authentication status and user role.  AEGIS has two separate auth
  * systems running in parallel:
- *   - Staff auth  (admin / operator / viewer) — uses the main JWT from api.getToken()
- *   - Citizen auth                             — uses a separate token from CitizenAuthContext
+ *   - Staff auth  (admin / operator / viewer) -- uses the main JWT from api.getToken()
+ *   - Citizen auth                             -- uses a separate token from CitizenAuthContext
  *
  * Route guard components live in RouteGuards and wrap React Router <Route> children.
  * They redirect or show fallback content when access requirements are not met.
@@ -67,11 +67,9 @@ import {
 } from '../components/shared/RouteGuards'
 import { setCitizenToken } from '../contexts/CitizenAuthContext'
 
-// ---------------------------------------------------------------------------
-// Module-level mocks
-// ---------------------------------------------------------------------------
+//Module-level mocks
 
-// api module — mock getToken (staff JWT) and getAnyToken (any JWT)
+//api module -- mock getToken (staff JWT) and getAnyToken (any JWT)
 vi.mock('../utils/api', () => ({
   getToken: vi.fn(() => null),    // no staff token by default
   getAnyToken: vi.fn(() => null), // no token of any kind by default
@@ -79,9 +77,7 @@ vi.mock('../utils/api', () => ({
 
 import * as api from '../utils/api'
 
-// ---------------------------------------------------------------------------
-// Test helpers
-// ---------------------------------------------------------------------------
+//Test helpers
 
 /** Wrap a component in MemoryRouter so React Router guards can navigate */
 function renderWithRouter(
@@ -97,7 +93,7 @@ function renderWithRouter(
 
 /**
  * Build a mock JWT (header.payload.signature) with the given payload.
- * The signature is a placeholder — tests only exercise token parsing, not verification.
+ * The signature is a placeholder -- tests only exercise token parsing, not verification.
  */
 function createMockJwt(payload: Record<string, unknown>): string {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' })) // Base64-encoded header
@@ -106,27 +102,25 @@ function createMockJwt(payload: Record<string, unknown>): string {
   return `${header}.${body}.${signature}`
 }
 
-// ---------------------------------------------------------------------------
-// Token utility functions
-// ---------------------------------------------------------------------------
+//Token utility functions
 describe('Token Utilities', () => {
 
   describe('getRoleFromToken', () => {
     it('extracts role from valid JWT', () => {
-      // Decode the payload and return the 'role' claim
+      //Decode the payload and return the 'role' claim
       const token = createMockJwt({ role: 'admin', exp: Date.now() / 1000 + 3600 })
       expect(getRoleFromToken(token)).toBe('admin')
     })
 
     it('returns null for invalid token', () => {
-      // Malformed tokens must not throw; return null gracefully
+      //Malformed tokens must not throw; return null gracefully
       expect(getRoleFromToken('invalid')).toBeNull()
       expect(getRoleFromToken(null)).toBeNull()
       expect(getRoleFromToken('')).toBeNull()
     })
 
     it('returns null when role is missing', () => {
-      // A valid JWT without a 'role' claim returns null (no role assigned)
+      //A valid JWT without a 'role' claim returns null (no role assigned)
       const token = createMockJwt({ sub: 'user123' }) // sub = subject/user ID
       expect(getRoleFromToken(token)).toBeNull()
     })
@@ -134,19 +128,19 @@ describe('Token Utilities', () => {
 
   describe('isTokenExpired', () => {
     it('returns true for expired token', () => {
-      // exp = Date.now()/1000 - 3600 → one hour in the past → expired
+ //exp = Date.now()/1000 - 3600 -> one hour in the past -> expired
       const token = createMockJwt({ exp: Date.now() / 1000 - 3600 })
       expect(isTokenExpired(token)).toBe(true)
     })
 
     it('returns false for valid token', () => {
-      // exp one hour in the future → token is still valid
+ //exp one hour in the future -> token is still valid
       const token = createMockJwt({ exp: Date.now() / 1000 + 3600 })
       expect(isTokenExpired(token)).toBe(false)
     })
 
     it('returns true for null/invalid token', () => {
-      // Treat missing or unparseable tokens as expired for safety
+      //Treat missing or unparseable tokens as expired for safety
       expect(isTokenExpired(null)).toBe(true)
       expect(isTokenExpired('invalid')).toBe(true)
     })
@@ -160,7 +154,7 @@ describe('Token Utilities', () => {
     })
 
     it('returns admin role from admin token', () => {
-      // When a staff token with role='admin' is present, return 'admin'
+      //When a staff token with role='admin' is present, return 'admin'
       const token = createMockJwt({ role: 'admin', exp: Date.now() / 1000 + 3600 })
       vi.mocked(api.getToken).mockReturnValue(token)
 
@@ -168,7 +162,7 @@ describe('Token Utilities', () => {
     })
 
     it('returns citizen role from citizen token', () => {
-      // When no staff token exists but a citizen token does, return 'citizen'
+      //When no staff token exists but a citizen token does, return 'citizen'
       vi.mocked(api.getToken).mockReturnValue(null)
       const token = createMockJwt({ role: 'citizen', exp: Date.now() / 1000 + 3600 })
       setCitizenToken(token) // store in CitizenAuthContext memory
@@ -177,22 +171,20 @@ describe('Token Utilities', () => {
     })
 
     it('returns null when no valid token', () => {
-      // No tokens set → user is unauthenticated
+ //No tokens set -> user is unauthenticated
       expect(getCurrentRole()).toBeNull()
     })
   })
 })
 
-// ---------------------------------------------------------------------------
-// AuthenticatedRoute — redirects unauthenticated users
-// ---------------------------------------------------------------------------
+//AuthenticatedRoute -- redirects unauthenticated users
 describe('AuthenticatedRoute', () => {
   beforeEach(() => {
     vi.mocked(api.getAnyToken).mockReturnValue(null) // no auth token by default
   })
 
   it('redirects when not authenticated', () => {
-    // Without a token, the guard must navigate to /login
+    //Without a token, the guard must navigate to /login
     renderWithRouter(
       <Routes>
         <Route path="/" element={
@@ -209,7 +201,7 @@ describe('AuthenticatedRoute', () => {
   })
 
   it('renders children when authenticated', () => {
-    // With a valid token present, the guard lets the children render
+    //With a valid token present, the guard lets the children render
     vi.mocked(api.getAnyToken).mockReturnValue('valid-token')
 
     renderWithRouter(
@@ -222,7 +214,7 @@ describe('AuthenticatedRoute', () => {
   })
 
   it('renders fallback instead of redirecting when provided', () => {
-    // fallback prop shows inline content instead of navigating away
+    //fallback prop shows inline content instead of navigating away
     renderWithRouter(
       <AuthenticatedRoute fallback={<div>Please Log In</div>}>
         <div>Protected Content</div>
@@ -234,9 +226,7 @@ describe('AuthenticatedRoute', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// RoleProtectedRoute — restricts access to specified roles
-// ---------------------------------------------------------------------------
+//RoleProtectedRoute -- restricts access to specified roles
 describe('RoleProtectedRoute', () => {
   beforeEach(() => {
     vi.mocked(api.getToken).mockReturnValue(null)
@@ -245,7 +235,7 @@ describe('RoleProtectedRoute', () => {
   })
 
   it('allows access when user has required role', () => {
-    // admin token satisfies roles=['admin','operator']
+    //admin token satisfies roles=['admin','operator']
     const token = createMockJwt({ role: 'admin', exp: Date.now() / 1000 + 3600 })
     vi.mocked(api.getToken).mockReturnValue(token)
     vi.mocked(api.getAnyToken).mockReturnValue(token)
@@ -260,7 +250,7 @@ describe('RoleProtectedRoute', () => {
   })
 
   it('denies access when user lacks required role', () => {
-    // viewer token fails against roles=['admin']
+    //viewer token fails against roles=['admin']
     const token = createMockJwt({ role: 'viewer', exp: Date.now() / 1000 + 3600 })
     vi.mocked(api.getToken).mockReturnValue(token)
     vi.mocked(api.getAnyToken).mockReturnValue(token)
@@ -281,9 +271,7 @@ describe('RoleProtectedRoute', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// AdminRoute — only role='admin' passes
-// ---------------------------------------------------------------------------
+//AdminRoute -- only role='admin' passes
 describe('AdminRoute', () => {
   it('only allows admin role', () => {
     const token = createMockJwt({ role: 'admin', exp: Date.now() / 1000 + 3600 })
@@ -300,7 +288,7 @@ describe('AdminRoute', () => {
   })
 
   it('blocks operator role', () => {
-    // Operators have elevated rights but are not admins — cannot access AdminRoute
+    //Operators have elevated rights but are not admins -- cannot access AdminRoute
     const token = createMockJwt({ role: 'operator', exp: Date.now() / 1000 + 3600 })
     vi.mocked(api.getToken).mockReturnValue(token)
     vi.mocked(api.getAnyToken).mockReturnValue(token)
@@ -320,11 +308,9 @@ describe('AdminRoute', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// StaffRoute — admin, operator, or viewer roles
-// ---------------------------------------------------------------------------
+//StaffRoute -- admin, operator, or viewer roles
 describe('StaffRoute', () => {
-  // it.each runs the test body for admin, operator, and viewer in sequence
+  //it.each runs the test body for admin, operator, and viewer in sequence
   it.each(['admin', 'operator', 'viewer'])('allows %s role', (role) => {
     const token = createMockJwt({ role, exp: Date.now() / 1000 + 3600 })
     vi.mocked(api.getToken).mockReturnValue(token)
@@ -340,7 +326,7 @@ describe('StaffRoute', () => {
   })
 
   it('blocks citizen role', () => {
-    // Citizens have their own context and routes; they cannot access staff areas
+    //Citizens have their own context and routes; they cannot access staff areas
     vi.mocked(api.getToken).mockReturnValue(null)
     const token = createMockJwt({ role: 'citizen', exp: Date.now() / 1000 + 3600 })
     setCitizenToken(token)
@@ -361,12 +347,10 @@ describe('StaffRoute', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// GuestOnlyRoute — login/register pages that redirect authenticated users away
-// ---------------------------------------------------------------------------
+//GuestOnlyRoute -- login/register pages that redirect authenticated users away
 describe('GuestOnlyRoute', () => {
   it('allows unauthenticated users', () => {
-    // No token → user is a guest; show the guest content (e.g. login form)
+ //No token -> user is a guest; show the guest content (e.g. login form)
     vi.mocked(api.getAnyToken).mockReturnValue(null)
 
     renderWithRouter(
@@ -379,7 +363,7 @@ describe('GuestOnlyRoute', () => {
   })
 
   it('redirects authenticated users', () => {
-    // Already logged in → no need to see the login page; redirect to dashboard
+ //Already logged in -> no need to see the login page; redirect to dashboard
     vi.mocked(api.getAnyToken).mockReturnValue('valid-token')
     const token = createMockJwt({ role: 'admin', exp: Date.now() / 1000 + 3600 })
     vi.mocked(api.getToken).mockReturnValue(token)
@@ -400,9 +384,7 @@ describe('GuestOnlyRoute', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Hook: useRoleCheck — returns computed role permissions for the current user
-// ---------------------------------------------------------------------------
+//Hook: useRoleCheck -- returns computed role permissions for the current user
 
 /** Minimal test component that renders the role-check hook values as text */
 function TestComponent() {
@@ -424,7 +406,7 @@ describe('useRoleCheck', () => {
     renderWithRouter(<TestComponent />)
 
     expect(screen.getByTestId('role')).toHaveTextContent('admin')
-    expect(screen.getByTestId('isAdmin')).toHaveTextContent('true')   // admin → isAdmin
+ expect(screen.getByTestId('isAdmin')).toHaveTextContent('true') // admin -> isAdmin
     expect(screen.getByTestId('canEdit')).toHaveTextContent('true')   // admin can edit
   })
 
@@ -440,9 +422,7 @@ describe('useRoleCheck', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Hook: useHasRole — boolean check against an allowed-roles array
-// ---------------------------------------------------------------------------
+//Hook: useHasRole -- boolean check against an allowed-roles array
 
 /** Renders the useHasRole() result as text for easy assertion */
 function HasRoleTestComponent({ roles }: { roles: ('admin' | 'operator' | 'viewer' | 'citizen' | 'guest')[] }) {
@@ -452,7 +432,7 @@ function HasRoleTestComponent({ roles }: { roles: ('admin' | 'operator' | 'viewe
 
 describe('useHasRole', () => {
   it('returns true when user has one of the roles', () => {
-    // operator is in ['admin','operator'] → hasRole=true
+ //operator is in ['admin','operator'] -> hasRole=true
     const token = createMockJwt({ role: 'operator', exp: Date.now() / 1000 + 3600 })
     vi.mocked(api.getToken).mockReturnValue(token)
 
@@ -462,7 +442,7 @@ describe('useHasRole', () => {
   })
 
   it('returns false when user lacks all roles', () => {
-    // viewer is not in ['admin','operator'] → hasRole=false
+ //viewer is not in ['admin','operator'] -> hasRole=false
     const token = createMockJwt({ role: 'viewer', exp: Date.now() / 1000 + 3600 })
     vi.mocked(api.getToken).mockReturnValue(token)
 
@@ -472,4 +452,4 @@ describe('useHasRole', () => {
   })
 })
 
-// TOKEN UTILITY TESTS
+//TOKEN UTILITY TESTS

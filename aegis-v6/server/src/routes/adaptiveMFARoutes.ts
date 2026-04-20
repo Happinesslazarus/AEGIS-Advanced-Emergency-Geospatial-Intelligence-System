@@ -1,6 +1,6 @@
 ﻿/**
  * HTTP routes for AEGIS Adaptive MFA step-up authentication.
- * Implements NIST SP 800-63B Authenticator Assurance Levels (AAL1–AAL3).
+ * Implements NIST SP 800-63B Authenticator Assurance Levels (AAL1-AAL3).
  *
  * - Mounted at /api/auth/mfa in index.ts
  * - Uses adaptiveMFAService for all business logic
@@ -8,11 +8,11 @@
  *   to complete step-up and have their session AAL elevated
  *
  * Endpoints:
- * - POST /api/auth/mfa/check      — is step-up required for this resource?
- * - POST /api/auth/mfa/challenge  — issue a step-up challenge
- * - POST /api/auth/mfa/verify     — verify the challenge response
- * - GET  /api/auth/mfa/history    — user's step-up history
- * - GET  /api/auth/mfa/stats      — admin: platform-wide stats
+ * - POST /api/auth/mfa/check      -- is step-up required for this resource?
+ * - POST /api/auth/mfa/challenge  -- issue a step-up challenge
+ * - POST /api/auth/mfa/verify     -- verify the challenge response
+ * - GET  /api/auth/mfa/history    -- user's step-up history
+ * - GET  /api/auth/mfa/stats      -- admin: platform-wide stats
  * */
 
 import { Router, Request, Response } from 'express'
@@ -78,7 +78,7 @@ router.post('/check', authMiddleware, async (req: AuthRequest, res: Response): P
  * Issue a step-up challenge for the requested method and assurance level.
  *
  * Body: { targetAAL: number, method: MFAMethod, resourceId?: string, transactionId?: string }
- * Response: { success, challenge } — challengeData (OTP) is never returned
+ * Response: { success, challenge } -- challengeData (OTP) is never returned
  */
 router.post('/challenge', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   const { targetAAL, method, resourceId, transactionId } = req.body
@@ -111,7 +111,7 @@ router.post('/challenge', authMiddleware, async (req: AuthRequest, res: Response
       transactionId
     )
 
-    // Strip challengeData (OTP codes must never be returned to the client)
+    //Strip challengeData (OTP codes must never be returned to the client)
     const { challengeData: _stripped, ...safeChallenge } = challenge
     res.json({ success: true, challenge: safeChallenge })
   } catch (err: any) {
@@ -138,7 +138,7 @@ router.post('/verify', authMiddleware, async (req: AuthRequest, res: Response): 
   const result = await verifyStepUpChallenge(String(challengeId), String(response), sessionId)
 
   if (result.success && result.newAAL !== undefined) {
-    // Elevate the session's assurance level so subsequent requests pass
+    //Elevate the session's assurance level so subsequent requests pass
     const session = (req as any).session
     if (session) {
       session.aal = result.newAAL

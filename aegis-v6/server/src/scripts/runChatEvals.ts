@@ -72,8 +72,8 @@ const BASE_URL = readArg('--base-url') || process.env.CHAT_EVAL_BASE_URL || 'htt
 const PROVIDER = readArg('--provider') || process.env.CHAT_EVAL_PROVIDER || DEFAULT_LOCAL_PROVIDER
 const REPORT_DIR = path.join(process.cwd(), 'reports', 'chat-evals')
 
-// Deterministic eval user IDs so DB rows are stable across runs.
-// These accounts have predictable UUIDs so they can be upserting without accumulating junk rows.
+//Deterministic eval user IDs so DB rows are stable across runs.
+//These accounts have predictable UUIDs so they can be upserting without accumulating junk rows.
 
 const EVAL_CITIZEN = {
   id: '10000000-0000-0000-0000-000000000001',
@@ -95,7 +95,7 @@ async function main(): Promise<void> {
     throw new Error('JWT_SECRET must be set before running chat evals.')
   }
 
-  // Upsert eval users so they exist for token creation; idempotent across runs.
+  //Upsert eval users so they exist for token creation; idempotent across runs.
   await ensureEvalUsers()
 
   const results: ScenarioResult[] = []
@@ -117,7 +117,7 @@ async function main(): Promise<void> {
     results,
   }
 
-  // Write both a timestamped report (for history) and latest.json (for quick checks).
+  //Write both a timestamped report (for history) and latest.json (for quick checks).
   fs.mkdirSync(REPORT_DIR, { recursive: true })
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
   const reportPath = path.join(REPORT_DIR, `chat-evals-${timestamp}.json`)
@@ -126,12 +126,12 @@ async function main(): Promise<void> {
   fs.writeFileSync(latestPath, JSON.stringify(report, null, 2))
 
   printSummary(report.summary, results, reportPath)
-  // Exit code 1 if any scenario failed so CI pipelines can gate on this script.
+  //Exit code 1 if any scenario failed so CI pipelines can gate on this script.
   process.exit(report.summary.failed > 0 ? 1 : 0)
 }
 
-// Upsert stub citizen and operator accounts used by eval scenarios.
-// Uses ON CONFLICT DO UPDATE so repeated runs don't create duplicate rows.
+//Upsert stub citizen and operator accounts used by eval scenarios.
+//Uses ON CONFLICT DO UPDATE so repeated runs don't create duplicate rows.
 async function ensureEvalUsers(): Promise<void> {
   await pool.query(
     `INSERT INTO citizens (id, email, password_hash, display_name, email_verified, is_active)
@@ -165,8 +165,8 @@ async function ensureEvalUsers(): Promise<void> {
   )
 }
 
-// Execute a single eval scenario: run all conversation turns sequentially,
-// then evaluate the final response against the scenario's check list.
+//Execute a single eval scenario: run all conversation turns sequentially,
+//then evaluate the final response against the scenario's check list.
 async function runScenario(scenario: ChatEvalScenario): Promise<ScenarioResult> {
   const sessionId = randomUUID()
   const token = createToken(scenario.auth)
@@ -249,17 +249,17 @@ function finalizeScenarioResult(
   }
 }
 
-// Evaluate all checks in a scenario against the final API response.
-// A scenario only passes when ALL checks pass and no turn returned a 4xx/5xx.
+//Evaluate all checks in a scenario against the final API response.
+//A scenario only passes when ALL checks pass and no turn returned a 4xx/5xx.
 function evaluateScenarioChecks(checks: ChatEvalCheck[], response: ChatApiResponse | null): CheckResult[] {
   return checks.map((check) => evaluateCheck(check, response))
 }
 
-// Individual check evaluation. Four check types:
-// - includesAny: reply must contain at least one expected keyword (emergency safety)
-// - excludesAll: reply must not contain any forbidden phrase (PII, hallucination guards)
-// - fieldEquals: specific JSON path in response must equal expected value (e.g. emergency.isEmergency)
-// - minLength:   reply must be at least N chars (ensures substantive answers)
+//Individual check evaluation. Four check types:
+//includesAny: reply must contain at least one expected keyword (emergency safety)
+//excludesAll: reply must not contain any forbidden phrase (PII, hallucination guards)
+//fieldEquals: specific JSON path in response must equal expected value (e.g. emergency.isEmergency)
+//minLength:   reply must be at least N chars (ensures substantive answers)
 function evaluateCheck(check: ChatEvalCheck, response: ChatApiResponse | null): CheckResult {
   if (!response) {
     return {
@@ -316,9 +316,9 @@ function getByPath(value: unknown, pathValue: string): unknown {
   }, value)
 }
 
-// Sign a short-lived JWT (1 hour) for the eval user.
-// Auth mode 'anonymous' returns undefined so the request goes through the
-// unauthenticated path (testing citizen-facing endpoints without auth).
+//Sign a short-lived JWT (1 hour) for the eval user.
+//Auth mode 'anonymous' returns undefined so the request goes through the
+//unauthenticated path (testing citizen-facing endpoints without auth).
 function createToken(auth: ChatEvalAuthMode): string | undefined {
   if (auth === 'anonymous') return undefined
 
@@ -341,10 +341,10 @@ function printSummary(
     const latency = typeof result.finalLatencyMs === 'number' ? `${result.finalLatencyMs}ms` : 'n/a'
     console.log(`- [${status}] ${result.id} :: ${model} :: ${latency}`)
     for (const check of result.checks.filter(item => !item.passed)) {
-      console.log(`    * ${check.description} — ${check.detail}`)
+      console.log(`    * ${check.description} -- ${check.detail}`)
     }
     for (const turn of result.turns.filter(item => item.error)) {
-      console.log(`    * turn ${turn.turn} error — ${turn.error}`)
+      console.log(`    * turn ${turn.turn} error -- ${turn.error}`)
     }
   }
   console.log(`Report written to ${reportPath}`)

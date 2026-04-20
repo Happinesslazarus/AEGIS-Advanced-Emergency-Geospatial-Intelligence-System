@@ -28,7 +28,7 @@ const activeRegion = getActiveCityRegion()
 const defaultLat = activeRegion.centre.lat
 const defaultLng = activeRegion.centre.lng
 
-// Rate limiter for public notification subscription endpoints
+//Rate limiter for public notification subscription endpoints
 const pushSubscriptionLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -122,7 +122,7 @@ router.post('/alerts', authMiddleware, operatorOnly, async (req: AuthRequest, re
       )
     }
 
-    // Log the alert creation
+    //Log the alert creation
     await pool.query(
       `INSERT INTO activity_log (action, action_type, operator_id, operator_name)
        VALUES ($1, $2, $3, $4)`,
@@ -135,8 +135,8 @@ router.post('/alerts', authMiddleware, operatorOnly, async (req: AuthRequest, re
     const deliveryResults = await dispatchAlertDeliveries(alertId, title, message, targetChannels, recipients, locationText, alertType)
     alertBroadcastsTotal.inc()
 
-    // Invalidate cached alert and flood-data listings so consumers see the new alert immediately.
-    // Uses pattern-based invalidation because the cache key includes region + page/limit combos.
+    //Invalidate cached alert and flood-data listings so consumers see the new alert immediately.
+    //Uses pattern-based invalidation because the cache key includes region + page/limit combos.
     cacheInvalidatePattern('aegis:v1:alerts:*').catch(() => {})
     cacheInvalidatePattern('aegis:v1:flood_data:*').catch(() => {})
     cacheInvalidatePattern('aegis:v1:news:*').catch(() => {})
@@ -212,7 +212,7 @@ router.post('/activity', authMiddleware, operatorOnly, async (req: AuthRequest, 
 })
 
  /*
- * AI MODEL METRICS — MOVED to aiRoutes.ts (Phase 5 Governance)
+ * AI MODEL METRICS -- MOVED to aiRoutes.ts (Phase 5 Governance)
  * GET /api/ai/models now served by aiRoutes with live AI engine data
   */
 
@@ -233,9 +233,9 @@ router.get('/weather/:lat/:lng', async (req: Request, res: Response, next: NextF
     const key = buildCacheKey('weather', [activeRegion.id, 'forecast'], { lat, lng })
 
     const { data: result, meta } = await remember(key, CACHE_TTL.WEATHER, async () => {
-    // Primary: Open-Meteo (no API key required)
-    // Secondary: OpenWeatherMap (requires WEATHER_API_KEY env var)
-    // Failover happens automatically if Open-Meteo returns a non-2xx response.
+    //Primary: Open-Meteo (no API key required)
+    //Secondary: OpenWeatherMap (requires WEATHER_API_KEY env var)
+    //Failover happens automatically if Open-Meteo returns a non-2xx response.
     const openMeteoRes = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,cloud_cover,pressure_msl,wind_speed_10m,visibility&hourly=temperature_2m,rain,wind_speed_10m,weather_code&forecast_days=2&timezone=UTC`
       )
@@ -277,7 +277,7 @@ router.get('/weather/:lat/:lng', async (req: Request, res: Response, next: NextF
         }
       }
 
-      // Secondary: OpenWeatherMap (optional, requires key)
+      //Secondary: OpenWeatherMap (optional, requires key)
       if (!apiKey) {
         throw new Error('Live weather provider unavailable. Configure WEATHER_API_KEY for fallback provider.')
       }
@@ -329,7 +329,7 @@ router.get('/weather/:lat/:lng', async (req: Request, res: Response, next: NextF
  /*
  * GET /api/weather/current
  * Returns current weather for the default region centre (falls through to
- * Open-Meteo free API — no key required).  Clients that don't have a user
+ * Open-Meteo free API -- no key required).  Clients that don't have a user
  * location yet (ClimateRiskDashboard, PublicSafetyMode) call this route.
  * Active region centre used as the default; override with ?lat=X&lng=Y.
   */
@@ -398,8 +398,8 @@ router.get('/flood-check', async (req: Request, res: Response, next: NextFunctio
     const key = buildCacheKey('flood', [activeRegion.id, 'zone-check'], { lat: parsedLat, lng: parsedLng })
 
     const { data: result, meta } = await remember(key, CACHE_TTL.FLOOD_ZONES, async () => {
-      // PostGIS ST_Contains: true only if the point is fully inside the polygon (not on the boundary).
-      // Ordered highest probability first so highestRisk = zones[0].probability.
+      //PostGIS ST_Contains: true only if the point is fully inside the polygon (not on the boundary).
+      //Ordered highest probability first so highestRisk = zones[0].probability.
       const dbResult = await pool.query(
         `SELECT zone_name, flood_type, probability, return_period
          FROM flood_zones
@@ -416,8 +416,8 @@ router.get('/flood-check', async (req: Request, res: Response, next: NextFunctio
           probability: z.probability, returnPeriod: z.return_period,
         })),
         highestRisk,
-        // Confidence boost fed into the AI report scoring pipeline when a report
-        // comes from inside a known flood zone with high overlap probability.
+        //Confidence boost fed into the AI report scoring pipeline when a report
+        //comes from inside a known flood zone with high overlap probability.
         confidenceBoost: highestRisk === 'high' ? 25 : highestRisk === 'medium' ? 15 : highestRisk === 'low' ? 8 : 0,
       }
     })
@@ -550,44 +550,44 @@ router.get('/news', async (_req: Request, res: Response, next: NextFunction): Pr
     const isScotland = aegisRegion === 'scotland' || aegisRegion === 'aberdeen' || aegisRegion === 'edinburgh' || aegisRegion === 'glasgow'
     const isUK = isScotland || aegisRegion === 'england' || aegisRegion === 'wales' || aegisRegion === 'uk' || aegisRegion === 'northern-ireland'
 
-    // Global feeds — always included (verified reliable, CORS-free server-fetch)
+    //Global feeds -- always included (verified reliable, CORS-free server-fetch)
     const feeds: { source: string; url: string }[] = [
-      // GDACS — all hazard type sub-feeds (much higher volume than combined feed)
+      //GDACS -- all hazard type sub-feeds (much higher volume than combined feed)
       { source: 'GDACS',                           url: 'https://www.gdacs.org/xml/rss.xml' },
       { source: 'GDACS Earthquakes',               url: 'https://www.gdacs.org/xml/rss_eq.xml' },
       { source: 'GDACS Floods',                    url: 'https://www.gdacs.org/xml/rss_fl.xml' },
       { source: 'GDACS Tropical Cyclones',         url: 'https://www.gdacs.org/xml/rss_tc.xml' },
       { source: 'GDACS Volcanoes',                 url: 'https://www.gdacs.org/xml/rss_vo.xml' },
       { source: 'GDACS Droughts',                  url: 'https://www.gdacs.org/xml/rss_dr.xml' },
-      // USGS — M2.5+ weekly gives hundreds of fresh earthquake entries
+      //USGS -- M2.5+ weekly gives hundreds of fresh earthquake entries
       { source: 'USGS Earthquakes',                url: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.atom' },
       { source: 'USGS Significant',                url: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.atom' },
-      // ReliefWeb — disasters feed is much higher volume than headlines
+      //ReliefWeb -- disasters feed is much higher volume than headlines
       { source: 'ReliefWeb',                       url: 'https://reliefweb.int/headlines/rss.xml' },
       { source: 'ReliefWeb Disasters',             url: 'https://reliefweb.int/disasters/rss.xml' },
-      // FloodList — dedicated flood news, updated daily
+      //FloodList -- dedicated flood news, updated daily
       { source: 'FloodList',                       url: 'https://floodlist.com/feed' },
-      // The Guardian — disaster & environment verticals
+      //The Guardian -- disaster & environment verticals
       { source: 'The Guardian Natural Disasters',  url: 'https://www.theguardian.com/world/natural-disasters/rss' },
       { source: 'The Guardian Environment',        url: 'https://www.theguardian.com/environment/rss' },
       { source: 'The Guardian World',              url: 'https://www.theguardian.com/world/rss' },
       { source: 'The Guardian Global Development', url: 'https://www.theguardian.com/global-development/rss' },
       { source: 'The Guardian Climate Crisis',     url: 'https://www.theguardian.com/environment/climate-crisis/rss' },
-      // BBC
+      //BBC
       { source: 'BBC World News',                  url: 'https://feeds.bbci.co.uk/news/world/rss.xml' },
       { source: 'BBC Science & Environment',       url: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml' },
-      // UN
+      //UN
       { source: 'UN Humanitarian',                 url: 'https://news.un.org/feed/subscribe/en/news/topic/humanitarian-aid/feed/rss.xml' },
       { source: 'UN Climate',                      url: 'https://news.un.org/feed/subscribe/en/news/topic/climate-change/feed/rss.xml' },
-      // NASA Earth Observatory — satellite imagery of disasters
+      //NASA Earth Observatory -- satellite imagery of disasters
       { source: 'NASA Earth Observatory',          url: 'https://earthobservatory.nasa.gov/feeds/earth-observatory.rss' },
-      // WHO — disease & health emergencies
+      //WHO -- disease & health emergencies
       { source: 'WHO',                             url: 'https://www.who.int/rss-feeds/news-english.xml' },
-      // Copernicus Emergency Management
+      //Copernicus Emergency Management
       { source: 'Copernicus Emergency',            url: 'https://emergency.copernicus.eu/mapping/list-of-components/EMSR/rss' },
     ]
 
-    // Regional feeds — appended when deployment region matches
+    //Regional feeds -- appended when deployment region matches
     if (isUK) {
       feeds.push(
         { source: 'BBC UK',            url: 'https://feeds.bbci.co.uk/news/uk/rss.xml' },
@@ -605,7 +605,7 @@ router.get('/news', async (_req: Request, res: Response, next: NextFunction): Pr
       )
     }
 
-    // Allow deployers to inject extra regional feeds via env var (comma-separated JSON-encoded array)
+    //Allow deployers to inject extra regional feeds via env var (comma-separated JSON-encoded array)
     const extraFeeds = process.env.AEGIS_NEWS_FEEDS
     if (extraFeeds) {
       try {
@@ -614,7 +614,7 @@ router.get('/news', async (_req: Request, res: Response, next: NextFunction): Pr
       } catch { /* ignore malformed config */ }
     }
 
-    // Disaster relevance keywords for scoring
+    //Disaster relevance keywords for scoring
     const DISASTER_KEYWORDS = [
       'flood', 'flooding', 'tsunami', 'earthquake', 'hurricane', 'tornado',
       'wildfire', 'bushfire', 'storm', 'severe', 'warning', 'alert', 'emergency',
@@ -626,53 +626,53 @@ router.get('/news', async (_req: Request, res: Response, next: NextFunction): Pr
     ]
 
     const disasterScore = (title: string, source: string): number => {
-      // Higher score = more disaster-relevant. Drives the sort order so emergency news
-      // appears before general world news even if it's a few seconds older.
+      //Higher score = more disaster-relevant. Drives the sort order so emergency news
+      //appears before general world news even if it's a few seconds older.
       const text = `${title} ${source}`.toLowerCase()
       return DISASTER_KEYWORDS.reduce((score, kw) => score + (text.includes(kw) ? 1 : 0), 0)
     }
 
     const allItems: Array<{ title: string; source: string; time: string; url: string; type: 'alert' | 'warning' | 'community' | 'info' | 'tech' | 'disaster'; publishedAt: string; disasterScore: number }> = []
 
-    // Fetch all feeds in parallel — max response time = single feed timeout (6s), not N × 6s
+    //Fetch all feeds in parallel -- max response time = single feed timeout (6s), not N × 6s
     await Promise.allSettled(feeds.map(async (feed) => {
       try {
         const response = await fetch(feed.url, { headers: { 'User-Agent': 'AEGIS/6.0' }, signal: AbortSignal.timeout(6000) })
         if (!response.ok) return
         const xml = await response.text()
         const items = parseRssItems(xml, feed.source)
-        // allItems is shared; push is synchronous so race is safe here
+        //allItems is shared; push is synchronous so race is safe here
         allItems.push(...items.map(item => ({ ...item, disasterScore: disasterScore(item.title, item.source) })))
       } catch {
-        // Timeout or network error — skip this feed silently
+        //Timeout or network error -- skip this feed silently
       }
     }))
 
-    // Deduplicate by URL and filter out articles older than 90 days
+    //Deduplicate by URL and filter out articles older than 90 days
     const seenUrls = new Set<string>()
     const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000 // 90 days ago
     const unique = allItems.filter(item => {
       if (!item.url || item.url === '#' || seenUrls.has(item.url)) return false
-      // Drop articles with no valid date or older than 90 days
+      //Drop articles with no valid date or older than 90 days
       const age = new Date(item.publishedAt).getTime()
       if (!Number.isFinite(age) || age < cutoff) return false
       seenUrls.add(item.url)
       return true
     })
 
-    // Sort: recency is primary, disaster relevance is a tiebreaker within a 24h window.
-    // This prevents highly-scored but ancient articles from burying fresh news.
+    //Sort: recency is primary, disaster relevance is a tiebreaker within a 24h window.
+    //This prevents highly-scored but ancient articles from burying fresh news.
     const sorted = unique
       .sort((a, b) => {
         const ta = new Date(a.publishedAt).getTime()
         const tb = new Date(b.publishedAt).getTime()
         const ONE_DAY_MS = 24 * 60 * 60 * 1000
-        // If articles are within 24h of each other, prefer the higher disaster score
+        //If articles are within 24h of each other, prefer the higher disaster score
         if (Math.abs(tb - ta) < ONE_DAY_MS) {
           const scoreDiff = b.disasterScore - a.disasterScore
           if (scoreDiff !== 0) return scoreDiff
         }
-        // Otherwise, newest first
+        //Otherwise, newest first
         return tb - ta
       })
       .map(({ publishedAt, disasterScore: _ds, ...rest }) => rest)
@@ -686,7 +686,7 @@ router.get('/news', async (_req: Request, res: Response, next: NextFunction): Pr
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
 
-    // Pagination: allow clients to page through the full item list
+    //Pagination: allow clients to page through the full item list
     const page = Math.max(1, parseInt(_req.query.page as string) || 1)
     const pageSize = Math.min(100, Math.max(5, parseInt(_req.query.pageSize as string) || 30))
     const allItems = result.items || []
@@ -763,8 +763,8 @@ async function dispatchAlertDeliveries(
   let webPushSubs: { rows: any[] } = { rows: [] }
   if (channels.includes('web')) {
     try {
-      // subscription_data is JSONB containing the full PushSubscription object
-      // with nested keys: { endpoint, keys: { p256dh, auth } }
+      //subscription_data is JSONB containing the full PushSubscription object
+      //with nested keys: { endpoint, keys: { p256dh, auth } }
       webPushSubs = await pool.query(
         `SELECT endpoint, p256dh, auth
          FROM push_subscriptions
@@ -786,7 +786,7 @@ async function dispatchAlertDeliveries(
       const recipient = getRecipientForChannel(subscriber, channel)
       if (!recipient) continue
 
-      // Create per-subscriber payload with their name
+      //Create per-subscriber payload with their name
       const subscriberPayload: notificationService.Alert = {
         ...alertPayload,
         subscriberName: subscriber.subscriber_name || undefined,
@@ -847,7 +847,7 @@ async function dispatchAlertDeliveries(
     }
   }
 
-  // Process web push subscriptions
+  //Process web push subscriptions
   for (const sub of webPushSubs.rows) {
     let status = 'failed'
     let error: string | undefined
@@ -866,11 +866,11 @@ async function dispatchAlertDeliveries(
       status = delivery.success ? 'sent' : 'failed'
       error = delivery.success ? undefined : (delivery.error || 'web_push_failed')
 
-      // Auto-deactivate subscriptions that are permanently invalid.
-      // 410 Gone / 404 Not Found  → FCM explicitly says endpoint is gone.
-      // 400 Bad Request           → subscription object is malformed/unrecognised by FCM.
-      // Do NOT deactivate on 401 (VAPID mismatch = our server config issue, not the endpoint's fault)
-      // or 5xx/429 (transient server-side errors — endpoint may recover).
+      //Auto-deactivate subscriptions that are permanently invalid.
+ //410 Gone / 404 Not Found -> FCM explicitly says endpoint is gone.
+ //400 Bad Request -> subscription object is malformed/unrecognised by FCM.
+      //Do NOT deactivate on 401 (VAPID mismatch = our server config issue, not the endpoint's fault)
+      //or 5xx/429 (transient server-side errors -- endpoint may recover).
       const statusCode = (delivery as any).statusCode as number | undefined
       const permanentlyInvalid =
         (delivery as any).expired ||                  // 410 / 404 (set in notificationService)
@@ -923,7 +923,7 @@ function severityFromText(title: string, message: string): 'critical' | 'warning
 }
 
 function parseRssItems(xml: string, source: string): Array<{ title: string; source: string; time: string; url: string; type: 'alert' | 'warning' | 'community' | 'info' | 'tech' | 'disaster'; publishedAt: string }> {
-  // Support both RSS <item> and Atom <entry> elements
+  //Support both RSS <item> and Atom <entry> elements
   const isAtom = xml.includes('<feed') && xml.includes('<entry')
   const tagName = isAtom ? 'entry' : 'item'
   const itemRegex = new RegExp(`<${tagName}[\\s\\S]*?<\\/${tagName}>`, 'gi')
@@ -945,7 +945,7 @@ function parseRssItems(xml: string, source: string): Array<{ title: string; sour
     const minutes = Math.max(0, Math.floor((now - pubDate.getTime()) / 60000))
     const time = minutes < 60 ? `${minutes} min ago` : minutes < 1440 ? `${Math.floor(minutes / 60)}h ago` : `${Math.floor(minutes / 1440)}d ago`
     const text = title.toLowerCase()
-    // Disaster sources always get 'disaster' type regardless of title
+    //Disaster sources always get 'disaster' type regardless of title
     const isDisasterSource = ['gdacs', 'usgs', 'copernicus', 'reliefweb', 'fema'].some(s => source.toLowerCase().includes(s))
     const type: 'alert' | 'warning' | 'community' | 'info' | 'tech' | 'disaster' =
       isDisasterSource || text.includes('earthquake') || text.includes('tsunami') || text.includes('volcano') ||
@@ -1046,7 +1046,7 @@ router.get('/notifications/verify-subscription', async (req: Request, res: Respo
       res.json({ active: result.rows[0].active === true, exists: true })
     }
   } catch {
-    // If the table doesn't exist yet, treat as not active
+    //If the table doesn't exist yet, treat as not active
     res.json({ active: false, exists: false })
   }
 })
@@ -1060,7 +1060,7 @@ router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Req
   try {
     const { subscription } = req.body
 
-    // Derive user_id from auth token if present (never trust body)
+    //Derive user_id from auth token if present (never trust body)
     let userId: number | null = null
     const authHeader = req.headers.authorization
     if (authHeader?.startsWith('Bearer ')) {
@@ -1074,12 +1074,12 @@ router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Req
       throw AppError.badRequest('Missing subscription endpoint.')
     }
 
-    // Validate p256dh and auth are present (required by Web Push Protocol)
+    //Validate p256dh and auth are present (required by Web Push Protocol)
     if (!subscription.keys?.p256dh || !subscription.keys?.auth) {
       throw AppError.badRequest('Missing subscription keys (p256dh and auth are required).')
     }
 
-    // Try to insert into existing table (with flexible schema handling)
+    //Try to insert into existing table (with flexible schema handling)
     try {
       await pool.query(
         `INSERT INTO push_subscriptions (endpoint, p256dh, auth, subscription_data)
@@ -1094,7 +1094,7 @@ router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Req
       )
     } catch (err: any) {
       if (err.message?.includes('does not exist')) {
-        // Table doesn't exist, create it with minimal schema
+        //Table doesn't exist, create it with minimal schema
         devLog('[Subscriptions] Creating push_subscriptions table with minimal schema...')
         await pool.query(`
           CREATE TABLE IF NOT EXISTS push_subscriptions (
@@ -1107,7 +1107,7 @@ router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Req
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `)
-        // Retry the insert
+        //Retry the insert
         await pool.query(
           `INSERT INTO push_subscriptions (endpoint, p256dh, auth, subscription_data)
            VALUES ($1, $2, $3, $4)

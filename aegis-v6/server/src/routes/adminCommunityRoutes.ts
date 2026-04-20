@@ -47,7 +47,7 @@ router.post('/users/:id/suspend', authMiddleware, operatorOnly, async (req: Auth
     const target = await findUserById(targetId)
     if (!target) throw AppError.notFound('User not found.')
     
-    // Validate table name against whitelist (defense-in-depth)
+    //Validate table name against whitelist (defense-in-depth)
     if (!isValidUserTable(target.table)) {
       throw AppError.internal('Invalid user table')
     }
@@ -85,7 +85,7 @@ router.post('/users/:id/ban', authMiddleware, operatorOnly, async (req: AuthRequ
     const target = await findUserById(targetId)
     if (!target) throw AppError.notFound('User not found.')
     
-    // Validate table name against whitelist (defense-in-depth)
+    //Validate table name against whitelist (defense-in-depth)
     if (!isValidUserTable(target.table)) {
       throw AppError.internal('Invalid user table')
     }
@@ -116,7 +116,7 @@ router.post('/users/:id/ban', authMiddleware, operatorOnly, async (req: AuthRequ
   }
 })
 
-// POST /users/bulk-ban — Bulk ban multiple users (M7)
+//POST /users/bulk-ban -- Bulk ban multiple users (M7)
 router.post('/users/bulk-ban', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!isSuperAdmin(req)) throw AppError.forbidden('Admin access required.')
@@ -139,7 +139,7 @@ router.post('/users/bulk-ban', authMiddleware, operatorOnly, async (req: AuthReq
         const target = await findUserById(targetId)
         if (!target) { failed.push(targetId); continue }
         
-        // Validate table name against whitelist (defense-in-depth)
+        //Validate table name against whitelist (defense-in-depth)
         if (!isValidUserTable(target.table)) { failed.push(targetId); continue }
 
         await pool.query(
@@ -154,7 +154,7 @@ router.post('/users/bulk-ban', authMiddleware, operatorOnly, async (req: AuthReq
       } catch { failed.push(targetId) }
     }
 
-    // Batch-insert all moderation log entries in a single query (eliminates N+1)
+    //Batch-insert all moderation log entries in a single query (eliminates N+1)
     if (logEntries.length > 0) {
       const values: any[] = []
       const placeholders = logEntries.map((entry, i) => {

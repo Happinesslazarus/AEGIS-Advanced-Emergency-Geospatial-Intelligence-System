@@ -22,14 +22,14 @@ export function getSession(): Operator | null {
 
 export async function logout(): Promise<void> {
 
-  // Try admin logout endpoint, then citizen logout endpoint. Ignore errors.
-  // Both endpoints instruct the server to invalidate the session and clear
-  // the httpOnly refresh cookie (JavaScript cannot clear httpOnly cookies;
-  // only a Set-Cookie response header from the server can do that).
+  //Try admin logout endpoint, then citizen logout endpoint. Ignore errors.
+  //Both endpoints instruct the server to invalidate the session and clear
+  //the httpOnly refresh cookie (JavaScript cannot clear httpOnly cookies;
+  //only a Set-Cookie response header from the server can do that).
   try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }) } catch {}
   try { await fetch('/api/citizen-auth/logout', { method: 'POST', credentials: 'include' }) } catch {}
 
-  // Clear in-memory tokens (operator + citizen)
+  //Clear in-memory tokens (operator + citizen)
   try { clearToken() } catch {}
   try { setCitizenToken(null) } catch {}
 
@@ -47,9 +47,9 @@ export async function logout(): Promise<void> {
     sessionStorage.clear()
   } catch {}
 
-  // Expire all non-httpOnly cookies that JavaScript CAN clear.
-  // Setting expires to the Unix epoch (1970-01-01) immediately deletes the cookie.
-  // httpOnly cookies (the refresh token) can only be deleted by the server.
+  //Expire all non-httpOnly cookies that JavaScript CAN clear.
+  //Setting expires to the Unix epoch (1970-01-01) immediately deletes the cookie.
+  //httpOnly cookies (the refresh token) can only be deleted by the server.
   try {
     document.cookie.split(';').forEach((c) => {
       const eqPos = c.indexOf('=')
@@ -60,15 +60,15 @@ export async function logout(): Promise<void> {
     })
   } catch {}
 
-  // Try to clear any stored user via helper (best-effort)
+  //Try to clear any stored user via helper (best-effort)
   try { setUser(null) } catch {}
 
   // 'ae:logout' = custom DOM event (ae = AEGIS Event).  React auth contexts
-  // across the entire app listen for this and reset their state to logged-out
-  // without needing prop drilling or a shared module-level variable.
+  //across the entire app listen for this and reset their state to logged-out
+  //without needing prop drilling or a shared module-level variable.
   try { window.dispatchEvent(new Event('ae:logout')) } catch {}
 
-  // Immediately redirect to appropriate login page
+  //Immediately redirect to appropriate login page
   const isAdminPath = window.location.pathname.startsWith('/admin')
   try { window.location.href = isAdminPath ? '/admin' : '/citizen/login' } catch {}
 }
@@ -84,17 +84,17 @@ export function isTokenValid(): boolean {
   }
 
   try {
-    // JWT structure: header.payload.signature (three Base64URL sections joined by dots).
-    // We decode ONLY the payload section (index 1) to read the 'exp' claim.
-    // We deliberately avoid a JWT library here to keep the bundle small; we don't
-    // need signature verification on the CLIENT — the server verifies on every request.
+    //JWT structure: header.payload.signature (three Base64URL sections joined by dots).
+    //We decode ONLY the payload section (index 1) to read the 'exp' claim.
+    //We deliberately avoid a JWT library here to keep the bundle small; we don't
+    //need signature verification on the CLIENT -- the server verifies on every request.
     const parts = token.split('.')
     if (parts.length !== 3) {
       return false
     }
 
-    // atob() decodes a Base64 string back to its original bytes.
-    // The JWT payload is a JSON object like { sub: '123', exp: 1700000000, ... }.
+    //atob() decodes a Base64 string back to its original bytes.
+    //The JWT payload is a JSON object like { sub: '123', exp: 1700000000, ... }.
     const payload = JSON.parse(atob(parts[1]))
     const exp = payload.exp
     
@@ -102,12 +102,12 @@ export function isTokenValid(): boolean {
       return true // If no expiration, assume valid
     }
 
-    // exp is Unix time in SECONDS; Date.now() returns milliseconds, so we divide.
+    //exp is Unix time in SECONDS; Date.now() returns milliseconds, so we divide.
     const now = Math.floor(Date.now() / 1000)
     const isValid = exp > now
     
     if (!isValid) {
-      // Token expired
+      //Token expired
     }
     
     return isValid
@@ -120,8 +120,8 @@ export function isTokenValid(): boolean {
  * Validate token and redirect to login if invalid
  */
 export function validateTokenOrRedirect(): boolean {
-  // Deprecated sync wrapper preserved for compatibility.
-  // Prefer validateTokenOrRedirectAsync() so we can await silent refresh first.
+  //Deprecated sync wrapper preserved for compatibility.
+  //Prefer validateTokenOrRedirectAsync() so we can await silent refresh first.
   const token = getAnyToken()
   if (!token) return true
   if (isTokenValid()) return true

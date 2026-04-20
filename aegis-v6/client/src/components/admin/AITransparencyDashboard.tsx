@@ -36,8 +36,8 @@ import {
 import { t, getLanguage } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
-// Exports all loaded dashboard data as CSV or JSON file download.
-// CSV flattens nested objects into a section + field table.
+//Exports all loaded dashboard data as CSV or JSON file download.
+//CSV flattens nested objects into a section + field table.
 function exportData(payload: object, format: 'csv' | 'json', filename: string): void {
   let content: string
   let mime: string
@@ -81,19 +81,19 @@ class AIErrorBoundary extends Component<{ children: ReactNode }, { hasError: boo
 }
 
 /*  Helpers  */
-// Fix double-encoded UTF-8 sequences that appear in some AI model output strings.
-// These patterns arise from incorrect Latin-1 to UTF-8 double-encoding, commonly
-// seen in model notes and API responses from misconfigured Python services.
+//Fix double-encoded UTF-8 sequences that appear in some AI model output strings.
+//These patterns arise from incorrect Latin-1 to UTF-8 double-encoding, commonly
+//seen in model notes and API responses from misconfigured Python services.
 function fixEncoding(text: string): string {
   if (!text || typeof text !== 'string') return text || ''
   return text
     .replace(/Â£/g, '£').replace(/Â©/g, '©').replace(/Â®/g, '®')
     .replace(/â€™/g, "'").replace(/â€œ/g, '"').replace(/â€\x9D/g, '"')
-    .replace(/â€"/g, '—').replace(/â€"/g, '–')
+    .replace(/â€"/g, '--').replace(/â€"/g, '-')
     .replace(/Ã©/g, 'é').replace(/Ã¨/g, 'è').replace(/Ã¼/g, 'ü')
     .replace(/Ã¶/g, 'ö').replace(/Ã¤/g, 'ä').replace(/Ã±/g, 'ñ')
     .replace(/Ã¡/g, 'á').replace(/Ã­/g, 'í').replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú')
-    .replace(/â€¦/g, '…').replace(/â€¢/g, '•').replace(/â€˜/g, "'")
+    .replace(/â€¦/g, '...').replace(/â€¢/g, '-').replace(/â€˜/g, "'")
     .replace(/Ã‚/g, '').replace(/Ã¢/g, 'â')
 }
 const REGION_DISPLAY: Record<string, string> = {
@@ -101,14 +101,14 @@ const REGION_DISPLAY: Record<string, string> = {
   northamerica: 'North America', europe: 'Europe', asia: 'Asia', africa: 'Africa',
   southamerica: 'South America', oceania: 'Oceania', global: 'Global',
 }
-// KNOWN_ACRONYMS: words that should stay UPPERCASE rather than getting title-cased.
+//KNOWN_ACRONYMS: words that should stay UPPERCASE rather than getting title-cased.
 const KNOWN_ACRONYMS = new Set([
   'ai', 'ml', 'dem', 'sepa', 'api', 'id', 'url', 'gps', 'nlp', 'aws', 'ui', 'ux',
   'qgis', 'lidar', 'ndvi', 'dhm', 'uk', 'eu', 'un', 'ngo', 'sar', 'eo', 'csv',
   'pdf', 'iot', 'gpu', 'cpu', 'ram', 'sql', '3d',
 ])
-// Convert snake_case/kebab-case model names into readable title-case display names,
-// preserving known acronyms (API, ML, etc.) in uppercase.
+//Convert snake_case/kebab-case model names into readable title-case display names,
+//preserving known acronyms (API, ML, etc.) in uppercase.
 function humanizeName(name: string): string {
   if (!name) return name
   const normalized = name.toLowerCase().replace(/[_\-\/]/g, ' ').trim()
@@ -119,7 +119,7 @@ function humanizeName(name: string): string {
   ).join(' ')
 }
 function fmt(d: string): string {
-  if (!d) return '—'
+  if (!d) return '--'
   try { const x = new Date(d); return isNaN(x.getTime()) ? d : x.toLocaleDateString('en-GB', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) } catch { return d }
 }
 function pct(v: number): string { return `${(v * 100).toFixed(1)}%` }
@@ -137,13 +137,13 @@ function stalenessLabel(days: number, lang?: string): { text: string; color: str
   return null
 }
 function trendArrow(current: number, _index: number, _models: ModelData[]): string {
-  // Compare against healthy threshold — accuracy > 0.85 trending up, < 0.75 trending down
+  //Compare against healthy threshold -- accuracy > 0.85 trending up, < 0.75 trending down
   if (current >= 0.85) return '\u2191'
   if (current < 0.75) return '\u2193'
   return '\u2192'
 }
-// Color-coded drift indicator for a named model.
-// Green = no drift, yellow = minor drift (magnitude ≤0.1), red = significant drift (>0.1).
+//Color-coded drift indicator for a named model.
+//Green = no drift, yellow = minor drift (magnitude ≤0.1), red = significant drift (>0.1).
 function driftCircle(modelName: string, driftData: any[], lang?: string): { color: string; label: string } {
   const l = lang || 'en'
   const entry = driftData.find((d: any) => (d.modelName || d.model_name || '') === modelName)
@@ -163,8 +163,8 @@ function governanceEntryColor(entry: any): string {
     return 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800'
   return 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
 }
-// Fleet health roll-up: red if any model is >30 days stale or <70% accuracy.
-// This drives the badge on the AI section's nav item.
+//Fleet health roll-up: red if any model is >30 days stale or <70% accuracy.
+//This drives the badge on the AI section's nav item.
 function dataHealthScore(models: ModelData[], lang?: string): { label: string; color: string } {
   const l = lang || 'en'
   if (models.length === 0) return { label: t('ai.noData', l), color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' }
@@ -216,8 +216,8 @@ function AITransparencyDashboardInner(): JSX.Element {
   const loadData = useCallback(async () => {
     setRefreshing(true)
     try {
-      // Use Promise.allSettled so partial failures don't block the whole dashboard.
-      // Each rejected result is surfaced as an amber warning banner, not a crash.
+      //Use Promise.allSettled so partial failures don't block the whole dashboard.
+      //Each rejected result is surfaced as an amber warning banner, not a crash.
       const [modelsData, distData, statusData, driftRes, auditRes, statsRes, llmRes] = await Promise.allSettled([
         apiGetGovernanceModels(),
         apiGetConfidenceDistribution(),
@@ -251,7 +251,7 @@ function AITransparencyDashboardInner(): JSX.Element {
           const rawCd = r.cd || r.confidence_distribution
           return {
             name: r.name || r.model_name || t('common.unknown', lang),
-            version: r.version || r.model_version || '—',
+            version: r.version || r.model_version || '--',
             accuracy: parseFloat(r.accuracy) || 0,
             precision: parseFloat(r.precision ?? r.precision_score) || 0,
             recall: parseFloat(r.recall) || 0,
@@ -290,13 +290,13 @@ function AITransparencyDashboardInner(): JSX.Element {
 
   useEffect(() => { loadData() }, [loadData])
 
-  // Auto-refresh all data every 30 seconds (replaces duplicate Socket.IO connection)
+  //Auto-refresh all data every 30 seconds (replaces duplicate Socket.IO connection)
   useEffect(() => {
     const iv = setInterval(() => { loadData() }, 30000)
     return () => clearInterval(iv)
   }, [loadData])
 
-  // Governance decisions fetch + auto-refresh every 30s
+  //Governance decisions fetch + auto-refresh every 30s
   const loadGovernance = useCallback(async () => {
     setGovernanceLoading(true)
     try {
@@ -318,8 +318,8 @@ function AITransparencyDashboardInner(): JSX.Element {
     setRetrainStatus(prev => ({ ...prev, [modelName]: 'running' }))
     setRetrainMsg(prev => ({ ...prev, [modelName]: t('ai.submittingRetrain', lang) }))
     try {
-      // Strip model type suffix to get the bare hazard type used by the AI engine
-      // e.g. "flood_predictor" → "flood", "earthquake_classifier" → "earthquake"
+      //Strip model type suffix to get the bare hazard type used by the AI engine
+ //e.g. "flood_predictor" -> "flood", "earthquake_classifier" -> "earthquake"
       const hazardType = modelName.replace(/_predictor|_classifier|_model|_detector/gi, '').trim() || modelName
       await apiRetrainModel(hazardType)
       setRetrainStatus(prev => ({ ...prev, [modelName]: 'done' }))
@@ -377,7 +377,7 @@ function AITransparencyDashboardInner(): JSX.Element {
         <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 flex items-start gap-3">
           <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">{t('common.warning', lang)} — {t('ai.someDataUnavailable', lang)}</p>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">{t('common.warning', lang)} -- {t('ai.someDataUnavailable', lang)}</p>
             <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
               Unavailable: <span className="font-semibold">{partialFailures.join(', ')}</span>. The AI engine may be offline or models may not yet be trained.
             </p>
@@ -429,9 +429,9 @@ function AITransparencyDashboardInner(): JSX.Element {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-5">
             {[
               { label: t('ai.activeModels', lang), value: String(models.length), icon: Layers, color: 'text-cyan-300' },
-              { label: t('ai.avgAccuracy', lang), value: models.length > 0 ? pct(avgAccuracy) : '—', icon: Target, color: models.length === 0 ? 'text-gray-400' : avgAccuracy >= 0.8 ? 'text-emerald-300' : 'text-amber-300' },
-              { label: t('ai.avgF1Score', lang), value: models.length > 0 ? pct(avgF1) : '—', icon: BarChart3, color: models.length === 0 ? 'text-gray-400' : avgF1 >= 0.8 ? 'text-emerald-300' : 'text-amber-300' },
-              { label: t('ai.trainingSamples', lang), value: models.length > 0 ? totalSamples.toLocaleString() : '—', icon: Database, color: models.length === 0 ? 'text-gray-400' : 'text-blue-300' },
+              { label: t('ai.avgAccuracy', lang), value: models.length > 0 ? pct(avgAccuracy) : '--', icon: Target, color: models.length === 0 ? 'text-gray-400' : avgAccuracy >= 0.8 ? 'text-emerald-300' : 'text-amber-300' },
+              { label: t('ai.avgF1Score', lang), value: models.length > 0 ? pct(avgF1) : '--', icon: BarChart3, color: models.length === 0 ? 'text-gray-400' : avgF1 >= 0.8 ? 'text-emerald-300' : 'text-amber-300' },
+              { label: t('ai.trainingSamples', lang), value: models.length > 0 ? totalSamples.toLocaleString() : '--', icon: Database, color: models.length === 0 ? 'text-gray-400' : 'text-blue-300' },
               { label: t('ai.driftAlerts', lang), value: String(driftAlerts), icon: driftAlerts > 0 ? ShieldAlert : ShieldCheck, color: driftAlerts > 0 ? 'text-red-300' : 'text-emerald-300' },
             ].map((s, i) => (
               <div key={i} className="bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
@@ -672,7 +672,7 @@ function AITransparencyDashboardInner(): JSX.Element {
             </div>
           )}
 
-          {/* System Status — always visible regardless of model count */}
+          {/* System Status -- always visible regardless of model count */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
             <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-4">
               <Gauge className="w-4 h-4 text-indigo-600" /> System Status
@@ -706,7 +706,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                 {
                   label: 'Hazard Coverage',
                   value: '5 types',
-                  sub: 'Flood · Fire · Storm · Quake · Slide',
+                  sub: 'Flood - Fire - Storm - Quake - Slide',
                   color: 'text-cyan-600 dark:text-cyan-400',
                   dot: 'bg-cyan-500',
                   icon: ShieldCheck,
@@ -941,7 +941,7 @@ function AITransparencyDashboardInner(): JSX.Element {
 
           {m && (<div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold text-base text-gray-900 dark:text-white flex items-center gap-2"><Target className="w-5 h-5 text-purple-600" /> {humanizeName(m.name)} — {t('ai.detailedMetrics', lang)}</h3>
+              <h3 className="font-bold text-base text-gray-900 dark:text-white flex items-center gap-2"><Target className="w-5 h-5 text-purple-600" /> {humanizeName(m.name)} -- {t('ai.detailedMetrics', lang)}</h3>
               <span className="text-xs font-mono bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-full">{m.version}</span>
             </div>
 
@@ -979,7 +979,7 @@ function AITransparencyDashboardInner(): JSX.Element {
 
           {m && m.cm.matrix.length > 0 && (
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
-              <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-4"><BarChart3 className="w-4 h-4 text-purple-600" /> {t('ai.confusionMatrix', lang)} — {humanizeName(m.name)}</h3>
+              <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-4"><BarChart3 className="w-4 h-4 text-purple-600" /> {t('ai.confusionMatrix', lang)} -- {humanizeName(m.name)}</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
@@ -1182,11 +1182,11 @@ function AITransparencyDashboardInner(): JSX.Element {
                   </td></tr>
                 ) : auditEntries.map((entry: any, i: number) => (
                   <tr key={entry.id || i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <td className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">{humanizeName(entry.modelName || entry.model_name || '') || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300 truncate max-w-[200px]">{humanizeName(fixEncoding(entry.inputSummary || entry.input_summary || entry.action || '')) || '—'}</td>
+                    <td className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">{humanizeName(entry.modelName || entry.model_name || '') || '--'}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300 truncate max-w-[200px]">{humanizeName(fixEncoding(entry.inputSummary || entry.input_summary || entry.action || '')) || '--'}</td>
                     <td className="px-4 py-3">
                       <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-300 text-[10px]">
-                        {entry.targetType || entry.target_type || '—'}
+                        {entry.targetType || entry.target_type || '--'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -1194,9 +1194,9 @@ function AITransparencyDashboardInner(): JSX.Element {
                         (entry.status || '').toLowerCase() === 'success' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
                           : (entry.status || '').toLowerCase() === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
                           : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                      }`}>{entry.status || '—'}</span>
+                      }`}>{entry.status || '--'}</span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-gray-600 dark:text-gray-300">{entry.executionTimeMs || entry.execution_time_ms || '—'}</td>
+                    <td className="px-4 py-3 font-mono text-gray-600 dark:text-gray-300">{entry.executionTimeMs || entry.execution_time_ms || '--'}</td>
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-300">{fmt(entry.createdAt || entry.created_at || '')}</td>
                   </tr>
                 ))}
@@ -1239,8 +1239,8 @@ function AITransparencyDashboardInner(): JSX.Element {
                         </span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-xs text-gray-600 dark:text-gray-300">
-                        <div><span className="text-gray-400 dark:text-gray-300">{t('ai.model', lang)}</span><br /><span className="font-semibold">{p.model || '—'}</span></div>
-                        <div><span className="text-gray-400 dark:text-gray-300">{t('ai.requests', lang)}</span><br /><span className="font-semibold">{p.totalRequests ?? p.total_requests ?? '—'}</span></div>
+                        <div><span className="text-gray-400 dark:text-gray-300">{t('ai.model', lang)}</span><br /><span className="font-semibold">{p.model || '--'}</span></div>
+                        <div><span className="text-gray-400 dark:text-gray-300">{t('ai.requests', lang)}</span><br /><span className="font-semibold">{p.totalRequests ?? p.total_requests ?? '--'}</span></div>
                         <div><span className="text-gray-400 dark:text-gray-300">{t('ai.errors', lang)}</span><br /><span className="font-semibold text-red-600">{p.errors ?? p.error_count ?? 0}</span></div>
                       </div>
                     </div>
@@ -1254,7 +1254,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                     <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
                     <div>
                       <p className="font-semibold text-sm text-indigo-900 dark:text-indigo-100">Active: <span className="font-mono text-purple-700 dark:text-purple-300">{llmStatus.preferred}</span></p>
-                      <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">Provider connected — detailed metrics appear when active chat sessions are running</p>
+                      <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">Provider connected -- detailed metrics appear when active chat sessions are running</p>
                     </div>
                   </div>
                 )}
@@ -1307,7 +1307,7 @@ function AITransparencyDashboardInner(): JSX.Element {
               <div className="bg-blue-50 dark:bg-blue-950/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800">
                 <p className="font-bold text-sm text-blue-900 dark:text-blue-100 mb-1">Primary Region</p>
                 <p className="text-base font-semibold text-blue-800 dark:text-blue-200">Scotland &amp; United Kingdom</p>
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1.5">SEPA flood zones · Glasgow · Edinburgh · Stirling · Aberdeen</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1.5">SEPA flood zones - Glasgow - Edinburgh - Stirling - Aberdeen</p>
               </div>
               <div className="bg-purple-50 dark:bg-purple-950/20 rounded-xl p-4 border border-purple-100 dark:border-purple-800">
                 <p className="font-bold text-sm text-purple-900 dark:text-purple-100 mb-2">Hazard Types Covered</p>

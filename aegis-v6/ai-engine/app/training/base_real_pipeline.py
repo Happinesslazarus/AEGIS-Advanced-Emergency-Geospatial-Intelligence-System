@@ -52,7 +52,7 @@ class _XGBFocalObjective:
 
 
 class _LGBFocalObjective:
-    """Picklable LightGBM focal-loss objective (fn(y_true, y_pred) → grad, hess)."""
+    """Picklable LightGBM focal-loss objective (fn(y_true, y_pred) -> grad, hess)."""
     def __init__(self, gamma: float) -> None:
         self.gamma = gamma
 
@@ -112,7 +112,7 @@ class InvertedScoreWrapper:
     """Wraps a model whose probability scores are systematically inverted.
 
     When AUC < 0.5, the model assigns HIGHER probability to negative samples
-    than positive samples — a label-pattern temporal mismatch (e.g. post-event
+    than positive samples -- a label-pattern temporal mismatch (e.g. post-event
     clear-weather periods labeled positive, inverting the precipitation signal).
     Flipping to ``1 - P(y=1)`` restores correct ranking without retraining.
 
@@ -121,7 +121,7 @@ class InvertedScoreWrapper:
       - val/test AUC < 0.48 (probabilities are rank-inverted on held-out data).
 
     Reference: Fawcett (2006) "An introduction to ROC analysis" Pattern Recognition
-    Letters 27:861-874 — any AUC < 0.5 classifier can be improved to AUC > 0.5
+    Letters 27:861-874 -- any AUC < 0.5 classifier can be improved to AUC > 0.5
     by negating its scores (Theorem 1).
     """
     def __init__(self, base):
@@ -189,13 +189,13 @@ class HazardConfig:
         self.data_validity = data_validity
         # allow_temporal_drift: when True, drift detection becomes a warning rather than a
         # hard promotion blocker.  Set True for GLOBAL-scope models where training stations
-        # span both hemispheres — their opposite seasonality produces apparent "drift" that
+        # span both hemispheres -- their opposite seasonality produces apparent "drift" that
         # is a statistical artefact, not genuine model degradation over time.
         self.allow_temporal_drift = allow_temporal_drift
         # fixed_test_date: ISO date string (e.g. "2022-01-01").  When set, all samples
         # from this date onwards form a completely held-out test set that the model never
         # sees during training or hyperparameter selection.  This is the PhD-grade temporal
-        # validation scheme — the test distribution is genuinely out-of-sample in calendar
+        # validation scheme -- the test distribution is genuinely out-of-sample in calendar
         # time, not just the last 15% of the same training window.
         self.fixed_test_date = fixed_test_date
         self.allow_sparse_test = allow_sparse_test
@@ -206,7 +206,7 @@ class HazardConfig:
         #     (e.g. EM-DAT events concentrated in 2019-2021 but not in 2022-2023), and
         # (c) the model will be evaluated via cross-validation metrics on the training set.
         # This avoids blocking training when the chronological test window happens to fall
-        # in a period with no recorded events — a data availability issue, not a code bug.
+        # in a period with no recorded events -- a data availability issue, not a code bug.
 
 # Abstract base pipeline
 
@@ -228,7 +228,7 @@ class BaseRealPipeline(ABC):
     def get_calibration_min_recall(self) -> float:
         """Minimum recall enforced when selecting the operational threshold on the val set.
 
-        Default: 0.40 (SENDAI-aligned — a model that misses >60% of events is not
+        Default: 0.40 (SENDAI-aligned -- a model that misses >60% of events is not
         operationally acceptable for any early-warning system).
 
         Override in subclasses where the hazard demands more aggressive recall:
@@ -240,7 +240,7 @@ class BaseRealPipeline(ABC):
         specific class imbalance and label distribution of the hazard, which are
         only knowable at pipeline-design time, not at config-parse time.
 
-        Reference: Manning, Raghavan & Schütze (2008) §8.3 — F-beta metric with
+        Reference: Manning, Raghavan & Schütze (2008) §8.3 -- F-beta metric with
         beta=2 maximises recall subject to a precision floor.
         """
         return 0.40
@@ -274,7 +274,7 @@ class BaseRealPipeline(ABC):
             tf = self.feature_engineer.compute_temporal_features(
                 raw_data["weather"]["timestamp"]
             )
-            # wf is indexed by timestamp; tf has integer index — align tf
+            # wf is indexed by timestamp; tf has integer index -- align tf
             tf.index = wf.index
             wf = pd.concat([wf, tf], axis=1)
             wf = wf.reset_index()  # timestamp becomes a column
@@ -282,7 +282,7 @@ class BaseRealPipeline(ABC):
 
         if "rainfall" in raw_data and not raw_data["rainfall"].empty:
             rf = self.feature_engineer.compute_rainfall_features(raw_data["rainfall"])
-            # rf is indexed by (timestamp, station_id) — aggregate per timestamp
+            # rf is indexed by (timestamp, station_id) -- aggregate per timestamp
             rf = rf.reset_index()
             if "station_id" in rf.columns:
                 rf = rf.drop(columns=["station_id"]).groupby("timestamp").mean().reset_index()
@@ -290,14 +290,14 @@ class BaseRealPipeline(ABC):
 
         if "river" in raw_data and not raw_data["river"].empty:
             rv = self.feature_engineer.compute_river_features(raw_data["river"])
-            # rv is indexed by (timestamp, station_id) — aggregate per timestamp
+            # rv is indexed by (timestamp, station_id) -- aggregate per timestamp
             rv = rv.reset_index()
             if "station_id" in rv.columns:
                 rv = rv.drop(columns=["station_id"]).groupby("timestamp").mean().reset_index()
             frames.append(rv)
 
         if not frames:
-            raise RuntimeError("No feature data available — cannot build features")
+            raise RuntimeError("No feature data available -- cannot build features")
 
         # Merge all feature frames on timestamp column
         combined = frames[0]
@@ -324,7 +324,7 @@ class BaseRealPipeline(ABC):
 
         # Step 0: block UNSUPPORTED hazards before fetching any data.
         # These hazards have no valid training path with currently available
-        # public data — return immediately with a clear UNSUPPORTED result.
+        # public data -- return immediately with a clear UNSUPPORTED result.
         unsupported_result = self.validator.validate_unsupported(cfg.hazard_type)
         if unsupported_result is not None:
             return self._failure_result(
@@ -441,7 +441,7 @@ class BaseRealPipeline(ABC):
         )
 
         # Step 6b: check that val and test folds each contain positive samples.
-        # A test fold with 0 positives makes evaluation completely meaningless —
+        # A test fold with 0 positives makes evaluation completely meaningless --
         # the model looks perfect on accuracy alone by always predicting 0.
         # This is a hard block because no valid ROC-AUC or F1 can be reported.
         validation = self.validator.validate_splits(
@@ -462,10 +462,10 @@ class BaseRealPipeline(ABC):
         )
         logger.success(f"  Best model: {search_results['chosen_model']}")
 
-        # Step 7a-b: Auto-flip detection — if CV AUC is good but val AUC is inverted,
+        # Step 7a-b: Auto-flip detection -- if CV AUC is good but val AUC is inverted,
         # wrap the model to flip scores before Platt calibration.
         # This handles temporal label-pattern mismatch (e.g. post-event clear-weather
-        # periods labeled positive → model learns inverted rainfall-risk signal).
+        # periods labeled positive -> model learns inverted rainfall-risk signal).
         chosen_cv_auc  = search_results.get("chosen_cv_auc") or 0.0
         chosen_val_auc = search_results.get("chosen_val_auc") or 0.5
         if chosen_cv_auc > 0.55 and chosen_val_auc < 0.48:
@@ -484,20 +484,20 @@ class BaseRealPipeline(ABC):
 
         # Step 7b: Platt (sigmoid) calibration + F2-optimal threshold on val set.
         # Calibration corrects predicted probabilities so P(y=1|score) is
-        # reliable — important for threshold selection and downstream risk scoring.
+        # reliable -- important for threshold selection and downstream risk scoring.
         # Rules:
-        #   - calibrate on val set ONLY (held-out; not seen during training)
-        #   - use sigmoid/Platt (not isotonic) because isotonic overfits for
+        #   calibrate on val set ONLY (held-out; not seen during training)
+        #   use sigmoid/Platt (not isotonic) because isotonic overfits for
         #     rare-event hazards with few positive val samples (see Niculescu-
         #     Mizil & Caruana, 2005)
-        #   - derive operational threshold via F2-score optimisation on val set
+        #   derive operational threshold via F2-score optimisation on val set
         #     with a minimum recall floor of 0.40 (UN SENDAI-aligned)
         calibrated_model, optimal_threshold, calibration_notes = (
             self._calibrate_model(best_model, X_val, y_val, X_train, y_train)
         )
         search_results["calibration"] = calibration_notes
 
-        # 8. Evaluate — use calibrated model with optimal threshold on test set.
+        # 8. Evaluate -- use calibrated model with optimal threshold on test set.
         # Pass best_model as base_model so SHAP uses the raw tree (not the
         # calibration wrapper which TreeExplainer cannot introspect).
         logger.info("Step 8/8: Full evaluation...")
@@ -507,7 +507,7 @@ class BaseRealPipeline(ABC):
             base_model=best_model,
         )
 
-        # Temporal stability — use the exact test start index from the split,
+        # Temporal stability -- use the exact test start index from the split,
         # not a hardcoded 85% boundary (which is wrong in fixed-date mode and
         # proportional mode with positive-count adjustments).
         ts_test = None
@@ -544,7 +544,7 @@ class BaseRealPipeline(ABC):
         output_dir = REGISTRY_ROOT / f"{cfg.hazard_type}_{self.region_id}_{version}"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # model.pkl — save calibrated model as the primary artifact so
+        # model.pkl -- save calibrated model as the primary artifact so
         # inference always uses well-calibrated probabilities.
         # raw_model.pkl preserved separately for diagnostic/comparison use.
         joblib.dump(calibrated_model, output_dir / "model.pkl")
@@ -633,7 +633,7 @@ class BaseRealPipeline(ABC):
             # optimal_threshold: use this (not 0.5) when converting probability
             # scores to binary alert decisions.  Derived via cost-based sweep
             # on val set (FN_WEIGHT=10: missing a real event costs 10x a false
-            # alarm).  Always evaluate on test set — threshold NEVER sees test.
+            # alarm).  Always evaluate on test set -- threshold NEVER sees test.
             "optimal_threshold": optimal_threshold,
             "calibration": calibration_notes,
         }
@@ -692,7 +692,7 @@ class BaseRealPipeline(ABC):
             "validation_status": validation.status.value,
         }
 
-        # Post-train hook — subclasses override to append additional evaluations
+        # Post-train hook -- subclasses override to append additional evaluations
         # (e.g. geographic holdout) without re-implementing the full pipeline.
         hook_extras = self.post_train_hook(
             calibrated_model=calibrated_model,
@@ -780,7 +780,7 @@ class BaseRealPipeline(ABC):
 
         Fixed-date mode (preferred, PhD-grade):
             When HazardConfig.fixed_test_date is set, the test fold covers all
-            samples from that date onwards — a completely held-out future period
+            samples from that date onwards -- a completely held-out future period
             never seen during training or hyperparameter selection.  Train/val
             is split 85/15 within the pre-test-date window.
             This is the strongest temporal validation scheme because the test
@@ -802,7 +802,7 @@ class BaseRealPipeline(ABC):
         n_pos_total = int(y.sum())
         min_fold_pos = max(1, int(n_pos_total * 0.05)) if n_pos_total > 0 else 0
 
-        # --- Fixed-date mode ---
+        # Fixed-date mode
         fixed_test_date = getattr(self.HAZARD_CONFIG, "fixed_test_date", None)
         if fixed_test_date is not None and timestamps is not None and len(timestamps) == n:
             cutoff = pd.Timestamp(fixed_test_date)
@@ -836,7 +836,7 @@ class BaseRealPipeline(ABC):
 
                 if n_test_pos == 0:
                     logger.warning(
-                        "Fixed test period [{}, end] has 0 positives — "
+                        "Fixed test period [{}, end] has 0 positives -- "
                         "falling back to 70/15/15 proportional split.",
                         fixed_test_date,
                     )
@@ -848,11 +848,11 @@ class BaseRealPipeline(ABC):
                         "test_start_idx": test_start_idx,
                     }
 
-        # --- Proportional mode (fallback / no fixed_test_date) ---
+        # Proportional mode (fallback / no fixed_test_date)
         train_end = int(n * 0.70)
         val_end   = int(n * 0.85)
 
-        # Step 1 — ensure test fold has enough positives
+        # Step 1 -- ensure test fold has enough positives
         if min_fold_pos > 0 and int(y[val_end:].sum()) < min_fold_pos:
             adjusted = False
             for probe in range(val_end - 1, train_end, -1):
@@ -860,7 +860,7 @@ class BaseRealPipeline(ABC):
                     logger.warning(
                         f"  Test fold had {int(y[val_end:].sum())} positives at default "
                         f"85% boundary. Adjusted to {probe/n*100:.1f}% "
-                        f"→ {int(y[probe:].sum())} positives in test."
+                        f"-> {int(y[probe:].sum())} positives in test."
                     )
                     train_end = int(probe * 0.824)   # keep ~70% of adjusted boundary
                     val_end   = probe
@@ -872,7 +872,7 @@ class BaseRealPipeline(ABC):
                     "Using default 70/15/15."
                 )
 
-        # Step 2 — ensure val fold has enough positives for hyperparameter tuning.
+        # Step 2 -- ensure val fold has enough positives for hyperparameter tuning.
         # Slide train_end backward so more positives fall in [train_end:val_end].
         if min_fold_pos > 0 and int(y[train_end:val_end].sum()) < min_fold_pos:
             adjusted = False
@@ -882,7 +882,7 @@ class BaseRealPipeline(ABC):
                     logger.warning(
                         f"  Val fold had {int(y[train_end:val_end].sum())} positives. "
                         f"Adjusted train/val boundary to {probe/n*100:.1f}% "
-                        f"→ {int(y[probe:val_end].sum())} positives in val."
+                        f"-> {int(y[probe:val_end].sum())} positives in val."
                     )
                     train_end = probe
                     adjusted  = True
@@ -910,7 +910,7 @@ class BaseRealPipeline(ABC):
             RandomizedSearchCV uniform sampling.  Same trial budget, better regions.
           - Focal Loss objective (Lin et al., RetinaNet 2017) when imbalance > 50:1.
             FL(p) = -(1-p)^γ * log(p) down-weights easy negatives and forces the
-            gradient signal onto hard boundary examples — directly addresses the
+            gradient signal onto hard boundary examples -- directly addresses the
             precision collapse seen in heatwave/severe_storm/water_supply.
           - Stacking ensemble (Wolpert, 1992): logistic meta-learner trained on
             out-of-fold predicted probabilities from all base models.  Proven +1-3%
@@ -929,7 +929,7 @@ class BaseRealPipeline(ABC):
         n_neg = (y_train == 0).sum()
         n_pos = max((y_train == 1).sum(), 1)
         scale_pos_weight = n_neg / n_pos
-        # Use focal loss when imbalance is severe (>50:1) — Lin et al. 2017
+        # Use focal loss when imbalance is severe (>50:1) -- Lin et al. 2017
         use_focal = scale_pos_weight > 50.0
 
         lead_h = getattr(self.HAZARD_CONFIG, "lead_hours", 6)
@@ -943,7 +943,7 @@ class BaseRealPipeline(ABC):
 
         candidates = {}
 
-        # ── XGBoost — Optuna TPE search ──────────────────────────────────────
+        # XGBoost -- Optuna TPE search
         try:
             import xgboost as xgb
 
@@ -952,9 +952,9 @@ class BaseRealPipeline(ABC):
                 _probe = xgb.XGBClassifier(n_estimators=1, device="cuda", n_jobs=1)
                 _probe.fit(X_tr[:50], y_tr[:50])
                 _xgb_device = "cuda"
-                logger.info("  XGBoost: CUDA GPU available — using GPU acceleration")
+                logger.info("  XGBoost: CUDA GPU available -- using GPU acceleration")
             except Exception:
-                logger.info("  XGBoost: CUDA unavailable — falling back to CPU")
+                logger.info("  XGBoost: CUDA unavailable -- falling back to CPU")
 
             def _xgb_objective(trial: optuna.Trial) -> float:
                 params = dict(
@@ -976,7 +976,7 @@ class BaseRealPipeline(ABC):
                 # Focal loss as custom objective when imbalance > 50:1
                 if use_focal:
                     gamma_fl = trial.suggest_float("focal_gamma", 0.5, 3.0)
-                    # XGBoost sklearn API calls obj(y_true, y_pred) — NOT obj(y_pred, dtrain)
+                    # XGBoost sklearn API calls obj(y_true, y_pred) -- NOT obj(y_pred, dtrain)
                     def _focal_obj(y_true, y_pred):
                         p = 1.0 / (1.0 + np.exp(-y_pred))
                         fl_weight = (1.0 - p) ** gamma_fl
@@ -1036,7 +1036,7 @@ class BaseRealPipeline(ABC):
         except Exception as e:
             logger.warning(f"  XGBoost training failed: {e}")
 
-        # ── LightGBM — Optuna TPE search ─────────────────────────────────────
+        # LightGBM -- Optuna TPE search
         try:
             import lightgbm as lgb
 
@@ -1045,9 +1045,9 @@ class BaseRealPipeline(ABC):
                 _probe = lgb.LGBMClassifier(n_estimators=1, device="gpu", n_jobs=1, verbose=-1)
                 _probe.fit(X_tr[:50], y_tr[:50])
                 _lgb_device = "gpu"
-                logger.info("  LightGBM: GPU available — using GPU acceleration")
+                logger.info("  LightGBM: GPU available -- using GPU acceleration")
             except Exception:
-                logger.info("  LightGBM: GPU unavailable — falling back to CPU")
+                logger.info("  LightGBM: GPU unavailable -- falling back to CPU")
 
             def _lgb_objective(trial: optuna.Trial) -> float:
                 params = dict(
@@ -1061,7 +1061,7 @@ class BaseRealPipeline(ABC):
                     reg_alpha         = trial.suggest_float("reg_alpha", 1e-4, 10.0, log=True),
                     reg_lambda        = trial.suggest_float("reg_lambda", 1e-4, 10.0, log=True),
                     num_leaves        = trial.suggest_int("num_leaves", 20, 150),
-                    # Always binary objective — LightGBM custom objectives break predict_proba.
+                    # Always binary objective -- LightGBM custom objectives break predict_proba.
                     # Use scale_pos_weight + is_unbalance for imbalance handling instead.
                     objective         = "binary",
                     scale_pos_weight  = scale_pos_weight,
@@ -1118,7 +1118,7 @@ class BaseRealPipeline(ABC):
         except Exception as e:
             logger.warning(f"  LightGBM training failed: {e}")
 
-        # ── Logistic Regression — scaled baseline ─────────────────────────────
+        # Logistic Regression -- scaled baseline
         try:
             from sklearn.preprocessing import StandardScaler
             from sklearn.pipeline import Pipeline
@@ -1153,7 +1153,7 @@ class BaseRealPipeline(ABC):
         if not candidates:
             raise RuntimeError("All candidate models failed to train")
 
-        # ── Stacking ensemble — Wolpert (1992) ────────────────────────────────
+        # Stacking ensemble -- Wolpert (1992)
         # Meta-learner trained on out-of-fold predicted probabilities from all
         # base models.  OOF predictions prevent the meta-learner from seeing
         # training labels directly (no leakage).  Provides +1-3% AUC on tabular
@@ -1161,7 +1161,7 @@ class BaseRealPipeline(ABC):
         try:
             if len(candidates) >= 2:
                 oof_cols = {}
-                # Use no-gap CV for stacking OOF — cross_val_predict requires
+                # Use no-gap CV for stacking OOF -- cross_val_predict requires
                 # all samples covered; TimeSeriesSplit with gap leaves gaps uncovered
                 tscv_oof = TimeSeriesSplit(n_splits=5)
                 with _warnings.catch_warnings():
@@ -1201,7 +1201,7 @@ class BaseRealPipeline(ABC):
                 ]))
                 stack_val_prauc = average_precision_score(y_v, meta.predict_proba(val_meta_X)[:, 1]) if len(np.unique(y_v)) >= 2 else 0.0
 
-                # _StackModel is defined at module level (picklable)
+                # StackModel is defined at module level (picklable)
 
                 stack_model = _StackModel(
                     {k: v["model"] for k, v in candidates.items()}, meta
@@ -1217,9 +1217,9 @@ class BaseRealPipeline(ABC):
         except Exception as e:
             logger.warning(f"  Stacking ensemble failed (non-fatal): {e}")
 
-        # ── Model selection: CV-AUC primary, val PR-AUC tiebreaker ───────────
+        # Model selection: CV-AUC primary, val PR-AUC tiebreaker
         # PR-AUC (average precision) is more informative than ROC-AUC under
-        # extreme class imbalance (Davis & Goadrich, 2006) — used as tiebreaker.
+        # extreme class imbalance (Davis & Goadrich, 2006) -- used as tiebreaker.
         def _model_score(k: str) -> tuple:
             cv = candidates[k].get("cv_auc")
             val = candidates[k]["val_auc"]
@@ -1273,7 +1273,7 @@ class BaseRealPipeline(ABC):
           (Niculescu-Mizil & Caruana, ICML 2005).  Sigmoid calibration fits
           only two parameters and is robust for rare-event hazards.
 
-        Threshold selection — F2-score optimisation:
+        Threshold selection -- F2-score optimisation:
           Emergency hazard systems prioritise recall over precision: missing a
           real event (false negative) causes harm; a false alarm (false positive)
           costs responder effort but is recoverable.  We adopt the F-beta metric
@@ -1286,7 +1286,7 @@ class BaseRealPipeline(ABC):
           regardless of precision or AUC.
 
           Former cost-sweep approach (fn_weight=10) was systematically biased
-          against catching positives for imbalance ratios > 10:1 — because
+          against catching positives for imbalance ratios > 10:1 -- because
           cost(all-negative) = 10 * n_pos < cost(all-positive) = n_neg whenever
           n_neg / n_pos > 10, making the sweep always prefer predicting zero.
           This produced recall ≈ 0.01 for power_outage (200:1), severe_storm,
@@ -1307,7 +1307,7 @@ class BaseRealPipeline(ABC):
         X_arr = np.asarray(X_val)
         y_arr = np.asarray(y_val).ravel()
 
-        # --- Single-class val fallback ---
+        # Single-class val fallback
         # When val has only one class (e.g. power_outage with a fixed-date split
         # that lands in an all-negative period), calibration and threshold optimisation
         # both become undefined on val.  Fall back to a stratified subsample of the
@@ -1339,7 +1339,7 @@ class BaseRealPipeline(ABC):
             notes["n_val_samples"] = int(len(y_arr))
             notes["n_val_positives"] = int(y_arr.sum())
 
-        # --- Calibration ---
+        # Calibration
         # Try sklearn CalibratedClassifierCV with cv="prefit" (sklearn < 1.6).
         # sklearn 1.6+ removed cv="prefit"; fall back to manual Platt sigmoid fit.
         calibrated = None
@@ -1380,7 +1380,7 @@ class BaseRealPipeline(ABC):
                 notes["calibration_applied"] = False
                 notes["calibration_method"] = "none"
 
-        # --- Temperature Scaling — Guo et al. (NeurIPS 2017) ---
+        # Temperature Scaling -- Guo et al. (NeurIPS 2017)
         # After Platt/sigmoid calibration, apply a single scalar temperature T
         # that rescales logits: p_cal = sigmoid(logit / T).
         # T > 1 softens overconfident predictions; T < 1 sharpens underconfident.
@@ -1425,14 +1425,14 @@ class BaseRealPipeline(ABC):
                     calibrated = _TempScaled(calibrated, T_opt)
                     notes["temperature_scaling_T"] = round(T_opt, 4)
                     notes["temperature_scaling_nll_improvement"] = round(nll_before - nll_after, 6)
-                    logger.info(f"  Temperature scaling: T={T_opt:.4f} NLL {nll_before:.4f}→{nll_after:.4f}")
+                    logger.info(f"  Temperature scaling: T={T_opt:.4f} NLL {nll_before:.4f}->{nll_after:.4f}")
                 else:
                     notes["temperature_scaling_T"] = 1.0
-                    logger.info(f"  Temperature scaling: T={T_opt:.4f} — no NLL improvement, skipped")
+                    logger.info(f"  Temperature scaling: T={T_opt:.4f} -- no NLL improvement, skipped")
         except Exception as _ts_exc:
             logger.debug(f"  Temperature scaling skipped: {_ts_exc}")
 
-        # --- Validate calibration improves probability reliability (Brier score) ---
+        # Validate calibration improves probability reliability (Brier score)
         # Brier score = mean squared error of predicted probabilities vs true labels.
         # Lower is better. If calibration degrades Brier, log a warning.
         try:
@@ -1454,7 +1454,7 @@ class BaseRealPipeline(ABC):
                 if brier_cal > brier_raw + 0.005:
                     logger.warning(
                         "  Calibration degraded Brier score on val set: "
-                        f"raw={brier_raw:.4f} → calibrated={brier_cal:.4f}. "
+                        f"raw={brier_raw:.4f} -> calibrated={brier_cal:.4f}. "
                         "Falling back to uncalibrated model."
                     )
                     calibrated = model
@@ -1462,23 +1462,23 @@ class BaseRealPipeline(ABC):
                     notes["calibration_method"] = "reverted_brier_degraded"
                 else:
                     logger.info(
-                        f"  Brier score: raw={brier_raw:.4f} → calibrated={brier_cal:.4f} "
+                        f"  Brier score: raw={brier_raw:.4f} -> calibrated={brier_cal:.4f} "
                         f"(improvement={brier_raw - brier_cal:+.4f})"
                     )
         except Exception as _brier_exc:
             logger.debug(f"  Brier validation skipped: {_brier_exc}")
 
-        # --- F2-optimal threshold from val set PR curve ---
+        # F2-optimal threshold from val set PR curve
         # Two-pass strategy:
         #   Pass 1: Find threshold t* that maximises F2 on the val PR curve.
-        #           F2 = (1 + 4) * P * R / (4P + R) — recall weighted 4x precision.
+        #           F2 = (1 + 4) * P * R / (4P + R) -- recall weighted 4x precision.
         #   Pass 2: Enforce MIN_RECALL floor.  If t* gives recall < MIN_RECALL,
         #           lower the threshold to the highest value that still meets the floor.
         #           This prevents settling at a high-precision/near-zero-recall point
         #           (operationally unacceptable for emergency systems).
         #
         # Both passes use calibrated-model probabilities so the threshold lives in
-        # calibrated probability space — directly interpretable as P(hazard event).
+        # calibrated probability space -- directly interpretable as P(hazard event).
         BETA = 2.0           # F-beta: recall weighted BETA² = 4x precision
         MIN_RECALL = self.get_calibration_min_recall()  # per-hazard recall floor (default 0.40)
         BETA2 = BETA ** 2
@@ -1516,7 +1516,7 @@ class BaseRealPipeline(ABC):
                     for rec, t in zip(recalls[:-1], thresholds):
                         if rec >= MIN_RECALL:
                             floor_t = float(t)
-                            break  # PR curve sorted descending recall → first hit is highest t
+                            break  # PR curve sorted descending recall -> first hit is highest t
                     if floor_t < optimal_threshold:
                         logger.warning(
                             f"  F2-optimal t={optimal_threshold:.4f} gives recall="
@@ -1566,15 +1566,15 @@ class BaseRealPipeline(ABC):
         """Apply promotion gates (UN SENDAI-aligned standard).
 
         Gates (all must pass for 'promoted' status):
-          1. ROC-AUC ≥ promotion_min_roc_auc (default 0.70) — discriminability.
-          2. recall_positive ≥ 0.35 — a model that misses >65% of real events is
+          1. ROC-AUC ≥ promotion_min_roc_auc (default 0.70) -- discriminability.
+          2. recall_positive ≥ 0.35 -- a model that misses >65% of real events is
              operationally unacceptable for any early-warning system.
           3. No temporal performance drift (drift_detected=False), unless
              allow_temporal_drift=True (global multi-hemisphere models only).
           4. No missed major backtested events.
 
         Gate 2 (minimum recall) is set to 0.35 rather than 0.40 (the val-set
-        floor) to allow for the natural train→test distribution shift: if the
+        floor) to allow for the natural train->test distribution shift: if the
         model achieves recall=0.40 on val and generalises to 0.35 on test, it
         is still operationally useful and should be promoted rather than blocked.
         """
@@ -1588,7 +1588,7 @@ class BaseRealPipeline(ABC):
 
         # Minimum positive-class recall gate.
         # Rationale: high ROC-AUC with near-zero recall indicates the model is
-        # ranking samples correctly but the operational threshold is far too high —
+        # ranking samples correctly but the operational threshold is far too high --
         # the system would never trigger an alert.  This gate catches that failure
         # mode independently of threshold choice.
         PROMO_MIN_RECALL = 0.35
@@ -1605,7 +1605,7 @@ class BaseRealPipeline(ABC):
                 # Global/multi-hemisphere models span both hemispheres; their opposite
                 # drought/storm seasonality produces apparent quarter-to-quarter "drift"
                 # that is a statistical artefact of geography, not genuine degradation.
-                # Record as an informational note — do NOT add to reasons (which blocks
+                # Record as an informational note -- do NOT add to reasons (which blocks
                 # the `not reasons` promotion gate) and do NOT set status = "rejected".
                 logger.warning(
                     "Temporal drift detected for {} but allow_temporal_drift=True "
@@ -1649,7 +1649,7 @@ class BaseRealPipeline(ABC):
     ) -> dict:
         """Return a structured failure summary when training cannot proceed.
 
-        Always returns a complete dict — no crashes, no silent exits. The
+        Always returns a complete dict -- no crashes, no silent exits. The
         validation object carries the human-readable reason and recommended
         fix so that session_report.py can surface them in the summary table.
         """

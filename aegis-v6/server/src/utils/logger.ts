@@ -23,7 +23,7 @@ export function auditLog(tag: string, message: string, meta?: Record<string, unk
     message,
     ...(meta || {}),
   }
-  // In production, emit structured JSON; in dev, human-readable
+  //In production, emit structured JSON; in dev, human-readable
   if (isProd) {
     process.stdout.write(JSON.stringify(entry) + '\n')
   } else {

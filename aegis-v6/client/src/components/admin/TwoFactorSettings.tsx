@@ -23,23 +23,23 @@ export default function TwoFactorSettings(): JSX.Element {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  // Setup state
+  //Setup state
   const [setupData, setSetupData] = useState<{ manualKey: string; qrCodeDataUrl: string } | null>(null)
   const [setupCode, setSetupCode] = useState('')
   const [setupLoading, setSetupLoading] = useState(false)
 
-  // Backup codes display
+  //Backup codes display
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null)
   const [backupCodesConfirmed, setBackupCodesConfirmed] = useState(false)
 
-  // Disable state
+  //Disable state
   const [showDisable, setShowDisable] = useState(false)
   const [disablePassword, setDisablePassword] = useState('')
   const [disableCode, setDisableCode] = useState('')
   const [disableLoading, setDisableLoading] = useState(false)
   const [showDisablePassword, setShowDisablePassword] = useState(false)
 
-  // Regenerate state
+  //Regenerate state
   const [showRegen, setShowRegen] = useState(false)
   const [regenPassword, setRegenPassword] = useState('')
   const [regenCode, setRegenCode] = useState('')
@@ -64,7 +64,7 @@ export default function TwoFactorSettings(): JSX.Element {
     }
   }
 
-  // Setup Flow
+  //Setup Flow
 
   async function handleStartSetup() {
     setError('')
@@ -112,7 +112,7 @@ export default function TwoFactorSettings(): JSX.Element {
     setError('')
   }
 
-  // Disable Flow
+  //Disable Flow
 
   async function handleDisable(e: React.FormEvent) {
     e.preventDefault()
@@ -134,7 +134,7 @@ export default function TwoFactorSettings(): JSX.Element {
     }
   }
 
-  // Regenerate Backup Codes
+  //Regenerate Backup Codes
 
   async function handleRegenerate(e: React.FormEvent) {
     e.preventDefault()
@@ -158,7 +158,7 @@ export default function TwoFactorSettings(): JSX.Element {
     }
   }
 
-  // Backup Code Helpers
+  //Backup Code Helpers
 
   function handleCopyBackupCodes() {
     if (!backupCodes) return
@@ -186,7 +186,7 @@ export default function TwoFactorSettings(): JSX.Element {
     setBackupCodesConfirmed(false)
   }
 
-  // Render
+  //Render
 
   if (loading) {
     return (
@@ -282,7 +282,7 @@ export default function TwoFactorSettings(): JSX.Element {
             disabled={!backupCodesConfirmed}
             className="w-full py-2 text-xs font-semibold rounded-lg bg-aegis-600 text-white hover:bg-aegis-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
-            Done — I&apos;ve Saved My Codes
+            Done -- I&apos;ve Saved My Codes
           </button>
         </div>
       )}

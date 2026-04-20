@@ -14,7 +14,7 @@ export class PowerOutageAlertRules {
     const results: AlertRuleResult[] = []
     const { recentReports, predictions } = context
 
-    // Rule 1: Report density threshold
+    //Rule 1: Report density threshold
     if (recentReports.length >= 30) {
       results.push({
         shouldAlert: true,
@@ -38,7 +38,7 @@ export class PowerOutageAlertRules {
       })
     }
 
-    // Rule 2: Critical facilities affected
+    //Rule 2: Critical facilities affected
     const criticalFacilityReports = recentReports.filter(r => r.customFields?.criticalFacility === true)
     if (criticalFacilityReports.length >= 1) {
       results.push({
@@ -49,7 +49,7 @@ export class PowerOutageAlertRules {
       })
     }
 
-    // Rule 3: Large affected population
+    //Rule 3: Large affected population
     const totalAffectedHouseholds = recentReports.reduce((sum, r) => {
       const households = Number(r.customFields?.affectedHouseholds || 5)
       return sum + households

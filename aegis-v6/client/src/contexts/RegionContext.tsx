@@ -1,12 +1,12 @@
 /**
- * Manages the active deployment region (UK, EU, AU, …). Reads the
+ * Manages the active deployment region (UK, EU, AU, ...). Reads the
  * VITE_REGION env var on startup and exposes region-specific config
  * (currency, date format, emergency numbers) to all components.
  */
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 
-// Types
+//Types
 
 export interface RegionEmergencyContact {
   name: string
@@ -82,7 +82,7 @@ interface RegionContextType {
   refresh: () => void
 }
 
-// Default context
+//Default context
 
 const RegionContext = createContext<RegionContextType>({
   region: null,
@@ -91,7 +91,7 @@ const RegionContext = createContext<RegionContextType>({
   refresh: () => {},
 })
 
-// Provider
+//Provider
 
 export function RegionProvider({ children }: { children: ReactNode }) {
   const [region, setRegion] = useState<RegionAdapterConfig | null>(null)
@@ -104,12 +104,12 @@ export function RegionProvider({ children }: { children: ReactNode }) {
       setError(null)
       // /api/config/region returns the adapter for the server's active region
       // (set via AEGIS_REGION env var on the server).  The adapter contains
-      // emergency numbers, flood-zone GeoJSON sources, and language settings.
+      //emergency numbers, flood-zone GeoJSON sources, and language settings.
       const res = await fetch('/api/config/region')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
-      // The full adapter config is nested under data.adapter (the rest of the
-      // response may contain version info or feature flags).
+      //The full adapter config is nested under data.adapter (the rest of the
+      //response may contain version info or feature flags).
       if (data.adapter) {
         setRegion(data.adapter)
       }
@@ -133,7 +133,7 @@ export function RegionProvider({ children }: { children: ReactNode }) {
   )
 }
 
-// Hook
+//Hook
 
 export function useRegion(): RegionContextType {
   return useContext(RegionContext)

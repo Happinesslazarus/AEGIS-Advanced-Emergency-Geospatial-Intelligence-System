@@ -60,32 +60,32 @@ const glasgow: CityRegionConfig = {
   shelterSearchRadiusKm: 30,
   wmsLayers: [
     {
-      name: 'SEPA Flood Map — River (High Likelihood)',
+      name: 'SEPA Flood Map -- River (High Likelihood)',
       url: 'https://map.sepa.org.uk/floodmap/wms',
       layers: 'sepa:fld_FluvialHighLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '— SEPA',
+      attribution: '-- SEPA',
       opacity: 0.5,
       riskLevel: 'high',
     },
     {
-      name: 'SEPA Flood Map — River (Medium Likelihood)',
+      name: 'SEPA Flood Map -- River (Medium Likelihood)',
       url: 'https://map.sepa.org.uk/floodmap/wms',
       layers: 'sepa:fld_FluvialMediumLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '— SEPA',
+      attribution: '-- SEPA',
       opacity: 0.4,
       riskLevel: 'medium',
     },
     {
-      name: 'SEPA Flood Map — Surface Water',
+      name: 'SEPA Flood Map -- Surface Water',
       url: 'https://map.sepa.org.uk/floodmap/wms',
       layers: 'sepa:fld_PluvialHighLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '— SEPA',
+      attribution: '-- SEPA',
       opacity: 0.35,
       riskLevel: 'low',
     },
@@ -97,7 +97,7 @@ const glasgow: CityRegionConfig = {
     glasgow: 'glasgow_routes.json',
   },
 
-  // Multi-Incident Configuration
+  //Multi-Incident Configuration
   language: 'en',
   units: 'metric',
   enabledIncidents: {

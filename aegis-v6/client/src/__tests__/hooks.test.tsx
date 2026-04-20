@@ -46,7 +46,7 @@
  *   addEventListener (MediaQueryList) = subscribes to media query change events
  *   useResponsive           = hook that returns {isMobile, isTablet, isDesktop, width} based
  *                             on window.innerWidth; updates when the window is resized
- *   breakpoints             = mobile < ~640px, tablet ~640–1024px, desktop > 1024px
+ *   breakpoints             = mobile < ~640px, tablet ~640-1024px, desktop > 1024px
  *   useAnnounce             = hook that returns an announce(message, opts?) function; calling it
  *                             inserts an ARIA live region into the DOM so screen readers read
  *                             the message aloud
@@ -66,16 +66,14 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
-// The hooks under test
+//The hooks under test
 import { useDebounce, useDebouncedCallback } from '../hooks/useDebounce'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useResponsive } from '../hooks/useResponsive'
 import { useAnnounce } from '../hooks/useAnnounce'
 
-// ---------------------------------------------------------------------------
-// useDebounce — delays a value until N ms after the last change
-// ---------------------------------------------------------------------------
+//useDebounce -- delays a value until N ms after the last change
 describe('useDebounce', () => {
   beforeEach(() => {
     vi.useFakeTimers() // take control of setTimeout so tests run synchronously
@@ -86,7 +84,7 @@ describe('useDebounce', () => {
   })
 
   test('returns initial value immediately', () => {
-    // Hook should return the current value immediately on first render
+    //Hook should return the current value immediately on first render
     const { result } = renderHook(() => useDebounce('initial', 300))
     expect(result.current).toBe('initial')
   })
@@ -101,13 +99,13 @@ describe('useDebounce', () => {
     expect(result.current).toBe('initial') // still old value (timer hasn't fired yet)
 
     act(() => {
-      vi.advanceTimersByTime(300) // fast-forward 300ms → timer fires
+ vi.advanceTimersByTime(300) // fast-forward 300ms -> timer fires
     })
     expect(result.current).toBe('updated') // now the new value propagates
   })
 
   test('resets timer on rapid value changes', () => {
-    // Simulates a user typing quickly — timer should reset on every keystroke
+    //Simulates a user typing quickly -- timer should reset on every keystroke
     const { result, rerender } = renderHook(
       ({ value }) => useDebounce(value, 300),
       { initialProps: { value: 'a' } }
@@ -122,15 +120,15 @@ describe('useDebounce', () => {
     rerender({ value: 'd' })
     act(() => vi.advanceTimersByTime(100)) // resets again; still not fired
     
-    // Because the timer keeps resetting, 'a' (initial value) is still current
+    //Because the timer keeps resetting, 'a' (initial value) is still current
     expect(result.current).toBe('a')
 
-    act(() => vi.advanceTimersByTime(300)) // full 300ms after last change → fires
+ act(() => vi.advanceTimersByTime(300)) // full 300ms after last change -> fires
     expect(result.current).toBe('d') // only the latest value propagates
   })
 
   test('uses default delay of 300ms', () => {
-    // When no delay is provided, the hook should default to 300ms
+    //When no delay is provided, the hook should default to 300ms
     const { result, rerender } = renderHook(
       ({ value }) => useDebounce(value),
       { initialProps: { value: 'initial' } }
@@ -141,12 +139,12 @@ describe('useDebounce', () => {
     act(() => vi.advanceTimersByTime(299)) // 1ms before the default delay
     expect(result.current).toBe('initial')
     
-    act(() => vi.advanceTimersByTime(1)) // exactly 300ms → fires
+ act(() => vi.advanceTimersByTime(1)) // exactly 300ms -> fires
     expect(result.current).toBe('updated')
   })
 
   test('works with objects', () => {
-    // The hook is generic; it works with any value type, not just strings
+    //The hook is generic; it works with any value type, not just strings
     const initial = { name: 'test' }
     const updated = { name: 'updated' }
     
@@ -161,7 +159,7 @@ describe('useDebounce', () => {
   })
 
   test('works with null and undefined', () => {
-    // Null/undefined are valid values and must be handled without errors
+    //Null/undefined are valid values and must be handled without errors
     const { result, rerender } = renderHook(
       ({ value }) => useDebounce(value, 300),
       { initialProps: { value: null as string | null } }
@@ -175,8 +173,8 @@ describe('useDebounce', () => {
   })
 
   test('cleans up timeout on unmount', () => {
-    // When the component unmounts, the pending timer must be cancelled to prevent
-    // a "setState after unmount" warning or stale update
+    //When the component unmounts, the pending timer must be cancelled to prevent
+    //a "setState after unmount" warning or stale update
     const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
     
     const { unmount, rerender } = renderHook(
@@ -192,9 +190,7 @@ describe('useDebounce', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// useDebouncedCallback — debounced function wrapper
-// ---------------------------------------------------------------------------
+//useDebouncedCallback -- debounced function wrapper
 describe('useDebouncedCallback', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -205,7 +201,7 @@ describe('useDebouncedCallback', () => {
   })
 
   test('does not call callback immediately', () => {
-    // Calling the debounced function should not invoke the callback right away
+    //Calling the debounced function should not invoke the callback right away
     const callback = vi.fn()
     const { result } = renderHook(() => useDebouncedCallback(callback, 300))
 
@@ -214,7 +210,7 @@ describe('useDebouncedCallback', () => {
   })
 
   test('calls callback after delay', () => {
-    // After 300ms, the callback must be invoked with the correct arguments
+    //After 300ms, the callback must be invoked with the correct arguments
     const callback = vi.fn()
     const { result } = renderHook(() => useDebouncedCallback(callback, 300))
 
@@ -226,7 +222,7 @@ describe('useDebouncedCallback', () => {
   })
 
   test('only calls with last arguments on rapid calls', () => {
-    // Multiple rapid calls should coalesce; only the last set of args is used
+    //Multiple rapid calls should coalesce; only the last set of args is used
     const callback = vi.fn()
     const { result } = renderHook(() => useDebouncedCallback(callback, 300))
 
@@ -240,15 +236,13 @@ describe('useDebouncedCallback', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// useOnlineStatus — tracks browser connectivity state
-// ---------------------------------------------------------------------------
+//useOnlineStatus -- tracks browser connectivity state
 describe('useOnlineStatus', () => {
   let originalOnLine: boolean
 
   beforeEach(() => {
     originalOnLine = navigator.onLine
-    // Default to online for tests
+    //Default to online for tests
     Object.defineProperty(navigator, 'onLine', { 
       value: true, 
       configurable: true,
@@ -257,7 +251,7 @@ describe('useOnlineStatus', () => {
   })
 
   afterEach(() => {
-    // Restore original navigator.onLine value
+    //Restore original navigator.onLine value
     Object.defineProperty(navigator, 'onLine', {
       value: originalOnLine,
       configurable: true,
@@ -266,20 +260,20 @@ describe('useOnlineStatus', () => {
   })
 
   test('returns initial online status', () => {
-    // When navigator.onLine is true, the hook should report online
+    //When navigator.onLine is true, the hook should report online
     const { result } = renderHook(() => useOnlineStatus())
     expect(result.current.isOnline).toBe(true)
   })
 
   test('returns offline status when navigator.onLine is false', () => {
-    // When navigator.onLine is false at mount, hook should start offline
+    //When navigator.onLine is false at mount, hook should start offline
     Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true })
     const { result } = renderHook(() => useOnlineStatus())
     expect(result.current.isOnline).toBe(false)
   })
 
   test('updates when going offline', () => {
-    // Dispatching an 'offline' window event should trigger state update
+    //Dispatching an 'offline' window event should trigger state update
     const { result } = renderHook(() => useOnlineStatus())
     
     act(() => {
@@ -290,7 +284,7 @@ describe('useOnlineStatus', () => {
   })
 
   test('updates when going online', () => {
-    // Dispatching an 'online' event after being offline should restore online state
+    //Dispatching an 'online' event after being offline should restore online state
     Object.defineProperty(navigator, 'onLine', { value: false, configurable: true })
     const { result } = renderHook(() => useOnlineStatus())
     
@@ -302,19 +296,19 @@ describe('useOnlineStatus', () => {
   })
 
   test('starts with queuedRequests at 0', () => {
-    // No requests have been queued yet — count starts at zero
+    //No requests have been queued yet -- count starts at zero
     const { result } = renderHook(() => useOnlineStatus())
     expect(result.current.queuedRequests).toBe(0)
   })
 
   test('syncNow function exists', () => {
-    // syncNow must be a callable function so components can trigger manual syncs
+    //syncNow must be a callable function so components can trigger manual syncs
     const { result } = renderHook(() => useOnlineStatus())
     expect(typeof result.current.syncNow).toBe('function')
   })
 
   test('removes event listeners on unmount', () => {
-    // Listeners must be cleaned up on unmount to prevent memory leaks
+    //Listeners must be cleaned up on unmount to prevent memory leaks
     const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener')
     const { unmount } = renderHook(() => useOnlineStatus())
     
@@ -326,14 +320,12 @@ describe('useOnlineStatus', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// useReducedMotion — reads the OS "reduce motion" accessibility setting
-// ---------------------------------------------------------------------------
+//useReducedMotion -- reads the OS "reduce motion" accessibility setting
 describe('useReducedMotion', () => {
   let matchMediaMock: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
-    // Mock matchMedia to return {matches:false} (motion allowed) by default
+    //Mock matchMedia to return {matches:false} (motion allowed) by default
     matchMediaMock = vi.fn().mockImplementation((query: string) => ({
       matches: false,
       media: query,
@@ -347,13 +339,13 @@ describe('useReducedMotion', () => {
   })
 
   test('returns prefersReduced false when not preferred', () => {
-    // matches:false → user has not enabled the reduced motion OS setting
+ //matches:false -> user has not enabled the reduced motion OS setting
     const { result } = renderHook(() => useReducedMotion())
     expect(result.current.prefersReduced).toBe(false)
   })
 
   test('returns prefersReduced true when preferred', () => {
-    // matches:true → OS setting is active; hook should report prefersReduced=true
+ //matches:true -> OS setting is active; hook should report prefersReduced=true
     matchMediaMock.mockImplementation(() => ({
       matches: true,
       media: '(prefers-reduced-motion: reduce)',
@@ -366,7 +358,7 @@ describe('useReducedMotion', () => {
   })
 
   test('getSafeDuration returns 0 when reduced motion preferred', () => {
-    // Passing 0 to CSS transition-duration disables animation completely
+    //Passing 0 to CSS transition-duration disables animation completely
     matchMediaMock.mockImplementation(() => ({
       matches: true,
       media: '(prefers-reduced-motion: reduce)',
@@ -379,13 +371,13 @@ describe('useReducedMotion', () => {
   })
 
   test('getSafeDuration returns default when reduced motion not preferred', () => {
-    // Normal user: animation is allowed — return the requested 300ms duration
+    //Normal user: animation is allowed -- return the requested 300ms duration
     const { result } = renderHook(() => useReducedMotion())
     expect(result.current.getSafeDuration(300)).toBe(300)
   })
 
   test('getSafeTransition returns "none" when reduced motion preferred', () => {
-    // CSS transition:'none' disables the visual animation entirely
+    //CSS transition:'none' disables the visual animation entirely
     matchMediaMock.mockImplementation(() => ({
       matches: true,
       media: '(prefers-reduced-motion: reduce)',
@@ -398,13 +390,13 @@ describe('useReducedMotion', () => {
   })
 
   test('getSafeTransition returns default when reduced motion not preferred', () => {
-    // Normal user: return the full CSS transition string unchanged
+    //Normal user: return the full CSS transition string unchanged
     const { result } = renderHook(() => useReducedMotion())
     expect(result.current.getSafeTransition('all 0.3s ease')).toBe('all 0.3s ease')
   })
 
   test('updates when media query changes', () => {
-    // When the OS setting changes at runtime (e.g. user toggles it), the hook must react
+    //When the OS setting changes at runtime (e.g. user toggles it), the hook must react
     let handler: ((e: MediaQueryListEvent) => void) | null = null
     
     matchMediaMock.mockImplementation(() => ({
@@ -429,14 +421,12 @@ describe('useReducedMotion', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// useResponsive — breakpoint-based viewport-width classification
-// ---------------------------------------------------------------------------
+//useResponsive -- breakpoint-based viewport-width classification
 describe('useResponsive', () => {
   const originalInnerWidth = window.innerWidth
 
   afterEach(() => {
-    // Restore the original viewport width after each test
+    //Restore the original viewport width after each test
     Object.defineProperty(window, 'innerWidth', {
       value: originalInnerWidth,
       writable: true,
@@ -444,7 +434,7 @@ describe('useResponsive', () => {
   })
 
   test('returns responsive state object', () => {
-    // Hook must always return all four expected fields regardless of width
+    //Hook must always return all four expected fields regardless of width
     const { result } = renderHook(() => useResponsive())
     
     expect(result.current).toHaveProperty('isMobile')
@@ -454,30 +444,28 @@ describe('useResponsive', () => {
   })
 
   test('isMobile true for small screens', () => {
-    // 400px is a typical mobile phone width
+    //400px is a typical mobile phone width
     Object.defineProperty(window, 'innerWidth', { value: 400, writable: true })
     const { result } = renderHook(() => useResponsive())
     expect(result.current.isMobile).toBe(true)
   })
 
   test('isTablet true for medium screens', () => {
-    // 800px is a typical tablet width
+    //800px is a typical tablet width
     Object.defineProperty(window, 'innerWidth', { value: 800, writable: true })
     const { result } = renderHook(() => useResponsive())
     expect(result.current.isTablet).toBe(true)
   })
 
   test('isDesktop true for large screens', () => {
-    // 1200px is a typical desktop monitor width
+    //1200px is a typical desktop monitor width
     Object.defineProperty(window, 'innerWidth', { value: 1200, writable: true })
     const { result } = renderHook(() => useResponsive())
     expect(result.current.isDesktop).toBe(true)
   })
 })
 
-// ---------------------------------------------------------------------------
-// useAnnounce — ARIA live-region announcements for screen readers
-// ---------------------------------------------------------------------------
+//useAnnounce -- ARIA live-region announcements for screen readers
 describe('useAnnounce', () => {
   beforeEach(() => {
     vi.useFakeTimers() // the hook uses a 100ms delay before updating the live region
@@ -485,7 +473,7 @@ describe('useAnnounce', () => {
 
   afterEach(() => {
     vi.useRealTimers()
-    // Clean up any ARIA live regions appended to the body by the hook
+    //Clean up any ARIA live regions appended to the body by the hook
     const liveRegion = document.querySelector('[role="status"]')
     if (liveRegion) {
       document.body.removeChild(liveRegion)
@@ -493,13 +481,13 @@ describe('useAnnounce', () => {
   })
 
   test('returns announce function', () => {
-    // The hook should return a single callable function
+    //The hook should return a single callable function
     const { result } = renderHook(() => useAnnounce())
     expect(typeof result.current).toBe('function')
   })
 
   test('creates a live region element', () => {
-    // Calling announce() must inject a role=status element into document.body
+    //Calling announce() must inject a role=status element into document.body
     const { result } = renderHook(() => useAnnounce())
     
     act(() => {
@@ -512,7 +500,7 @@ describe('useAnnounce', () => {
   })
 
   test('announce updates live region content after delay', () => {
-    // The live region text is updated after 100ms so the screen reader re-detects the change
+    //The live region text is updated after 100ms so the screen reader re-detects the change
     const { result } = renderHook(() => useAnnounce())
     
     act(() => {
@@ -524,14 +512,14 @@ describe('useAnnounce', () => {
     expect(liveRegion?.textContent).toBe('') // text is empty immediately after call
     
     act(() => {
-      vi.advanceTimersByTime(100) // 100ms passes → hook updates the text
+ vi.advanceTimersByTime(100) // 100ms passes -> hook updates the text
     })
     
     expect(liveRegion?.textContent).toBe('Test announcement') // now populated
   })
 
   test('uses assertive mode when specified', () => {
-    // assertive mode interrupts the screen reader immediately (for urgent announcements)
+    //assertive mode interrupts the screen reader immediately (for urgent announcements)
     const { result } = renderHook(() => useAnnounce())
     
     act(() => {
@@ -543,4 +531,4 @@ describe('useAnnounce', () => {
   })
 })
 
-// useDebounce Tests
+//useDebounce Tests

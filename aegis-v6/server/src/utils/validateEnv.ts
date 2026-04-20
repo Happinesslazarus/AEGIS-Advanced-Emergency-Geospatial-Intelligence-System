@@ -16,7 +16,7 @@ interface LoggerLike {
   error(...args: unknown[]): void
 }
 
-// Environment variable requirements
+//Environment variable requirements
 interface EnvRequirement {
   name: string
   required: boolean // true = required in production, false = optional
@@ -25,39 +25,39 @@ interface EnvRequirement {
 }
 
 const ENV_REQUIREMENTS: EnvRequirement[] = [
-  // Database
+  //Database
   { name: 'DATABASE_URL', required: true, hint: 'PostgreSQL connection string' },
 
-  // Security
+  //Security
   { name: 'JWT_SECRET', required: true, pattern: /^.{32,}$/, hint: 'Must be at least 32 characters' },
   { name: 'REFRESH_TOKEN_SECRET', required: true, pattern: /^.{32,}$/, hint: 'Must be at least 32 characters' },
   { name: 'INTERNAL_API_KEY', required: true, pattern: /^.{16,}$/, hint: 'Internal automation API key' },
   { name: 'N8N_WEBHOOK_SECRET', required: true, pattern: /^.{16,}$/, hint: 'n8n webhook HMAC secret' },
 
-  // AI / LLM providers (at least one should be provided in production)
+  //AI / LLM providers (at least one should be provided in production)
   { name: 'GEMINI_API_KEY', required: false, hint: 'Google Gemini API key' },
   { name: 'GROQ_API_KEY', required: false, hint: 'Groq LLM API key' },
   { name: 'OPENROUTER_API_KEY', required: false, hint: 'OpenRouter API key' },
   { name: 'HF_API_KEY', required: false, hint: 'HuggingFace API key' },
   { name: 'API_SECRET_KEY', required: true, pattern: /^.{16,}$/, hint: 'AI engine service secret (required in production)' },
 
-  // Push notifications (required for production alerts)
+  //Push notifications (required for production alerts)
   { name: 'VAPID_PUBLIC_KEY', required: true, hint: 'Web push VAPID public key' },
   { name: 'VAPID_PRIVATE_KEY', required: true, hint: 'Web push VAPID private key' },
 
-  // Email notifications
+  //Email notifications
   { name: 'SMTP_HOST', required: false, hint: 'SMTP server for email alerts' },
   { name: 'SMTP_USER', required: false, hint: 'SMTP authentication username' },
   { name: 'SMTP_PASS', required: false, hint: 'SMTP authentication password' },
   { name: 'SMTP_FROM', required: false, hint: 'From address for alert emails' },
 
-  // Third-party integrations
+  //Third-party integrations
   { name: 'TWILIO_ACCOUNT_SID', required: false, hint: 'Twilio account SID' },
   { name: 'TWILIO_AUTH_TOKEN', required: false, hint: 'Twilio auth token' },
   { name: 'TWILIO_PHONE_NUMBER', required: false, hint: 'Twilio sender phone number' },
   { name: 'TELEGRAM_BOT_TOKEN', required: false, hint: 'Telegram bot token' },
 
-  // Weather / satellite / translation
+  //Weather / satellite / translation
   { name: 'WEATHER_API_KEY', required: false, hint: 'Weather API key (OpenWeather or alternative)' },
   { name: 'OPENWEATHER_API_KEY', required: false, hint: 'OpenWeatherMap API key' },
   { name: 'NASA_FIRMS_API_KEY', required: false, hint: 'NASA FIRMS API key' },
@@ -66,11 +66,11 @@ const ENV_REQUIREMENTS: EnvRequirement[] = [
   { name: 'DEEPL_API_KEY', required: false, hint: 'DeepL API key' },
   { name: 'LIBRE_TRANSLATE_ENDPOINT', required: false, hint: 'LibreTranslate endpoint (optional)' },
 
-  // Frontend / client
+  //Frontend / client
   { name: 'CLIENT_URL', required: true, hint: 'Frontend base URL (for reset links and CORS)' },
   { name: 'VITE_MAPBOX_TOKEN', required: false, hint: 'Public Mapbox token used by client' },
 
-  // Misc / server
+  //Misc / server
   { name: 'UPLOAD_DIR', required: false, hint: 'Uploads directory' },
   { name: 'AI_ENGINE_URL', required: false, hint: 'AI engine base URL' },
   { name: 'AI_ENGINE_TIMEOUT', required: false, hint: 'AI engine request timeout ms' },
@@ -79,7 +79,7 @@ const ENV_REQUIREMENTS: EnvRequirement[] = [
   { name: 'S3_BUCKET', required: false, hint: 'Optional S3 bucket for artifacts' },
 ]
 
-// Variables that should NEVER be exposed in logs
+//Variables that should NEVER be exposed in logs
 const SENSITIVE_PATTERNS = [
   /SECRET/i, /PASSWORD/i, /KEY/i, /TOKEN/i, /PASS/i, /AUTH/i
 ]
@@ -111,7 +111,7 @@ export function validateEnvironment(): ValidationResult {
   const errors: string[] = []
   const warnings: string[] = []
 
-  // Check required variables
+  //Check required variables
   for (const req of ENV_REQUIREMENTS) {
     const value = process.env[req.name]
     
@@ -131,7 +131,7 @@ export function validateEnvironment(): ValidationResult {
     }
   }
 
-  // Check for at least one AI provider
+  //Check for at least one AI provider
   const aiProviders = ['GROQ_API_KEY', 'GEMINI_API_KEY', 'OPENROUTER_API_KEY', 'HF_API_KEY']
   const hasAiProvider = aiProviders.some(k => process.env[k] && process.env[k]!.trim() !== '')
   
@@ -141,12 +141,12 @@ export function validateEnvironment(): ValidationResult {
     }
   }
 
-  // Security warnings
+  //Security warnings
   if (process.env.JWT_SECRET === 'your-super-secret-jwt-key-change-in-production') {
     errors.push('JWT_SECRET is using default placeholder value - must change for production')
   }
 
-  // Check for insecure default values
+  //Check for insecure default values
   const defaultChecks = [
     { name: 'DATABASE_URL', bad: 'postgres://localhost' },
     { name: 'CORS_ORIGIN', bad: '*' },
@@ -177,12 +177,12 @@ export function validateAndLog(logger: LoggerLike): void {
   logger.info('=== Environment Validation ===')
   logger.info(`Mode: ${isProduction ? 'PRODUCTION' : 'development'}`)
 
-  // Log warnings
+  //Log warnings
   for (const warn of result.warnings) {
     logger.warn(`[Env] ${warn}`)
   }
 
-  // Log errors
+  //Log errors
   if (result.errors.length > 0) {
     for (const err of result.errors) {
       logger.error(`[Env] ${err}`)
@@ -194,7 +194,7 @@ export function validateAndLog(logger: LoggerLike): void {
     if (isProduction) {
       logger.error('[Env] FATAL: Cannot start in production with invalid configuration')
       logger.error(msg)
-      // Crash early with full error list
+      //Crash early with full error list
       throw new Error(msg)
     } else {
       logger.warn('[Env] Non-production mode: configuration issues detected (see above)')

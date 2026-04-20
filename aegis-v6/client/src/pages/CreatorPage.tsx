@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 
 /**
- * useCounter — animates a number from `start` to `end` using an easeOut cubic.
+ * useCounter -- animates a number from `start` to `end` using an easeOut cubic.
  *
  * Identical algorithm to AboutPage.tsx but with an optional `start` parameter
  * so the "Solo Developer: 1" counter begins at 1 rather than 0.
@@ -53,7 +53,7 @@ function useCounter(end: number, duration = 2000, start = 0) {
 }
 
 /**
- * FadeInSection — IntersectionObserver scroll-triggered fade + slide-up.
+ * FadeInSection -- IntersectionObserver scroll-triggered fade + slide-up.
  *
  * Uses a 0.15 threshold (slightly more generous than FadeIn in AboutPage) so
  * taller content sections trigger earlier as they enter the viewport.
@@ -103,7 +103,7 @@ function TimelineItem({ year, title, desc, icon: Icon, color }: { year: string; 
 }
 
 /**
- * SkillHex — interactive skill card with a mastery tier badge and dot bar.
+ * SkillHex -- interactive skill card with a mastery tier badge and dot bar.
  *
  * tierConfig maps the three tiers to:
  *   - badge gradient (gold/blue/green)
@@ -178,13 +178,13 @@ export default function CreatorPage(): JSX.Element {
 
   const philosophies = [
     { title: 'Empathy-Driven Design', desc: 'Every feature begins with a question: "How will this help someone in their most vulnerable moment?" AEGIS is designed not just to inform, but to comfort and empower.' },
-    { title: 'Technology for All', desc: 'From multilingual support to offline capabilities, AEGIS ensures no one is left behind. Accessibility is not an afterthought — it is foundational.' },
+    { title: 'Technology for All', desc: 'From multilingual support to offline capabilities, AEGIS ensures no one is left behind. Accessibility is not an afterthought -- it is foundational.' },
     { title: 'Relentless Quality', desc: 'Single-handedly engineering a full-stack platform demands meticulous attention to detail. Every API endpoint, every animation, every pixel is intentional.' },
     { title: 'Global Perspective', desc: 'With roots in Africa and a European education, the creator brings a uniquely cross-cultural understanding of disaster preparedness to this platform.' },
   ]
 
-  // Auto-rotate through philosophies every 5 seconds to draw attention to each
-  // principle.  Modulo wraps back to 0 after the last item.
+  //Auto-rotate through philosophies every 5 seconds to draw attention to each
+  //principle.  Modulo wraps back to 0 after the last item.
   useEffect(() => {
     const timer = setInterval(() => setActivePhilosophy(p => (p + 1) % philosophies.length), 5000)
     return () => clearInterval(timer)
@@ -194,9 +194,9 @@ export default function CreatorPage(): JSX.Element {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* HERO*/}
       <div
-        // Hero mouse-parallax: each floating orb has a different parallax
-        // multiplier (10 + i*5) so they drift at slightly different speeds,
-        // giving a sense of depth without a 3D library.
+        //Hero mouse-parallax: each floating orb has a different parallax
+        //multiplier (10 + i*5) so they drift at slightly different speeds,
+        //giving a sense of depth without a 3D library.
         className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-aegis-900 to-blue-900 text-white"
         onMouseMove={(e) => {
           const rect = e.currentTarget.getBoundingClientRect()
@@ -265,7 +265,7 @@ export default function CreatorPage(): JSX.Element {
                 Happiness Ada<br />Lazarus
               </h1>
               <p className="text-lg text-white/70 mt-4 max-w-lg leading-relaxed">
-                Computer scientist, innovator, and the sole architect behind <strong className="text-white">AEGIS</strong> — 
+                Computer scientist, innovator, and the sole architect behind <strong className="text-white">AEGIS</strong> -- 
                 a full-stack, AI-powered disaster response platform built to protect communities worldwide.
               </p>
 
@@ -328,9 +328,9 @@ export default function CreatorPage(): JSX.Element {
                   Happiness brings a uniquely global perspective to emergency technology.
                 </p>
                 <p>
-                  AEGIS is more than an Honours capstone project — it is a deeply personal mission.
+                  AEGIS is more than an Honours capstone project -- it is a deeply personal mission.
                   Driven by an unwavering passion for <strong className="text-gray-900 dark:text-white">making people happy</strong> and keeping communities safe,
-                  she engineered a full-stack, AI-powered disaster response platform from the ground up — single-handedly.
+                  she engineered a full-stack, AI-powered disaster response platform from the ground up -- single-handedly.
                 </p>
                 <p>
                   A true lover of computing, she finds joy in solving hard problems, crafting elegant code, and pushing the limits of what one developer can build.
@@ -343,10 +343,10 @@ export default function CreatorPage(): JSX.Element {
             <div className="space-y-3">
               {[
                 { icon: Award, label: 'BSc Honours Project 2025/26', desc: 'Capstone project for Computing Science degree', color: 'bg-amber-500' },
-                { icon: Globe2, label: 'Africa — Europe Heritage', desc: 'Cross-cultural perspective on global challenges', color: 'bg-emerald-500' },
+                { icon: Globe2, label: 'Africa -- Europe Heritage', desc: 'Cross-cultural perspective on global challenges', color: 'bg-emerald-500' },
                 { icon: Music, label: 'Music & Creativity', desc: 'Finding harmony in code and composition', color: 'bg-pink-500' },
                 { icon: Heart, label: 'Making People Happy', desc: 'Core philosophy driving every design decision', color: 'bg-red-500' },
-                { icon: Shield, label: 'Solo Computer Scientist', desc: 'Frontend, backend, AI, DevOps — all one person', color: 'bg-blue-500' },
+                { icon: Shield, label: 'Solo Computer Scientist', desc: 'Frontend, backend, AI, DevOps -- all one person', color: 'bg-blue-500' },
               ].map((item, i) => (
                 <FadeInSection key={i} delay={i * 100}>
                   <div className="flex items-start gap-4 p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:border-aegis-300 dark:hover:border-aegis-700 hover:shadow-md transition-all duration-300 group cursor-default">
@@ -401,7 +401,7 @@ export default function CreatorPage(): JSX.Element {
           <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2 flex items-center gap-2">
             <Code2 className="w-6 h-6 text-blue-500" /> Technical Mastery
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Hover to explore — categorised by mastery tier</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Hover to explore -- categorised by mastery tier</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             <SkillHex icon={Code2}     label="React / TypeScript"    tier="expert"     color="bg-blue-500"    delay={0} />
             <SkillHex icon={Palette}   label="Tailwind CSS"          tier="expert"     color="bg-cyan-500"    delay={80} />
@@ -440,10 +440,10 @@ export default function CreatorPage(): JSX.Element {
             <Calendar className="w-6 h-6 text-purple-500" /> The AEGIS Journey
           </h2>
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 sm:p-8 border border-gray-100 dark:border-gray-800">
-            <TimelineItem year="2025 — Autumn" title="Research & Concept" desc="Literature review on disaster response systems, AI-driven predictions, and community resilience. The vision for AEGIS crystallises." icon={BookOpen} color="bg-purple-500" />
-            <TimelineItem year="2025 — Winter" title="Architecture Design" desc="Full-stack architecture designed — React 18 + TypeScript frontend, Node.js/Express backend, PostgreSQL with PostGIS for geospatial data." icon={Layers} color="bg-blue-500" />
-            <TimelineItem year="2025 — Spring" title="Core Platform Build" desc="Core systems built: authentication, real-time alerts, interactive mapping, community reporting, multi-language support across 5+ languages." icon={Code2} color="bg-green-500" />
-            <TimelineItem year="2025 — Summer" title="AI Engine Integration" desc="Python-based AI engine with FastAPI — hazard classification, severity prediction, NLP-powered report analysis, and automated triage." icon={Brain} color="bg-amber-500" />
+            <TimelineItem year="2025 -- Autumn" title="Research & Concept" desc="Literature review on disaster response systems, AI-driven predictions, and community resilience. The vision for AEGIS crystallises." icon={BookOpen} color="bg-purple-500" />
+            <TimelineItem year="2025 -- Winter" title="Architecture Design" desc="Full-stack architecture designed -- React 18 + TypeScript frontend, Node.js/Express backend, PostgreSQL with PostGIS for geospatial data." icon={Layers} color="bg-blue-500" />
+            <TimelineItem year="2025 -- Spring" title="Core Platform Build" desc="Core systems built: authentication, real-time alerts, interactive mapping, community reporting, multi-language support across 5+ languages." icon={Code2} color="bg-green-500" />
+            <TimelineItem year="2025 -- Summer" title="AI Engine Integration" desc="Python-based AI engine with FastAPI -- hazard classification, severity prediction, NLP-powered report analysis, and automated triage." icon={Brain} color="bg-amber-500" />
             <TimelineItem year="2025/26" title="Production Hardening" desc="Performance optimisation, security hardening, accessibility compliance, comprehensive testing, Docker containerisation, and global deployment readiness." icon={Shield} color="bg-red-500" />
           </div>
         </FadeInSection>
@@ -491,7 +491,7 @@ export default function CreatorPage(): JSX.Element {
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-white/5 rounded-full translate-x-1/3 translate-y-1/3 blur-3xl" />
             <div className="relative z-10 max-w-2xl mx-auto text-center">
               <p className="text-lg sm:text-xl font-medium leading-relaxed italic">
-                &ldquo;I built AEGIS because I believe every person deserves to feel safe, informed, and empowered — regardless of where they come from.
+                &ldquo;I built AEGIS because I believe every person deserves to feel safe, informed, and empowered -- regardless of where they come from.
                 This platform is my way of using technology to protect the people I love, and the ones I have yet to meet.&rdquo;
               </p>
               <div className="mt-6 flex items-center justify-center gap-3">

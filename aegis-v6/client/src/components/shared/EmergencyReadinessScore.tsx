@@ -126,7 +126,7 @@ export default function EmergencyReadinessScore(): JSX.Element {
         </button>
       </div>
 
-      {/* Score overview — always visible */}
+      {/* Score overview -- always visible */}
       <div className="flex items-center gap-4">
         <ScoreRing score={score} />
         <div className="flex-1 min-w-0">

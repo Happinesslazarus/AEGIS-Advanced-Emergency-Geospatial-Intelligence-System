@@ -29,12 +29,12 @@ const router = Router()
 function zodToOpenApi(schema: z.ZodType): Record<string, unknown> {
   const jsonSchema = z.toJSONSchema(schema) as Record<string, unknown>
   delete jsonSchema.$schema
-  // OpenAPI 3.0 prefers no additionalProperties restriction in docs
+  //OpenAPI 3.0 prefers no additionalProperties restriction in docs
   delete jsonSchema.additionalProperties
   return jsonSchema
 }
 
-// Pre-generate schemas from Zod — these stay in sync with validation automatically
+//Pre-generate schemas from Zod -- these stay in sync with validation automatically
 const ReportBodySchema = zodToOpenApi(createReportSchema)
 const AlertBodySchema = zodToOpenApi(createAlertSchema)
 const ChatBodySchema = zodToOpenApi(chatMessageSchema)
@@ -361,7 +361,7 @@ const spec: object = {
       },
     },
 
-    // Two-Factor Authentication
+    //Two-Factor Authentication
     '/api/auth/2fa/status': {
       get: {
         tags: ['2FA'],
@@ -387,7 +387,7 @@ const spec: object = {
     '/api/auth/2fa/setup': {
       post: {
         tags: ['2FA'],
-        summary: 'Initiate 2FA setup — generates TOTP secret + QR code',
+        summary: 'Initiate 2FA setup -- generates TOTP secret + QR code',
         security: [{ bearerAuth: [] }],
         responses: {
           200: {
@@ -479,7 +479,7 @@ const spec: object = {
       },
     },
 
-    // Security
+    //Security
     '/api/security/devices': {
       get: {
         tags: ['Security'],
@@ -562,7 +562,7 @@ const spec: object = {
       },
     },
 
-    // Distress / SOS
+    //Distress / SOS
     '/api/distress/activate': {
       post: {
         tags: ['Distress'],
@@ -587,7 +587,7 @@ const spec: object = {
       },
     },
 
-    // Rivers
+    //Rivers
     '/api/rivers/levels': {
       get: {
         tags: ['Rivers'],
@@ -603,7 +603,7 @@ const spec: object = {
       },
     },
 
-    // Flood
+    //Flood
     '/api/flood/predict': {
       post: {
         tags: ['Flood'],
@@ -624,7 +624,7 @@ const spec: object = {
       },
     },
 
-    // Incidents (v1 API)
+    //Incidents (v1 API)
     '/api/v1/incidents/all/active': {
       get: {
         tags: ['Incidents'],
@@ -646,7 +646,7 @@ const spec: object = {
       },
     },
 
-    // Community
+    //Community
     '/api/community/posts': {
       get: {
         tags: ['Community'],
@@ -659,7 +659,7 @@ const spec: object = {
       },
     },
 
-    // AI Predictions
+    //AI Predictions
     '/api/ai/predict': {
       post: {
         tags: ['AI'],
@@ -684,7 +684,7 @@ const spec: object = {
       },
     },
 
-    // Auth (additional)
+    //Auth (additional)
     '/api/auth/register': {
       post: {
         tags: ['Auth'],
@@ -856,7 +856,7 @@ const spec: object = {
           },
         },
       },
-      // Auto-generated from Zod schemas (middleware/validate.ts)
+      //Auto-generated from Zod schemas (middleware/validate.ts)
       CreateReport: ReportBodySchema,
       CreateAlert: AlertBodySchema,
       ChatMessage: ChatBodySchema,
@@ -866,14 +866,14 @@ const spec: object = {
   },
 }
 
-// Serve Swagger UI
+//Serve Swagger UI
 router.use('/', swaggerUi.serve)
 router.get('/', swaggerUi.setup(spec, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'AEGIS API Documentation',
 }))
 
-// Serve raw OpenAPI JSON
+//Serve raw OpenAPI JSON
 router.get('/openapi.json', (_req: Request, res: Response) => {
   res.json(spec)
 })

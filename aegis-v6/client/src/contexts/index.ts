@@ -1,6 +1,6 @@
 /**
  * Barrel file that re-exports every context provider and its
- * associated hook (useAlerts, useAuth, useSocket, …) from the
+ * associated hook (useAlerts, useAuth, useSocket, ...) from the
  * contexts/ directory for cleaner imports.
  */
 

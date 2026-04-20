@@ -2,11 +2,11 @@
  * Record button component for adding voice-to-text to any AEGIS form field.
  *
  * Features:
- *  • Animated waveform indicator during recording (uses audioLevel from hook)
- *  • Real-time partial transcript display as server returns chunks
- *  • Detected hazard badge (e.g. "flood") auto-populated from transcription
- *  • Accessibility: keyboard-activatable, ARIA labels, screen reader announcements
- *  • Graceful degradation: shows plain message if browser lacks MediaRecorder
+ *  - Animated waveform indicator during recording (uses audioLevel from hook)
+ *  - Real-time partial transcript display as server returns chunks
+ *  - Detected hazard badge (e.g. "flood") auto-populated from transcription
+ *  - Accessibility: keyboard-activatable, ARIA labels, screen reader announcements
+ *  - Graceful degradation: shows plain message if browser lacks MediaRecorder
  *
  * Usage:
  *  <VoiceInputButton
@@ -14,7 +14,7 @@
  *    placeholder="Hold to record your incident description"
  *  />
  *
- *  - Uses useVoiceInput hook → WebSocket → voice_transcription.py
+ * - Uses useVoiceInput hook -> WebSocket -> voice_transcription.py
  *  - Hazard output feeds into the incident report classification pipeline
  *  - Positioned inside citizen/ReportIncidentForm.tsx and
  *    admin/IncidentDetailPanel.tsx
@@ -29,7 +29,7 @@ import {
 import { Mic, MicOff, Square, AlertTriangle, Volume2 } from 'lucide-react'
 import { useVoiceInput } from '../../hooks/useVoiceInput.js'
 
-// ─── Hazard badge colours ─────────────────────────────────────────────────────
+//Hazard badge colours
 
 const HAZARD_COLOURS: Record<string, string> = {
   flood:                    'bg-blue-100 text-blue-800',
@@ -45,7 +45,7 @@ const HAZARD_COLOURS: Record<string, string> = {
   environmental_hazard:     'bg-green-100 text-green-800',
 }
 
-// ─── Props ───────────────────────────────────────────────────────────────────
+//Props
 
 interface VoiceInputButtonProps {
   /** Called each time a new transcript chunk arrives */
@@ -63,10 +63,10 @@ interface VoiceInputButtonProps {
   disabled?:       boolean
 }
 
-// ─── Animated waveform bars ───────────────────────────────────────────────────
+//Animated waveform bars
 
 function WaveformBars({ level }: { level: number }): JSX.Element {
-  // 5 bars whose heights are driven by the audio level
+  //5 bars whose heights are driven by the audio level
   const heights = [
     Math.max(4, level * 0.6),
     Math.max(4, level * 1.0),
@@ -90,7 +90,7 @@ function WaveformBars({ level }: { level: number }): JSX.Element {
   )
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+//Component
 
 export function VoiceInputButton({
   onTranscript,
@@ -122,7 +122,7 @@ export function VoiceInputButton({
     clearTranscript,
   } = useVoiceInput(handleTranscript)
 
-  // Screen-reader live region announcements
+  //Screen-reader live region announcements
   const [announcement, setAnnouncement] = useState('')
 
   useEffect(() => {
@@ -214,7 +214,7 @@ export function VoiceInputButton({
       {isTranscribing && (
         <div className="flex items-center gap-1.5 text-sm text-gray-600" aria-live="polite">
           <Volume2 className="w-4 h-4 animate-spin text-blue-500" aria-hidden="true" />
-          <span>Transcribing…</span>
+          <span>Transcribing...</span>
         </div>
       )}
 

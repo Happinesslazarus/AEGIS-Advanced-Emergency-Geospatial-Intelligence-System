@@ -75,7 +75,7 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
     const radiusM = (radius_km || 5) * 1000
     const warnings: string[] = []
 
-    // Reports within radius
+    //Reports within radius
     let reportCount = 0
     let reports: any[] = []
     try {
@@ -94,7 +94,7 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
       reports = rows
     } catch (err) { addSpatialWarning(warnings, 'reports query failed', err) }
 
-    // Shelters within radius
+    //Shelters within radius
     let shelters: any[] = []
     try {
       const { rows } = await pool.query(
@@ -111,7 +111,7 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
       shelters = rows
     } catch (err) { addSpatialWarning(warnings, 'shelters query failed', err) }
 
-    // Active alerts in radius
+    //Active alerts in radius
     let alerts: any[] = []
     try {
       const { rows } = await pool.query(
@@ -123,7 +123,7 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
       alerts = rows
     } catch (err) { addSpatialWarning(warnings, 'alerts query failed', err) }
 
-    // Flood zones intersecting buffer
+    //Flood zones intersecting buffer
     let floodZones: any[] = []
     try {
       const { rows } = await pool.query(
@@ -151,9 +151,9 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
       warnings,
     }
 
-    // Cache the result for spatial queries (1 hour TTL)
+    //Cache the result for spatial queries (1 hour TTL)
     const key = buildCacheKey('spatial', ['buffer-analysis'], { lat, lng, radius_km })
-    // Note: We cache after computing since the query is already done
+    //Note: We cache after computing since the query is already done
     const { cacheSet } = await import('../services/cacheService.js')
     await cacheSet(key, responseData, CACHE_TTL.SPATIAL).catch(() => {})
 
@@ -229,7 +229,7 @@ router.post('/flood-risk', async (req: Request, res: Response, next: NextFunctio
 
     const key = buildCacheKey('spatial', ['flood-risk'], { lat, lng })
     const { data: result, meta } = await remember(key, CACHE_TTL.SPATIAL, async () => {
-    // Check if point is inside any flood zone polygon
+    //Check if point is inside any flood zone polygon
     let zones: any[] = []
     try {
       const { rows } = await pool.query(
@@ -242,7 +242,7 @@ router.post('/flood-risk', async (req: Request, res: Response, next: NextFunctio
       zones = rows
     } catch (err) { addSpatialWarning(warnings, 'flood zone containment query failed', err) }
 
-    // Also check nearby zones (within 2km)
+    //Also check nearby zones (within 2km)
     let nearbyZones: any[] = []
     if (zones.length === 0) {
       try {
@@ -259,7 +259,7 @@ router.post('/flood-risk', async (req: Request, res: Response, next: NextFunctio
       } catch (err) { addSpatialWarning(warnings, 'nearby flood zones query failed', err) }
     }
 
-    // Check recent predictions for this area
+    //Check recent predictions for this area
     let predictions: any[] = []
     try {
       const { rows } = await pool.query(
@@ -309,7 +309,7 @@ router.post('/density', async (req: Request, res: Response, next: NextFunction) 
     const cellSize = cell_size_km || 1
     const warnings: string[] = []
 
-    // If bounds provided, use them; otherwise use all reports
+    //If bounds provided, use them; otherwise use all reports
     let points: any[] = []
     try {
       const query = bounds
@@ -359,7 +359,7 @@ router.post('/area', async (req: Request, res: Response, next: NextFunction) => 
       throw AppError.badRequest('At least 3 [lat, lng] coordinates required')
     }
 
-    // Build PostGIS polygon from coordinates [lat, lng] -> WKT [lng lat]
+    //Build PostGIS polygon from coordinates [lat, lng] -> WKT [lng lat]
     const ring = [...coordinates, coordinates[0]] // close the ring
     const wktCoords = ring.map(c => `${c[1]} ${c[0]}`).join(', ')
     const wkt = `POLYGON((${wktCoords}))`

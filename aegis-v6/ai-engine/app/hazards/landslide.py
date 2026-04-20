@@ -9,7 +9,7 @@ polygon of the susceptible zone when spatial mode is enabled.
 """
 
 """
- AEGIS AI ENGINE — Landslide Prediction Module
+ AEGIS AI ENGINE -- Landslide Prediction Module
  Slope instability assessment using antecedent rainfall, soil saturation,
  elevation gradient, and vegetation coverage.
 """

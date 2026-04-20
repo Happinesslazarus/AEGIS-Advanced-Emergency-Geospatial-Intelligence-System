@@ -3,16 +3,16 @@
  * authenticated users.
  *
  * Sections rendered (top to bottom):
- *   Hero banner       — animated gradient with live clock, user greeting,
+ *   Hero banner       -- animated gradient with live clock, user greeting,
  *                       quick status pills, and primary CTAs.
- *   Live stat cards   — total/urgent/high/verified reports + active alerts,
+ *   Live stat cards   -- total/urgent/high/verified reports + active alerts,
  *                       each card navigates to the relevant tab.
- *   Safety check-in   — one-tap safe/help/unsure status with POST to server.
- *   Quick actions     — 8-button grid covering the most common user journeys.
- *   Personal insights — activity summary (messages, threads, check-ins, contacts)
+ *   Safety check-in   -- one-tap safe/help/unsure status with POST to server.
+ *   Quick actions     -- 8-button grid covering the most common user journeys.
+ *   Personal insights -- activity summary (messages, threads, check-ins, contacts)
  *                       and a 3-step "Preparedness Journey" guide.
- *   Recent threads    — last 3 message threads with unread badge, collapsed list.
- *   Emergency contacts — "Quick Dial" cards that open tel: links for the user's
+ *   Recent threads    -- last 3 message threads with unread badge, collapsed list.
+ *   Emergency contacts -- "Quick Dial" cards that open tel: links for the user's
  *                        saved emergency contacts.
  *
  * Animation model:
@@ -34,12 +34,12 @@ import {
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
-// STYLE_ID guards against injecting duplicate <style> tags on React hot
-// reloads or remounts.  The id is unique enough to avoid collisions with
-// other components.
+//STYLE_ID guards against injecting duplicate <style> tags on React hot
+//reloads or remounts.  The id is unique enough to avoid collisions with
+//other components.
 const STYLE_ID = 'citizen-welcome-animations'
 /**
- * injectAnimations — appends a <style> tag with all welcome-screen keyframes.
+ * injectAnimations -- appends a <style> tag with all welcome-screen keyframes.
  *
  * Called once on first mount.  The idempotency check means repeated mounts
  * (hot reload, tab switch) have no cost.  Using JS injection rather than a
@@ -110,8 +110,8 @@ export default function CitizenWelcome({
 
   useEffect(() => { injectAnimations(); setMounted(true) }, [])
 
-  // Live clock — updates every second; interval is cleared on unmount to
-  // prevent state updates on an unmounted component.
+  //Live clock -- updates every second; interval is cleared on unmount to
+  //prevent state updates on an unmounted component.
   useEffect(() => {
     const tick = () => {
       const now = new Date()
@@ -123,21 +123,21 @@ export default function CitizenWelcome({
     return () => clearInterval(iv)
   }, [])
 
-  // Time-of-day greeting: good morning (<12), afternoon (<17), evening (17+).
-  // GreetingIcon gives a matching visual cue (sunrise/sun/moon).
+  //Time-of-day greeting: good morning (<12), afternoon (<17), evening (17+).
+  //GreetingIcon gives a matching visual cue (sunrise/sun/moon).
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening'
   const GreetingIcon = hour < 12 ? Sunrise : hour < 17 ? Sun : Moon
 
-  // firstName: probe displayName, username, email prefix — in that priority order —
-  // so we always have something personalised to show in the greeting.
+  //firstName: probe displayName, username, email prefix -- in that priority order
+  //so we always have something personalised to show in the greeting.
   const firstName = useMemo(() => {
     const name = user?.displayName || user?.username || user?.email?.split('@')[0] || 'Citizen'
     return name.split(' ')[0]
   }, [user])
 
-  // stats: consolidate 9 derived values so every section reads from a single
-  // memoized object instead of re-deriving on each render.
+  //stats: consolidate 9 derived values so every section reads from a single
+  //memoized object instead of re-deriving on each render.
   const stats = useMemo(() => ({
     total: reportStats?.total ?? 0,
     urgent: reportStats?.urgent ?? 0,
@@ -150,8 +150,8 @@ export default function CitizenWelcome({
     activeThreads: threads?.filter((t: any) => t.status !== 'closed' && t.status !== 'resolved').length ?? 0,
   }), [reportStats, totalUnread, emergencyContacts, recentSafety, threads])
 
-  // safetyStatus: most recent check-in drives the status pill in the hero banner.
-  // recentSafety is sorted newest-first by the parent, so index 0 is current.
+  //safetyStatus: most recent check-in drives the status pill in the hero banner.
+  //recentSafety is sorted newest-first by the parent, so index 0 is current.
   const safetyStatus = useMemo(() => {
     if (!recentSafety?.length) return null
     return recentSafety[0]?.status as string | null
@@ -159,14 +159,14 @@ export default function CitizenWelcome({
 
   if (!mounted) return null
 
-  // delay: memoization-free helper for staggered enter animations.
-  // Each section index i delays by 100ms so the dashboard cascades into view.
+  //delay: memoization-free helper for staggered enter animations.
+  //Each section index i delays by 100ms so the dashboard cascades into view.
   const delay = (i: number) => ({ animationDelay: `${i * 100}ms` })
 
   return (
     <div className="max-w-5xl mx-auto space-y-5 pb-8">
 
-      {/* HERO — Animated Welcome Banner */}
+      {/* HERO -- Animated Welcome Banner */}
       <div
         ref={heroRef}
         className="cw-fade-up relative overflow-hidden rounded-3xl shadow-2xl"
@@ -311,7 +311,7 @@ export default function CitizenWelcome({
         <div className="h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent cw-shimmer" />
       </div>
 
-      {/* LIVE STATS — Animated Counter Cards */}
+      {/* LIVE STATS -- Animated Counter Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
         {[
           { label: 'Total Reports',  value: stats.total,    icon: FileText,      gradient: 'from-blue-500 to-blue-700',     bg: 'bg-blue-50 dark:bg-blue-950/40',     border: 'border-blue-200 dark:border-blue-800/60',     num: 'text-blue-700 dark:text-blue-300',   lbl: 'text-blue-600 dark:text-blue-400', tap: () => setActiveTab('reports') },
@@ -383,7 +383,7 @@ export default function CitizenWelcome({
         )}
       </div>
 
-      {/* QUICK ACTIONS — Interactive Action Grid */}
+      {/* QUICK ACTIONS -- Interactive Action Grid */}
       <div className="cw-fade-up" style={delay(10)}>
         <div className="glass-card rounded-2xl overflow-hidden">
           {/* Section header */}
@@ -427,7 +427,7 @@ export default function CitizenWelcome({
         </div>
       </div>
 
-      {/* PERSONAL INSIGHTS — Two Column Layout */}
+      {/* PERSONAL INSIGHTS -- Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 cw-fade-up" style={delay(11)}>
         {/* Left - Your Activity */}
         <div className="lg:col-span-2 glass-card rounded-2xl p-4">
@@ -550,7 +550,7 @@ export default function CitizenWelcome({
 }
 
 /**
- * AnimatedCounter — smoothly transitions the displayed number from its
+ * AnimatedCounter -- smoothly transitions the displayed number from its
  * previous value to the new `value` using an ease-out cubic curve.
  *
  * `prev` ref tracks the last rendered value so subsequent updates (e.g. poll

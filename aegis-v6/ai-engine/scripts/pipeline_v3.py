@@ -393,7 +393,7 @@ def run_pipeline(skip_gemma=False):
     delta = accuracy - clip_accuracy
 
     print(f"\n{'='*70}")
-    print(f"  RESULTS — {layers}")
+    print(f"  RESULTS -- {layers}")
     print(f"{'='*70}")
     print(f"  Pipeline Accuracy:  {correct}/{scored} = {accuracy:.1%}")
     print(f"  CLIP-only Accuracy: {clip_only_correct}/{scored} = {clip_accuracy:.1%}")

@@ -74,7 +74,7 @@ export default function AdminLayout({
         badges={badges}
       />
 
-      {/* Main content area — shifts right for the sidebar */}
+      {/* Main content area -- shifts right for the sidebar */}
       <main
         id="main-content"
         className={`pt-24 min-h-screen transition-all duration-300

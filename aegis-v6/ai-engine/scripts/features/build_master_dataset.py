@@ -8,13 +8,13 @@ Also computes the two derived features that GEE cannot provide directly:
     climate classification (tropical/arid/temperate/continental/polar)
 
 Glossary:
-  Parquet       = columnar binary file format — far faster to read/write than
+  Parquet       = columnar binary file format -- far faster to read/write than
                   CSV for large numeric datasets; preserves dtypes exactly
   climatology   = the statistical "average" state of the climate for a given
                   calendar period (e.g. mean January temperature over 30 years)
   seasonal anomaly = (observed value) − (climatological mean for that day of
-                  year) — tells you how unusual today's reading is historically
-  day-of-year   = the Julian day number, 1–366; used to group observations
+                  year) -- tells you how unusual today's reading is historically
+  day-of-year   = the Julian day number, 1-366; used to group observations
                   from the same calendar day across different years
   Köppen-Geiger = the most widely used global climate classification system;
                   divides the world into 5 main zones (A-E) by temperature and
@@ -23,9 +23,9 @@ Glossary:
   schema        = the agreed list of 28 AEGIS feature columns every row must
                   have (defined in the AEGIS spec)
 
-  Input  ← data/raw/gee/chunk_NNNN.parquet  (from gee_extractor.py)
-  Output → data/processed/master_features_uk_2000_2024.parquet  (gold source)
-  Used by← ai-engine/training/train_flood_v2.py and all other hazard trains
+  Input  <- data/raw/gee/chunk_NNNN.parquet  (from gee_extractor.py)
+  Output -> data/processed/master_features_uk_2000_2024.parquet  (gold source)
+  Used by<- ai-engine/training/train_flood_v2.py and all other hazard trains
 
 Usage:
   python scripts/features/build_master_dataset.py
@@ -39,9 +39,7 @@ import argparse
 import sys
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
 # Imports
-# ---------------------------------------------------------------------------
 try:
     import numpy  as np
     import pandas as pd
@@ -53,10 +51,8 @@ _AI_ROOT   = Path(__file__).resolve().parents[2]
 _RAW_DIR   = _AI_ROOT / "data" / "raw" / "gee"
 _PROC_DIR  = _AI_ROOT / "data" / "processed"
 
-# ---------------------------------------------------------------------------
 # The 28 AEGIS schema feature columns
 # Any row missing one of these will be flagged or dropped before training.
-# ---------------------------------------------------------------------------
 SCHEMA_COLUMNS: list[str] = [
     # Static features (do not change over time)
     "lat", "lon", "elevation", "basin_slope", "catchment_area",
@@ -73,14 +69,12 @@ SCHEMA_COLUMNS: list[str] = [
     "date",
 ]
 
-# ---------------------------------------------------------------------------
 # Köppen-Geiger climate zone encodings for UK grid cells
 # UK is predominantly Cfb (Temperate oceanic) = zone 3
 # Northern Scotland/uplands: Cfc (subpolar oceanic) = zone 3 still
 # We use a simple latitude-based lookup as a first approximation.
 # For production, load a raster from:
 #   https://figshare.com/articles/dataset/Present_and_future_K_ppen-Geiger_climate_classification_maps_at_1-km_resolution/6396959
-# ---------------------------------------------------------------------------
 KOPPEN_ENCODING = {
     "Af":  1,  # Tropical rainforest
     "Am":  2,  # Tropical monsoon
@@ -94,8 +88,8 @@ KOPPEN_ENCODING = {
     "Cwa": 10, # Subtropical monsoon
     "Cwb": 11, # Subtropical highland oceanic
     "Cfa": 12, # Humid subtropical
-    "Cfb": 13, # Temperate oceanic   ← most of the UK
-    "Cfc": 14, # Subpolar oceanic    ← Northern Scotland
+    "Cfb": 13, # Temperate oceanic   <- most of the UK
+    "Cfc": 14, # Subpolar oceanic    <- Northern Scotland
     "Dsa": 15, # Hot continental Mediterranean
     "Dsb": 16, # Warm continental Mediterranean
     "Dsc": 17, # Subpolar Mediterranean
@@ -111,22 +105,20 @@ KOPPEN_ENCODING = {
 def assign_koppen_uk(lat: float, lon: float) -> int:
     """
     Approximate Köppen-Geiger zone for a UK point using latitude thresholds.
-    This is a placeholder — replace with a proper raster lookup for pub-quality
+    This is a placeholder -- replace with a proper raster lookup for pub-quality
     results (see dataset URL in module docstring above).
 
     Thresholds:
-      lat > 58°N  → Cfc (subpolar oceanic — Northern Highlands)
-      lat > 55°N  → Cfb (temperate oceanic — Scotland/Northern England)
-      else        → Cfb (temperate oceanic — England/Wales)
+      lat > 58°N  -> Cfc (subpolar oceanic -- Northern Highlands)
+      lat > 55°N  -> Cfb (temperate oceanic -- Scotland/Northern England)
+      else        -> Cfb (temperate oceanic -- England/Wales)
     """
     if lat > 58.0:
         return KOPPEN_ENCODING["Cfc"]
     return KOPPEN_ENCODING["Cfb"]
 
 
-# ---------------------------------------------------------------------------
-# Step 1 — load and concatenate all Parquet chunks
-# ---------------------------------------------------------------------------
+# Step 1 -- load and concatenate all Parquet chunks
 
 def load_chunks(raw_dir: Path) -> pd.DataFrame:
     """
@@ -139,7 +131,7 @@ def load_chunks(raw_dir: Path) -> pd.DataFrame:
             f"No chunk files found in {raw_dir}. "
             "Run gee_extractor.py first."
         )
-    print(f"  Loading {len(chunk_files)} chunk files …")
+    print(f"  Loading {len(chunk_files)} chunk files ...")
 
     frames: list[pd.DataFrame] = []
     for f in tqdm(chunk_files, unit="chunk", desc="Reading chunks"):
@@ -154,14 +146,12 @@ def load_chunks(raw_dir: Path) -> pd.DataFrame:
     if df.duplicated(subset=["lat", "lon", "date"]).any():
         before = len(df)
         df = df.drop_duplicates(subset=["lat", "lon", "date"], keep="first")
-        print(f"  Deduplicated {before - len(df):,} rows → {len(df):,} rows")
+        print(f"  Deduplicated {before - len(df):,} rows -> {len(df):,} rows")
 
     return df
 
 
-# ---------------------------------------------------------------------------
-# Step 2 — compute seasonal anomaly
-# ---------------------------------------------------------------------------
+# Step 2 -- compute seasonal anomaly
 
 def compute_seasonal_anomaly(df: pd.DataFrame, feature: str = "temperature") -> pd.DataFrame:
     """
@@ -171,7 +161,7 @@ def compute_seasonal_anomaly(df: pd.DataFrame, feature: str = "temperature") -> 
                               over all years, for the same spatial cell)
 
     This captures how anomalous today's reading is relative to the multi-decade
-    climatological average for that calendar day — the classic "anomaly" used
+    climatological average for that calendar day -- the classic "anomaly" used
     in meteorology and climate science.
 
     For AEGIS we use temperature as the primary anomaly feature because it's
@@ -213,16 +203,14 @@ def compute_rainfall_anomaly(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ---------------------------------------------------------------------------
-# Step 3 — compute basin_slope from elevation (cheap SRTM-based approximation)
-# ---------------------------------------------------------------------------
+# Step 3 -- compute basin_slope from elevation (cheap SRTM-based approximation)
 
 def compute_basin_slope(df: pd.DataFrame) -> pd.DataFrame:
     """
     Compute basin_slope as the standard deviation of elevation within a spatial
     neighbourhood (proxy for terrain slope when actual slope raster is absent).
 
-    True slope requires a DEM raster with gradient calculation — do that in
+    True slope requires a DEM raster with gradient calculation -- do that in
     GEE for high accuracy.  This function provides a working approximation
     so the schema isn't missing the column.
     """
@@ -239,9 +227,7 @@ def compute_basin_slope(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ---------------------------------------------------------------------------
-# Step 4 — assign Köppen-Geiger zone and ENSO index
-# ---------------------------------------------------------------------------
+# Step 4 -- assign Köppen-Geiger zone and ENSO index
 
 def add_climate_zone(df: pd.DataFrame) -> pd.DataFrame:
     """Assign Köppen-Geiger zone integer code to every row."""
@@ -255,7 +241,7 @@ def add_enso_index(df: pd.DataFrame) -> pd.DataFrame:
     """
     Add the monthly ENSO (El Niño-Southern Oscillation) index.
 
-    Downloads the Oceanic Niño Index (ONI) — the operational ENSO indicator
+    Downloads the Oceanic Niño Index (ONI) -- the operational ENSO indicator
     from NOAA CPC.  Positive ONI = El Niño (warmer, drier UK winters),
     negative = La Niña (cooler, wetter).  The index is a 3-month running
     mean of SST anomalies in the Niño-3.4 region.
@@ -280,14 +266,14 @@ def add_enso_index(df: pd.DataFrame) -> pd.DataFrame:
     else:
         try:
             import urllib.request
-            print("    Downloading ONI from NOAA CPC …")
+            print("    Downloading ONI from NOAA CPC ...")
             raw_text, _ = urllib.request.urlretrieve(oni_url)
             oni_df = pd.read_csv(
                 raw_text, sep=r"\s+",
                 names=["season", "year", "total", "anom"],
                 skiprows=1,
             )
-            # 'season' is like "DJF", "JFM", … — map to centre month
+            # 'season' is like "DJF", "JFM", ... -- map to centre month
             season_to_month = {
                 "DJF": 1, "JFM": 2, "FMA": 3, "MAM": 4,
                 "AMJ": 5, "MJJ": 6, "JJA": 7, "JAS": 8,
@@ -299,7 +285,7 @@ def add_enso_index(df: pd.DataFrame) -> pd.DataFrame:
             oni_df = oni_df[["year", "month", "anom"]].rename(columns={"anom": "enso_index"})
             oni_cache.parent.mkdir(parents=True, exist_ok=True)
             oni_df.to_csv(str(oni_cache), index=False)
-            print(f"    Cached ONI → {oni_cache} ({len(oni_df)} records)")
+            print(f"    Cached ONI -> {oni_cache} ({len(oni_df)} records)")
         except Exception as exc:
             print(f"    Could not download ONI: {exc}. Using neutral (0.0).")
 
@@ -326,16 +312,14 @@ def add_enso_index(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ---------------------------------------------------------------------------
-# Step 5 — fill missing schema columns with sensible defaults
-# ---------------------------------------------------------------------------
+# Step 5 -- fill missing schema columns with sensible defaults
 
 SCHEMA_DEFAULTS: dict[str, float | int] = {
-    "catchment_area":          0.0,    # km² — filled from HydroSHEDS if available
-    "drainage_density":        0.0,    # km/km² — filled from HydroSHEDS
-    "impervious_surface_ratio": 0.0,   # 0-1 fraction — from ESA WorldCover
-    "vegetation_class_encoded": 0,     # integer code — from ESA WorldCover
-    "permeability_index":       0.5,   # 0-1 — from SoilGrids; 0.5 = neutral
+    "catchment_area":          0.0,    # km² -- filled from HydroSHEDS if available
+    "drainage_density":        0.0,    # km/km² -- filled from HydroSHEDS
+    "impervious_surface_ratio": 0.0,   # 0-1 fraction -- from ESA WorldCover
+    "vegetation_class_encoded": 0,     # integer code -- from ESA WorldCover
+    "permeability_index":       0.5,   # 0-1 -- from SoilGrids; 0.5 = neutral
     "river_level":              np.nan, # filled from SEPA/EA gauge joins later
 }
 
@@ -347,9 +331,7 @@ def fill_missing_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ---------------------------------------------------------------------------
-# Step 6 — validate row completeness
-# ---------------------------------------------------------------------------
+# Step 6 -- validate row completeness
 
 def validate_schema(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -377,48 +359,44 @@ def validate_schema(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ---------------------------------------------------------------------------
 # Orchestrator
-# ---------------------------------------------------------------------------
 
 def build(raw_dir: Path, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    print("[1/7] Loading GEE chunks …")
+    print("[1/7] Loading GEE chunks ...")
     df = load_chunks(raw_dir)
 
-    print("[2/7] Computing seasonal anomaly …")
+    print("[2/7] Computing seasonal anomaly ...")
     df = compute_seasonal_anomaly(df)
 
-    print("[3/7] Computing long-term rainfall anomaly …")
+    print("[3/7] Computing long-term rainfall anomaly ...")
     df = compute_rainfall_anomaly(df)
 
-    print("[4/7] Computing basin slope proxy …")
+    print("[4/7] Computing basin slope proxy ...")
     df = compute_basin_slope(df)
 
-    print("[5/7] Assigning climate zone and ENSO index …")
+    print("[5/7] Assigning climate zone and ENSO index ...")
     df = add_climate_zone(df)
     df = add_enso_index(df)
 
-    print("[6/7] Filling missing schema columns …")
+    print("[6/7] Filling missing schema columns ...")
     df = fill_missing_columns(df)
 
-    print("[7/7] Validating schema and saving …")
+    print("[7/7] Validating schema and saving ...")
     df = validate_schema(df)
 
     # Ensure date column is a proper string for consistent downstream joining
     df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
 
     df.to_parquet(str(output_path), index=False, compression="snappy")
-    print(f"\n  Saved → {output_path}")
+    print(f"\n  Saved -> {output_path}")
     print(f"  Shape: {df.shape[0]:,} rows × {df.shape[1]} columns")
-    print(f"  Date range: {df['date'].min()} → {df['date'].max()}")
+    print(f"  Date range: {df['date'].min()} -> {df['date'].max()}")
     print(f"  Unique locations: {df.groupby(['lat','lon']).ngroups:,}")
 
 
-# ---------------------------------------------------------------------------
 # CLI
-# ---------------------------------------------------------------------------
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Build master AEGIS feature dataset from GEE chunks")

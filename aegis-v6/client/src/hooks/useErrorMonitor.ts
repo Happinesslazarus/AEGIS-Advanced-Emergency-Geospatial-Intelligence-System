@@ -13,27 +13,27 @@ interface ErrorMonitorOptions {
 }
 
 export function useErrorMonitor(options?: ErrorMonitorOptions) {
-  // Stable ref pattern: storing options in a ref prevents us from needing to
-  // re-register the event listeners every time the caller's component re-renders
-  // with different option objects.  The listeners always read the *current*
-  // options value without being recreated.
+  //Stable ref pattern: storing options in a ref prevents us from needing to
+  //re-register the event listeners every time the caller's component re-renders
+  //with different option objects.  The listeners always read the *current*
+  //options value without being recreated.
   const optionsRef = useRef(options)
   optionsRef.current = options
 
   useEffect(() => {
-    // unhandledrejection fires when a Promise rejects with no .catch() handler.
-    // Common sources: forgotten await calls, network errors in background fetches.
+    //unhandledrejection fires when a Promise rejects with no .catch() handler.
+    //Common sources: forgotten await calls, network errors in background fetches.
     function handleRejection(e: PromiseRejectionEvent) {
       const reason = e.reason
       const message =
         reason instanceof Error ? reason.message : String(reason || 'Unhandled promise rejection')
 
-      // Sentry.withScope: temporarily adds extra context tags to the next
-      // captured event without affecting all other events.
+      //Sentry.withScope: temporarily adds extra context tags to the next
+      //captured event without affecting all other events.
       Sentry.withScope(scope => {
         scope.setTag('error_type', 'unhandled_rejection')
         scope.setTag('route', window.location.pathname)
-        // setContext attaches a named metadata block visible in the Sentry UI.
+        //setContext attaches a named metadata block visible in the Sentry UI.
         scope.setContext('rejection', {
           href: window.location.href,
           online: navigator.onLine,  // was the device connected when it crashed?
@@ -50,10 +50,10 @@ export function useErrorMonitor(options?: ErrorMonitorOptions) {
     }
 
     // 'error' event fires for synchronous runtime errors and resource-load
-    // failures (e.g. a <script> tag 404).
+    //failures (e.g. a <script> tag 404).
     function handleError(e: ErrorEvent) {
-      // __sentryHandled: flag set by the React error boundary Sentry integration.
-      // Skipping here prevents the same error from being reported twice.
+      //sentryHandled: flag set by the React error boundary Sentry integration.
+      //Skipping here prevents the same error from being reported twice.
       if (e.error && e.error.__sentryHandled) return
 
       Sentry.withScope(scope => {
@@ -79,8 +79,8 @@ export function useErrorMonitor(options?: ErrorMonitorOptions) {
     window.addEventListener('unhandledrejection', handleRejection)
     window.addEventListener('error', handleError)
 
-    // Cleanup: remove listeners when the component using this hook unmounts,
-    // so we don’t accumulate duplicate listeners across hot-reloads in dev mode.
+    //Cleanup: remove listeners when the component using this hook unmounts,
+    //so we don't accumulate duplicate listeners across hot-reloads in dev mode.
     return () => {
       window.removeEventListener('unhandledrejection', handleRejection)
       window.removeEventListener('error', handleError)

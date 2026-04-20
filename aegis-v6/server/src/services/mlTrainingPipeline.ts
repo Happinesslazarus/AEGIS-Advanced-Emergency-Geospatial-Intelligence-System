@@ -1,5 +1,5 @@
 ﻿/**
- * ML model retraining entry point — reads historical fusion data from
+ * ML model retraining entry point -- reads historical fusion data from
  * PostgreSQL, calls the Python AI Engine via aiClient to retrain, and
  * stores metrics (accuracy, F1, AUC) back for admin dashboards.
  *
@@ -12,7 +12,7 @@ import pool from '../models/db.js'
 import { aiClient } from './aiClient.js'
 import { logger } from './logger.js'
 
-// Shared types used by the SQL-based trainers and the Python AI engine.
+//Shared types used by the SQL-based trainers and the Python AI engine.
 
 interface TrainingResult {
   modelName: string
@@ -44,13 +44,13 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unexpected training error'
 }
 
-// Learns fusion weights from past outcomes so the scoring layer can adapt over time.
+//Learns fusion weights from past outcomes so the scoring layer can adapt over time.
 
 export async function trainFusionWeights(): Promise<TrainingResult> {
   const start = Date.now()
 
   try {
-    // Get historical fusion computations and their outcomes
+    //Get historical fusion computations and their outcomes
     const { rows } = await pool.query(`
       SELECT fc.fused_probability, fc.feature_weights, fc.fused_confidence,
              fc.water_level_input, fc.rainfall_input, fc.gauge_delta_input,
@@ -65,11 +65,11 @@ export async function trainFusionWeights(): Promise<TrainingResult> {
     `)
 
     if (rows.length < 50) {
-      // Fall back to report correlations until we have enough historical fusion runs.
+      //Fall back to report correlations until we have enough historical fusion runs.
       return await computeWeightsFromReportCorrelations()
     }
 
-    // Parse feature contributions and correlate with outcomes
+    //Parse feature contributions and correlate with outcomes
     const severityToScore: Record<string, number> = {
       'low': 0.15, 'medium': 0.45, 'high': 0.75, 'critical': 0.95,
     }
@@ -80,7 +80,7 @@ export async function trainFusionWeights(): Promise<TrainingResult> {
       'seasonal', 'urban_density',
     ]
 
-    // Simple correlation-based weight learning
+    //Simple correlation-based weight learning
     const correlations: Record<string, number> = {}
     for (const name of featureNames) {
       correlations[name] = 0
@@ -92,7 +92,7 @@ export async function trainFusionWeights(): Promise<TrainingResult> {
       const target = severityToScore[row.outcome_severity] || 0.5
       validRows++
 
-      // Parse JSON feature inputs and correlate
+      //Parse JSON feature inputs and correlate
       for (const name of featureNames) {
         try {
           const inputKey = name.replace('_24h', '') + '_input'
@@ -103,7 +103,7 @@ export async function trainFusionWeights(): Promise<TrainingResult> {
             correlations[name] += normalised * target
           }
         } catch {
-          // Ignore malformed feature blobs so one bad record does not stop training.
+          //Ignore malformed feature blobs so one bad record does not stop training.
         }
       }
     }
@@ -112,14 +112,14 @@ export async function trainFusionWeights(): Promise<TrainingResult> {
       return await computeWeightsFromReportCorrelations()
     }
 
-    // Normalize to a 0..1 weight set before saving the result.
+    //Normalize to a 0..1 weight set before saving the result.
     const total = Object.values(correlations).reduce((a, b) => a + Math.abs(b), 0)
     const learnedWeights: Record<string, number> = {}
     for (const [name, corr] of Object.entries(correlations)) {
       learnedWeights[name] = total > 0 ? Math.abs(corr) / total : 1 / featureNames.length
     }
 
-    // Save the weights so the runtime scoring layer can reuse them.
+    //Save the weights so the runtime scoring layer can reuse them.
     const version = `fusion-weights-v${new Date().toISOString().slice(0, 10)}`
     await pool.query(`
       INSERT INTO ai_model_metrics
@@ -155,12 +155,12 @@ export async function trainFusionWeights(): Promise<TrainingResult> {
   }
 }
 
-// Uses report-to-weather correlations when we do not have enough fusion history yet.
+//Uses report-to-weather correlations when we do not have enough fusion history yet.
 async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
   const start = Date.now()
 
   try {
-    // Correlate report severity with weather conditions at report time/location
+    //Correlate report severity with weather conditions at report time/location
     const { rows } = await pool.query(`
       SELECT
         r.severity,
@@ -186,7 +186,7 @@ async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
     }
 
     if (rows.length < 20) {
-      // Keep a sensible fallback so the system can still score reports in low-data environments.
+      //Keep a sensible fallback so the system can still score reports in low-data environments.
       return {
         modelName: 'fusion_weight_optimizer',
         version: 'evidence-based-default',
@@ -206,7 +206,7 @@ async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
       }
     }
 
-    // Rainfall and humidity are the strongest signals in the fallback model.
+    //Rainfall and humidity are the strongest signals in the fallback model.
     let rainfallCorr = 0
     let humidCorr = 0
     for (const row of rows) {
@@ -215,7 +215,7 @@ async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
       humidCorr += (row.humidity_percent || 70) / 100 * target
     }
 
-    // Derive weights (rainfall is most important for floods)
+    //Derive weights (rainfall is most important for floods)
     const rawWeights = {
       water_level: 0.18,
       rainfall_24h: Math.min(0.25, 0.10 + rainfallCorr / (rows.length * 10)),
@@ -229,7 +229,7 @@ async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
       urban_density: 0.04,
     }
 
-    // Normalize before persisting so downstream consumers always get comparable weights.
+    //Normalize before persisting so downstream consumers always get comparable weights.
     const total = Object.values(rawWeights).reduce((a, b) => a + b, 0)
     const weights: Record<string, number> = {}
     for (const [k, v] of Object.entries(rawWeights)) {
@@ -268,18 +268,18 @@ async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
   }
 }
 
-// Tries the Python model first, then falls back to a lightweight SQL heuristic.
+//Tries the Python model first, then falls back to a lightweight SQL heuristic.
 
 export async function trainFakeDetector(): Promise<TrainingResult> {
   const start = Date.now()
 
   try {
-    // Prefer the Python trainer because it has the full feature pipeline.
+    //Prefer the Python trainer because it has the full feature pipeline.
     let pyTrainResult: PythonTrainingResponse | null = null
     try {
       pyTrainResult = await aiClient.triggerRetrain('fake_detector', 'all') as PythonTrainingResponse
     } catch {
-      // The SQL fallback keeps training available when the AI engine is offline.
+      //The SQL fallback keeps training available when the AI engine is offline.
     }
 
     if (pyTrainResult?.accuracy) {
@@ -298,7 +298,7 @@ export async function trainFakeDetector(): Promise<TrainingResult> {
       }
     }
 
-    // Fall back to a heuristic pass so admins still get useful training metadata.
+    //Fall back to a heuristic pass so admins still get useful training metadata.
     const { rows } = await pool.query(`
       SELECT
         r.id, r.incident_category, r.description, r.severity, r.ai_confidence,
@@ -311,7 +311,7 @@ export async function trainFakeDetector(): Promise<TrainingResult> {
       LIMIT 5000
     `)
 
-    // Record the fallback run so the admin dashboard still shows training activity.
+    //Record the fallback run so the admin dashboard still shows training activity.
     await pool.query(`
       INSERT INTO ai_model_metrics
         (model_name, model_version, metric_name, metric_value, dataset_size)
@@ -341,13 +341,13 @@ export async function trainFakeDetector(): Promise<TrainingResult> {
   }
 }
 
-// Estimates flood damage ranges from archived impact data.
+//Estimates flood damage ranges from archived impact data.
 
 export async function trainDamageCostModel(): Promise<TrainingResult> {
   const start = Date.now()
 
   try {
-    // Get flood archives with damage data for regression
+    //Get flood archives with damage data for regression
     const { rows } = await pool.query(`
       SELECT severity, affected_people, damage_gbp, affected_area_km2, region
       FROM flood_archives
@@ -369,7 +369,7 @@ export async function trainDamageCostModel(): Promise<TrainingResult> {
       'low': 1, 'medium': 2, 'high': 3, 'critical': 4,
     }
 
-    // Group by severity so we can build a stable baseline from sparse historical records.
+    //Group by severity so we can build a stable baseline from sparse historical records.
     const severityAvgDamage: Record<string, { total: number; count: number }> = {}
     for (const row of rows) {
       const sev = row.severity || 'medium'
@@ -384,7 +384,7 @@ export async function trainDamageCostModel(): Promise<TrainingResult> {
       avgByLevel[sev] = data.total / data.count
     }
 
-    // This rough ratio gives downstream services a human-readable fallback estimate.
+    //This rough ratio gives downstream services a human-readable fallback estimate.
     const withPeople = rows.filter(r => r.affected_people && r.affected_people > 0)
     const damagePerPerson = withPeople.length > 0
       ? withPeople.reduce((s, r) => s + r.damage_gbp / r.affected_people, 0) / withPeople.length
@@ -392,7 +392,7 @@ export async function trainDamageCostModel(): Promise<TrainingResult> {
 
     const version = `regression-v2-${new Date().toISOString().slice(0, 10)}`
 
-    // Save the learned parameters so later requests can explain where the estimate came from.
+    //Save the learned parameters so later requests can explain where the estimate came from.
     await pool.query(`
       INSERT INTO ai_model_metrics
         (model_name, model_version, metric_name, metric_value, dataset_size, metadata)
@@ -429,7 +429,7 @@ export async function trainDamageCostModel(): Promise<TrainingResult> {
   }
 }
 
-// Runs the local trainers first, then asks the Python service to retrain its models.
+//Runs the local trainers first, then asks the Python service to retrain its models.
 
 export async function trainAllModels(): Promise<{
   results: TrainingResult[]
@@ -445,7 +445,7 @@ export async function trainAllModels(): Promise<{
 
   const results: TrainingResult[] = []
 
-  // Train sequentially so the logs stay readable and database load stays predictable.
+  //Train sequentially so the logs stay readable and database load stays predictable.
   const trainers = [
     { name: 'Fusion Weight Optimizer', fn: trainFusionWeights },
     { name: 'Fake Report Detector', fn: trainFakeDetector },
@@ -459,7 +459,7 @@ export async function trainAllModels(): Promise<{
     logger.info({ model: trainer.name, status: result.status, trainingRows: result.trainingRows, durationMs: result.trainingTimeMs }, `[Training] ${trainer.name} complete`)
   }
 
-  // Trigger the Python retraining step after the local trainers finish.
+  //Trigger the Python retraining step after the local trainers finish.
   logger.info('[Training] Triggering Python AI Engine training...')
   try {
     const pyResult = await aiClient.triggerRetrain('all', 'global') as PythonTrainingResponse | null

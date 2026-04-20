@@ -21,9 +21,9 @@ test.describe('Citizen Auth', () => {
     const submitBtn = page.locator('button[type="submit"]').first()
     if (await submitBtn.isVisible()) {
       await submitBtn.click()
-      // Should show an error or required field indicator
+      //Should show an error or required field indicator
       await page.waitForTimeout(500)
-      // No full crash
+      //No full crash
       await expect(page.locator('body')).toBeVisible()
     }
   })

@@ -13,14 +13,14 @@
  *   Records.  All section data lives in the SECTIONS factory so i18n labels are
  *   evaluated at render time rather than at module load.
  * - Clicking any item calls onNavigate(key) which updates the parent's activeView
- *   state.  The sidebar itself is purely presentational — it does not own routing.
+ *   state.  The sidebar itself is purely presentational -- it does not own routing.
  *
  * Access control:
  * - Items flagged adminOnly are only included when isAdmin=true (spread-in
  *   conditionally inside SECTIONS).  Non-admin operators never see those entries.
  *
  * Badges:
- * - The parent passes a badges record (key → count).  Non-zero badges render a
+ * - The parent passes a badges record (key -> count). Non-zero badges render a
  *   pulsing red pill on the nav item; in collapsed mode the pill shifts to an
  *   absolute corner position so it stays visible on the icon rail.
  *
@@ -45,17 +45,17 @@ export interface AdminSidebarItem {
 }
 
 /**
- * SECTIONS — factory function, not a constant.
+ * SECTIONS -- factory function, not a constant.
  *
  * Returns the full nav structure every render so that t() calls pick up the
  * current language context.  Defining it as a plain constant would freeze the
  * labels at module-load time and break runtime language switching.
  *
  * Four groups:
- *   Operations  — day-to-day incident management (dashboard, reports, map, alert, console)
- *   Intelligence — AI / analytics views (analytics, AI models, crowd density, system health)
- *   Management  — resource deployment, user directory (admin-only), community posts
- *   Records     — incident history, audit log, delivery queue, security (admin-only)
+ *   Operations  -- day-to-day incident management (dashboard, reports, map, alert, console)
+ *   Intelligence -- AI / analytics views (analytics, AI models, crowd density, system health)
+ *   Management  -- resource deployment, user directory (admin-only), community posts
+ *   Records     -- incident history, audit log, delivery queue, security (admin-only)
  *
  * @param lang    BCP-47 language code forwarded to t()
  * @param isAdmin Whether the current user holds the full admin role (vs operator)
@@ -94,7 +94,7 @@ const SECTIONS = (lang: string, isAdmin: boolean): { title: string; items: Admin
       { key: 'history',      label: t('admin.history', lang),     icon: History,       color: 'text-amber-500' },
       { key: 'audit',        label: t('admin.audit', lang),       icon: Clock,         color: 'text-gray-400 dark:text-gray-300' },
       { key: 'delivery',     label: 'Delivery',                   icon: Archive,       color: 'text-slate-500' },
-      // Security audit view is admin-only — spread returns [] for operators so the item is never rendered
+      //Security audit view is admin-only -- spread returns [] for operators so the item is never rendered
       ...(isAdmin ? [{ key: 'security', label: 'Security', icon: ShieldCheck, adminOnly: true, color: 'text-red-400' } as AdminSidebarItem] : []),
     ],
   },
@@ -118,19 +118,19 @@ export default function AdminSidebar({
   const lang = useLanguage()
   const sections = SECTIONS(lang, isAdmin)
 
-  // Close the mobile overlay as a side-effect of navigation so the content
-  // panel is immediately visible after the user taps an item.
+  //Close the mobile overlay as a side-effect of navigation so the content
+  //panel is immediately visible after the user taps an item.
   const handleClick = (key: string) => {
     onNavigate(key)
     setMobileOpen(false)
   }
 
-  // Extract sidebar markup to a variable so the exact same JSX tree is reused
-  // for both the desktop <aside> and the mobile overlay — avoids duplication and
-  // ensures both layouts always stay in sync.
+  //Extract sidebar markup to a variable so the exact same JSX tree is reused
+  //for both the desktop <aside> and the mobile overlay -- avoids duplication and
+  //ensures both layouts always stay in sync.
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      {/* Collapse toggle — desktop only */}
+      {/* Collapse toggle -- desktop only */}
       <div className="hidden lg:flex items-center justify-end px-2 py-2">
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -188,7 +188,7 @@ export default function AdminSidebar({
                       </span>
                     )}
 
-                    {/* Badge — shown inline in expanded mode, shifted to the icon corner when collapsed.
+                    {/* Badge -- shown inline in expanded mode, shifted to the icon corner when collapsed.
                          Capped at "99+" so the pill stays a consistent width. */}
                     {badge > 0 && (
                       <span className={`${collapsed ? 'absolute -top-0.5 -right-0.5' : 'ml-auto'} text-[9px] font-bold text-white bg-red-500 px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center shadow-sm shadow-red-500/30 animate-pulse`}>
@@ -196,7 +196,7 @@ export default function AdminSidebar({
                       </span>
                     )}
 
-                    {/* Tooltip for collapsed mode — replaces the hidden text label.
+                    {/* Tooltip for collapsed mode -- replaces the hidden text label.
                          Uses CSS group-hover opacity so no JS state is needed.  The
                          badge count is repeated here so operators know there's work
                          waiting even when the pill is tiny in the icon corner. */}
@@ -214,7 +214,7 @@ export default function AdminSidebar({
         ))}
       </nav>
 
-      {/* Quick incident report at bottom — always-visible CTA so operators can
+      {/* Quick incident report at bottom -- always-visible CTA so operators can
            trigger an alert broadcast from any screen without hunting through the
            nav.  Mirrors the alert_send nav item but styled as a prominent red
            button to signal urgency. */}

@@ -39,7 +39,7 @@ class InfrastructureDamagePipeline(BaseHazardPipeline):
     LABEL_STRATEGY = (
         "Synthetic heuristic: damage=1 when weather_severity > 0.7 "
         "(composite of wind, rain, flood proxy) OR flood_depth_proxy > 0.5 m. "
-        "No real infrastructure damage reports used — HEURISTIC MODEL."
+        "No real infrastructure damage reports used -- HEURISTIC MODEL."
     )
     KNOWN_LIMITATIONS = (
         "No real damage event records. Infrastructure type is a random proxy. "
@@ -91,10 +91,10 @@ class InfrastructureDamagePipeline(BaseHazardPipeline):
         df["weather_severity"] = 0.4 * wind_norm + 0.35 * rain_norm + 0.25 * flood_norm
 
         # Infrastructure type: derived from REAL elevation bands via Open-Elevation API
-        # Low elevation (<50m) → 0 (residential/commercial, floodplain areas)
-        # Medium (50-200m) → 1 (mixed suburban)
-        # High (200-500m) → 2 (industrial/rural)
-        # Very high (>500m) → 3 (critical/remote infrastructure)
+ # Low elevation (<50m) -> 0 (residential/commercial, floodplain areas)
+ # Medium (50-200m) -> 1 (mixed suburban)
+ # High (200-500m) -> 2 (industrial/rural)
+ # Very high (>500m) -> 3 (critical/remote infrastructure)
         import aiohttp
 
         ELEVATION_URL = "https://api.open-elevation.com/api/v1/lookup"

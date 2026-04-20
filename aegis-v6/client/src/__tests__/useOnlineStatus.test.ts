@@ -9,39 +9,39 @@
  * - All event listeners and intervals are cleaned up on unmount.
  *
  * Glossary:
- *   navigator.onLine  — browser property; true = browser thinks it has internet
- *   Service Worker    — background script that can intercept network requests
- *   Background Sync   — API letting the SW retry requests after reconnection
- *   SyncManager       — the object that exposes sync.register()
- *   renderHook        — @testing-library utility that mounts a hook in isolation
- *   act()             — wrapper that flushes React state updates synchronously
- *   vi.useFakeTimers  — replaces setInterval/setTimeout with Vitest-controlled ones
+ *   navigator.onLine  -- browser property; true = browser thinks it has internet
+ *   Service Worker    -- background script that can intercept network requests
+ *   Background Sync   -- API letting the SW retry requests after reconnection
+ *   SyncManager       -- the object that exposes sync.register()
+ *   renderHook        -- @testing-library utility that mounts a hook in isolation
+ *   act()             -- wrapper that flushes React state updates synchronously
+ *   vi.useFakeTimers  -- replaces setInterval/setTimeout with Vitest-controlled ones
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 
-// Override navigator.onLine with a getter we control.
+//Override navigator.onLine with a getter we control.
 // `configurable: true` is required so the property can be re-defined
-// multiple times across tests without throwing "cannot redefine" errors.
+//multiple times across tests without throwing "cannot redefine" errors.
 let mockOnlineStatus = true
 Object.defineProperty(navigator, 'onLine', {
   get: () => mockOnlineStatus,
   configurable: true,
 })
 
-// Stub the service worker controller and its postMessage.
-// In real usage the hook calls `controller.postMessage({ type: 'GET_QUEUE_STATUS' })`
-// and reads the reply via a MessageChannel.  Here we just capture the calls.
+//Stub the service worker controller and its postMessage.
+//In real usage the hook calls `controller.postMessage({ type: 'GET_QUEUE_STATUS' })`
+//and reads the reply via a MessageChannel.  Here we just capture the calls.
 const mockPostMessage = vi.fn()
 const mockServiceWorkerController = {
   postMessage: mockPostMessage,
 }
 
 // `serviceWorker.ready` is a Promise that resolves to the active service
-// worker registration.  We resolve it immediately with a minimal stub that
-// has a `sync` object matching the Background Sync API shape.
+//worker registration.  We resolve it immediately with a minimal stub that
+//has a `sync` object matching the Background Sync API shape.
 const mockSyncRegister = vi.fn().mockResolvedValue(undefined)
 const mockServiceWorkerReady = Promise.resolve({
   sync: { register: mockSyncRegister },
@@ -57,8 +57,8 @@ Object.defineProperty(navigator, 'serviceWorker', {
   configurable: true,
 })
 
-// Provide a class stub for SyncManager so `'SyncManager' in window` is true.
-// The hook checks for this before attempting to register a background sync.
+//Provide a class stub for SyncManager so `'SyncManager' in window` is true.
+//The hook checks for this before attempting to register a background sync.
 Object.defineProperty(window, 'SyncManager', {
   value: class SyncManager {},
   configurable: true,
@@ -66,15 +66,15 @@ Object.defineProperty(window, 'SyncManager', {
 
 describe('useOnlineStatus', () => {
   beforeEach(() => {
-    // Replace real timers with fake ones so we can skip 10 seconds of polling
-    // instantly with `vi.advanceTimersByTime(10000)` instead of waiting.
+    //Replace real timers with fake ones so we can skip 10 seconds of polling
+    //instantly with `vi.advanceTimersByTime(10000)` instead of waiting.
     vi.useFakeTimers()
     mockOnlineStatus = true        // reset to online between tests
     vi.clearAllMocks()             // reset call counts on all mock functions
   })
 
   afterEach(() => {
-    // Restore real timers so other test files are not affected.
+    //Restore real timers so other test files are not affected.
     vi.useRealTimers()
   })
 
@@ -128,18 +128,18 @@ describe('useOnlineStatus', () => {
     test('queries service worker for queue status on mount', () => {
       renderHook(() => useOnlineStatus())
       
-      // Should have called postMessage on initial mount
+      //Should have called postMessage on initial mount
       expect(mockPostMessage).toHaveBeenCalled()
     })
 
     test('queries queue periodically', () => {
       const { unmount } = renderHook(() => useOnlineStatus())
       
-      // Reset mock to count fresh calls
+      //Reset mock to count fresh calls
       mockPostMessage.mockClear()
       
-      // Jump 10 seconds into the future to trigger one polling interval.
-      // Because timers are fake, this executes synchronously in the test.
+      //Jump 10 seconds into the future to trigger one polling interval.
+      //Because timers are fake, this executes synchronously in the test.
       act(() => { vi.advanceTimersByTime(10000) })
       
       expect(mockPostMessage).toHaveBeenCalled()
@@ -157,10 +157,10 @@ describe('useOnlineStatus', () => {
     test('syncNow triggers background sync', () => {
       const { result } = renderHook(() => useOnlineStatus())
       
-      // Call syncNow - it's synchronous except for the internal promise
+      //Call syncNow - it's synchronous except for the internal promise
       result.current.syncNow()
       
-      // The function should have been called (sync registration happens async)
+      //The function should have been called (sync registration happens async)
       expect(typeof result.current.syncNow).toBe('function')
     })
   })

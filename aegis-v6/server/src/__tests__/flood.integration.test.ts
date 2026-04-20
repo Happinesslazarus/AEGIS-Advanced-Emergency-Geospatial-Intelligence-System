@@ -14,7 +14,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/glob
 import request from 'supertest'
 import express, { type Request, type Response, type NextFunction } from 'express'
 
-// Test environment
+//Test environment
 process.env.JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-at-least-32-chars'
 process.env.NODE_ENV = 'test'
@@ -30,7 +30,7 @@ import {
 } from './helpers/testFixtures'
 import { AppError } from '../utils/AppError'
 
-// Cosine-similarity (pure function, replicates floodFingerprinting.ts —2)
+//Cosine-similarity (pure function, replicates floodFingerprinting.ts --2)
 
 function cosineSimilarity(a: Record<string, number>, b: Record<string, number>): number {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)])
@@ -48,7 +48,7 @@ function cosineSimilarity(a: Record<string, number>, b: Record<string, number>):
   return denominator === 0 ? 0 : dotProduct / denominator
 }
 
-// Build test app
+//Build test app
 
 const SAFE_RIVER_NAME = /^[a-z0-9_-]{1,64}$/i
 
@@ -61,7 +61,7 @@ function buildFloodTestApp() {
 
   const router = express.Router()
 
-  // GET /flood/predictions — retrieve stored predictions from DB
+  //GET /flood/predictions -- retrieve stored predictions from DB
   router.get('/flood/predictions', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { status, risk_level, region_id } = req.query
@@ -77,7 +77,7 @@ function buildFloodTestApp() {
     } catch (err) { next(err) }
   })
 
-  // GET /flood/predictions/:id
+  //GET /flood/predictions/:id
   router.get('/flood/predictions/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { rows } = await pool.query(
@@ -88,7 +88,7 @@ function buildFloodTestApp() {
     } catch (err) { next(err) }
   })
 
-  // POST /flood/predictions — store a prediction
+  //POST /flood/predictions -- store a prediction
   router.post('/flood/predictions', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const {
@@ -109,7 +109,7 @@ function buildFloodTestApp() {
     } catch (err) { next(err) }
   })
 
-  // GET /flood/threat — aggregate threat from active predictions
+  //GET /flood/threat -- aggregate threat from active predictions
   router.get('/flood/threat', async (_req: Request, res: Response, next: NextFunction) => {
     try {
       const { rows } = await pool.query(
@@ -130,18 +130,18 @@ function buildFloodTestApp() {
     } catch (err) { next(err) }
   })
 
-  // GET /flood/extents/:river — validate river name (allowlist only)
+  //GET /flood/extents/:river -- validate river name (allowlist only)
   router.get('/flood/extents/:river', (req: Request, res: Response) => {
     const river = req.params.river
     if (!SAFE_RIVER_NAME.test(river)) {
       res.status(400).json({ error: 'Invalid river name. Only alphanumeric characters, hyphens and underscores are allowed.' })
       return
     }
-    // In tests we don't have GeoJSON files — return 404 after validation passes
+    //In tests we don't have GeoJSON files -- return 404 after validation passes
     res.status(404).json({ error: `Flood extent data not found for: ${river}` })
   })
 
-  // POST /flood/evacuation/route — validate inputs
+  //POST /flood/evacuation/route -- validate inputs
   router.post('/flood/evacuation/route', (req: Request, res: Response, next: NextFunction) => {
     try {
       const { startLat, startLng } = req.body
@@ -154,7 +154,7 @@ function buildFloodTestApp() {
       if (!Number.isFinite(parsedLng) || parsedLng < -180 || parsedLng > 180) {
         throw AppError.badRequest('startLng must be a valid longitude between -180 and 180')
       }
-      // Validation passed — return mock route for test purposes
+      //Validation passed -- return mock route for test purposes
       res.json({
         routes: [{ distance: 1200, duration: 600, waypoints: [] }],
         origin: { lat: parsedLat, lng: parsedLng },
@@ -171,7 +171,7 @@ function buildFloodTestApp() {
   return _app
 }
 
-// Lifecycle
+//Lifecycle
 
 beforeAll(async () => {
   app = buildFloodTestApp()
@@ -190,9 +190,9 @@ afterAll(async () => {
 
 describe('Flood Integration Tests', () => {
 
-  // Cosine Similarity (unit-level, no DB)
+  //Cosine Similarity (unit-level, no DB)
 
-  describe('Cosine Similarity — Fingerprinting Core', () => {
+  describe('Cosine Similarity -- Fingerprinting Core', () => {
     it('should return 1.0 for identical vectors', () => {
       const v = { water_level: 2.5, rainfall_24h: 15, gauge_delta: 0.3 }
       expect(cosineSimilarity(v, v)).toBeCloseTo(1.0, 5)
@@ -230,7 +230,7 @@ describe('Flood Integration Tests', () => {
     })
   })
 
-  // Flood Prediction CRUD
+  //Flood Prediction CRUD
 
   describe('Flood Prediction Storage', () => {
     it('should store and retrieve a prediction via API', async () => {
@@ -300,7 +300,7 @@ describe('Flood Integration Tests', () => {
     })
   })
 
-  // Threat Level Aggregation
+  //Threat Level Aggregation
 
   describe('Threat Level Assessment', () => {
     it('should reflect highest active prediction as overall threat', async () => {
@@ -330,12 +330,12 @@ describe('Flood Integration Tests', () => {
     })
   })
 
-  // River Name Validation (path traversal prevention)
+  //River Name Validation (path traversal prevention)
 
   describe('Flood Extent Validation', () => {
     it('should accept valid river names', async () => {
       const res = await request(app).get('/api/flood/extents/river-don')
-      // 404 because no GeoJSON file in test env, but validation passed
+      //404 because no GeoJSON file in test env, but validation passed
       expect(res.status).toBe(404)
       expect(res.body.error).toContain('river-don')
     })
@@ -363,7 +363,7 @@ describe('Flood Integration Tests', () => {
     })
   })
 
-  // Evacuation Input Validation
+  //Evacuation Input Validation
 
   describe('Evacuation Route Validation', () => {
     it('should accept valid coordinates', async () => {
@@ -411,7 +411,7 @@ describe('Flood Integration Tests', () => {
     })
   })
 
-  // Edge Cases
+  //Edge Cases
 
   describe('Edge Cases', () => {
     it('should store prediction with zero fusion score', async () => {

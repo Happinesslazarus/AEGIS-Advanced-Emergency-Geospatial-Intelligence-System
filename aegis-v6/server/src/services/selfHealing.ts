@@ -1,5 +1,5 @@
 ﻿/**
- * Self-healing health monitor — watches 7 components (database, cache,
+ * Self-healing health monitor -- watches 7 components (database, cache,
  * ai_engine, external_apis, websocket, memory, event_loop) with weighted
  * health scores and executes automatic recovery actions when degradation
  * is detected.
@@ -15,7 +15,7 @@ import { circuitBreaker, apiCache, embeddingCache, llmCache } from './resilience
 import pool from '../models/db.js'
 import client from 'prom-client'
 
-// Prometheus metrics
+//Prometheus metrics
 const healingActionsTotal = new client.Counter({
   name: 'aegis_self_healing_actions_total',
   help: 'Total self-healing actions taken',
@@ -33,7 +33,7 @@ const componentHealthScore = new client.Gauge({
   labelNames: ['component'] as const,
 })
 
-// Health status types
+//Health status types
 type HealthStatus = 'healthy' | 'degraded' | 'critical' | 'recovering'
 
 interface ComponentHealth {
@@ -55,17 +55,17 @@ interface HealingAction {
   details?: string
 }
 
-// Component health registry
+//Component health registry
 const componentHealth = new Map<string, ComponentHealth>()
 
-// Healing action history (ring buffer)
+//Healing action history (ring buffer)
 const healingHistory: HealingAction[] = []
 const MAX_HISTORY = 100
 
-// Event emitter for health events
+//Event emitter for health events
 export const healthEvents = new EventEmitter()
 
-// Initialize component health trackers
+//Initialize component health trackers
 const COMPONENTS = [
   'database',
   'cache',
@@ -130,7 +130,7 @@ function updateComponentHealth(
 
   componentHealthScore.labels(name).set(component.score)
 
-  // Emit status change events
+  //Emit status change events
   if (previousStatus !== status) {
     healthEvents.emit('statusChange', {
       component: name,
@@ -142,7 +142,7 @@ function updateComponentHealth(
     if (status === 'critical') {
       healthEvents.emit('critical', { component: name, score })
     } else if (previousStatus === 'critical') {
-      // Status changed FROM critical to something else - recovery detected
+      //Status changed FROM critical to something else - recovery detected
       healthEvents.emit('recovered', { component: name, score })
     }
   }
@@ -175,7 +175,7 @@ function calculateOverallHealth(): number {
   systemHealthScore.set(score)
   return score
 }
-// HEALTH CHECK FUNCTIONS
+//HEALTH CHECK FUNCTIONS
 /**
  * Check database health
  */
@@ -195,7 +195,7 @@ async function checkDatabaseHealth(): Promise<void> {
     let score = 100
     let status: HealthStatus = 'healthy'
 
-    // Penalize high latency
+    //Penalize high latency
     if (latency > 1000) {
       score -= 40
       status = 'degraded'
@@ -205,7 +205,7 @@ async function checkDatabaseHealth(): Promise<void> {
       score -= 10
     }
 
-    // Penalize pool exhaustion
+    //Penalize pool exhaustion
     if (utilization > 0.9) {
       score -= 30
       status = 'degraded'
@@ -213,7 +213,7 @@ async function checkDatabaseHealth(): Promise<void> {
       score -= 15
     }
 
-    // Critical if waiting connections
+    //Critical if waiting connections
     if (poolWaiting > 5) {
       score -= 40
       status = 'critical'
@@ -228,7 +228,7 @@ async function checkDatabaseHealth(): Promise<void> {
       poolWaiting,
     })
 
-    // Self-healing: Clear idle connections if pool is stressed
+    //Self-healing: Clear idle connections if pool is stressed
     if (utilization > 0.8 && poolIdle > 2) {
       await healDatabasePool()
     }
@@ -238,7 +238,7 @@ async function checkDatabaseHealth(): Promise<void> {
     const score = Math.max(0, 100 - component.consecutiveFailures * 25)
     updateComponentHealth('database', 'critical', score)
 
-    // Self-healing: Attempt reconnection
+    //Self-healing: Attempt reconnection
     if (component.consecutiveFailures >= 3) {
       await healDatabaseConnection()
     }
@@ -274,12 +274,12 @@ function checkMemoryHealth(): void {
     rss: Math.round(mem.rss / 1024 / 1024),
   })
 
-  // Self-healing: Force GC if memory pressure is high
+  //Self-healing: Force GC if memory pressure is high
   if (heapUsage > 0.85 && global.gc) {
     healMemoryPressure()
   }
 
-  // Self-healing: Clear caches if memory critical
+  //Self-healing: Clear caches if memory critical
   if (heapUsage > 0.90) {
     healClearCaches()
   }
@@ -321,7 +321,7 @@ function checkCacheHealth(): void {
   const embStats = embeddingCache.stats()
   const llmStats = llmCache.stats()
 
-  // Parse hit rate
+  //Parse hit rate
   const parseHitRate = (rate: string): number => {
     if (rate === 'N/A') return 100
     return parseFloat(rate)
@@ -383,14 +383,14 @@ function checkExternalApiHealth(): void {
     providers: providers.length,
   })
 }
-// SELF-HEALING ACTIONS
+//SELF-HEALING ACTIONS
 /**
  * Heal database pool by releasing idle connections
  */
 async function healDatabasePool(): Promise<void> {
   try {
-    // pg pool doesn't expose direct idle connection release,
-    // but we can query to trigger cleanup
+    //pg pool doesn't expose direct idle connection release,
+    //but we can query to trigger cleanup
     await pool.query('SELECT 1')
 
     recordHealingAction({
@@ -419,7 +419,7 @@ async function healDatabaseConnection(): Promise<void> {
   component.recoveryAttempts++
 
   try {
-    // Test connection
+    //Test connection
     await pool.query('SELECT 1')
 
     component.recoveryAttempts = 0
@@ -477,7 +477,7 @@ function healClearCaches(): void {
     details: `Cleared ${apiCleared + embCleared + llmCleared} entries`,
   })
 }
-// MAIN HEALTH CHECK LOOP
+//MAIN HEALTH CHECK LOOP
 let healthCheckInterval: NodeJS.Timeout | null = null
 
 /**
@@ -498,7 +498,7 @@ export function startSelfHealing(intervalMs = 10_000): void {
 
       const overallScore = calculateOverallHealth()
 
-      // Log if system is degraded
+      //Log if system is degraded
       if (overallScore < 70) {
         const components = Array.from(componentHealth.values())
           .filter(c => c.status !== 'healthy')
@@ -567,7 +567,7 @@ export async function triggerHealing(component: string): Promise<boolean> {
   }
 }
 
-// Auto-start in production
+//Auto-start in production
 if (process.env.NODE_ENV === 'production') {
   startSelfHealing()
 }

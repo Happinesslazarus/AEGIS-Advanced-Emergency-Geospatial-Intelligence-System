@@ -30,18 +30,18 @@ import { useAnnounce } from '../hooks/useAnnounce'
 describe('useAnnounce', () => {
   beforeEach(() => {
     vi.useFakeTimers() // replace real timers so we can skip the 150ms delay in tests
-    // Clean up any live regions left by previous tests so each test starts fresh
+    //Clean up any live regions left by previous tests so each test starts fresh
     document.querySelectorAll('[role="status"]').forEach(el => el.remove())
   })
 
   afterEach(() => {
     vi.useRealTimers() // restore real timers after each test
-    // Remove live regions added during the test to avoid bleed-through
+    //Remove live regions added during the test to avoid bleed-through
     document.querySelectorAll('[role="status"]').forEach(el => el.remove())
   })
 
   test('returns a function', () => {
-    // The hook itself returns a callable announce() function, not a value
+    //The hook itself returns a callable announce() function, not a value
     const { result } = renderHook(() => useAnnounce())
     expect(typeof result.current).toBe('function')
   })
@@ -49,7 +49,7 @@ describe('useAnnounce', () => {
   test('creates ARIA live region on first announcement', () => {
     const { result } = renderHook(() => useAnnounce())
     
-    // No live region injected into the DOM before the first call
+    //No live region injected into the DOM before the first call
     expect(document.querySelector('[role="status"]')).toBeNull()
     
     act(() => {
@@ -57,7 +57,7 @@ describe('useAnnounce', () => {
       vi.advanceTimersByTime(150)    // skip the 150ms delay before content is set
     })
     
-    // Live region should now exist in the DOM
+    //Live region should now exist in the DOM
     const liveRegion = document.querySelector('[role="status"]')
     expect(liveRegion).not.toBeNull()
   })
@@ -69,18 +69,18 @@ describe('useAnnounce', () => {
       result.current('Hello screen reader') // call announce without advancing time yet
     })
     
-    // Content is intentionally blanked first — screen readers only fire on *changes*,
-    // so wiping then re-setting forces a re-announcement even for repeated messages
+    //Content is intentionally blanked first -- screen readers only fire on *changes*,
+    //so wiping then re-setting forces a re-announcement even for repeated messages
     const liveRegion = document.querySelector('[role="status"]')
     expect(liveRegion?.textContent).toBe('')
     
-    // After the 150ms delay the actual message is written in
+    //After the 150ms delay the actual message is written in
     act(() => { vi.advanceTimersByTime(150) })
     expect(liveRegion?.textContent).toBe('Hello screen reader')
   })
 
   test('uses polite aria-live by default', () => {
-    // Default priority = polite: waits for screen reader to finish current sentence
+    //Default priority = polite: waits for screen reader to finish current sentence
     const { result } = renderHook(() => useAnnounce())
     
     act(() => {
@@ -93,7 +93,7 @@ describe('useAnnounce', () => {
   })
 
   test('uses assertive aria-live when specified', () => {
-    // assertive = interrupts the screen reader immediately; used for critical alerts
+    //assertive = interrupts the screen reader immediately; used for critical alerts
     const { result } = renderHook(() => useAnnounce())
     
     act(() => {
@@ -106,7 +106,7 @@ describe('useAnnounce', () => {
   })
 
   test('has aria-atomic attribute', () => {
-    // aria-atomic="true" tells the screen reader to read the whole element, not just the diff
+    //aria-atomic="true" tells the screen reader to read the whole element, not just the diff
     const { result } = renderHook(() => useAnnounce())
     
     act(() => {
@@ -119,8 +119,8 @@ describe('useAnnounce', () => {
   })
 
   test('live region is visually hidden', () => {
-    // Visually hidden = positioned off-screen with 1px size so sighted users don't see it
-    // while assistive tech (screen readers) can still discover and read it
+    //Visually hidden = positioned off-screen with 1px size so sighted users don't see it
+    //while assistive tech (screen readers) can still discover and read it
     const { result } = renderHook(() => useAnnounce())
     
     act(() => {
@@ -136,8 +136,8 @@ describe('useAnnounce', () => {
   })
 
   test('reuses existing live region', () => {
-    // The hook must NOT inject a second live region; screen readers can glitch
-    // when multiple live regions with the same role exist simultaneously
+    //The hook must NOT inject a second live region; screen readers can glitch
+    //when multiple live regions with the same role exist simultaneously
     const { result } = renderHook(() => useAnnounce())
     
     act(() => {
@@ -150,15 +150,15 @@ describe('useAnnounce', () => {
       vi.advanceTimersByTime(150)
     })
     
-    // Should only have one live region
+    //Should only have one live region
     const liveRegions = document.querySelectorAll('[role="status"]')
     expect(liveRegions.length).toBe(1)
     expect(liveRegions[0].textContent).toBe('Second message')
   })
 
   test('clears content before new message (for re-announcement)', () => {
-    // Screen readers only fire when the content *changes* — sending the same string
-    // twice without clearing would be silently ignored; wipe + re-set forces the event
+    //Screen readers only fire when the content *changes* -- sending the same string
+    //twice without clearing would be silently ignored; wipe + re-set forces the event
     const { result } = renderHook(() => useAnnounce())
     
     act(() => {
@@ -173,7 +173,7 @@ describe('useAnnounce', () => {
       result.current('Second')
     })
     
-    // Content cleared immediately
+    //Content cleared immediately
     expect(liveRegion?.textContent).toBe('')
     
     act(() => { vi.advanceTimersByTime(150) })
@@ -181,9 +181,9 @@ describe('useAnnounce', () => {
   })
 
   test('cleans up timeout on unmount', () => {
-    // vi.spyOn(global, 'clearTimeout') = watches the real clearTimeout function
-    // so we can assert the hook cancels the pending timer when the component unmounts,
-    // preventing a setState-after-unmount warning ("Can't perform a React state update on an unmounted component")
+    //vi.spyOn(global, 'clearTimeout') = watches the real clearTimeout function
+    //so we can assert the hook cancels the pending timer when the component unmounts,
+    //preventing a setState-after-unmount warning ("Can't perform a React state update on an unmounted component")
     const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
     
     const { result, unmount } = renderHook(() => useAnnounce())
@@ -199,8 +199,8 @@ describe('useAnnounce', () => {
   })
 
   test('handles rapid successive announcements', () => {
-    // When three calls happen before the 150ms delay fires, the last one wins —
-    // each call resets the pending timer (debounce-like behaviour)
+    //When three calls happen before the 150ms delay fires, the last one wins
+    //each call resets the pending timer (debounce-like behaviour)
     const { result } = renderHook(() => useAnnounce())
     
     act(() => {
@@ -212,7 +212,7 @@ describe('useAnnounce', () => {
     act(() => { vi.advanceTimersByTime(150) }) // advance past the 150ms delay
     
     const liveRegion = document.querySelector('[role="status"]')
-    // Only the final announcement should appear — earlier ones were superseded
+    //Only the final announcement should appear -- earlier ones were superseded
     expect(liveRegion?.textContent).toBe('Third')
   })
 
@@ -230,7 +230,7 @@ describe('useAnnounce', () => {
       vi.advanceTimersByTime(150)
     })
     
-    // Still only one live region
+    //Still only one live region
     const liveRegions = document.querySelectorAll('[role="status"]')
     expect(liveRegions.length).toBe(1)
   })

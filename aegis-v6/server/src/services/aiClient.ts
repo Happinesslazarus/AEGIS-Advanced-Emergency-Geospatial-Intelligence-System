@@ -141,7 +141,7 @@ class AIClient {
     }
   }
 
-  /** Quick liveness check — uses a 5 s timeout so status endpoints don't block the main flow */
+  /** Quick liveness check -- uses a 5 s timeout so status endpoints don't block the main flow */
   async isAvailable(): Promise<boolean> {
     try {
       await this.request('/health', undefined, 5000)
@@ -165,7 +165,7 @@ class AIClient {
 
       return {
         ...response,
-        // Normalise: always have a generated_at timestamp even if the AI engine omitted it
+        //Normalise: always have a generated_at timestamp even if the AI engine omitted it
         generated_at: response.generated_at || new Date().toISOString()
       }
     } catch (error: any) {
@@ -180,7 +180,7 @@ class AIClient {
   async getModelStatus(skipCache = false): Promise<any> {
     const now = Date.now()
 
-    // Serve from cache if fresh enough — avoids a status-poll on every chat message
+    //Serve from cache if fresh enough -- avoids a status-poll on every chat message
     if (!skipCache && this.modelStatusCache) {
       const age = now - this.modelStatusCache.timestamp
       if (age < this.CACHE_TTL) {
@@ -283,7 +283,7 @@ class AIClient {
     const timeout = setTimeout(() => controller.abort(), 15000)
 
     try {
-      // Build multipart/form-data body manually (avoids adding a new npm dependency)
+      //Build multipart/form-data body manually (avoids adding a new npm dependency)
       const boundary = '----AEGISBoundary' + Date.now()
       const header = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`
       const footer = `\r\n--${boundary}--\r\n`
@@ -363,7 +363,7 @@ class AIClient {
     }
   }
 
-  //  Phase 5: Model Governance
+  // Phase 5: Model Governance
 
    /*
    * List all governed models with active versions
@@ -419,11 +419,11 @@ class AIClient {
     return this.request(`/api/predictions/stats?${params.toString()}`)
   }
 
-  //  Model Lifecycle Management
+  // Model Lifecycle Management
 
-  //  Model Registry — version lifecycle management
-  // These methods map 1-to-1 with registry endpoints in the Python AI engine.
-  // Using encodeURIComponent to handle hazard types like 'severe_storm' safely in URL paths.
+  // Model Registry -- version lifecycle management
+  //These methods map 1-to-1 with registry endpoints in the Python AI engine.
+  //Using encodeURIComponent to handle hazard types like 'severe_storm' safely in URL paths.
 
   async listRegistryVersions(hazardType: string, regionId: string): Promise<any> {
     return this.request(`/api/registry/versions/${encodeURIComponent(hazardType)}/${encodeURIComponent(regionId)}`)
@@ -491,10 +491,10 @@ class AIClient {
   }
 }
 
-// Singleton — all callers import this one shared instance so they share the model status cache
+//Singleton -- all callers import this one shared instance so they share the model status cache
 export const aiClient = new AIClient()
 
-// Export types
+//Export types
 export type {
   PredictionRequest,
   PredictionResponse,

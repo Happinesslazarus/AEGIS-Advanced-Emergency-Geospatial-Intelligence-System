@@ -8,7 +8,7 @@ import { ingestDroughtData, classifyDroughtSeverity, type DroughtIngestionResult
 import { DroughtAIClient } from './aiClient.js'
 import { logger } from '../../services/logger.js'
 
-// In-memory cache (cleared on restart; Redis would be used in production)
+//In-memory cache (cleared on restart; Redis would be used in production)
 let _cache: { data: DroughtIngestionResult; expiresAt: number } | null = null
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 hours
 
@@ -26,7 +26,7 @@ export class DroughtService {
       return data
     } catch (err) {
       logger.error({ err }, '[DroughtService] Data ingestion failed')
-      // Return safe default
+      //Return safe default
       return {
         rainfall30dMm: 80,
         avgTempC: 12,

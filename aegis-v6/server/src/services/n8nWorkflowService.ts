@@ -1,5 +1,5 @@
 ﻿/**
- * n8n workflow registrar — loads JSON workflow definitions from the
+ * n8n workflow registrar -- loads JSON workflow definitions from the
  * n8n-workflows/ directory and registers (or updates) them in a connected
  * n8n instance via its REST API. Tracks registration state to avoid duplicates.
  *
@@ -26,9 +26,9 @@ interface WorkflowDef {
   active?: boolean
 }
 
-// Module-level once-guard: registration only runs once per process lifetime.
-// resetRegistration() sets this back to false when n8n goes down, so the
-// workflows get re-registered automatically when n8n recovers.
+//Module-level once-guard: registration only runs once per process lifetime.
+//resetRegistration() sets this back to false when n8n goes down, so the
+//workflows get re-registered automatically when n8n recovers.
 let registrationDone = false
 
 function n8nHeaders(): Record<string, string> {
@@ -86,8 +86,8 @@ async function getExistingWorkflows(baseUrl: string): Promise<Map<string, string
  */
 async function createWorkflow(baseUrl: string, def: WorkflowDef): Promise<string | null> {
   try {
-    // Strip read-only and computed fields that the n8n POST endpoint rejects.
-    // These fields are valid in exported JSON but must be absent on create.
+    //Strip read-only and computed fields that the n8n POST endpoint rejects.
+    //These fields are valid in exported JSON but must be absent on create.
     const {
       active: _active,
       tags: _tags,
@@ -147,7 +147,7 @@ export async function registerWorkflows(): Promise<{
 
   const definitions = loadWorkflowDefinitions()
   if (definitions.length === 0) {
-    logger.info('[n8n-workflows] No workflow definitions found — skipping registration')
+    logger.info('[n8n-workflows] No workflow definitions found -- skipping registration')
     return { registered: 0, skipped: 0, failed: 0 }
   }
 
@@ -158,7 +158,7 @@ export async function registerWorkflows(): Promise<{
 
   for (const def of definitions) {
     if (existing.has(def.name)) {
-      logger.info({ name: def.name, id: existing.get(def.name) }, '[n8n-workflows] Workflow already exists — skipping')
+      logger.info({ name: def.name, id: existing.get(def.name) }, '[n8n-workflows] Workflow already exists -- skipping')
       skipped++
       continue
     }
@@ -181,7 +181,7 @@ export async function registerWorkflows(): Promise<{
 
 /**
  * Try to register workflows (called once when n8n becomes healthy).
- * Safe to call multiple times — only runs once unless reset.
+ * Safe to call multiple times -- only runs once unless reset.
  */
 export async function tryRegisterWorkflows(): Promise<void> {
   if (registrationDone) return

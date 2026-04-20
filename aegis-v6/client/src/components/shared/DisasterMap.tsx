@@ -25,7 +25,7 @@ import { useLanguage } from '../../hooks/useLanguage'
 import { getAnyToken } from '../../utils/api'
 import { TILE_LAYERS } from '../../utils/mapTileProviders'
 
-// Types & Config
+//Types & Config
 
 interface WMSLayer {
   name: string
@@ -138,21 +138,21 @@ interface Props {
   zoom?: number
 }
 
-// Tile layer presets — imported from shared mapTileProviders.ts
+//Tile layer presets -- imported from shared mapTileProviders.ts
 
-// Sub-components
+//Sub-components
 
 function MapUpdater({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap()
   const prevCenterRef = useRef<[number, number]>(center)
   useEffect(() => {
-    // Use primitive comparisons to avoid triggering flyTo when parent re-renders
-    // pass a new array reference with the same values
+    //Use primitive comparisons to avoid triggering flyTo when parent re-renders
+    //pass a new array reference with the same values
     if (center[0] !== prevCenterRef.current[0] || center[1] !== prevCenterRef.current[1]) {
       prevCenterRef.current = center
       map.flyTo(center, zoom, { duration: 1.5 })
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center[0], center[1], zoom, map])
   return null
 }
@@ -167,10 +167,10 @@ function HeatmapLayer({ points }: { points: [number, number, number][] }) {
   useEffect(() => {
     if (!points.length) return
 
-    // Dynamically import leaflet.heat
+    //Dynamically import leaflet.heat
     let layer: any = null
     try {
-      // leaflet.heat extends L with L.heatLayer
+      //leaflet.heat extends L with L.heatLayer
       const heat = (L as any).heatLayer
       if (heat) {
         layer = heat(points, {
@@ -181,7 +181,7 @@ function HeatmapLayer({ points }: { points: [number, number, number][] }) {
         }).addTo(map)
       }
     } catch {
-      // leaflet.heat not available ? silently skip
+      //leaflet.heat not available ? silently skip
     }
 
     return () => { if (layer) map.removeLayer(layer) }
@@ -190,7 +190,7 @@ function HeatmapLayer({ points }: { points: [number, number, number][] }) {
   return null
 }
 
-// Helpers
+//Helpers
 
 function icon(color: string, size = 28): L.DivIcon {
   return L.divIcon({
@@ -244,7 +244,7 @@ const stationPointToLayer = (feature: any, latlng: L.LatLng): L.CircleMarker => 
   })
 }
 
-// Main Component
+//Main Component
 
 export default function DisasterMap({
   reports = [],
@@ -278,7 +278,7 @@ export default function DisasterMap({
   const [activeWMS, setActiveWMS] = useState<Set<string>>(new Set())
   const [legendOpen, setLegendOpen] = useState(false)
 
-  // Real API data state
+  //Real API data state
   const [distressBeacons, setDistressBeacons] = useState<any[]>([])
   const [evacuationRoutes, setEvacuationRoutes] = useState<EvacuationRouteMapItem[]>([])
   const [predictions, setPredictions] = useState<any[]>([])
@@ -308,7 +308,7 @@ export default function DisasterMap({
     return ['admin', 'operator', 'manager'].includes(String(role || ''))
   }, [getAuthContext])
 
-  // Interactive layer toggle state (user can enable/disable layers on the map)
+  //Interactive layer toggle state (user can enable/disable layers on the map)
   const [layerToggles, setLayerToggles] = useState({
     floodZones: showFloodZones,
     shelters: showShelters,
@@ -345,7 +345,7 @@ export default function DisasterMap({
     return () => document.removeEventListener('fullscreenchange', onFSChange)
   }, [])
 
-  // Socket.io ? listen for distress:new / distress:updated in real-time
+  //Socket.io ? listen for distress:new / distress:updated in real-time
   useEffect(() => {
     if (!showDistress || !canReadDistress || !sharedSocket.socket) return
     const socket = sharedSocket.socket
@@ -373,7 +373,7 @@ export default function DisasterMap({
     }
   }, [canReadDistress, sharedSocket.socket, showDistress])
 
-  // Export visible report markers as GeoJSON FeatureCollection
+  //Export visible report markers as GeoJSON FeatureCollection
   const exportGeoJSON = useCallback(() => {
     const features = reports
       .filter(r => r.coordinates?.length === 2)
@@ -404,7 +404,7 @@ export default function DisasterMap({
     URL.revokeObjectURL(url)
   }, [reports])
 
-  // Fetch region config for WMS layers
+  //Fetch region config for WMS layers
   useEffect(() => {
     if (!showWMSLayers) return
     fetch('/api/config/region')
@@ -412,14 +412,14 @@ export default function DisasterMap({
       .then((data) => {
         if (data?.wmsLayers) {
           setWmsLayers(data.wmsLayers)
-          // Enable all WMS layers by default
+          //Enable all WMS layers by default
           setActiveWMS(new Set(data.wmsLayers.map((_: WMSLayer, i: number) => String(i))))
         }
       })
       .catch(() => {})
   }, [showWMSLayers])
 
-  // Fetch shelters with 5-minute refresh interval
+  //Fetch shelters with 5-minute refresh interval
   useEffect(() => {
     if (!showShelters) return
     const [lat, lng] = mapCenter
@@ -430,12 +430,12 @@ export default function DisasterMap({
     load()
     const interval = setInterval(load, 5 * 60 * 1000)
     return () => clearInterval(interval)
-  // Use primitive lat/lng values instead of the array reference to prevent
-  // re-firing every time `location` context re-renders with a new array object
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  //Use primitive lat/lng values instead of the array reference to prevent
+  //re-firing every time `location` context re-renders with a new array object
+  //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showShelters, mapCenter[0], mapCenter[1]])
 
-  // Inject pulse keyframes for distress markers
+  //Inject pulse keyframes for distress markers
   useEffect(() => {
     if (!document.getElementById('disastermap-pulse-css')) {
       const style = document.createElement('style')
@@ -445,7 +445,7 @@ export default function DisasterMap({
     }
   }, [])
 
-  // Fetch distress beacons (real-time SOS signals)
+  //Fetch distress beacons (real-time SOS signals)
   useEffect(() => {
     if (!showDistress || !canReadDistress) return
     const load = () => {
@@ -462,7 +462,7 @@ export default function DisasterMap({
     return () => clearInterval(interval)
   }, [canReadDistress, getAuthContext, showDistress])
 
-  // Fetch evacuation routes
+  //Fetch evacuation routes
   useEffect(() => {
     if (!showEvacuation) return
     const token = getAnyToken()
@@ -474,7 +474,7 @@ export default function DisasterMap({
       .catch(() => {})
   }, [showEvacuation])
 
-  // Fetch AI flood predictions
+  //Fetch AI flood predictions
   useEffect(() => {
     if (!showPredictions) return
     const token = getAnyToken()
@@ -484,7 +484,7 @@ export default function DisasterMap({
       .catch(() => {})
   }, [showPredictions])
 
-  // Fetch PostGIS risk layer (flood polygons)
+  //Fetch PostGIS risk layer (flood polygons)
   useEffect(() => {
     if (!showRiskLayer) return
     const token = getAnyToken()
@@ -494,7 +494,7 @@ export default function DisasterMap({
       .catch(() => {})
   }, [showRiskLayer])
 
-  // Fetch real heatmap data from API
+  //Fetch real heatmap data from API
   useEffect(() => {
     if (!showHeatmap) return
     const token = getAnyToken()
@@ -508,7 +508,7 @@ export default function DisasterMap({
       .catch(() => {})
   }, [showHeatmap])
 
-  // Fetch spatiotemporal incident clusters
+  //Fetch spatiotemporal incident clusters
   useEffect(() => {
     const token = getAnyToken()
     const load = () => fetch('/api/reports/clusters?minutes=180&radiusMeters=1000&minReports=3', {
@@ -524,7 +524,7 @@ export default function DisasterMap({
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch cascading disaster insights
+  //Fetch cascading disaster insights
   useEffect(() => {
     const token = getAnyToken()
     const load = () => fetch('/api/reports/cascading-insights?windowMinutes=180', {
@@ -542,7 +542,7 @@ export default function DisasterMap({
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch promoted incident objects from unified Incident Intelligence Core
+  //Fetch promoted incident objects from unified Incident Intelligence Core
   useEffect(() => {
     const token = getAnyToken()
     const load = () => fetch('/api/reports/incident-objects?minutes=180&radiusMeters=1000&minReports=3', {
@@ -560,7 +560,7 @@ export default function DisasterMap({
     return () => clearInterval(interval)
   }, [])
 
-  // Toggle WMS layer visibility
+  //Toggle WMS layer visibility
   const toggleWMS = useCallback((idx: string) => {
     setActiveWMS((prev) => {
       const next = new Set(prev)
@@ -569,7 +569,7 @@ export default function DisasterMap({
     })
   }, [])
 
-  // Report markers with clustering
+  //Report markers with clustering
   const markers = useMemo(() => {
     if (!showReports) return null
     return reports.filter((r) => r.coordinates?.length === 2).map((r) => (
@@ -594,7 +594,7 @@ export default function DisasterMap({
     ))
   }, [reports, showReports, onReportClick])
 
-  // Confidence halos around reports: high = solid, medium = dashed, low = translucent
+  //Confidence halos around reports: high = solid, medium = dashed, low = translucent
   const confidenceHalos = useMemo(() => {
     if (!showReports || !layerToggles.confidenceHalos) return null
 
@@ -638,7 +638,7 @@ export default function DisasterMap({
                 <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{incident.incident_type.replace(/_/g, ' ')} {t('dmap.incident', lang)}</p>
                 <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.state', lang)}: {incident.lifecycle_state.toUpperCase()}</p>
                 <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.confidence', lang)}: {Math.round(confidence * 100)}%</p>
-                <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{t('dmap.evidence', lang)}: {incident.evidence_count} — {t('dmap.window', lang)}: {incident.time_window_minutes} {t('dmap.min', lang)}</p>
+                <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{t('dmap.evidence', lang)}: {incident.evidence_count} -- {t('dmap.window', lang)}: {incident.time_window_minutes} {t('dmap.min', lang)}</p>
               </div>
             </Popup>
           </Circle>
@@ -677,7 +677,7 @@ export default function DisasterMap({
       })
   }, [reports, incidentObjects, showReports, layerToggles.confidenceHalos, lang])
 
-  // Spatiotemporal incident cluster visualisation
+  //Spatiotemporal incident cluster visualisation
   const clusterCircles = useMemo(() => {
     if (!layerToggles.clusters || incidentClusters.length === 0) return null
     return incidentClusters.map((cluster) => {
@@ -693,7 +693,7 @@ export default function DisasterMap({
           <Popup>
             <div style={{ minWidth: 220 }}>
               <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{cluster.incident_type} {t('dmap.cluster', lang)}</p>
-              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.reports', lang)}: {cluster.reports} — {t('dmap.radius', lang)}: {cluster.radius_m}m</p>
+              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.reports', lang)}: {cluster.reports} -- {t('dmap.radius', lang)}: {cluster.radius_m}m</p>
               <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.timeWindow', lang)}: {cluster.time_window_minutes} {t('dmap.min', lang)}</p>
               <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{t('dmap.confidence', lang)}: {Math.round(confidence * 100)}%</p>
             </div>
@@ -703,7 +703,7 @@ export default function DisasterMap({
     })
   }, [incidentClusters, layerToggles.clusters, lang])
 
-  // Flood zones
+  //Flood zones
   const zones = useMemo(() => {
     if (!showFloodZones || !layerToggles.floodZones) return null
     return (location.floodZones || []).map((z, i) => (
@@ -716,7 +716,7 @@ export default function DisasterMap({
     ))
   }, [location.floodZones, showFloodZones, layerToggles.floodZones])
 
-  // Flood monitoring GeoJSON layers
+  //Flood monitoring GeoJSON layers
   const floodAreas = useMemo(() => {
     if (!showFloodMonitoring || !layerToggles.floodMonitoring || !floodData.data?.areas?.features?.length) return null
     return (
@@ -756,7 +756,7 @@ export default function DisasterMap({
     )
   }, [showFloodMonitoring, layerToggles.floodMonitoring, floodData.data, floodData.currentRegion])
 
-  // Shelter markers
+  //Shelter markers
   const shelterMarkers = useMemo(() => {
     if (!showShelters || !layerToggles.shelters || !shelters.length) return null
     return shelters.map((s) => (
@@ -785,7 +785,7 @@ export default function DisasterMap({
     ))
   }, [shelters, showShelters, layerToggles.shelters])
 
-  // Heatmap points from reports + real API data
+  //Heatmap points from reports + real API data
   const heatPoints = useMemo<[number, number, number][]>(() => {
     if (!showHeatmap || !layerToggles.heatmap) return []
     const points: [number, number, number][] = []
@@ -798,7 +798,7 @@ export default function DisasterMap({
     return points
   }, [reports, showHeatmap, layerToggles.heatmap, realHeatmapData])
 
-  // Distress beacon markers
+  //Distress beacon markers
   const distressMarkerElements = useMemo(() => {
     if (!showDistress || !layerToggles.distress || !distressBeacons.length) return null
     return distressBeacons.map((b, i) => {
@@ -822,7 +822,7 @@ export default function DisasterMap({
               <p style={{ fontWeight: 700, color: '#dc2626', fontSize: 13, margin: '0 0 4px' }}>🚨 {t('dmap.distressBeacon', lang)}</p>
               <p style={{ fontSize: 12, fontWeight: 600, color: '#111827', margin: '0 0 2px' }}>{b.citizenName || b.citizen_name || t('dmap.citizen', lang)}</p>
               <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{b.message || t('dmap.emergencyAssistance', lang)}</p>
-              {b.isVulnerable && <p style={{ fontSize: 11, color: '#d97706', marginTop: 4 }}>⚠️ {t('dmap.vulnerablePerson', lang)}</p>}
+ {b.isVulnerable && <p style={{ fontSize: 11, color: '#d97706', marginTop: 4 }}>!️ {t('dmap.vulnerablePerson', lang)}</p>}
             </div>
           </Popup>
         </Marker>
@@ -830,7 +830,7 @@ export default function DisasterMap({
     }).filter(Boolean)
   }, [showDistress, layerToggles.distress, distressBeacons])
 
-  // Evacuation route polylines
+  //Evacuation route polylines
   const evacuationLines = useMemo(() => {
     if (!showEvacuation || !layerToggles.evacuation || !evacuationRoutes.length) return null
     return evacuationRoutes.map((route: EvacuationRouteMapItem, i) => {
@@ -846,13 +846,13 @@ export default function DisasterMap({
               <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{route.name || t('dmap.evacuationRoute', lang)}</p>
               {route.description && <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{route.description}</p>}
               {typeof route.recommendationScore === 'number' && (
-                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.recommendation', lang)}: {Math.round(route.recommendationScore * 100)}% — {t('dmap.risk', lang)}: {Math.round((route.riskScore || 0) * 100)}%</p>
+                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.recommendation', lang)}: {Math.round(route.recommendationScore * 100)}% -- {t('dmap.risk', lang)}: {Math.round((route.riskScore || 0) * 100)}%</p>
               )}
               {typeof route.etaConfidence === 'number' && (
-                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.etaConfidence', lang)}: {Math.round(route.etaConfidence * 100)}%{route.closureProximityM ? ` — ${t('dmap.closureProximity', lang)} ${route.closureProximityM}m` : ''}</p>
+                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.etaConfidence', lang)}: {Math.round(route.etaConfidence * 100)}%{route.closureProximityM ? ` -- ${t('dmap.closureProximity', lang)} ${route.closureProximityM}m` : ''}</p>
               )}
               {route.explanation?.scoreBreakdown && (
-                <p style={{ fontSize: 11, color: '#374151', marginTop: 4 }}>{t('dmap.profile', lang)}: {route.explanation.scoreBreakdown.profile} — {t('dmap.time', lang)} {Math.round(route.explanation.scoreBreakdown.timeScore * 100)} — {t('dmap.riskPenalty', lang)} {Math.round(route.explanation.scoreBreakdown.riskPenalty * 100)}</p>
+                <p style={{ fontSize: 11, color: '#374151', marginTop: 4 }}>{t('dmap.profile', lang)}: {route.explanation.scoreBreakdown.profile} -- {t('dmap.time', lang)} {Math.round(route.explanation.scoreBreakdown.timeScore * 100)} -- {t('dmap.riskPenalty', lang)} {Math.round(route.explanation.scoreBreakdown.riskPenalty * 100)}</p>
               )}
               {route.explanation?.blockedSegments?.length ? (
                 <div style={{ marginTop: 4 }}>
@@ -863,7 +863,7 @@ export default function DisasterMap({
               {route.explanation?.topHazards?.length ? (
                 <div style={{ marginTop: 4 }}>
                   <p style={{ fontSize: 11, fontWeight: 600, color: '#111827' }}>{t('dmap.topHazards', lang)}</p>
-                  <p style={{ fontSize: 12, color: '#1f2937' }}>{route.explanation.topHazards.slice(0, 2).map((h) => `${h.severity} ${h.distanceM}m${h.reason ? ` (${h.reason})` : ''}`).join(' — ')}</p>
+                  <p style={{ fontSize: 12, color: '#1f2937' }}>{route.explanation.topHazards.slice(0, 2).map((h) => `${h.severity} ${h.distanceM}m${h.reason ? ` (${h.reason})` : ''}`).join(' -- ')}</p>
                 </div>
               ) : null}
             </div>
@@ -873,16 +873,16 @@ export default function DisasterMap({
     }).filter(Boolean)
   }, [showEvacuation, layerToggles.evacuation, evacuationRoutes, lang])
 
-  // AI Flood prediction risk circles ? dynamic coords from location context + prediction data
+  //AI Flood prediction risk circles ? dynamic coords from location context + prediction data
   const predictionCircles = useMemo(() => {
     if (!showPredictions || !layerToggles.predictions || !predictions.length) return null
-    // Build coordinate lookup from location floodZones + prediction lat/lng
+    //Build coordinate lookup from location floodZones + prediction lat/lng
     const zoneCoords: Record<string, [number, number]> = {}
     for (const z of location.floodZones || []) {
       zoneCoords[z.name] = z.coords
     }
     return predictions.map((p, i) => {
-      // Use prediction's own coordinates first, then zone lookup, then skip
+      //Use prediction's own coordinates first, then zone lookup, then skip
       const lat = p.latitude || p.lat
       const lng = p.longitude || p.lng
       const coords: [number, number] | undefined = (lat && lng) ? [lat, lng] : zoneCoords[p.area]
@@ -896,7 +896,7 @@ export default function DisasterMap({
             <div style={{ minWidth: 200 }}>
               <p style={{ fontWeight: 700, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{p.area}</p>
               <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.floodProbability', lang)}: <span style={{ fontWeight: 700, color: colour }}>{Math.round(prob * 100)}%</span></p>
-              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.severity', lang)}: {p.severity} — {t('dmap.confidence', lang)}: {p.confidence}%</p>
+              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.severity', lang)}: {p.severity} -- {t('dmap.confidence', lang)}: {p.confidence}%</p>
               <p style={{ fontSize: 12, color: '#374151', margin: '0 0 2px' }}>{t('dmap.uncertaintyBand', lang)}: {Math.max(0, Math.round((Number(p.probability || 0) - (100 - Number(p.confidence || 0)) / 200) * 100))}% - {Math.min(100, Math.round((Number(p.probability || 0) + (100 - Number(p.confidence || 0)) / 200) * 100))}%</p>
               {p.time_to_flood && <p style={{ fontSize: 12, color: '#374151', margin: '0 0 2px' }}>{t('dmap.timeToFlood', lang)}: {p.time_to_flood}</p>}
               <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>{p.model_version}</p>
@@ -907,10 +907,10 @@ export default function DisasterMap({
     }).filter(Boolean)
   }, [showPredictions, layerToggles.predictions, predictions])
 
-  // Deployment zone markers ? resolve coords from DB, floodZones lookup, or offset from center
+  //Deployment zone markers ? resolve coords from DB, floodZones lookup, or offset from center
   const deploymentMarkers = useMemo(() => {
     if (!deployments || !deployments.length) return null
-    // Build coordinate lookup from location floodZones
+    //Build coordinate lookup from location floodZones
     const zoneCoords: Record<string, [number, number]> = {}
     for (const z of location.floodZones || []) {
       zoneCoords[z.name.toLowerCase()] = z.coords
@@ -922,12 +922,12 @@ export default function DisasterMap({
       low: { stroke: '#6b7280', fill: '#d1d5db' },
     }
     return deployments.map((d, i) => {
-      // Try DB coordinates first, then fuzzy match zone name against floodZones, then offset from map center
+      //Try DB coordinates first, then fuzzy match zone name against floodZones, then offset from map center
       let coords: [number, number] | null = null
       if (d.lat && d.lng) {
         coords = [d.lat, d.lng]
       } else {
-        // Fuzzy match: check if zone name contains or is contained by any floodZone name
+        //Fuzzy match: check if zone name contains or is contained by any floodZone name
         const zoneLower = d.zone.toLowerCase()
         for (const [name, c] of Object.entries(zoneCoords)) {
           if (zoneLower.includes(name) || name.includes(zoneLower) ||
@@ -936,7 +936,7 @@ export default function DisasterMap({
             break
           }
         }
-        // Last resort: offset from map center based on index
+        //Last resort: offset from map center based on index
         if (!coords) {
           const angle = (i / Math.max(deployments.length, 1)) * 2 * Math.PI
           const offset = 0.015 * (i + 1)
@@ -988,7 +988,7 @@ export default function DisasterMap({
     })
   }, [deployments, location.floodZones, mapCenter, lang])
 
-  // PostGIS risk layer GeoJSON polygons
+  //PostGIS risk layer GeoJSON polygons
   const riskPolygons = useMemo(() => {
     if (!showRiskLayer || !layerToggles.riskLayer || !riskLayerData?.features?.length) return null
     const riskStyle = (feature: any): L.PathOptions => {
@@ -1270,7 +1270,7 @@ export default function DisasterMap({
             <button
               onClick={() => setFocusMode(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white/90 hover:text-white hover:bg-white/10 transition-colors"
-              title="Focus mode — hide controls"
+              title="Focus mode -- hide controls"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 flex-shrink-0">
                 <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/>

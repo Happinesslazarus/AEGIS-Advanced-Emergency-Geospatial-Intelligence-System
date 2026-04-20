@@ -87,7 +87,7 @@ export interface CityRegionConfig {
   /* Pre-calculated evacuation route file paths */
   evacuationRouteFiles?: Record<string, string>
 
-  // Multi-Incident Configuration
+  //Multi-Incident Configuration
   /* Per-incident type configuration for this region */
   enabledIncidents?: Partial<Record<IncidentTypeId, RegionIncidentConfig>>
   /* Emergency contacts beyond the primary number */

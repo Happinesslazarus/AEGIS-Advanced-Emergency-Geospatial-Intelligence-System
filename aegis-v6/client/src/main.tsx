@@ -10,10 +10,10 @@
  * - BrowserRouter is declared here so all child components can use useNavigate/useLocation
  * - Sentry is initialised here (client-side) to capture React render errors
  *
- * - client/src/App.tsx            — route definitions and global provider tree
- * - client/src/contexts/AppProviders.tsx — all React Context providers wrapped together
- * - client/src/i18n/config.ts     — language configuration for react-i18next
- * - client/src/styles/globals.css — global CSS, Tailwind variables, dark mode
+ * - client/src/App.tsx            -- route definitions and global provider tree
+ * - client/src/contexts/AppProviders.tsx -- all React Context providers wrapped together
+ * - client/src/i18n/config.ts     -- language configuration for react-i18next
+ * - client/src/styles/globals.css -- global CSS, Tailwind variables, dark mode
  * */
 
 import React from 'react'
@@ -24,7 +24,7 @@ import App from './App'
 import './i18n/config' // Initialize i18next before rendering
 import './styles/globals.css'
 
-// Sentry Error Tracking (only when DSN is configured)
+//Sentry Error Tracking (only when DSN is configured)
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN
 if (sentryDsn) {
   Sentry.init({
@@ -38,7 +38,7 @@ if (sentryDsn) {
   })
 }
 
-// Render the React app into the root div. BrowserRouter enables routing throughout the app.
+//Render the React app into the root div. BrowserRouter enables routing throughout the app.
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -47,7 +47,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>
 )
 
-// PWA Service Worker
+//PWA Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     const isProd = import.meta.env.PROD
@@ -57,7 +57,7 @@ if ('serviceWorker' in navigator) {
       return
     }
 
-    // In development, always unregister SW to avoid stale caches / hard-refresh-only fixes.
+    //In development, always unregister SW to avoid stale caches / hard-refresh-only fixes.
     try {
       const regs = await navigator.serviceWorker.getRegistrations()
       await Promise.all(regs.map((r) => r.unregister()))
@@ -67,7 +67,7 @@ if ('serviceWorker' in navigator) {
       }
       // // console.log('[SW] Development mode: service workers and caches cleared')
     } catch {
-      // no-op
+      //no-op
     }
   })
 }

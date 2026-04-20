@@ -2,7 +2,6 @@
 EM-DAT (Emergency Events Database) global disaster event catalog loader.
 
 WHY EM-DAT
-----------
 EM-DAT is maintained by the Centre for Research on the Epidemiology of
 Disasters (CRED, Université catholique de Louvain, Belgium) and contains
 records of over 22,000 natural and technological disasters worldwide from
@@ -11,11 +10,11 @@ database for academic and policy research.
 
 For AEGIS, EM-DAT provides independent event records that serve as training
 labels for multiple hazards:
-  - Flood events        → supplement train_flood_real.py
-  - Storm events        → supplement train_severe_storm_real.py
-  - Heat/drought events → supplement train_heatwave_real.py
-  - Landslide events    → supplement train_landslide_real.py
-  - Infrastructure damage events → enable train_infrastructure_damage_real.py
+ - Flood events -> supplement train_flood_real.py
+ - Storm events -> supplement train_severe_storm_real.py
+ - Heat/drought events -> supplement train_heatwave_real.py
+ - Landslide events -> supplement train_landslide_real.py
+ - Infrastructure damage events -> enable train_infrastructure_damage_real.py
 
 REFERENCE
 ---------
@@ -31,15 +30,14 @@ After registration, download the full database as an Excel file (.xlsx) or CSV.
 Two access modes:
   1. MANUAL EXPORT (recommended for reproducibility):
      - Register at https://public.emdat.be/
-     - Download "Full data export" → emdat_public_YYYY_MM_DD.xlsx
+ - Download "Full data export" -> emdat_public_YYYY_MM_DD.xlsx
      - Place at: {ai-engine}/data/emdat/emdat_export.xlsx  (or .csv)
      - Call: load_emdat_export()
 
   2. PUBLIC API (limited, requires API key from account):
-     - Not yet stable for programmatic access — use manual export.
+     - Not yet stable for programmatic access -- use manual export.
 
 EM-DAT COLUMNS USED
--------------------
   Dis No       : unique disaster identifier
   Year, Month, Start Day, End Day
   Country      : affected country name
@@ -64,7 +62,7 @@ from loguru import logger
 _AI_ROOT  = Path(__file__).resolve().parent.parent.parent
 _EMDAT_DIR = _AI_ROOT / "data" / "emdat"
 
-# Map of EM-DAT Disaster Type → AEGIS hazard names
+# Map of EM-DAT Disaster Type -> AEGIS hazard names
 EMDAT_TYPE_MAP: dict[str, str] = {
     # Flood
     "Flood":                       "flood",
@@ -99,7 +97,7 @@ EMDAT_TYPE_MAP: dict[str, str] = {
     "Industrial accident":          "infrastructure_damage",
 }
 
-# ISO 3-letter country codes → list of region / station IDs
+# ISO 3-letter country codes -> list of region / station IDs
 # This is used when EM-DAT events have no lat/lon (country-level only)
 _COUNTRY_ISO_TO_REGION: dict[str, list[str]] = {
     # UK
@@ -200,9 +198,7 @@ _COUNTRY_ISO_TO_REGION: dict[str, list[str]] = {
 }
 
 
-# ---------------------------------------------------------------------------
 # Data loading
-# ---------------------------------------------------------------------------
 
 def _find_emdat_file() -> Optional[Path]:
     """Search for an EM-DAT export file in the standard directory."""
@@ -219,12 +215,11 @@ def load_emdat_export(file_path: Optional[Path] = None) -> pd.DataFrame:
     """Load an EM-DAT database export file.
 
     Parameters
-    ----------
     file_path : optional path to the export file.  If None, auto-searches
                 {ai-engine}/data/emdat/ for any .xlsx/.csv file.
 
     Returns
-    -------
+
     pd.DataFrame with normalised column names, or empty DataFrame on failure.
     """
     if file_path is None:
@@ -265,7 +260,7 @@ def load_emdat_export(file_path: Optional[Path] = None) -> pd.DataFrame:
         "latitude": ["latitude", "lat", "event_latitude"],
         "longitude": ["longitude", "lon", "long", "event_longitude"],
         "total_deaths": ["total_deaths", "deaths", "total_deaths_adjusted"],
-        # Date column aliases — current EM-DAT exports (2022+) use start_year/start_month
+        # Date column aliases -- current EM-DAT exports (2022+) use start_year/start_month
         "year":      ["year", "start_year", "event_year"],
         "month":     ["month", "start_month", "event_month"],
         "start_day": ["start_day", "event_start_day", "day"],
@@ -294,7 +289,7 @@ def load_emdat_export(file_path: Optional[Path] = None) -> pd.DataFrame:
     logger.info(
         f"  EM-DAT: {len(df):,} disaster records loaded "
         f"({df['disaster_type'].nunique() if 'disaster_type' in df.columns else '?'} types, "
-        f"{df['year'].min():.0f}–{df['year'].max():.0f} years)"
+        f"{df['year'].min():.0f}-{df['year'].max():.0f} years)"
         if "year" in df.columns else f"  EM-DAT: {len(df):,} records loaded"
     )
     return df
@@ -309,14 +304,13 @@ def filter_emdat_events(
     """Filter EM-DAT records to a specific AEGIS hazard and year range.
 
     Parameters
-    ----------
     df          : full EM-DAT DataFrame from load_emdat_export()
     hazard_type : AEGIS hazard name (e.g. "flood", "severe_storm", "heatwave")
     start_year  : first year to include
     end_year    : last year to include (inclusive)
 
     Returns
-    -------
+
     Filtered DataFrame, or empty DataFrame if no matching records.
     """
     if df.empty:
@@ -349,14 +343,12 @@ def filter_emdat_events(
     filtered = df[type_mask & year_mask].copy()
     logger.info(
         f"  EM-DAT '{hazard_type}': {len(filtered):,} events "
-        f"({start_year}–{end_year})"
+        f"({start_year}-{end_year})"
     )
     return filtered
 
 
-# ---------------------------------------------------------------------------
 # Label builder
-# ---------------------------------------------------------------------------
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     r = 6371.0
@@ -391,7 +383,7 @@ def build_emdat_label_df(
 
       precursor_days = 0 (default, backward-compatible):
         A station-day is positive if any matching EM-DAT event spans that day.
-        Labels cover the FULL event duration (ev_start → ev_end).
+ Labels cover the FULL event duration (ev_start -> ev_end).
 
       precursor_days > 0 (PhD-grade forecast label):
         Labels the ATMOSPHERIC PRECURSOR WINDOW rather than the event duration.
@@ -401,11 +393,10 @@ def build_emdat_label_df(
         al., 2013 GloFAS; Smith et al., 2004).
         The full event duration (after ev_start+1) is EXCLUDED because mid-
         and late-event conditions (e.g. clearing skies on day 20 of a flood)
-        are unrelated to the precursor atmospheric drivers — including them
+        are unrelated to the precursor atmospheric drivers -- including them
         inverts the rainfall-risk signal and produces AUC < 0.5.
 
     Parameters
-    ----------
     hazard_type       : AEGIS hazard name
     station_locations : list of {"id", "lat", "lon"} dicts
     start_date        : "YYYY-MM-DD"
@@ -416,7 +407,7 @@ def build_emdat_label_df(
     precursor_days    : if > 0, label only the N days before event onset (default 0)
 
     Returns
-    -------
+
     pd.DataFrame with columns: timestamp (hourly), station_id, label (0/1)
     Empty DataFrame if EM-DAT is unavailable.
     """
@@ -434,7 +425,7 @@ def build_emdat_label_df(
     )
 
     if events.empty:
-        logger.warning(f"  EM-DAT: no '{hazard_type}' events found for {start_date}–{end_date}")
+        logger.warning(f"  EM-DAT: no '{hazard_type}' events found for {start_date}-{end_date}")
         return pd.DataFrame(columns=["timestamp", "station_id", "label"])
 
     if min_deaths > 0 and "total_deaths" in events.columns:

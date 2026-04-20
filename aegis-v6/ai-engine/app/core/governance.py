@@ -24,7 +24,7 @@ import asyncpg
 
 DB_URL = os.getenv('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
-# MODEL GOVERNANCE — Versioning, Registration, Activation
+# MODEL GOVERNANCE -- Versioning, Registration, Activation
 
 class ModelGovernance:
     """
@@ -48,7 +48,7 @@ class ModelGovernance:
     ) -> Dict[str, Any]:
         """
         Register a newly trained model as a CANDIDATE.
-        Does NOT activate it — that requires compare_and_promote().
+        Does NOT activate it -- that requires compare_and_promote().
         
         The separation prevents training pipelines from self-promoting:
         a human operator or the automatic A/B comparison must explicitly
@@ -139,7 +139,7 @@ class ModelGovernance:
                         f"Rejected: {primary_metric}={candidate_score:.4f} < active {active_score:.4f} (min_improvement={min_improvement})",
                         model_name, candidate_version,
                     )
-                    logger.warning(f"Candidate {candidate_version} rejected — no improvement")
+                    logger.warning(f"Candidate {candidate_version} rejected -- no improvement")
                     return {
                         "status": "rejected",
                         "reason": f"No improvement: candidate={candidate_score:.4f}, active={active_score:.4f}",
@@ -154,7 +154,7 @@ class ModelGovernance:
                 )
                 logger.info(f"Archived previous active: {active['version']}")
             else:
-                logger.info(f"No active model for {model_name} — promoting candidate directly")
+                logger.info(f"No active model for {model_name} -- promoting candidate directly")
                 improvement = candidate_score
 
             # Activate candidate
@@ -318,7 +318,7 @@ class ModelGovernance:
         raw = json.dumps(data, sort_keys=True, default=str)
         return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
-# PREDICTION LOGGER — Log every prediction for monitoring
+# PREDICTION LOGGER -- Log every prediction for monitoring
 
 class PredictionLogger:
     """
@@ -444,7 +444,7 @@ class PredictionLogger:
             await self._pool.close()
             self._pool = None
 
-# DRIFT DETECTOR — Statistical drift detection
+# DRIFT DETECTOR -- Statistical drift detection
 
 class DriftDetector:
     """

@@ -12,7 +12,7 @@
   * - Should stay in sync with server response shapes in server/src/routes/
  */
 
-// GENERIC API RESPONSE TYPES
+//GENERIC API RESPONSE TYPES
 
 /** Standard API response envelope */
 export interface ApiResponse<T> {
@@ -39,7 +39,7 @@ export interface ApiError {
   status?: number
 }
 
-// TYPE GUARDS
+//TYPE GUARDS
 
 /** Type guard for API error responses */
 export function isApiError(value: unknown): value is ApiError {
@@ -66,7 +66,7 @@ export function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-// SAFE ACCESSORS
+//SAFE ACCESSORS
 
 /** Safely access a nested property with type inference */
 export function safeGet<T, K extends keyof T>(obj: T | null | undefined, key: K): T[K] | undefined {
@@ -118,7 +118,7 @@ export function safeArray<T>(value: unknown, itemGuard?: (item: unknown) => item
   return value.filter(itemGuard)
 }
 
-// DATA TRANSFORMERS
+//DATA TRANSFORMERS
 
 /** Transform an object using a mapping function */
 export function transformObject<S extends Record<string, unknown>, T>(
@@ -158,7 +158,7 @@ export function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Om
   return result as Omit<T, K>
 }
 
-// FETCH WRAPPER WITH TYPED RESPONSES
+//FETCH WRAPPER WITH TYPED RESPONSES
 
 /** Options for typed fetch */
 export interface TypedFetchOptions<T> extends RequestInit {
@@ -209,7 +209,7 @@ export async function typedFetch<T>(
   }
 }
 
-// EVENT HANDLER TYPES
+//EVENT HANDLER TYPES
 
 /** Typed event handler for form inputs */
 export type InputChangeHandler = (e: React.ChangeEvent<HTMLInputElement>) => void
@@ -232,7 +232,7 @@ export type DivClickHandler = (e: React.MouseEvent<HTMLDivElement>) => void
 /** Typed keyboard event handler */
 export type KeyboardHandler = (e: React.KeyboardEvent) => void
 
-// COMMON COMPONENT PROP TYPES
+//COMMON COMPONENT PROP TYPES
 
 /** Base props that all components should accept */
 export interface BaseComponentProps {

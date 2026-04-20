@@ -29,7 +29,7 @@ export interface DialogueState {
 }
 
 /**
- * Infer dialogue state from conversation history — tracks intent, slots, and stage
+ * Infer dialogue state from conversation history -- tracks intent, slots, and stage
  * so the LLM has full conversational context without re-inferring each turn.
  */
 export function inferDialogueState(
@@ -50,7 +50,7 @@ export function inferDialogueState(
 
   const lower = currentMessage.toLowerCase()
 
-  // Intent classification from message patterns
+  //Intent classification from message patterns
   const intentPatterns: Array<{ intent: string; patterns: RegExp[] }> = [
     { intent: 'emergency_report', patterns: [/\b(help|emergency|trapped|drowning|fire|collapse)\b/i, /\b(urgent|immediately|right now|sos)\b/i] },
     { intent: 'evacuation_request', patterns: [/\b(evacuate|evacuation|escape|get out|leave|route)\b/i] },
@@ -73,7 +73,7 @@ export function inferDialogueState(
 
   if (emergency.isEmergency) state.intent = 'emergency_report'
 
-  // Extract slots from current message and history
+  //Extract slots from current message and history
   const entities = extractEntities(currentMessage)
   if (entities.locations.length > 0) {
     state.slots.push({ name: 'location', value: entities.locations[0], confirmed: false, source: 'user' })
@@ -82,7 +82,7 @@ export function inferDialogueState(
     state.slots.push({ name: 'hazard_type', value: entities.hazardTypes[0], confirmed: false, source: 'user' })
   }
 
-  // Extract numeric slots (e.g., "5 people", "3 km")
+  //Extract numeric slots (e.g., "5 people", "3 km")
   const numberPatterns: Array<{ name: string; pattern: RegExp }> = [
     { name: 'people_count', pattern: /(\d+)\s*(?:people|person|family members|of us)/i },
     { name: 'radius_km', pattern: /(\d+)\s*(?:km|kilometer|mile)/i },
@@ -92,7 +92,7 @@ export function inferDialogueState(
     if (m) state.slots.push({ name, value: parseInt(m[1]), confirmed: false, source: 'user' })
   }
 
-  // Determine conversation stage
+  //Determine conversation stage
   if (state.turnCount === 0) {
     state.stage = 'greeting'
   } else if (state.turnCount <= 2 && state.slots.length < 2) {
@@ -105,7 +105,7 @@ export function inferDialogueState(
     state.stage = 'action'
   }
 
-  // Identify unresolved questions from previous assistant messages
+  //Identify unresolved questions from previous assistant messages
   for (const msg of history) {
     if (msg.role === 'assistant') {
       const questions = msg.content.match(/\?[^?]*$/gm)
@@ -168,7 +168,7 @@ export async function updateUserProfile(
 ): Promise<void> {
   if (!citizenId) return
   try {
-    // Merge new topics/locations into existing profile via JSONB operations
+    //Merge new topics/locations into existing profile via JSONB operations
     await pool.query(
       `UPDATE citizens SET preferences = jsonb_set(
          jsonb_set(
@@ -194,7 +194,7 @@ export async function updateUserProfile(
       [citizenId, entities.locations, entities.hazardTypes],
     )
   } catch {
-    // Non-critical — profile update failure should not break chat
+    //Non-critical -- profile update failure should not break chat
   }
 }
 
@@ -211,7 +211,7 @@ export function buildUserProfileContext(profile: UserProfile | null): string {
     parts.push(`Vulnerability: ${profile.vulnerabilityFlags.join(', ')}`)
   }
   if (parts.length === 0) return ''
-  return `\n\n[RETURNING USER — interaction #${profile.interactionCount + 1}] ${parts.join(' | ')}\nUse this context to personalize your response. Reference their known locations when relevant.`
+  return `\n\n[RETURNING USER -- interaction #${profile.interactionCount + 1}] ${parts.join(' | ')}\nUse this context to personalize your response. Reference their known locations when relevant.`
 }
 
 
@@ -230,7 +230,7 @@ export function extractEntities(text: string): { locations: string[]; people: st
   const people: string[] = []
   const hazardTypes: string[] = []
 
-  // Hazard type detection
+  //Hazard type detection
   const hazardPatterns: Array<{ type: string; pattern: RegExp }> = [
     { type: 'flood', pattern: /\b(flood|flooding|floodwater)\b/i },
     { type: 'fire', pattern: /\b(fire|wildfire|blaze)\b/i },
@@ -248,12 +248,12 @@ export function extractEntities(text: string): { locations: string[]; people: st
     if (pattern.test(text)) hazardTypes.push(type)
   }
 
-  // Location extraction — capitalised multi-word phrases that look like place names
+  //Location extraction -- capitalised multi-word phrases that look like place names
   const locationPattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+(?:Road|Street|Avenue|Lane|Bridge|River|Park|Hill|Valley|Bay|Harbour|Port|Town|City|Village))?)\b/g
   let locMatch: RegExpExecArray | null
   while ((locMatch = locationPattern.exec(text)) !== null) {
     const candidate = locMatch[1]
-    // Filter out common non-location capitalized words
+    //Filter out common non-location capitalized words
     const nonLocations = new Set(['I', 'The', 'You', 'We', 'They', 'He', 'She', 'It', 'My', 'Your',
       'AEGIS', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
       'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September',
@@ -280,7 +280,7 @@ export function detectTopicShift(currentMessage: string, previousTopics: string[
 
   if (currentTopicSignals.length === 0) return false
 
-  // If none of the current topic signals were in previous topics, it is a shift
+  //If none of the current topic signals were in previous topics, it is a shift
   const overlap = currentTopicSignals.filter(t => previousTopics.includes(t.toLowerCase()))
   return overlap.length === 0 && currentTopicSignals.length > 0
 }
@@ -297,7 +297,7 @@ export async function manageConversationMemory(
   const allTopics: string[] = []
   const allEntities = { locations: new Set<string>(), people: new Set<string>(), hazardTypes: new Set<string>() }
 
-  // Extract entities and topics from all messages
+  //Extract entities and topics from all messages
   for (const msg of history) {
     const entities = extractEntities(msg.content)
     entities.locations.forEach(l => allEntities.locations.add(l))
@@ -317,16 +317,16 @@ export async function manageConversationMemory(
     messageCount: history.length,
   }
 
-  // If history is short enough, return as-is
+  //If history is short enough, return as-is
   if (history.length <= RECENT_WINDOW) {
     return { compressedHistory: history, memory }
   }
 
-  // Split into older messages (to summarize) and recent messages (to keep)
+  //Split into older messages (to summarize) and recent messages (to keep)
   const olderMessages = history.slice(0, history.length - RECENT_WINDOW)
   const recentMessages = history.slice(history.length - RECENT_WINDOW)
 
-  // Build a text summary of older messages using LLM
+  //Build a text summary of older messages using LLM
   try {
     const olderText = olderMessages.map(m => `${m.role}: ${m.content}`).join('\n')
     const summaryResponse = await chatCompletion({
@@ -342,7 +342,7 @@ export async function manageConversationMemory(
     })
     memory.summary = summaryResponse.content
   } catch {
-    // LLM unavailable for summarization — use basic text compression
+    //LLM unavailable for summarization -- use basic text compression
     memory.summary = olderMessages
       .filter(m => m.role === 'user')
       .map(m => m.content.slice(0, 80))
@@ -350,11 +350,11 @@ export async function manageConversationMemory(
       .slice(0, 300)
   }
 
-  // Build compressed history: summary as a system message + recent messages
+  //Build compressed history: summary as a system message + recent messages
   const compressedHistory: Array<{ role: string; content: string }> = [
     {
       role: 'system',
-      content: `[CONVERSATION SUMMARY — ${olderMessages.length} earlier messages]\n${memory.summary}\n[Key entities: locations=${memory.entities.locations.join(', ') || 'none'}, hazards=${memory.entities.hazardTypes.join(', ') || 'none'}]`,
+      content: `[CONVERSATION SUMMARY -- ${olderMessages.length} earlier messages]\n${memory.summary}\n[Key entities: locations=${memory.entities.locations.join(', ') || 'none'}, hazards=${memory.entities.hazardTypes.join(', ') || 'none'}]`,
     },
     ...recentMessages,
   ]

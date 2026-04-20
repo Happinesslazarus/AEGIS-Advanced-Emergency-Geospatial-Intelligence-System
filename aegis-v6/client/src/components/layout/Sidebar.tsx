@@ -3,7 +3,7 @@
  *
  * Layout behaviour:
  * - Desktop (lg+): fixed sidebar, 220 px wide or collapsed to 60 px icon rail.
- * - Tablet (md–lg): sidebar hidden by default; a small toggle button opens it.
+ * - Tablet (md-lg): sidebar hidden by default; a small toggle button opens it.
  * - Mobile (<md): only accessible via mobileOpen prop; no persistent sidebar.
  * - Mobile/tablet: slides in as an overlay drawer with backdrop dismiss.
  *
@@ -53,7 +53,7 @@ interface SidebarItemConfig extends Omit<SidebarItem, 'label'> {
 }
 
 /**
- * NAV_ITEM_CONFIG — core navigation available to all users (guests and citizens).
+ * NAV_ITEM_CONFIG -- core navigation available to all users (guests and citizens).
  *
  * guestAccess:true  items appear and work for unauthenticated guests.
  * guestAccess:false items appear but are disabled with a lock badge; clicking
@@ -75,7 +75,7 @@ const NAV_ITEM_CONFIG: SidebarItemConfig[] = [
 ]
 
 /**
- * CITIZEN_EXTRA_ITEM_CONFIG — account-level items shown only when authenticated.
+ * CITIZEN_EXTRA_ITEM_CONFIG -- account-level items shown only when authenticated.
  * Appended to navItems at render time; never shown to guests.
  */
 const CITIZEN_EXTRA_ITEM_CONFIG: SidebarItemConfig[] = [
@@ -105,8 +105,8 @@ export default function Sidebar({
   const routerLocation = useRouterLocation()
   const lang = useLanguage()
 
-  // localizeItems resolves i18n keys at render time so labels update immediately
-  // when the user switches language without a remount.
+  //localizeItems resolves i18n keys at render time so labels update immediately
+  //when the user switches language without a remount.
   const localizeItems = (configs: SidebarItemConfig[]): SidebarItem[] =>
     configs.map(({ labelKey, ...item }) => ({ ...item, label: t(labelKey, lang) }))
 
@@ -114,13 +114,13 @@ export default function Sidebar({
   const citizenExtraItems = localizeItems(CITIZEN_EXTRA_ITEM_CONFIG)
   const items = isAuthenticated ? [...navItems, ...citizenExtraItems] : navItems
 
-  // Close mobile sidebar on route change
+  //Close mobile sidebar on route change
   useEffect(() => {
     setMobileOpen(false)
   }, [routerLocation.pathname, routerLocation.search])
 
-  // getBadge maps live badge counts to their corresponding nav key.
-  // Only three items carry badges; everything else returns 0.
+  //getBadge maps live badge counts to their corresponding nav key.
+  //Only three items carry badges; everything else returns 0.
   const getBadge = (key: string) => {
     if (key === 'alerts' && alertCount > 0) return alertCount
     if (key === 'messages' && unreadMessages > 0) return unreadMessages
@@ -130,8 +130,8 @@ export default function Sidebar({
 
   const renderItem = (item: SidebarItem, onClose?: () => void) => {
     const isActive = activeKey === item.key
-    // isLocked: item requires authentication but user is a guest.
-    // The button renders (so guests see all features) but is disabled.
+    //isLocked: item requires authentication but user is a guest.
+    //The button renders (so guests see all features) but is disabled.
     const isLocked = !item.guestAccess && !isAuthenticated
     const badge = getBadge(item.key)
     const Icon = item.icon
@@ -175,7 +175,7 @@ export default function Sidebar({
           </>
         )}
 
-        {/* Tooltip for collapsed mode — CSS group-hover opacity; no JS state needed.
+        {/* Tooltip for collapsed mode -- CSS group-hover opacity; no JS state needed.
              Also shows lock hint so guests know why the item requires sign-in. */}
         {collapsed && (
           <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-gray-900 dark:bg-gray-700 text-white text-[10px] font-medium rounded-lg shadow-lg whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50">
@@ -205,7 +205,7 @@ export default function Sidebar({
 
       {/* Navigation items */}
       <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
-        {/* Welcome — always rendered first for authenticated users so the personalised
+        {/* Welcome -- always rendered first for authenticated users so the personalised
              dashboard entry is visually separated above the public nav items. */}
         {isAuthenticated && (
           <div className="space-y-0.5 mb-1">
@@ -233,7 +233,7 @@ export default function Sidebar({
           </>
         )}
 
-        {/* Guest sign-in CTA — shown when the user hasn't authenticated yet.
+        {/* Guest sign-in CTA -- shown when the user hasn't authenticated yet.
              Only visible in expanded mode; in collapsed mode the lock icons on
              individual items serve as the signal. */}
         {!isAuthenticated && !collapsed && (
@@ -255,7 +255,7 @@ export default function Sidebar({
         )}
       </nav>
 
-      {/* Emergency report button — prominent bottom CTA visible at all times.
+      {/* Emergency report button -- prominent bottom CTA visible at all times.
            Creates a synthetic SidebarItem so onNavigate can handle the action
            the same way as a regular nav click without a dedicated route. */}
       <div className={`px-2 pb-3 pt-2 border-t border-gray-200 dark:border-white/5 ${collapsed ? 'px-1.5' : ''}`}>

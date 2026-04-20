@@ -11,7 +11,7 @@
   * - Values align with Tailwind transition duration classes
  */
 
-// DURATION CONSTANTS (milliseconds)
+//DURATION CONSTANTS (milliseconds)
 
 /** Instant feedback (buttons, toggles) */
 export const DURATION_INSTANT = 50
@@ -37,24 +37,24 @@ export const DURATIONS = {
   emphasis: DURATION_EMPHASIS,
 } as const
 
-// EASING FUNCTIONS
+//EASING FUNCTIONS
 
-/** Quick start, gradual stop — most common for UI */
+/** Quick start, gradual stop -- most common for UI */
 export const EASE_OUT = 'cubic-bezier(0.0, 0.0, 0.2, 1)'
 
-/** Gradual start, quick stop — for exits */
+/** Gradual start, quick stop -- for exits */
 export const EASE_IN = 'cubic-bezier(0.4, 0.0, 1, 1)'
 
-/** Symmetric ease — for loops or reversible animations */
+/** Symmetric ease -- for loops or reversible animations */
 export const EASE_IN_OUT = 'cubic-bezier(0.4, 0.0, 0.2, 1)'
 
-/** Linear — for progress bars, continuous animations */
+/** Linear -- for progress bars, continuous animations */
 export const EASE_LINEAR = 'linear'
 
-/** Bouncy effect — for playful UI elements */
+/** Bouncy effect -- for playful UI elements */
 export const EASE_BOUNCE = 'cubic-bezier(0.68, -0.55, 0.265, 1.55)'
 
-/** Snappy spring — for quick, responsive feedback */
+/** Snappy spring -- for quick, responsive feedback */
 export const EASE_SPRING = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)'
 
 /** All easing functions */
@@ -67,7 +67,7 @@ export const EASINGS = {
   spring: EASE_SPRING,
 } as const
 
-// PRESET COMBINATIONS
+//PRESET COMBINATIONS
 
 /** Quick feedback for interactive elements */
 export const TRANSITION_FAST = `${DURATION_FAST}ms ${EASE_OUT}`
@@ -85,7 +85,7 @@ export const TRANSITIONS = {
   slow: TRANSITION_SLOW,
 } as const
 
-// DELAY CONSTANTS (for staggered animations)
+//DELAY CONSTANTS (for staggered animations)
 
 /** Base delay for staggered list items */
 export const STAGGER_DELAY = 50
@@ -95,7 +95,7 @@ export function getStaggerDelay(index: number, baseDelay = STAGGER_DELAY): numbe
   return index * baseDelay
 }
 
-// REDUCED MOTION UTILITIES
+//REDUCED MOTION UTILITIES
 
 /** Check if user prefers reduced motion */
 export function prefersReducedMotion(): boolean {
@@ -118,7 +118,7 @@ export function getMotionSafeTransition(
   return `${property} ${safeDuration}ms ${easing}`
 }
 
-// CSS CUSTOM PROPERTIES (inject into document)
+//CSS CUSTOM PROPERTIES (inject into document)
 
 /** CSS custom properties for animation timing */
 export const CSS_ANIMATION_VARS = `
@@ -155,7 +155,7 @@ export const CSS_ANIMATION_VARS = `
   }
 `
 
-// KEYFRAME ANIMATION PRESETS
+//KEYFRAME ANIMATION PRESETS
 
 /** Fade in animation */
 export const KEYFRAMES_FADE_IN = `

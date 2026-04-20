@@ -1,5 +1,5 @@
 ﻿/**
- * Security audit logger — writes security events to the security_events table
+ * Security audit logger -- writes security events to the security_events table
  * and detects suspicious patterns like credential stuffing or brute-force attempts.
  *
  * - Imported by auth, device trust, IP security, and other security services
@@ -60,7 +60,7 @@ interface SecurityEventOptions {
 
 /**
  * Log a security event to the database.
- * Non-blocking — errors are caught and logged, never thrown.
+ * Non-blocking -- errors are caught and logged, never thrown.
  */
 export async function logSecurityEvent(options: SecurityEventOptions): Promise<void> {
   try {
@@ -78,7 +78,7 @@ export async function logSecurityEvent(options: SecurityEventOptions): Promise<v
     )
     securityEventsTotal.inc({ event_type: options.eventType })
   } catch (err: any) {
-    // Security logging must never crash the main flow
+    //Security logging must never crash the main flow
     logger.error({ err, eventType: options.eventType }, '[SecurityLogger] Failed to log event')
   }
 }
@@ -95,7 +95,7 @@ export async function checkSuspiciousActivity(
   ipAddress: string
 ): Promise<boolean> {
   try {
-    // Check: 10+ failed logins in the last hour from different IPs
+    //Check: 10+ failed logins in the last hour from different IPs
     const multiIpResult = await pool.query(
       `SELECT COUNT(DISTINCT ip_address) as ip_count
        FROM security_events
@@ -115,7 +115,7 @@ export async function checkSuspiciousActivity(
       return true
     }
 
-    // Check: 20+ failed logins from this IP in the last hour (credential stuffing)
+    //Check: 20+ failed logins from this IP in the last hour (credential stuffing)
     const sameIpResult = await pool.query(
       `SELECT COUNT(*) as attempt_count
        FROM security_events

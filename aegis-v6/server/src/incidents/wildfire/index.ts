@@ -33,7 +33,7 @@ class WildfireModule extends BaseIncidentModule {
 
   async getPredictions(region: string): Promise<IncidentPrediction[]> {
     try {
-      // Fire Weather Index calculation from weather data
+      //Fire Weather Index calculation from weather data
       const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=57.15&longitude=-2.09&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation&daily=precipitation_sum&timezone=auto&forecast_days=3`
       const res = await fetch(weatherUrl, { signal: AbortSignal.timeout(8000) })
       if (!res.ok) return this.ruleBasedPrediction(region)
@@ -45,7 +45,7 @@ class WildfireModule extends BaseIncidentModule {
       const precipitation = data.current?.precipitation || 0
       const recentRain = (data.daily?.precipitation_sum || []).reduce((s: number, v: number) => s + v, 0)
 
-      // Simplified Fire Danger Index
+      //Simplified Fire Danger Index
       const fdi = (temp * 0.3) + ((100 - humidity) * 0.3) + (windSpeed * 0.2) - (recentRain * 2)
 
       let severity = 'Low'
@@ -62,7 +62,7 @@ class WildfireModule extends BaseIncidentModule {
         confidence: 0.5,
         confidenceSource: 'statistical',
         region,
-        description: `Fire Danger Index: ${fdi.toFixed(1)}. Temp: ${temp}—C, Humidity: ${humidity}%, Wind: ${windSpeed} km/h, Recent rain: ${recentRain.toFixed(1)}mm`,
+        description: `Fire Danger Index: ${fdi.toFixed(1)}. Temp: ${temp}--C, Humidity: ${humidity}%, Wind: ${windSpeed} km/h, Recent rain: ${recentRain.toFixed(1)}mm`,
         advisoryText: this.getAdvisoryText(severity),
         generatedAt: new Date().toISOString(),
         dataSourcesUsed: ['weather_api', 'fire_danger_index'],

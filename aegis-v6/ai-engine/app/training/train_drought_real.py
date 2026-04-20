@@ -3,11 +3,11 @@ Trains the drought risk-prediction model using CSIC SPEI-3 independent
 drought labels and ERA5 meteorological features from Open-Meteo.
 
 Label independence:
-  Labels  — CSIC SPEI Global v2.9 derived from CRU TS4 OBSERVED station data
+  Labels  -- CSIC SPEI Global v2.9 derived from CRU TS4 OBSERVED station data
              (Harris et al., 2020).  SPEI < -1.0 = WMO moderate drought.
              Download: https://spei.csic.es/database.html
 
-  Features — ERA5 reanalysis from Open-Meteo (temperature, precipitation,
+  Features -- ERA5 reanalysis from Open-Meteo (temperature, precipitation,
              soil moisture, ET, wind, pressure, SPI computed from ERA5 precip).
 
 Because labels and features come from ENTIRELY DIFFERENT underlying datasets
@@ -74,7 +74,7 @@ class DroughtRealPipeline(BaseRealPipeline):
                 "South Asia, Australia, NE Brazil, SW USA, and Central America."
             ),
             "limitations": (
-                "SPEI is monthly resolution — intra-month drought onset timing is "
+                "SPEI is monthly resolution -- intra-month drought onset timing is "
                 "not captured. CRU TS4 has sparse station coverage over ocean and "
                 "remote land areas. SPEI-3 captures meteorological drought; "
                 "hydrological/agricultural droughts may lag by weeks to months."
@@ -82,7 +82,7 @@ class DroughtRealPipeline(BaseRealPipeline):
             "peer_reviewed_basis": (
                 "Vicente-Serrano S.M., Beguería S. & López-Moreno J.I. (2010). "
                 "'A Multiscalar Drought Index Sensitive to Global Warming: The SPEI.' "
-                "Bull. Amer. Meteor. Soc., 91, 1696–1711. doi:10.1175/2010BAMS2988.1"
+                "Bull. Amer. Meteor. Soc., 91, 1696-1711. doi:10.1175/2010BAMS2988.1"
             ),
         },
         min_total_samples=1_000,
@@ -105,7 +105,7 @@ class DroughtRealPipeline(BaseRealPipeline):
         """
         eff_end = min(self.end_date, self._SPEI_LAST_AVAILABLE)
         if eff_end < self.start_date:
-            # Entire window is post-2022 — use last 3 years of SPEI coverage
+            # Entire window is post-2022 -- use last 3 years of SPEI coverage
             return "2020-01-01", self._SPEI_LAST_AVAILABLE
         return self.start_date, eff_end
 
@@ -119,12 +119,12 @@ class DroughtRealPipeline(BaseRealPipeline):
         eff_start, eff_end = self._effective_dates()
         if eff_start != self.start_date or eff_end != self.end_date:
             logger.info(
-                f"Drought: effective training window {eff_start}–{eff_end} "
+                f"Drought: effective training window {eff_start}-{eff_end} "
                 f"(SPEI v2.9 covers through {self._SPEI_LAST_AVAILABLE}; "
-                f"requested {self.start_date}–{self.end_date})"
+                f"requested {self.start_date}-{self.end_date})"
             )
 
-        # ERA5 weather from Open-Meteo — use same window as SPEI labels
+        # ERA5 weather from Open-Meteo -- use same window as SPEI labels
         weather = await fetch_multi_location_weather(
             locations=GLOBAL_DROUGHT_LOCATIONS,
             start_date=eff_start,
@@ -132,7 +132,7 @@ class DroughtRealPipeline(BaseRealPipeline):
             hourly_vars=EXTENDED_HOURLY_VARS,
         )
 
-        # SPEI labels (independent from CRU TS4 — no async needed, disk I/O)
+        # SPEI labels (independent from CRU TS4 -- no async needed, disk I/O)
         spei_labels = await asyncio.get_event_loop().run_in_executor(
             None,
             lambda: self._fetch_spei_labels(eff_start, eff_end),
@@ -147,11 +147,10 @@ class DroughtRealPipeline(BaseRealPipeline):
         """Download SPEI if needed and build station-hour drought labels.
 
         Parameters
-        ----------
         start_date, end_date : already-clamped to SPEI coverage by _effective_dates()
         """
         if not spei_is_available(scale_months=3):
-            logger.info("SPEI-3 not found locally — attempting download (~150 MB) ...")
+            logger.info("SPEI-3 not found locally -- attempting download (~150 MB) ...")
             path = download_spei_dataset(scale_months=3)
             if path is None:
                 logger.warning(
@@ -177,7 +176,7 @@ class DroughtRealPipeline(BaseRealPipeline):
 
         if spei_labels.empty:
             raise RuntimeError(
-                "SPEI drought labels are empty — cannot train.\n"
+                "SPEI drought labels are empty -- cannot train.\n"
                 "Ensure spei03.nc is present at {ai-engine}/data/spei/spei03.nc.\n"
                 "Download: from app.training.data_fetch_spei import download_spei_dataset; "
                 "download_spei_dataset(3)"
@@ -196,13 +195,13 @@ class DroughtRealPipeline(BaseRealPipeline):
         """Build ERA5-based meteorological features per station.
 
         Because labels come from SPEI (CRU TS4), we can now include:
-          - SPI computed from ERA5 precipitation (different source → not tainted)
+ - SPI computed from ERA5 precipitation (different source -> not tainted)
           - Soil moisture from ERA5-Land (not the same as SPEI label)
           - All standard met variables
         """
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No ERA5 weather data — cannot build features")
+            raise RuntimeError("No ERA5 weather data -- cannot build features")
 
         # Standard + extended features per station
         features = build_per_station_features(
@@ -264,7 +263,7 @@ class DroughtRealPipeline(BaseRealPipeline):
             feat_idx.index.name = "timestamp"
             features = feat_idx
 
-        # ── SPEI features — Vicente-Serrano et al. (2010) ────────────────────
+        # SPEI features -- Vicente-Serrano et al. (2010)
         # Join SPEI-3 (onset) and SPEI-12 (chronic) indices from the CSIC NetCDF
         # files already on disk.  These are a DIFFERENT variable from the labels:
         # labels = binary drought event flag derived from SPEI-3 < -1.0;
@@ -328,11 +327,11 @@ class DroughtRealPipeline(BaseRealPipeline):
         """Feature columns for global drought prediction.
 
         Because labels are now from CSIC SPEI (CRU TS4 observed), ALL
-        ERA5-derived variables are legitimate features — including SPI computed
+        ERA5-derived variables are legitimate features -- including SPI computed
         from ERA5 precipitation and ERA5-Land soil moisture.  These are no
         longer tainted because they are not the same data source as the label.
         SPEI-3 and SPEI-12 from the CSIC NetCDF are included as direct features
-        (Vicente-Serrano et al., 2010) — distinct from the binary label.
+        (Vicente-Serrano et al., 2010) -- distinct from the binary label.
         """
         return [
             # Precipitation deficit at multiple scales
@@ -340,9 +339,9 @@ class DroughtRealPipeline(BaseRealPipeline):
             "rainfall_7d",  "antecedent_rainfall_7d",
             "antecedent_rainfall_14d", "antecedent_rainfall_30d",
             "days_since_significant_rain",
-            # ERA5-derived SPI — now a legitimate feature (labels from CRU TS4)
+            # ERA5-derived SPI -- now a legitimate feature (labels from CRU TS4)
             "spi_30d", "spi_90d",
-            # SPEI indices from CSIC NetCDF — gold-standard drought indicators
+            # SPEI indices from CSIC NetCDF -- gold-standard drought indicators
             # (Vicente-Serrano et al., 2010, J. Climate 23:1696-1718)
             "spei_03", "spei_12",
             "spei_03_drought_flag", "spei_12_drought_flag",

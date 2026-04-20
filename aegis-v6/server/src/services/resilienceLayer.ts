@@ -1,5 +1,5 @@
 ﻿/**
- * Three-in-one resilience module — LRU caches with TTL (for API, embedding,
+ * Three-in-one resilience module -- LRU caches with TTL (for API, embedding,
  * and LLM responses), token-bucket rate limiters for 8 external providers,
  * and a circuit breaker. Exports resilientFetch which wraps HTTP calls with
  * all three protections.
@@ -36,7 +36,7 @@ class LRUCache<T = any> {
       this.missCount++
       return undefined
     }
-    // Move to front (delete + re-add)
+    //Move to front (delete + re-add)
     this.cache.delete(key)
     this.cache.set(key, entry)
     this.hitCount++
@@ -45,7 +45,7 @@ class LRUCache<T = any> {
 
   set(key: string, value: T, ttlMs: number): void {
     if (this.cache.size >= this.maxSize) {
-      // Evict oldest
+      //Evict oldest
       const oldest = this.cache.keys().next().value
       if (oldest) this.cache.delete(oldest)
     }
@@ -84,7 +84,7 @@ class LRUCache<T = any> {
   }
 }
 
-// Global cache instances
+//Global cache instances
 export const apiCache = new LRUCache(500)       // API response cache
 export const embeddingCache = new LRUCache(200)  // Embedding vector cache
 export const llmCache = new LRUCache(100)        // LLM response cache
@@ -144,7 +144,7 @@ class RateLimiter {
 
 export const rateLimiter = new RateLimiter()
 
-// Configure known providers
+//Configure known providers
 rateLimiter.configure('gemini', { maxRequests: 15, windowMs: 60000 })
 rateLimiter.configure('groq', { maxRequests: 30, windowMs: 60000 })
 rateLimiter.configure('huggingface', { maxRequests: 30, windowMs: 60000 })
@@ -177,7 +177,7 @@ class CircuitBreaker {
     if (!circuit) return false
 
     if (circuit.state === 'open') {
-      // Check if reset timeout has elapsed
+      //Check if reset timeout has elapsed
       if (Date.now() - circuit.lastFailure > this.resetTimeout) {
         circuit.state = 'half-open'
         circuit.successesSinceHalfOpen = 0
@@ -255,21 +255,21 @@ export async function resilientFetch<T = any>(
     timeoutMs = 15_000,
   } = opts
 
-  // 1. Cache check
+  //1. Cache check
   if (cacheKey) {
     const cached = apiCache.get(cacheKey) as T | undefined
     if (cached) return cached
   }
 
-  // 2. Circuit breaker
+  //2. Circuit breaker
   if (circuitBreaker.isOpen(provider)) {
     throw new Error(`[Resilience] ${provider} circuit is open - service temporarily unavailable`)
   }
 
-  // 3. Rate limit
+  //3. Rate limit
   await rateLimiter.waitForSlot(provider)
 
-  // 4. Fetch with retry
+  //4. Fetch with retry
   let lastError: Error | null = null
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -291,7 +291,7 @@ export async function resilientFetch<T = any>(
 
       const data = await res.json() as T
 
-      // 5. Record success + cache
+      //5. Record success + cache
       circuitBreaker.recordSuccess(provider)
       if (cacheKey) {
         apiCache.set(cacheKey, data, cacheTtlMs)

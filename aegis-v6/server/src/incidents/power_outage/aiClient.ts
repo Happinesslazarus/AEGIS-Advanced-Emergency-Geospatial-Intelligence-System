@@ -15,7 +15,7 @@ export class PowerOutageAIClient {
    */
   static async getPredictions(region: string): Promise<IncidentPrediction[]> {
     try {
-      // Analyze recent reports
+      //Analyze recent reports
       const result = await pool.query(
         `SELECT COUNT(*) as count,
                 COUNT(*) FILTER (WHERE custom_fields->>'criticalFacility' = 'true') as critical_count
@@ -29,7 +29,7 @@ export class PowerOutageAIClient {
       const reportCount = parseInt(result.rows[0]?.count || '0')
       const criticalCount = parseInt(result.rows[0]?.critical_count || '0')
       
-      // Rule-based scoring
+      //Rule-based scoring
       let probability = Math.min(0.95, reportCount / 20)
       if (criticalCount > 0) probability += 0.2
       probability = Math.min(0.95, probability)

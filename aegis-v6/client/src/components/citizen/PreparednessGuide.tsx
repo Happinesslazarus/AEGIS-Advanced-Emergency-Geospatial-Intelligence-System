@@ -27,14 +27,14 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Star, Award, Crown, Backpack, CheckCircle, Lock,
 }
 
-// Safe icon lookup with fallback to prevent blank spaces when icon name is missing
+//Safe icon lookup with fallback to prevent blank spaces when icon name is missing
 function getIcon(name: string | undefined): LucideIcon {
   if (!name) return Shield
   return ICON_MAP[name] || Shield
 }
 import { useLanguage } from '../../hooks/useLanguage'
 
-/* Inline SVG — Readiness Ring */
+/* Inline SVG -- Readiness Ring */
 function ReadinessRing({ pct, size = 100, light }: { pct: number; size?: number; light?: boolean }) {
   const r = (size - 14) / 2, c = 2 * Math.PI * r
   const offset = c * (1 - Math.min(pct / 100, 1))
@@ -48,7 +48,7 @@ function ReadinessRing({ pct, size = 100, light }: { pct: number; size?: number;
   )
 }
 
-/* Inline SVG — Mini Progress Ring */
+/* Inline SVG -- Mini Progress Ring */
 function MiniRing({ pct, size = 28, color = '#6366f1' }: { pct: number; size?: number; color?: string }) {
   const sw = 2.5, r = (size - sw * 2) / 2, c = 2 * Math.PI * r
   const offset = c * (1 - Math.min(pct, 1))
@@ -63,8 +63,8 @@ function MiniRing({ pct, size = 28, color = '#6366f1' }: { pct: number; size?: n
 
 interface Props { onClose: () => void; lang?: string; isEmergencyActive?: boolean }
 
-// localStorage keys for cross-session persistence.
-// Storing sets/objects as JSON strings so progress survives page reloads.
+//localStorage keys for cross-session persistence.
+//Storing sets/objects as JSON strings so progress survives page reloads.
 const STORAGE_KEY_SCENARIOS = 'aegis_completed_scenarios'
 const STORAGE_KEY_QUIZ = 'aegis_quiz_best'
 const STORAGE_KEY_KIT = 'aegis_kit_checked'
@@ -103,14 +103,14 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
   const drillRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const quizTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Clean up timers on unmount
+  //Clean up timers on unmount
   useEffect(() => () => {
     if (drillRef.current) clearInterval(drillRef.current)
     if (quizTimerRef.current) clearTimeout(quizTimerRef.current)
   }, [])
 
-  // Lazy state initialisers: load persisted sets from localStorage on first render.
-  // try/catch guards against corrupted or missing localStorage values.
+  //Lazy state initialisers: load persisted sets from localStorage on first render.
+  //try/catch guards against corrupted or missing localStorage values.
   const [completedScenarios, setCompletedScenarios] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY_SCENARIOS) || '[]')) } catch { return new Set() }
   })
@@ -149,7 +149,7 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
     const isCorrect = i === filteredQuiz[quizQ].correct
     if (isCorrect) setQuizScore(s => s + 1)
     setShowExplanation(true)
-    // Pause 2 seconds so the user can read the explanation before advancing.
+    //Pause 2 seconds so the user can read the explanation before advancing.
     quizTimerRef.current = setTimeout(() => {
       if (quizQ < filteredQuiz.length - 1) {
         setQuizQ(q => q + 1); setQuizAnswer(null); setShowExplanation(false)
@@ -165,8 +165,8 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
     }, 2000)
   }
 
-  // Drill timer: counts elapsed seconds using setInterval.
-  // drillRef holds the interval ID so completeScenario can clear it.
+  //Drill timer: counts elapsed seconds using setInterval.
+  //drillRef holds the interval ID so completeScenario can clear it.
   const startDrill = () => {
     setDrillActive(true); setDrillSeconds(0)
     drillRef.current = setInterval(() => setDrillSeconds(s => s + 1), 1000)
@@ -179,7 +179,7 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
     setCompletedScenarios(updated)
     persistCompletedScenarios(updated)
     const medal = drillSeconds < 120 ? 'Fast' : drillSeconds < 300 ? 'Good' : 'Done'
-    pushNotification(`${medal} — Scenario complete in ${Math.floor(drillSeconds / 60)}m ${drillSeconds % 60}s!`, 'success')
+    pushNotification(`${medal} -- Scenario complete in ${Math.floor(drillSeconds / 60)}m ${drillSeconds % 60}s!`, 'success')
     setScenario(null)
   }
 
@@ -254,7 +254,7 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
             <div className="flex-1 grid grid-cols-2 gap-2">
               {[
                 { label: 'Scenarios', value: `${completedScenarios.size}/${PREPAREDNESS_SCENARIOS.length}`, pct: scenarioPct, color: '#8b5cf6' },
-                { label: 'Quiz Best', value: bestQuizScore ? `${Math.round(quizPct * 100)}%` : '—', pct: quizPct, color: '#06b6d4' },
+                { label: 'Quiz Best', value: bestQuizScore ? `${Math.round(quizPct * 100)}%` : '--', pct: quizPct, color: '#06b6d4' },
                 { label: 'Kit Ready', value: `${Math.round(kitPct * 100)}%`, pct: kitPct, color: '#22c55e' },
                 { label: 'Plan', value: `${Math.round(planPct * 100)}%`, pct: planPct, color: '#f59e0b' },
               ].map(s => (
@@ -355,7 +355,7 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
             </div>
           )}
 
-          {/* SCENARIOS TAB — LIST */}
+          {/* SCENARIOS TAB -- LIST */}
           {tab === 'scenarios' && !scenario && (
             <div>
               <div className="flex items-center gap-3 mb-4 p-3 bg-gradient-to-r from-aegis-50 to-purple-50 dark:from-aegis-950/20 dark:to-purple-950/20 border border-aegis-100 dark:border-aegis-800/50 rounded-xl">
@@ -400,11 +400,11 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
             </div>
           )}
 
-          {/* SCENARIOS TAB — DRILL */}
+          {/* SCENARIOS TAB -- DRILL */}
           {tab === 'scenarios' && sc && (
             <div className="animate-fade-in">
               <div className="flex items-center justify-between mb-4">
-                <button onClick={() => { setScenario(null); if (drillRef.current) clearInterval(drillRef.current); setDrillActive(false) }} className="text-xs text-gray-500 dark:text-gray-400 hover:text-aegis-600 flex items-center gap-1 font-medium">← Back</button>
+ <button onClick={() => { setScenario(null); if (drillRef.current) clearInterval(drillRef.current); setDrillActive(false) }} className="text-xs text-gray-500 dark:text-gray-400 hover:text-aegis-600 flex items-center gap-1 font-medium"><- Back</button>
                 {!drillActive ? (
                   <button onClick={startDrill} className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-aegis-600 to-aegis-700 text-white text-xs font-bold rounded-xl hover:from-aegis-500 hover:to-aegis-600 transition-all shadow-lg shadow-aegis-600/20"><Timer className="w-3.5 h-3.5" /> Start Drill Timer</button>
                 ) : (
@@ -424,8 +424,8 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
                     <p className="text-xs text-secondary leading-relaxed">{sc.description}</p>
                     <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-500 dark:text-gray-400">
                       <span className={`font-bold uppercase ${sc.difficulty === 'beginner' ? 'text-green-600' : sc.difficulty === 'intermediate' ? 'text-amber-600' : 'text-red-600'}`}>{sc.difficulty}</span>
-                      <span>· {sc.duration}</span>
-                      <span>· {sc.steps.length} steps</span>
+                      <span>- {sc.duration}</span>
+                      <span>- {sc.steps.length} steps</span>
                     </div>
                   </div>
                 </div>
@@ -450,9 +450,9 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
               </div>
 
               <div className="flex gap-2 mt-5">
-                {step > 0 && <button onClick={() => setStep(s => s - 1)} className="px-5 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium">← Prev</button>}
+ {step > 0 && <button onClick={() => setStep(s => s - 1)} className="px-5 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"><- Prev</button>}
                 {step < sc.steps.length - 1 ? (
-                  <button onClick={() => setStep(s => s + 1)} className="flex-1 py-2.5 bg-gradient-to-r from-aegis-600 to-aegis-700 hover:from-aegis-500 hover:to-aegis-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-aegis-600/20">Next Step →</button>
+ <button onClick={() => setStep(s => s + 1)} className="flex-1 py-2.5 bg-gradient-to-r from-aegis-600 to-aegis-700 hover:from-aegis-500 hover:to-aegis-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-aegis-600/20">Next Step -></button>
                 ) : (
                   <button onClick={() => completeScenario(sc.id)} className="flex-1 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-green-600/20 flex items-center justify-center gap-2">
                     <CheckCircle className="w-4 h-4" /> {completedScenarios.has(sc.id) ? 'Mark Complete Again' : 'Complete Scenario'}
@@ -531,7 +531,7 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
             </div>
           )}
 
-          {/* QUIZ TAB — PRE-START */}
+          {/* QUIZ TAB -- PRE-START */}
           {tab === 'quiz' && !quizStarted && (
             <div className="text-center py-2">
               <div className="relative mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-aegis-500 to-purple-600 flex items-center justify-center mb-4 shadow-xl shadow-aegis-500/20">
@@ -573,7 +573,7 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
             </div>
           )}
 
-          {/* QUIZ TAB — IN PROGRESS */}
+          {/* QUIZ TAB -- IN PROGRESS */}
           {tab === 'quiz' && quizStarted && !quizDone && (
             <div className="animate-fade-in">
               <div className="flex items-center justify-between mb-3">
@@ -606,13 +606,13 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
 
               {showExplanation && (
                 <div className={`p-3.5 rounded-xl text-xs animate-fade-in ${quizAnswer === filteredQuiz[quizQ].correct ? 'bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200' : 'bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200'}`}>
-                  <span className="font-bold">{quizAnswer === filteredQuiz[quizQ].correct ? '✓ Correct! ' : '✗ Incorrect. '}</span>{filteredQuiz[quizQ].explanation}
+ <span className="font-bold">{quizAnswer === filteredQuiz[quizQ].correct ? ' Correct! ' : 'x Incorrect. '}</span>{filteredQuiz[quizQ].explanation}
                 </div>
               )}
             </div>
           )}
 
-          {/* QUIZ TAB — RESULTS */}
+          {/* QUIZ TAB -- RESULTS */}
           {tab === 'quiz' && quizDone && (
             <div className="text-center py-4 animate-fade-in">
               <div className="relative mx-auto w-fit mb-4">
@@ -696,7 +696,7 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
                 {[
                   { label: 'Scenarios', value: completedScenarios.size, sub: `of ${PREPAREDNESS_SCENARIOS.length}`, pct: scenarioPct, color: '#8b5cf6' },
-                  { label: 'Quiz Best', value: bestQuizScore ? `${Math.round(quizPct * 100)}%` : '—', sub: 'score', pct: quizPct, color: '#06b6d4' },
+                  { label: 'Quiz Best', value: bestQuizScore ? `${Math.round(quizPct * 100)}%` : '--', sub: 'score', pct: quizPct, color: '#06b6d4' },
                   { label: 'Kit Ready', value: `${Math.round(kitPct * 100)}%`, sub: 'checked', pct: kitPct, color: '#22c55e' },
                   { label: 'Badges', value: unlockedBadges.length, sub: `of ${BADGES.length}`, pct: unlockedBadges.length / BADGES.length, color: '#f59e0b' },
                 ].map(s => (

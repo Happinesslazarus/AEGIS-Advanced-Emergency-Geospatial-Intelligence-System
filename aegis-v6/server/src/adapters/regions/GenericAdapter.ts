@@ -19,8 +19,8 @@ export class GenericAdapter extends BaseRegionAdapter {
   }
 
   async getFloodWarnings(): Promise<FloodWarning[]> {
-    // Generic adapter has no dedicated flood authority API.
-    // We check the Open-Meteo Flood API for global river discharge anomalies.
+    //Generic adapter has no dedicated flood authority API.
+    //We check the Open-Meteo Flood API for global river discharge anomalies.
     const cities = this.config.monitoredCities
     if (!cities.length) return []
 
@@ -38,12 +38,12 @@ export class GenericAdapter extends BaseRegionAdapter {
         const discharges: number[] = data.daily?.river_discharge || []
         const maxDischarge = Math.max(...discharges.filter((d: number) => !isNaN(d)))
 
-        // Simple threshold — flag if discharge > 2x typical baseline
+        //Simple threshold -- flag if discharge > 2x typical baseline
         if (maxDischarge > 100) {
           warnings.push({
             id: `flood-api-${city.name}-${Date.now()}`,
             title: `Elevated river discharge near ${city.name}`,
-            description: `Peak forecast discharge: ${maxDischarge.toFixed(0)} m—/s over the next 7 days.`,
+            description: `Peak forecast discharge: ${maxDischarge.toFixed(0)} m--/s over the next 7 days.`,
             severity: maxDischarge > 500 ? 'warning' : 'alert',
             area: city.name,
             source: 'Open-Meteo Flood API',
@@ -59,7 +59,7 @@ export class GenericAdapter extends BaseRegionAdapter {
   }
 
   async getRiverLevels(): Promise<RiverLevel[]> {
-    // Use Open-Meteo Flood API for global river discharge estimates
+    //Use Open-Meteo Flood API for global river discharge estimates
     const cities = this.config.monitoredCities
     if (!cities.length) return []
 
@@ -101,7 +101,7 @@ export class GenericAdapter extends BaseRegionAdapter {
     const useLat = lat ?? centre.lat
     const useLng = lng ?? centre.lng
 
-    // Open-Meteo first (globally available, no key)
+    //Open-Meteo first (globally available, no key)
     try {
       const res = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${useLat}&longitude=${useLng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,surface_pressure,precipitation&timezone=auto`,
@@ -135,7 +135,7 @@ export class GenericAdapter extends BaseRegionAdapter {
       }
     } catch { /* fall through */ }
 
-    // Fallback: OpenWeatherMap (needs API key)
+    //Fallback: OpenWeatherMap (needs API key)
     const apiKey = process.env.OPENWEATHER_API_KEY
     if (apiKey) {
       try {

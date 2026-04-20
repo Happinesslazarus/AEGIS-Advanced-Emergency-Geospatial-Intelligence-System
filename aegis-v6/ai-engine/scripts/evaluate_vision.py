@@ -96,7 +96,7 @@ def extract_structured_from_response(response: str) -> dict:
     # Fallback: heuristic extraction from response text
     lower = response.lower()
 
-    # Check for "Temporarily Unavailable" — vision didn't run
+    # Check for "Temporarily Unavailable" -- vision didn't run
     if "temporarily unavailable" in lower or "having trouble connecting" in lower:
         result["disaster_type"] = "__unavailable__"
         result["severity"] = "unknown"
@@ -141,7 +141,7 @@ def run_benchmark(
         items = items[:limit]
 
     print(f"\n{'='*60}")
-    print(f"  AEGIS Vision Benchmark — {len(items)} images")
+    print(f"  AEGIS Vision Benchmark -- {len(items)} images")
     print(f"  API: {api_url}")
     print(f"  Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*60}\n")
@@ -275,7 +275,7 @@ def run_benchmark(
     print()
     print("  Per-category breakdown:")
     for cat, data in sorted(categories.items()):
-        bar = "█" * int(data["accuracy"] / 5) + "░" * (20 - int(data["accuracy"] / 5))
+        bar = "#" * int(data["accuracy"] / 5) + " " * (20 - int(data["accuracy"] / 5))
         print(f"    {cat:20s} {bar} {data['accuracy']:5.1f}%  ({data['correct']}/{data['total']})")
     print(f"{'='*60}\n")
 

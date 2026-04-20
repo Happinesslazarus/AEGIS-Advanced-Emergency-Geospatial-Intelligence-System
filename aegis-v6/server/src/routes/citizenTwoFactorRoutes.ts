@@ -6,11 +6,11 @@
  * - Works with citizenAuthRoutes.ts for the two-step login flow
  * - Uses twoFactorCrypto for secret encryption at rest
  *
- * POST /api/citizen-auth/2fa/setup           — Generate secret + QR code
- * POST /api/citizen-auth/2fa/verify          — Confirm and enable 2FA
- * POST /api/citizen-auth/2fa/authenticate    — Complete login with code
- * POST /api/citizen-auth/2fa/disable         — Turn off 2FA
- * POST /api/citizen-auth/2fa/regenerate-backup-codes — New recovery codes
+ * POST /api/citizen-auth/2fa/setup           -- Generate secret + QR code
+ * POST /api/citizen-auth/2fa/verify          -- Confirm and enable 2FA
+ * POST /api/citizen-auth/2fa/authenticate    -- Complete login with code
+ * POST /api/citizen-auth/2fa/disable         -- Turn off 2FA
+ * POST /api/citizen-auth/2fa/regenerate-backup-codes -- New recovery codes
  * */
 
 import { Router, Response, NextFunction } from 'express'
@@ -31,9 +31,9 @@ import { AppError } from '../utils/AppError.js'
 
 const router = Router()
 
-// TOTP configuration — must match the values encoded in the QR code URI so that
-// authenticator apps (Google Authenticator, Authy, etc.) produce matching codes.
-// TOTP_WINDOW=1 allows a 30-second drift in either direction for clock skew.
+//TOTP configuration -- must match the values encoded in the QR code URI so that
+//authenticator apps (Google Authenticator, Authy, etc.) produce matching codes.
+//TOTP_WINDOW=1 allows a 30-second drift in either direction for clock skew.
 const ISSUER = 'AEGIS'
 const TOTP_DIGITS = 6
 const TOTP_PERIOD = 30
@@ -48,27 +48,27 @@ function generateOTPAuthURI(email: string, secret: string): string {
   return `otpauth://totp/${encodeURIComponent(ISSUER)}:${encodeURIComponent(email)}?secret=${secret}&issuer=${encodeURIComponent(ISSUER)}&digits=${TOTP_DIGITS}&period=${TOTP_PERIOD}`
 }
 
-// Rate limiters — intentionally stricter on destructive/sensitive operations.
-// setup: 5 attempts/15min — prevents TOTP secret churn from QR spamming.
-// verify: 5 attempts/15min — brute-force guard during setup confirmation.
-// auth: 10 attempts/15min  — slightly higher to accommodate clock-drift retries.
-// disable: 3 attempts/15min — tightest; disabling 2FA is a high-risk action.
-// regen: 3 attempts/hour   — hourly window to prevent backup code exhaustion attacks.
+//Rate limiters -- intentionally stricter on destructive/sensitive operations.
+//setup: 5 attempts/15min -- prevents TOTP secret churn from QR spamming.
+//verify: 5 attempts/15min -- brute-force guard during setup confirmation.
+//auth: 10 attempts/15min  -- slightly higher to accommodate clock-drift retries.
+//disable: 3 attempts/15min -- tightest; disabling 2FA is a high-risk action.
+//regen: 3 attempts/hour   -- hourly window to prevent backup code exhaustion attacks.
 const setupLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: { error: 'Too many 2FA setup attempts. Please try again later.' }, standardHeaders: true, legacyHeaders: false })
 const verifyLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: { error: 'Too many 2FA verification attempts. Please try again later.' }, standardHeaders: true, legacyHeaders: false })
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many 2FA authentication attempts. Please try again later.' }, standardHeaders: true, legacyHeaders: false })
 const disableLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 3, message: { error: 'Too many 2FA disable attempts. Please try again later.' }, standardHeaders: true, legacyHeaders: false })
 const regenLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 3, message: { error: 'Too many backup code regeneration attempts. Please try again later.' }, standardHeaders: true, legacyHeaders: false })
 
-// Helpers
+//Helpers
 
 /**
- * record2FAFailure — increments the citizen's failed attempt counter and
+ * record2FAFailure -- increments the citizen's failed attempt counter and
  * applies a progressive lockout when the threshold is crossed.
  *
  * The lockout duration escalates with each threshold breach (determined by
  * should2FALockout).  When locked, the lockoutMinutes field is written to
- * two_factor_locked_until so a DB restart or server restart doesn’t
+ * two_factor_locked_until so a DB restart or server restart doesn't
  * inadvertently unlock the account.
  */
 async function record2FAFailure(
@@ -97,7 +97,7 @@ async function reset2FAFailures(citizenId: string): Promise<void> {
 }
 
 /**
- * enforce2FALockout — gate that must be called before accepting any 2FA code.
+ * enforce2FALockout -- gate that must be called before accepting any 2FA code.
  * Reads the lockout state from the DB; throws 429 immediately if active,
  * which prevents the rest of the route handler from running at all.
  */
@@ -111,7 +111,7 @@ async function enforce2FALockout(citizenId: string): Promise<void> {
   }
 }
 
-// GET /status
+//GET /status
 router.get('/status', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
@@ -132,7 +132,7 @@ router.get('/status', authMiddleware, async (req: AuthRequest, res: Response, ne
   } catch (err) { next(err) }
 })
 
-// POST /setup
+//POST /setup
 router.post('/setup', authMiddleware, setupLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const citizenId = req.user!.id
@@ -150,11 +150,11 @@ router.post('/setup', authMiddleware, setupLimiter, async (req: AuthRequest, res
 
     if (existingEncryptedSecret) {
       try {
-        // Reuse pending setup secret so users can keep their original authenticator entry.
+        //Reuse pending setup secret so users can keep their original authenticator entry.
         secret = decrypt2FASecret(existingEncryptedSecret)
         reusedExistingSecret = true
       } catch {
-        // If stored secret is invalid/corrupt, rotate to a fresh one.
+        //If stored secret is invalid/corrupt, rotate to a fresh one.
         secret = generateSecret({ length: 20 })
         const encryptedSecret = encrypt2FASecret(secret)
         await pool.query(`UPDATE citizens SET two_factor_secret = $1, two_factor_enabled = false WHERE id = $2`, [encryptedSecret, citizenId])
@@ -175,7 +175,7 @@ router.post('/setup', authMiddleware, setupLimiter, async (req: AuthRequest, res
   } catch (err) { next(err) }
 })
 
-// POST /verify
+//POST /verify
 router.post('/verify', authMiddleware, verifyLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const citizenId = req.user!.id
@@ -217,7 +217,7 @@ router.post('/verify', authMiddleware, verifyLimiter, async (req: AuthRequest, r
   } catch (err) { next(err) }
 })
 
-// POST /authenticate
+//POST /authenticate
 router.post('/authenticate', authLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { tempToken, code, rememberDevice } = req.body
@@ -267,10 +267,10 @@ router.post('/authenticate', authLimiter, async (req: AuthRequest, res: Response
     const citizen = cResult.rows[0]
     if (!citizen.two_factor_enabled || !citizen.two_factor_secret) throw AppError.badRequest('Two-factor authentication is not enabled for this account.')
 
-    // isBackupCode heuristic: TOTP codes are always exactly 6 digits.
-    // Recovery codes are hyphenated (e.g. "ABCD-EFGH-IJKL") or longer.
-    // This lets us route the code to the correct verifier without an extra
-    // request parameter from the client.
+    //isBackupCode heuristic: TOTP codes are always exactly 6 digits.
+    //Recovery codes are hyphenated (e.g. "ABCD-EFGH-IJKL") or longer.
+    //This lets us route the code to the correct verifier without an extra
+    //request parameter from the client.
     const isBackupCode = code.length > 6 || code.includes('-')
     let backupCodesRemaining: number | null = null
     let backupCodeUsed = false
@@ -305,10 +305,10 @@ router.post('/authenticate', authLimiter, async (req: AuthRequest, res: Response
         }
         throw AppError.unauthorized('Invalid code.')
       }
-      // TOTP replay guard: each 30-second code is stored as a hash immediately
-      // after first use.  If the same code arrives again within the valid window,
-      // isTOTPReplay detects it and rejects — prevents an attacker who captures
-      // the code in transit from using it a second time.
+      //TOTP replay guard: each 30-second code is stored as a hash immediately
+      //after first use.  If the same code arrives again within the valid window,
+      //isTOTPReplay detects it and rejects -- prevents an attacker who captures
+      //the code in transit from using it a second time.
       const codeHash = hashTOTPCode(code)
       if (isTOTPReplay(codeHash, citizen.two_factor_last_totp_hash, citizen.two_factor_last_totp_at)) {
         await logSecurityEvent({ userId: citizen.id, userType: 'citizen', eventType: '2fa_auth_failed', ipAddress: clientIp, userAgent, metadata: { reason: 'totp_replay' } })
@@ -317,9 +317,9 @@ router.post('/authenticate', authLimiter, async (req: AuthRequest, res: Response
       await pool.query('UPDATE citizens SET two_factor_last_totp_hash = $1, two_factor_last_totp_at = NOW() WHERE id = $2', [codeHash, citizen.id])
     }
 
-    // Optimistic consume: the WHERE consumed=false clause means concurrent
-    // requests both receive the same temp token but only one can actually
-    // flip it.  The second returns 0 rows, triggering a 401 (replay detected).
+    //Optimistic consume: the WHERE consumed=false clause means concurrent
+    //requests both receive the same temp token but only one can actually
+    //flip it.  The second returns 0 rows, triggering a 401 (replay detected).
     const consumeResult = await pool.query('UPDATE two_factor_temp_tokens SET consumed = true WHERE id = $1 AND consumed = false RETURNING id', [tempRecord.id])
     if (consumeResult.rows.length === 0) throw AppError.unauthorized('This temporary token has already been used. Please log in again.')
 
@@ -341,7 +341,7 @@ router.post('/authenticate', authLimiter, async (req: AuthRequest, res: Response
       path: '/api/citizen-auth',
     })
 
-    // Fetch preferences
+    //Fetch preferences
     const prefsResult = await pool.query('SELECT * FROM citizen_preferences WHERE citizen_id = $1', [citizen.id])
 
     const responseData: Record<string, any> = {
@@ -366,7 +366,7 @@ router.post('/authenticate', authLimiter, async (req: AuthRequest, res: Response
   } catch (err) { next(err) }
 })
 
-// POST /disable
+//POST /disable
 router.post('/disable', authMiddleware, disableLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const citizenId = req.user!.id
@@ -425,7 +425,7 @@ router.post('/disable', authMiddleware, disableLimiter, async (req: AuthRequest,
   } catch (err) { next(err) }
 })
 
-// POST /regenerate-backup-codes
+//POST /regenerate-backup-codes
 router.post('/regenerate-backup-codes', authMiddleware, regenLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const citizenId = req.user!.id

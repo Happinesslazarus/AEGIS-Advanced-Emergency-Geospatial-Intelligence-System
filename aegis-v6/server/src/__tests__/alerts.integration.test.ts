@@ -14,7 +14,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/glob
 import request from 'supertest'
 import express, { type Request, type Response, type NextFunction } from 'express'
 
-// Test environment
+//Test environment
 process.env.JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-at-least-32-chars'
 process.env.INTERNAL_API_KEY = 'test-internal-api-key-long-enough'
@@ -66,7 +66,7 @@ import {
 import dataRoutes from '../routes/dataRoutes'
 import extendedRoutes from '../routes/extendedRoutes'
 
-// Build test app
+//Build test app
 
 let app: express.Express
 
@@ -83,7 +83,7 @@ function buildAlertTestApp() {
   return _app
 }
 
-// Lifecycle
+//Lifecycle
 
 beforeAll(async () => {
   app = buildAlertTestApp()
@@ -104,7 +104,7 @@ afterAll(async () => {
 
 describe('Alerts & Subscriptions Integration Tests', () => {
 
-  // Subscription management
+  //Subscription management
 
   describe('Subscription CRUD', () => {
     it('should create an email subscription', async () => {
@@ -155,7 +155,7 @@ describe('Alerts & Subscriptions Integration Tests', () => {
       expect(res.status).toBe(200)
       expect(res.body.deleted).toBe(true)
 
-      // Verify it's gone
+      //Verify it's gone
       const fetch = await request(app).get('/api/subscriptions').query({ email: 'del@alerts.local' })
       expect(fetch.status).toBe(200)
       expect(fetch.body).toEqual([])
@@ -175,7 +175,7 @@ describe('Alerts & Subscriptions Integration Tests', () => {
     })
   })
 
-  // Alert creation
+  //Alert creation
 
   describe('Alert Creation & Listing', () => {
     it('should create an alert as operator', async () => {
@@ -260,7 +260,7 @@ describe('Alerts & Subscriptions Integration Tests', () => {
     })
   })
 
-  // Alert broadcast delivery
+  //Alert broadcast delivery
 
   describe('Alert Broadcasting', () => {
     it('should broadcast to matching subscribers and create delivery log entries', async () => {
@@ -287,7 +287,7 @@ describe('Alerts & Subscriptions Integration Tests', () => {
       expect(res.body.alert_id).toBeDefined()
       expect(res.body.delivery_summary.matching_subscribers).toBe(2)
 
-      // Verify delivery log
+      //Verify delivery log
       const stats = await request(app)
         .get('/api/alerts/delivery')
         .set(...authHeader(operatorToken()))
@@ -335,7 +335,7 @@ describe('Alerts & Subscriptions Integration Tests', () => {
     })
   })
 
-  // Edge cases
+  //Edge cases
 
   describe('Edge Cases', () => {
     it('should handle subscription with all channels', async () => {

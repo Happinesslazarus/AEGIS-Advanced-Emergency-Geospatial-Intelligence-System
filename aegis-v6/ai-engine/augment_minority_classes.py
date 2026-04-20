@@ -29,14 +29,14 @@ async def augment_minority_classes():
         for category in ['storm', 'heatwave', 'drought', 'wildfire', 'infrastructure', 'flood']:
             count = current.get(category, 0)
             if count >= TARGET:
-                print(f"  {category}: {count} >= {TARGET} ✓")
+                print(f"  {category}: {count} >= {TARGET} ")
             else:
                 deficit = TARGET - count
                 under_represented.append((category, count, deficit))
-                print(f"  {category}: {count} < {TARGET} — needs {deficit} more REAL reports")
+                print(f"  {category}: {count} < {TARGET} -- needs {deficit} more REAL reports")
 
         if under_represented:
-            print(f"\n⚠ {len(under_represented)} categories are under-represented.")
+            print(f"\n! {len(under_represented)} categories are under-represented.")
             print("To fix this, collect REAL reports for these categories:")
             print("  - Run augment_data.py diversify_incident_categories() to re-label existing reports via NLP")
             print("  - Ingest real incident data from public APIs (EA, SEPA, Met Office, DEFRA)")
@@ -46,7 +46,7 @@ async def augment_minority_classes():
             print("The model will train on whatever real data is available.")
             print("Class imbalance can be handled via class_weight='balanced' in the classifier.")
         else:
-            print(f"\n✓ All categories meet the target of {TARGET} reports.")
+            print(f"\n All categories meet the target of {TARGET} reports.")
 
         print(f"\nTotal reports: {total}")
         return current

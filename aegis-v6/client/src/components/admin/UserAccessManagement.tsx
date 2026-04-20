@@ -47,12 +47,12 @@ interface Props {
 type Tab = 'directory' | 'audit' | 'roles' | 'sessions'
 type SortField = 'name' | 'role' | 'department' | 'status' | 'lastLogin' | 'created'
 
-// Sentinel value for the "no department assigned" option in the role-edit dropdown.
-// Using an explicit string rather than '' or null prevents accidentally clearing the field.
+//Sentinel value for the "no department assigned" option in the role-edit dropdown.
+//Using an explicit string rather than '' or null prevents accidentally clearing the field.
 const UNASSIGNED_VALUE = '__unassigned__'
 
-// getRoleMeta is a function (not a constant) so it can call t() with the live language.
-// This ensures role labels and descriptions update immediately on locale change.
+//getRoleMeta is a function (not a constant) so it can call t() with the live language.
+//This ensures role labels and descriptions update immediately on locale change.
 function getRoleMeta(lang: string): Record<string, { label: string; color: string; bg: string; ring: string; icon: typeof Shield; desc: string; perms: string[] }> {
   return {
     admin: {
@@ -242,7 +242,7 @@ export default function UserAccessManagement({
       setInviteError('Email, password, and display name are required.')
       return
     }
-    // Basic email format validation
+    //Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(inviteForm.email)) {
       setInviteError('Please enter a valid email address.')
@@ -614,7 +614,7 @@ export default function UserAccessManagement({
                             </span>
                           </td>
                           <td className="px-3 py-3 text-gray-500 dark:text-gray-300 whitespace-nowrap">{u.last_login ? timeAgo(u.last_login, lang) : <span className="text-gray-400 dark:text-gray-300 italic">{t('common.never', lang)}</span>}</td>
-                          <td className="px-3 py-3 text-gray-400 dark:text-gray-300 whitespace-nowrap text-[10px]">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}</td>
+                          <td className="px-3 py-3 text-gray-400 dark:text-gray-300 whitespace-nowrap text-[10px]">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '--'}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1 justify-end">
                               <button onClick={() => { setEditModal(u); setEditForm({ role: u.role, department: u.department || '', phone: u.phone || '', displayName: u.display_name }) }} title={t('users.editUser', lang)} className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
@@ -644,10 +644,10 @@ export default function UserAccessManagement({
                               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 text-xs">
                                 <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.accountId', lang)}</span><div className="flex items-center gap-1.5 group/aid"><span className="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">ACC-{(u.id || '').slice(0, 6).toUpperCase()}</span><button className="opacity-0 group-hover/aid:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(u.id || '') }} title={u.id || ''}><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg></button></div></div>
                                 <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('common.email', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 truncate">{u.email}</p></div>
-                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('common.phone', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.phone || '—'}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('common.phone', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.phone || '--'}</p></div>
                                 <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.role', lang)}</span><p className={`font-bold ${rm.color}`}>{rm.label}</p></div>
                                 <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.department', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.department || t('users.unassigned', lang)}</p></div>
-                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.accountCreated', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.accountCreated', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '--'}</p></div>
                               </div>
                               {u.is_suspended && u.suspended_until && (
                                 <div className="mt-3 p-2.5 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-lg">
@@ -742,7 +742,7 @@ export default function UserAccessManagement({
                           <span className={`inline-flex text-[10px] px-2 py-0.5 rounded-md font-bold ${at.color}`}>{at.label}</span>
                         </td>
                         <td className="px-3 py-3 text-gray-600 dark:text-gray-300">{log.operator_name || t('common.system', lang)}</td>
-                        <td className="px-3 py-3">{log.target_id ? <span className="font-mono text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors" title={log.target_id} onClick={() => navigator.clipboard.writeText(log.target_id || '')}>TGT-{(log.target_id || '').slice(0, 6).toUpperCase()}</span> : <span className="text-[10px] text-gray-400 dark:text-gray-300">—</span>}</td>
+                        <td className="px-3 py-3">{log.target_id ? <span className="font-mono text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors" title={log.target_id} onClick={() => navigator.clipboard.writeText(log.target_id || '')}>TGT-{(log.target_id || '').slice(0, 6).toUpperCase()}</span> : <span className="text-[10px] text-gray-400 dark:text-gray-300">--</span>}</td>
                         <td className="px-3 py-3 text-gray-400 dark:text-gray-300 text-[10px] truncate max-w-[160px]">{log.before_state ? t('common.stateChangeCaptured', lang) : log.ip_address || '-'}</td>
                         <td className="px-5 py-3 text-right text-gray-500 dark:text-gray-300 whitespace-nowrap">
                           <div>{new Date(log.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}</div>
@@ -1072,7 +1072,7 @@ export default function UserAccessManagement({
                         value={inviteForm.email}
                         onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
                       {emailBad && <p className="text-[10px] text-red-500 mt-0.5">Enter a valid email address</p>}
-                      {emailOk && <p className="text-[10px] text-green-600 dark:text-green-400 mt-0.5">✓ Valid email</p>}
+                      {emailOk && <p className="text-[10px] text-green-600 dark:text-green-400 mt-0.5"> Valid email</p>}
                     </div>
                   )
                 })()}

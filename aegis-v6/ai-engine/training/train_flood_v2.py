@@ -3,29 +3,29 @@ Retrains the AEGIS flood prediction model using the new UK-wide CAMELS-GB +
 ERA5-Land master dataset instead of the previous 10-location Open-Meteo data.
 
 Architecture: stacked ensemble
-  Layer 1 — three base learners, each tuned by Optuna (100 trials):
+  Layer 1 -- three base learners, each tuned by Optuna (100 trials):
               XGBoost, LightGBM, CatBoost
-  Layer 2 — LSTM trained on 30-day rolling windows of rainfall + river level
-  Meta layer — logistic regression meta-learner combining all base outputs
-  Calibration — isotonic regression (better than Platt for non-monotonic curves)
+  Layer 2 -- LSTM trained on 30-day rolling windows of rainfall + river level
+  Meta layer -- logistic regression meta-learner combining all base outputs
+  Calibration -- isotonic regression (better than Platt for non-monotonic curves)
 
 Time-series split (scientifically correct for temporal data):
-  Train       : 2000-01-01 → 2020-12-31
-  Validation  : 2021-01-01 → 2022-12-31
-  Test (hold) : 2023-01-01 → 2024-12-31
+  Train       : 2000-01-01 -> 2020-12-31
+  Validation  : 2021-01-01 -> 2022-12-31
+  Test (hold) : 2023-01-01 -> 2024-12-31
 
 Target performance:
   Accuracy  > 92%      (up from 86.5% v1)
   ROC-AUC   > 0.97     (up from 0.956 v1)
 
 Glossary:
-  XGBoost       = Extreme Gradient Boosting — ensemble of decision trees trained
+  XGBoost       = Extreme Gradient Boosting -- ensemble of decision trees trained
                   additively to minimise a differentiable loss function
-  LightGBM      = Microsoft's lighter, leaf-wise gradient boosting — faster than
+  LightGBM      = Microsoft's lighter, leaf-wise gradient boosting -- faster than
                   XGBoost on large tabular datasets; often wins on high-cardinality
                   features
   CatBoost      = Yandex's gradient boosting with native categorical encoding
-  LSTM          = Long Short-Term Memory — a recurrent neural network cell that
+  LSTM          = Long Short-Term Memory -- a recurrent neural network cell that
                   can learn temporal dependencies up to hundreds of timesteps back
   stacking      = training a "meta-learner" on the OOF (out-of-fold) predictions
                   of base models, rather than on the raw feature matrix
@@ -37,16 +37,16 @@ Glossary:
                   calibration curve is non-linear
   Optuna        = Bayesian hyperparameter optimiser; samples from a TPE surrogate
                   model to find good hyperparameter configurations efficiently
-  SHAP          = SHapley Additive exPlanations — game-theoretic feature importance
+  SHAP          = SHapley Additive exPlanations -- game-theoretic feature importance
                   that satisfies desirable axiomatic properties (efficiency,
                   symmetry, dummy, additivity)
-  W&B           = Weights & Biases — experiment tracking platform; logs every run
+  W&B           = Weights & Biases -- experiment tracking platform; logs every run
                   to a web dashboard for comparison
 
-  Input  ← data/processed/master_features_uk_2000_2024.parquet
-  Input  ← data/labels/flood_labels.parquet
-  Output → model_registry/flood/flood_uk_v2_camels_era5.pkl
-  Registry ← app/core/model_registry.py (hot-swap via POST /registry/promote)
+  Input  <- data/processed/master_features_uk_2000_2024.parquet
+  Input  <- data/labels/flood_labels.parquet
+  Output -> model_registry/flood/flood_uk_v2_camels_era5.pkl
+  Registry <- app/core/model_registry.py (hot-swap via POST /registry/promote)
 
 Usage:
   python training/train_flood_v2.py
@@ -71,9 +71,7 @@ _AI_ROOT = Path(__file__).resolve().parents[1]
 if str(_AI_ROOT) not in sys.path:
     sys.path.insert(0, str(_AI_ROOT))
 
-# ---------------------------------------------------------------------------
 # Check heavy dependencies with helpful messages
-# ---------------------------------------------------------------------------
 try:
     import joblib
     import optuna
@@ -93,10 +91,8 @@ except ImportError as exc:
         "Run: pip install xgboost lightgbm catboost optuna shap scikit-learn joblib"
     )
 
-# ---------------------------------------------------------------------------
 # Optuna 4.x moved LightGBMPruningCallback to the separate 'optuna-integration'
 # package.  Import gracefully; fall back to a no-op so training still runs.
-# ---------------------------------------------------------------------------
 try:
     from optuna_integration.lightgbm import LightGBMPruningCallback as _LGBMPruning
     def _lgbm_pruning_cb(trial):  # type: ignore[misc]
@@ -138,9 +134,7 @@ LEAK_PRONE_DYNAMIC_COLS: list[str] = [
 ]
 
 
-# ---------------------------------------------------------------------------
 # Data loading
-# ---------------------------------------------------------------------------
 
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """Load master features and flood labels; merge on (lat, lon, date)."""
@@ -168,7 +162,7 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def time_series_split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Split on calendar date — no data leakage across the time-series."""
+    """Split on calendar date -- no data leakage across the time-series."""
     train = df[df["date"] <  "2021-01-01"]
     val   = df[(df["date"] >= "2021-01-01") & (df["date"] < "2023-01-01")]
     test  = df[df["date"] >= "2023-01-01"]
@@ -182,9 +176,7 @@ def get_xy(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     return df[available].fillna(0.0), df["flood_label"].astype(int)
 
 
-# ---------------------------------------------------------------------------
 # Optuna objective wrappers
-# ---------------------------------------------------------------------------
 
 def run_optuna_xgb(X_train, y_train, X_val, y_val, n_trials: int) -> XGBClassifier:
     """Tune XGBoost with Optuna and return the best model."""
@@ -295,9 +287,7 @@ def run_optuna_catboost(X_train, y_train, X_val, y_val, n_trials: int) -> CatBoo
     return model
 
 
-# ---------------------------------------------------------------------------
 # LSTM base model
-# ---------------------------------------------------------------------------
 
 def train_lstm(
     train_df: pd.DataFrame,
@@ -310,9 +300,9 @@ def train_lstm(
     Train an LSTM on 30-day rolling windows of tabular features.
 
     Architecture:
-      Input  → LSTM(128, return_sequences=True) → Dropout(0.3)
-             → LSTM(64) → Dropout(0.2)
-             → Dense(32, relu) → Dense(1, sigmoid)
+      Input  -> LSTM(128, return_sequences=True) -> Dropout(0.3)
+             -> LSTM(64) -> Dropout(0.2)
+             -> Dense(32, relu) -> Dense(1, sigmoid)
 
     Uses gradient checkpointing to fit within 8 GB VRAM (RTX 2060 SUPER).
     Returns None if --no-lstm is set or if torch is unavailable.
@@ -323,7 +313,7 @@ def train_lstm(
         import torch
         import torch.nn as nn
     except ImportError:
-        print("  PyTorch not available — skipping LSTM layer.")
+        print("  PyTorch not available -- skipping LSTM layer.")
         return None
 
     avail = [c for c in feature_cols if c in train_df.columns]
@@ -335,7 +325,7 @@ def train_lstm(
     y_val   = _val_df["flood_label"].astype(int).values.astype(np.float32)
 
     # Build sliding-window sequences of length `sequence_len`
-    # Cap at 50k sequences to avoid OOM on CPU (full dataset → ~2+ GB arrays)
+    # Cap at 50k sequences to avoid OOM on CPU (full dataset -> ~2+ GB arrays)
     MAX_LSTM_SEQUENCES = 50_000
 
     def make_sequences(X, y, seq_len, max_seq=None):
@@ -368,7 +358,7 @@ def train_lstm(
             self.use_checkpoint = torch.cuda.is_available()
 
         def _lstm_block(self, x):
-            """LSTM forward pass — extracted for gradient checkpointing."""
+            """LSTM forward pass -- extracted for gradient checkpointing."""
             o, _ = self.lstm1(x)
             o    = self.drop1(o)
             o, _ = self.lstm2(o)
@@ -436,9 +426,7 @@ def train_lstm(
     return model
 
 
-# ---------------------------------------------------------------------------
 # Stacking meta-learner
-# ---------------------------------------------------------------------------
 
 def build_meta_learner(
     base_models: dict,
@@ -483,9 +471,7 @@ def build_meta_learner(
     return meta_model
 
 
-# ---------------------------------------------------------------------------
 # Evaluation
-# ---------------------------------------------------------------------------
 
 def evaluate(
     base_models: dict,
@@ -512,9 +498,7 @@ def evaluate(
     return metrics
 
 
-# ---------------------------------------------------------------------------
 # SHAP explainability
-# ---------------------------------------------------------------------------
 
 def compute_shap(
     xgb_model: XGBClassifier,
@@ -530,12 +514,10 @@ def compute_shap(
         index=X_test.columns
     ).sort_values(ascending=False)
     importance.to_csv(str(report_dir / "flood_v2_shap_importance.csv"))
-    print(f"\n  SHAP importance → {report_dir / 'flood_v2_shap_importance.csv'}")
+    print(f"\n  SHAP importance -> {report_dir / 'flood_v2_shap_importance.csv'}")
 
 
-# ---------------------------------------------------------------------------
 # Weights & Biases logging
-# ---------------------------------------------------------------------------
 
 def init_wandb(use_wandb: bool) -> object:
     if not use_wandb:
@@ -548,13 +530,11 @@ def init_wandb(use_wandb: bool) -> object:
         )
         return run
     except Exception as exc:
-        print(f"  W&B init failed ({exc}) — continuing without logging.")
+        print(f"  W&B init failed ({exc}) -- continuing without logging.")
         return None
 
 
-# ---------------------------------------------------------------------------
 # Registry save
-# ---------------------------------------------------------------------------
 
 def save_to_registry(
     base_models: dict,
@@ -574,7 +554,7 @@ def save_to_registry(
     }
     out_path = REGISTRY_DIR / "flood_uk_v2_camels_era5.pkl"
     joblib.dump(artifact, str(out_path), compress=3)
-    print(f"\n  Model saved → {out_path}")
+    print(f"\n  Model saved -> {out_path}")
 
     # Write metadata JSON alongside the .pkl for quick inspection
     meta_path = REGISTRY_DIR / "flood_uk_v2_camels_era5.json"
@@ -582,17 +562,15 @@ def save_to_registry(
     return out_path
 
 
-# ---------------------------------------------------------------------------
 # Orchestrator
-# ---------------------------------------------------------------------------
 
 def run(args: argparse.Namespace) -> None:
     run_obj = init_wandb(not args.no_wandb)
 
-    print("[1/8] Loading data …")
+    print("[1/8] Loading data ...")
     _, df = load_data()
 
-    print("[2/8] Time-series split …")
+    print("[2/8] Time-series split ...")
     train_df, val_df, test_df = time_series_split(df)
     X_train, y_train = get_xy(train_df)
     X_val,   y_val   = get_xy(val_df)
@@ -601,25 +579,25 @@ def run(args: argparse.Namespace) -> None:
 
     base_models: dict = {}
 
-    print("[3/8] Training XGBoost (Optuna) …")
+    print("[3/8] Training XGBoost (Optuna) ...")
     base_models["xgb"] = run_optuna_xgb(X_train, y_train, X_val, y_val, args.trials)
     print(f"  XGBoost val AUC: {roc_auc_score(y_val, base_models['xgb'].predict_proba(X_val)[:,1]):.4f}")
 
-    print("[4/8] Training LightGBM (Optuna) …")
+    print("[4/8] Training LightGBM (Optuna) ...")
     base_models["lgbm"] = run_optuna_lgbm(X_train, y_train, X_val, y_val, args.trials)
     print(f"  LightGBM val AUC: {roc_auc_score(y_val, base_models['lgbm'].predict_proba(X_val)[:,1]):.4f}")
 
-    print("[5/8] Training CatBoost (Optuna) …")
+    print("[5/8] Training CatBoost (Optuna) ...")
     base_models["catboost"] = run_optuna_catboost(X_train, y_train, X_val, y_val, args.trials)
     print(f"  CatBoost val AUC: {roc_auc_score(y_val, base_models['catboost'].predict_proba(X_val)[:,1]):.4f}")
 
-    print("[6/8] Training LSTM …")
+    print("[6/8] Training LSTM ...")
     lstm_model = train_lstm(train_df, val_df, feature_cols, no_lstm=args.no_lstm)
 
-    print("[7/8] Building meta-learner and calibrating …")
+    print("[7/8] Building meta-learner and calibrating ...")
     meta = build_meta_learner(base_models, X_val, y_val, lstm_model, val_df, feature_cols)
 
-    print("[8/8] Evaluating on held-out test set …")
+    print("[8/8] Evaluating on held-out test set ...")
     metrics = evaluate(base_models, meta, X_test, y_test, feature_cols)
 
     compute_shap(base_models["xgb"], X_test, REPORT_DIR)
@@ -635,9 +613,7 @@ def run(args: argparse.Namespace) -> None:
     print("\nDone. Use POST /registry/promote with version=flood_uk_v2_camels_era5 to deploy.")
 
 
-# ---------------------------------------------------------------------------
 # CLI
-# ---------------------------------------------------------------------------
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()

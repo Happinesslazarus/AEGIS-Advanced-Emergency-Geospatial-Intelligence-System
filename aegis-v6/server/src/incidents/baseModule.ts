@@ -20,7 +20,7 @@ import type {
   AlertRuleResult,
 } from './types.js'
 
-/* 30 reports per hour per IP — prevents bulk automated submissions */
+/* 30 reports per hour per IP -- prevents bulk automated submissions */
 const reportLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 30,
@@ -45,32 +45,32 @@ export abstract class BaseIncidentModule implements IncidentModule {
     return String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
   }
 
-  // Standard routes — automatically mounted for every incident
+  //Standard routes -- automatically mounted for every incident
 
   protected setupRoutes(): void {
-    // GET /active — active incidents of this type
+    //GET /active -- active incidents of this type
     this.router.get('/active', async (req: Request, res: Response) => {
       try {
         const region = this.getRequestRegion(req)
         const reports = await this.getActiveReports(region)
         res.json({ incidentType: this.id, reports, count: reports.length })
       } catch (err: any) {
-        res.status(500).json({ error: `Could not load active ${this.id} incidents. The database may be temporarily unavailable — please try again.` })
+        res.status(500).json({ error: `Could not load active ${this.id} incidents. The database may be temporarily unavailable -- please try again.` })
       }
     })
 
-    // GET /predictions — AI predictions for this incident type (auth required)
+    //GET /predictions -- AI predictions for this incident type (auth required)
     this.router.get('/predictions', authMiddleware, async (req: Request, res: Response) => {
       try {
         const region = this.getRequestRegion(req)
         const predictions = await this.getPredictions(region)
         res.json({ incidentType: this.id, predictions, count: predictions.length })
       } catch (err: any) {
-        res.status(500).json({ error: `Could not generate ${this.id} predictions. The AI service may be temporarily unavailable — please try again shortly.` })
+        res.status(500).json({ error: `Could not generate ${this.id} predictions. The AI service may be temporarily unavailable -- please try again shortly.` })
       }
     })
 
-    // POST /report — submit a report for this incident type (rate-limited, auth required)
+    //POST /report -- submit a report for this incident type (rate-limited, auth required)
     this.router.post('/report', reportLimiter, authMiddleware, async (req: Request, res: Response) => {
       try {
         const report = await this.submitReport(req.body)
@@ -80,7 +80,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
       }
     })
 
-    // GET /history — historical data for this incident type (auth required)
+    //GET /history -- historical data for this incident type (auth required)
     this.router.get('/history', authMiddleware, async (req: Request, res: Response) => {
       try {
         const region = this.getRequestRegion(req)
@@ -92,7 +92,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
       }
     })
 
-    // GET /alerts — current alerts
+    //GET /alerts -- current alerts
     this.router.get('/alerts', async (req: Request, res: Response) => {
       try {
         const region = this.getRequestRegion(req)
@@ -103,7 +103,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
       }
     })
 
-    // GET /map-data — map visualization data
+    //GET /map-data -- map visualization data
     this.router.get('/map-data', async (req: Request, res: Response) => {
       try {
         const region = this.getRequestRegion(req)
@@ -114,17 +114,17 @@ export abstract class BaseIncidentModule implements IncidentModule {
       }
     })
 
-    // Allow subclasses to add custom routes
+    //Allow subclasses to add custom routes
     this.setupCustomRoutes()
   }
 
   /* Override in subclass to add incident-specific routes */
   protected setupCustomRoutes(): void {}
 
-  // Default implementations — override in subclass for specific behavior
+  //Default implementations -- override in subclass for specific behavior
 
   async getPredictions(region: string): Promise<IncidentPrediction[]> {
-    // Default: rule-based prediction from recent report density
+    //Default: rule-based prediction from recent report density
     return this.ruleBasedPrediction(region)
   }
 
@@ -152,7 +152,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
         acknowledged: row.acknowledged || false,
       }))
     } catch {
-      // Table may not exist or have different schema — return empty
+      //Table may not exist or have different schema -- return empty
       return []
     }
   }
@@ -182,7 +182,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
     const recentCount = context.recentReports.length
     const { advisory, warning, critical } = this.registry.alertThresholds
 
-    // Simple density-based alert rules (applicable to all incident types)
+    //Simple density-based alert rules (applicable to all incident types)
     if (recentCount >= critical) {
       results.push({
         shouldAlert: true,
@@ -210,7 +210,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
   }
 
   async ingestData(_region: string): Promise<{ recordsIngested: number; source: string }> {
-    // Default: no external data ingestion
+    //Default: no external data ingestion
     return { recordsIngested: 0, source: 'none' }
   }
 
@@ -230,12 +230,12 @@ export abstract class BaseIncidentModule implements IncidentModule {
     }
   }
 
-  // Shared helpers
+  //Shared helpers
 
   protected async getActiveReports(region: string): Promise<any[]> {
     try {
-      // Filter by region_id if column exists; include rows with NULL region_id
-      // for backward compatibility with pre-region data.
+      //Filter by region_id if column exists; include rows with NULL region_id
+      //for backward compatibility with pre-region data.
       const result = await pool.query(
         `SELECT * FROM reports
          WHERE incident_type = $1
@@ -247,7 +247,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
       )
       return result.rows
     } catch {
-      // Fallback: region_id column may not exist on older DBs
+      //Fallback: region_id column may not exist on older DBs
       try {
         const result = await pool.query(
           `SELECT * FROM reports
@@ -270,7 +270,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
       reporter_name, reporter_phone, customFields, region_id,
     } = body
 
-    // Input validation
+    //Input validation
     const VALID_SEVERITIES = ['Low', 'Medium', 'High', 'Critical']
     const validatedSeverity = VALID_SEVERITIES.includes(severity) ? severity : 'Medium'
     const validatedLat = latitude != null && isFinite(Number(latitude)) && Math.abs(Number(latitude)) <= 90
@@ -317,7 +317,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
   }
 
   protected async ruleBasedPrediction(region: string): Promise<IncidentPrediction[]> {
-    // Rule-based prediction: analyze recent report patterns
+    //Rule-based prediction: analyze recent report patterns
     try {
       const result = await pool.query(
         `SELECT severity, COUNT(*) as cnt,
@@ -349,7 +349,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
       const criticalCount = result.rows.find((r: any) => r.severity === 'Critical')?.cnt || 0
       const highCount = result.rows.find((r: any) => r.severity === 'High')?.cnt || 0
 
-      // Calculate probability based on report density and severity distribution
+      //Calculate probability based on report density and severity distribution
       const baseProbability = Math.min(0.95, totalReports / 20)
       const severityBoost = (parseInt(criticalCount) * 0.15) + (parseInt(highCount) * 0.08)
       const probability = Math.min(0.95, baseProbability + severityBoost)

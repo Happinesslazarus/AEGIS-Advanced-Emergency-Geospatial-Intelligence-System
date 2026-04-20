@@ -70,11 +70,11 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
   }
 
   const handleTOTPInput = (value: string) => {
-    // Only allow digits, max 6
+    //Only allow digits, max 6
     const cleaned = value.replace(/\D/g, '').slice(0, 6)
     setCode(cleaned)
     setError('')
-    // Auto-submit when all 6 digits entered
+    //Auto-submit when all 6 digits entered
     if (cleaned.length === 6) {
       setTimeout(() => {
         formRef.current?.requestSubmit()
@@ -83,7 +83,7 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
   }
 
   const handleBackupInput = (value: string) => {
-    // Allow alphanumeric + dashes, max 9 (XXXX-XXXX)
+    //Allow alphanumeric + dashes, max 9 (XXXX-XXXX)
     const cleaned = value.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 9)
     setCode(cleaned)
     setError('')
@@ -184,7 +184,7 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
                 ))}
               </div>
               {code.length === 6 && !loading && (
-                <p className="text-center text-xs text-green-600 dark:text-green-400 mt-1.5 animate-pulse">Verifying…</p>
+                <p className="text-center text-xs text-green-600 dark:text-green-400 mt-1.5 animate-pulse">Verifying...</p>
               )}
             </div>
           ) : (

@@ -7,7 +7,7 @@ etc.) that may not be installed in all environments.  Importing them here is
 optional; individual training scripts import what they need directly.
 """
 
-# Lazy-guard imports — silently skip if optional dependencies are absent.
+# Lazy-guard imports -- silently skip if optional dependencies are absent.
 try:
     from .data_loaders import DataLoader, FeatureExtractor
 except ImportError:

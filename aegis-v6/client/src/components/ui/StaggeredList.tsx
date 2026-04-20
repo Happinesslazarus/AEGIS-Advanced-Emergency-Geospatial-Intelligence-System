@@ -1,5 +1,5 @@
 /**
- * StaggeredList — Animates children in with cascading delay.
+ * StaggeredList -- Animates children in with cascading delay.
  * Each child slides up and fades in with a stagger offset.
  * Respects prefers-reduced-motion.
  */

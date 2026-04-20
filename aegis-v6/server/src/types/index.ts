@@ -9,7 +9,7 @@
  * - Client-side equivalent: client/src/types/index.ts
  */
 
-// ENUMS (mirror PostgreSQL ENUM types)
+//ENUMS (mirror PostgreSQL ENUM types)
 
 export type OperatorRole = 'admin' | 'operator' | 'viewer'
 export type ReportStatus = 'unverified' | 'verified' | 'urgent' | 'flagged' | 'resolved'
@@ -32,7 +32,7 @@ export type ChatSessionStatus = 'active' | 'archived' | 'expired'
 export type ChatMessageRole = 'user' | 'assistant' | 'system' | 'tool'
 export type ConsentType = 'data_processing' | 'location_tracking' | 'ai_analysis' | 'marketing' | 'research'
 
-// DATABASE ROW TYPES
+//DATABASE ROW TYPES
 
 export interface OperatorRow {
   id: string
@@ -305,7 +305,7 @@ export interface AlertDeliveryLogRow {
   created_at: string
 }
 
-// NEW TABLES (production upgrade: chat sessions, RAG, consent, etc.)
+//NEW TABLES (production upgrade: chat sessions, RAG, consent, etc.)
 
 export interface ChatSessionRow {
   id: string
@@ -443,7 +443,7 @@ export interface TrainingLabelRow {
   created_at: string
 }
 
-// API REQUEST / RESPONSE TYPES
+//API REQUEST / RESPONSE TYPES
 
 export interface PaginationParams {
   page: number
@@ -484,7 +484,7 @@ export interface HealthCheck {
   }
 }
 
-// AI SERVICE TYPES
+//AI SERVICE TYPES
 
 export interface LLMProvider {
   name: string
@@ -568,7 +568,7 @@ export interface ImageAnalysisResult {
   latencyMs: number
 }
 
-// CHAT SYSTEM TYPES
+//CHAT SYSTEM TYPES
 
 export interface ChatCompletionRequest {
   sessionId?: string
@@ -632,7 +632,7 @@ export interface ChatCompletionResponse {
   isPersonalized?: boolean
 }
 
-// REGION / HAZARD CONFIG TYPES
+//REGION / HAZARD CONFIG TYPES
 
 export interface RegionConfig {
   id: string
@@ -670,7 +670,7 @@ export interface HazardConfig {
   models: string[]
 }
 
-// SOCKET.IO EVENT TYPES
+//SOCKET.IO EVENT TYPES
 
 export interface ServerToClientEvents {
   'alert:new': (alert: AlertRow) => void
@@ -703,7 +703,7 @@ export interface ClientToServerEvents {
   'subscribe:reports': (data: { area?: string }) => void
 }
 
-// UTILITY TYPES
+//UTILITY TYPES
 
 /* Omit password_hash and sensitive fields from user responses */
 export type SafeOperator = Omit<OperatorRow, 'password_hash' | 'deleted_at' | 'deleted_by'>

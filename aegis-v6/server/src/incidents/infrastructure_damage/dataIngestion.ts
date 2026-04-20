@@ -14,7 +14,7 @@ export class InfrastructureDamageDataIngestion {
    */
   static async ingestData(region: string): Promise<{ recordsIngested: number; source: string }> {
     try {
-      // Count recent infrastructure damage reports
+      //Count recent infrastructure damage reports
       const result = await pool.query(
         `SELECT COUNT(*) as count
          FROM reports

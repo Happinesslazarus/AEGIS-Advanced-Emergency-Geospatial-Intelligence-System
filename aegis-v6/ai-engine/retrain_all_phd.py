@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 retrain_all_phd.py
-------------------
 Retrain all 11 hazard models with PhD-standard configuration:
   - fixed_test_date="2022-01-01"  (2022-2023 is a completely unseen future holdout)
   - causal rainfall_anomaly_monthly (no full-dataset leakage)

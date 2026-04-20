@@ -1,5 +1,5 @@
 ﻿/**
- * Multi-source data fusion engine — normalises and combines 10 real-time data
+ * Multi-source data fusion engine -- normalises and combines 10 real-time data
  * sources (water level, rainfall, soil moisture, citizen NLP, photos, satellite,
  * etc.) into a single flood probability score with confidence and risk level.
  *
@@ -19,7 +19,7 @@ export interface FusionInput {
   regionId: string
   latitude: number
   longitude: number
-  // Live data (fetched before calling fusion)
+  //Live data (fetched before calling fusion)
   waterLevelM?: number
   waterLevelThreshold?: number
   rainfall24hMm?: number
@@ -186,7 +186,7 @@ async function getAdaptiveWeightCalibration(): Promise<AdaptiveCalibration> {
       urban_density: Number((0.94 + highSeverityRate * 0.12).toFixed(4)),
     }
 
-    // Widen bounds to allow meaningful learning (was 0.75-1.3, too tight)
+    //Widen bounds to allow meaningful learning (was 0.75-1.3, too tight)
     for (const [k, v] of Object.entries(multipliers)) {
       multipliers[k] = Math.max(0.5, Math.min(1.8, v))
     }
@@ -202,7 +202,7 @@ async function getAdaptiveWeightCalibration(): Promise<AdaptiveCalibration> {
     _cachedAdaptiveCalibration = calibration
     _adaptiveCalibrationCacheTime = now
 
-    // Persist calibration snapshot for governance/audit visibility.
+    //Persist calibration snapshot for governance/audit visibility.
     await pool.query(
       `INSERT INTO ai_model_metrics
         (model_name, model_version, metric_name, metric_value, dataset_size, metadata)
@@ -246,7 +246,7 @@ async function getLearnedWeights(): Promise<Record<string, number>> {
       }
     }
   } catch {
-    // DB error - use defaults
+    //DB error - use defaults
   }
 
   const defaults: Record<string, number> = { ...EVIDENCE_BASED_DEFAULTS }
@@ -259,23 +259,23 @@ async function getLearnedWeights(): Promise<Record<string, number>> {
 
 /* #16: Water Level - normalise gauge reading to risk (0-1) */
 function normaliseWaterLevel(levelM: number, thresholdM: number): number {
-  // Hydrological risk mapping: risk increases non-linearly as level approaches threshold
-  // Based on flood frequency analysis where threshold = ~Q10 event level
+  //Hydrological risk mapping: risk increases non-linearly as level approaches threshold
+  //Based on flood frequency analysis where threshold = ~Q10 event level
   const ratio = levelM / thresholdM
   if (ratio < 0.3) return 0                              // Well below normal range
   if (ratio < 0.6) return (ratio - 0.3) * 0.167          // Low risk zone (0 ? 0.05)
   if (ratio < 0.8) return 0.05 + (ratio - 0.6) * 0.75    // Moderate (0.05 ? 0.20)
   if (ratio < 0.95) return 0.20 + (ratio - 0.8) * 2.0    // Elevated (0.20 ? 0.50)
   if (ratio < 1.0) return 0.50 + (ratio - 0.95) * 6.0    // High - sharp ramp near threshold (0.50 ? 0.80)
-  // Above threshold: rapid convergence to 1.0
+  //Above threshold: rapid convergence to 1.0
   return Math.min(1.0, 0.80 + (ratio - 1.0) * 2.0)       // (0.80 ? 1.0)
 }
 
 /* #17: Rainfall 24h - mm to risk score */
 function normaliseRainfall(mm: number): number {
-  // UK rainfall return periods (approximate, England/Wales averages):
-  // Daily totals: 10mm = common, 25mm = notable, 50mm = Q5, 80mm = Q10, 120mm = Q50, 150mm+ = Q100
-  // Risk mapping based on exceedance probability
+  //UK rainfall return periods (approximate, England/Wales averages):
+  //Daily totals: 10mm = common, 25mm = notable, 50mm = Q5, 80mm = Q10, 120mm = Q50, 150mm+ = Q100
+  //Risk mapping based on exceedance probability
   if (mm <= 2) return 0                                     // Trace rainfall
   if (mm <= 10) return mm / 100                             // Common (0 ? 0.10)
   if (mm <= 25) return 0.10 + (mm - 10) * 0.01             // Notable (0.10 ? 0.25)
@@ -287,7 +287,7 @@ function normaliseRainfall(mm: number): number {
 
 function blendRainfallWithNowcast(mm24h: number, forecast6h: number | undefined): number {
   if (!forecast6h || forecast6h <= 0) return mm24h
-  // Amplify near-term nowcast risk without double counting full 24h totals.
+  //Amplify near-term nowcast risk without double counting full 24h totals.
   return Number((mm24h + Math.min(40, forecast6h * 0.65)).toFixed(2))
 }
 
@@ -297,7 +297,7 @@ function normaliseGaugeDelta(readings: Array<{ value: number; timestamp: Date }>
 } {
   if (!readings || readings.length < 2) return { normalised: 0, deltaPerHour: 0 }
 
-  // Calculate rate of change between most recent readings
+  //Calculate rate of change between most recent readings
   const sorted = [...readings].sort((a, b) =>
     new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   )
@@ -312,7 +312,7 @@ function normaliseGaugeDelta(readings: Array<{ value: number; timestamp: Date }>
 
   const deltaPerHour = (newest.value - oldest.value) / timeDiffHours
 
-  // Rising fast = dangerous
+  //Rising fast = dangerous
   if (deltaPerHour <= 0) return { normalised: 0, deltaPerHour } // Falling = no risk
   if (deltaPerHour < 0.05) return { normalised: 0.1, deltaPerHour }
   if (deltaPerHour < 0.1) return { normalised: 0.3, deltaPerHour }
@@ -327,8 +327,8 @@ function normaliseSoilSaturation(
   satelliteExtentRatio?: number,
 ): number {
   if (saturation === undefined || saturation === null) {
-    // Unknown soil saturation - estimate from seasonal baseline
-    // UK average soil moisture: ~0.6 in winter, ~0.3 in summer
+    //Unknown soil saturation - estimate from seasonal baseline
+    //UK average soil moisture: ~0.6 in winter, ~0.3 in summer
     const month = new Date().getMonth() // 0-11
     const seasonalBaseline = month >= 3 && month <= 8 ? 0.3 : 0.55  // Summer vs winter
     return Math.min(1.0, seasonalBaseline + (satelliteExtentRatio || 0) * 0.3)
@@ -346,7 +346,7 @@ function normaliseCitizenReports(
 ): number {
   if (!reports || reports.length === 0) return 0
 
-  // Weight by recency and severity
+  //Weight by recency and severity
   const now = Date.now()
   let score = 0
 
@@ -363,7 +363,7 @@ function normaliseCitizenReports(
     score += recencyWeight * severityWeight * confidenceWeight
   }
 
-  // Normalise by report count - more reports = higher confidence
+  //Normalise by report count - more reports = higher confidence
   const countBoost = Math.min(1.0, reports.length / 10)
   return Math.min(1.0, (score / Math.max(1, reports.length)) * 0.7 + countBoost * 0.3)
 }
@@ -373,11 +373,11 @@ function normaliseHistoricalMatch(
   events: Array<{ featureVector?: any; eventName?: string; similarity?: number; eventDate?: Date }> | undefined,
 ): number {
   if (!events || events.length === 0) return 0
-  // Find best match with recency weighting
+  //Find best match with recency weighting
   let bestScore = 0
   for (const event of events) {
     const baseSimilarity = event.similarity || 0
-    // Decay by age: recent events (< 5 years) get full weight, older events decay
+    //Decay by age: recent events (< 5 years) get full weight, older events decay
     let recencyFactor = 1.0
     if (event.eventDate) {
       const yearsAgo = (Date.now() - new Date(event.eventDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
@@ -392,7 +392,7 @@ function normaliseHistoricalMatch(
 function normaliseTerrain(elevationM: number | undefined, slopePercent: number | undefined): number {
   if (elevationM === undefined) return 0.5 // Unknown
 
-  // Lower elevation = higher flood risk
+  //Lower elevation = higher flood risk
   let elevRisk = 0
   if (elevationM < 5) elevRisk = 0.9
   else if (elevationM < 15) elevRisk = 0.7
@@ -401,7 +401,7 @@ function normaliseTerrain(elevationM: number | undefined, slopePercent: number |
   else if (elevationM < 100) elevRisk = 0.15
   else elevRisk = 0.05
 
-  // Flat terrain holds water longer
+  //Flat terrain holds water longer
   const slopeRisk = slopePercent !== undefined
     ? Math.max(0, 1 - slopePercent / 30) // Flat = high risk
     : 0.5
@@ -426,8 +426,8 @@ function normalisePhotoCnn(
 
 /* #24: Seasonal Weighting - UK flood season risk */
 function normaliseSeasonal(month: number | undefined): number {
-  // UK flood season: October-March (higher risk)
-  // month 1-12
+  //UK flood season: October-March (higher risk)
+  //month 1-12
   const m = month || new Date().getMonth() + 1
   const seasonalRisk: Record<number, number> = {
     1: 0.85, 2: 0.80, 3: 0.65, 4: 0.45, 5: 0.30, 6: 0.25,
@@ -439,7 +439,7 @@ function normaliseSeasonal(month: number | undefined): number {
 /* #25: Urban Density - population exposure risk */
 function normaliseUrbanDensity(ratio: number | undefined): number {
   if (ratio === undefined) return 0.5
-  // Higher density = more people at risk = higher priority
+  //Higher density = more people at risk = higher priority
   return Math.min(1.0, Math.max(0, ratio))
 }
 
@@ -453,7 +453,7 @@ export async function runFusion(input: FusionInput): Promise<FusionResult> {
   const weights = await getLearnedWeights()
   const blendedRainfall = blendRainfallWithNowcast(input.rainfall24hMm || 0, input.weatherForecastRain6hMm)
 
-  // Compute each feature
+  //Compute each feature
   const gaugeDelta = normaliseGaugeDelta(input.gaugeReadings || [])
 
   const features: FusionFeature[] = [
@@ -549,25 +549,25 @@ export async function runFusion(input: FusionInput): Promise<FusionResult> {
     },
   ]
 
-  // Compute contributions
+  //Compute contributions
   for (const f of features) {
     f.contribution = f.normalised * f.weight
   }
 
-  // Sum weighted contributions = fused probability
+  //Sum weighted contributions = fused probability
   const probability = Math.min(1.0, features.reduce((sum, f) => sum + f.contribution, 0))
 
-  // Confidence: based on how many data sources are available
+  //Confidence: based on how many data sources are available
   const availableSources = features.filter(f => f.rawValue !== 0).length
   const confidence = Math.round((availableSources / features.length) * 85 + 15)
 
-  // Risk level classification
+  //Risk level classification
   let riskLevel: FusionResult['riskLevel'] = 'Low'
   if (probability >= 0.75) riskLevel = 'Critical'
   else if (probability >= 0.55) riskLevel = 'High'
   else if (probability >= 0.30) riskLevel = 'Medium'
 
-  // Time-to-flood estimate from gauge delta
+  //Time-to-flood estimate from gauge delta
   let timeToFloodMinutes: number | null = null
   if (gaugeDelta.deltaPerHour > 0.05 && input.waterLevelM && input.waterLevelThreshold) {
     const remaining = input.waterLevelThreshold - input.waterLevelM
@@ -601,7 +601,7 @@ export async function runFusion(input: FusionInput): Promise<FusionResult> {
     computationTimeMs,
   }
 
-  // Store in database
+  //Store in database
   try {
     await pool.query(
       `INSERT INTO fusion_computations
@@ -630,7 +630,7 @@ export async function runFusion(input: FusionInput): Promise<FusionResult> {
       ],
     )
 
-    // Log AI execution
+    //Log AI execution
     await pool.query(
       `INSERT INTO ai_executions
        (model_name, model_version, input_payload, raw_response, execution_time_ms,
@@ -671,7 +671,7 @@ export async function gatherFusionData(
     currentMonth: new Date().getMonth() + 1,
   }
 
-  // Parallel data fetching
+  //Parallel data fetching
   const [
     gaugeData,
     weatherData,
@@ -690,14 +690,14 @@ export async function gatherFusionData(
     fetchSatelliteFloodSignal(latitude, longitude),
   ])
 
-  // Merge gauge data
+  //Merge gauge data
   if (gaugeData.status === 'fulfilled' && gaugeData.value) {
     input.waterLevelM = gaugeData.value.currentLevel
     input.waterLevelThreshold = gaugeData.value.warningThreshold
     input.gaugeReadings = gaugeData.value.readings
   }
 
-  // Merge weather
+  //Merge weather
   if (weatherData.status === 'fulfilled' && weatherData.value) {
     input.rainfall24hMm = weatherData.value.rainfall24h
     input.rainfall7dMm = weatherData.value.rainfall7d
@@ -708,17 +708,17 @@ export async function gatherFusionData(
     input.weatherForecastRain6hMm = weatherNowcast.value
   }
 
-  // Merge reports
+  //Merge reports
   if (recentReports.status === 'fulfilled') {
     input.recentReports = recentReports.value
   }
 
-  // Merge historical
+  //Merge historical
   if (historicalData.status === 'fulfilled') {
     input.historicalEvents = historicalData.value
   }
 
-  // Merge photo CNN scores
+  //Merge photo CNN scores
   if (photoScores.status === 'fulfilled') {
     input.photoCnnScores = photoScores.value
   }
@@ -727,7 +727,7 @@ export async function gatherFusionData(
     input.satelliteWaterExtentRatio = satelliteSignal.value
   }
 
-  // Terrain - approximate from location
+  //Terrain - approximate from location
   input.elevationM = estimateElevation(latitude, longitude)
   input.urbanDensityRatio = estimateUrbanDensity(latitude, longitude)
 
@@ -740,7 +740,7 @@ async function fetchGaugeData(lat: number, lng: number): Promise<{
   currentLevel: number; warningThreshold: number; readings: Array<{ value: number; timestamp: Date }>
 } | null> {
   try {
-    // EA API for stations near this location
+    //EA API for stations near this location
     const url = `https://environment.data.gov.uk/flood-monitoring/id/stations?parameter=level&lat=${lat}&long=${lng}&dist=10&_limit=1`
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
     if (!res.ok) return null
@@ -750,7 +750,7 @@ async function fetchGaugeData(lat: number, lng: number): Promise<{
 
     const station = data.items[0]
 
-    // Fetch recent readings
+    //Fetch recent readings
     const readingsUrl = `${station['@id']}/readings?_sorted&_limit=10`
     const readRes = await fetch(readingsUrl, { signal: AbortSignal.timeout(5000) })
     if (!readRes.ok) return null
@@ -761,7 +761,7 @@ async function fetchGaugeData(lat: number, lng: number): Promise<{
       timestamp: new Date(r.dateTime),
     }))
 
-    // Store snapshot
+    //Store snapshot
     await pool.query(
       `INSERT INTO live_data_snapshots (source, data_type, coordinates, value, unit, raw_data)
        VALUES ('EA_API', 'gauge_level', ST_SetSRID(ST_MakePoint($1, $2), 4326), $3, 'm', $4)`,
@@ -880,11 +880,11 @@ async function fetchWeatherData(lat: number, lng: number): Promise<{
     const rain3h = data.rain?.['3h'] || 0
     const humidity = data.main?.humidity || 50
 
-    // Estimate 24h from available data
+    //Estimate 24h from available data
     const rainfall24h = rain1h > 0 ? rain1h * 8 : rain3h * 3 // Rough extrapolation
     const soilProxy = humidity / 100 // Humidity as soil saturation proxy
 
-    // Store snapshot
+    //Store snapshot
     await pool.query(
       `INSERT INTO live_data_snapshots (source, data_type, coordinates, value, unit, raw_data)
        VALUES ('openweathermap', 'weather', ST_SetSRID(ST_MakePoint($1, $2), 4326), $3, 'mm', $4)`,
@@ -999,7 +999,7 @@ async function fetchSatelliteFloodSignal(lat: number, lng: number): Promise<numb
           return Math.max(0, Math.min(1, ratio))
         }
 
-        // Support provider payloads that expose water depth/discharge, not direct ratios.
+        //Support provider payloads that expose water depth/discharge, not direct ratios.
         const depthCm = Number(payload?.surface_water_depth_cm ?? payload?.water_depth_cm)
         if (Number.isFinite(depthCm)) {
           return Math.max(0, Math.min(1, depthCm / 40))
@@ -1011,7 +1011,7 @@ async function fetchSatelliteFloodSignal(lat: number, lng: number): Promise<numb
       }
     }
 
-    // Public no-key hydrology fallback (Open-Meteo Flood API) when no custom endpoint is configured.
+    //Public no-key hydrology fallback (Open-Meteo Flood API) when no custom endpoint is configured.
     const floodRes = await fetch(
       `https://flood-api.open-meteo.com/v1/flood?latitude=${encodeURIComponent(String(lat))}&longitude=${encodeURIComponent(String(lng))}&hourly=river_discharge&forecast_days=1`,
       { signal: AbortSignal.timeout(6000) },
@@ -1053,11 +1053,11 @@ async function fetchSatelliteFloodSignal(lat: number, lng: number): Promise<numb
 
 /* Estimate elevation based on known Aberdeen topography */
 function estimateElevation(lat: number, lng: number): number {
-  // Region-configurable rough DEM lookup
+  //Region-configurable rough DEM lookup
   const coastReferenceLng = Number(process.env.COAST_REFERENCE_LNG ?? -2.05)
   const distFromCoast = Math.abs(lng - coastReferenceLng) * 111 // km from coast reference
   const baseElevation = 5 + distFromCoast * 15 // Rough gradient
-  // River valleys are lower
+  //River valleys are lower
   const activeRegion = getActiveCityRegion()
   const nearRiver = (Math.abs(lat - activeRegion.centre.lat) < 0.02 && Math.abs(lng - activeRegion.centre.lng) < 0.03) ? -10 : 0
   return Math.max(2, baseElevation + nearRiver)
@@ -1065,7 +1065,7 @@ function estimateElevation(lat: number, lng: number): number {
 
 /* Estimate urban density ratio from location */
 function estimateUrbanDensity(lat: number, lng: number): number {
-  // Region-centre zones: city centre ~0.82, residential ~0.5, suburbs ~0.3, rural ~0.1
+  //Region-centre zones: city centre ~0.82, residential ~0.5, suburbs ~0.3, rural ~0.1
   const activeRegion = getActiveCityRegion()
   const distFromCentre = Math.sqrt(
     (lat - activeRegion.centre.lat) ** 2 + (lng - activeRegion.centre.lng) ** 2,
@@ -1088,14 +1088,14 @@ function estimateUrbanDensity(lat: number, lng: number): number {
 export function fuseBayesian(features: FusionFeature[], prior = 0.05): number {
   if (features.length === 0) return prior
 
-  // P(flood | evidence) ? P(flood) * ? P(e_i | flood)
-  // P(no flood | evidence) ? P(no flood) * ? P(e_i | no flood)
-  // Where P(e_i | flood) - feature.normalised, P(e_i | no flood) - 1 - feature.normalised
+  //P(flood | evidence) ? P(flood) * ? P(e_i | flood)
+  //P(no flood | evidence) ? P(no flood) * ? P(e_i | no flood)
+  //Where P(e_i | flood) - feature.normalised, P(e_i | no flood) - 1 - feature.normalised
   let logLikelihoodFlood = Math.log(prior)
   let logLikelihoodNoFlood = Math.log(1 - prior)
 
   for (const f of features) {
-    // Clamp to avoid log(0)
+    //Clamp to avoid log(0)
     const pGivenFlood = Math.max(0.01, Math.min(0.99, f.normalised))
     const pGivenNoFlood = Math.max(0.01, Math.min(0.99, 1 - f.normalised))
 
@@ -1103,7 +1103,7 @@ export function fuseBayesian(features: FusionFeature[], prior = 0.05): number {
     logLikelihoodNoFlood += Math.log(pGivenNoFlood)
   }
 
-  // Normalise via log-sum-exp for numerical stability
+  //Normalise via log-sum-exp for numerical stability
   const maxLog = Math.max(logLikelihoodFlood, logLikelihoodNoFlood)
   const floodExp = Math.exp(logLikelihoodFlood - maxLog)
   const noFloodExp = Math.exp(logLikelihoodNoFlood - maxLog)
@@ -1128,9 +1128,9 @@ export function fuseMaxPooling(features: FusionFeature[]): number {
     }
   }
 
-  // Scale to [0, 1] - the max single contribution from a perfectly weighted
-  // feature is its weight (when normalised=1). Normalise by the max possible
-  // weight so the result spans the full range.
+  //Scale to [0, 1] - the max single contribution from a perfectly weighted
+  //feature is its weight (when normalised=1). Normalise by the max possible
+  //weight so the result spans the full range.
   const maxWeight = Math.max(...features.map(f => f.weight), 0.01)
   return Math.min(1.0, maxContribution / maxWeight)
 }
@@ -1188,7 +1188,7 @@ export async function fuseTemporalSequence(
 
     const probabilities: number[] = rows.map((r: any) => Number(r.fused_probability) || 0)
 
-    // Exponentially weighted moving average (decay factor alpha)
+    //Exponentially weighted moving average (decay factor alpha)
     const alpha = 2 / (probabilities.length + 1)
     let ewma = probabilities[0]
     for (let i = 1; i < probabilities.length; i++) {
@@ -1196,12 +1196,12 @@ export async function fuseTemporalSequence(
     }
     const smoothedProbability = Number(Math.max(0, Math.min(1, ewma)).toFixed(4))
 
-    // Trend detection from recent slope (last 3+ values)
+    //Trend detection from recent slope (last 3+ values)
     let trend: 'rising' | 'falling' | 'stable' = 'stable'
     let trendStrength = 0
     if (probabilities.length >= 3) {
       const recentSlice = probabilities.slice(-Math.min(probabilities.length, 5))
-      // Simple linear regression slope
+      //Simple linear regression slope
       const n = recentSlice.length
       const xMean = (n - 1) / 2
       const yMean = recentSlice.reduce((s, v) => s + v, 0) / n
@@ -1218,7 +1218,7 @@ export async function fuseTemporalSequence(
       else if (slope < -0.01) trend = 'falling'
     }
 
-    // Volatility = standard deviation of probabilities
+    //Volatility = standard deviation of probabilities
     const mean = probabilities.reduce((s, v) => s + v, 0) / probabilities.length
     const variance = probabilities.reduce((s, v) => s + (v - mean) ** 2, 0) / probabilities.length
     const volatility = Number(Math.sqrt(variance).toFixed(4))
@@ -1253,14 +1253,14 @@ export function quantifyUncertainty(
   const available = features.filter(f => f.rawValue !== 0).length
   const missingRatio = 1 - available / totalExpected
 
-  // Missing data penalty: 0 (all present) to 1 (all missing)
+  //Missing data penalty: 0 (all present) to 1 (all missing)
   const missingDataPenalty = Number(missingRatio.toFixed(3))
 
-  // Base half-width of confidence band
-  // Fewer features = wider band (more uncertainty)
+  //Base half-width of confidence band
+  //Fewer features = wider band (more uncertainty)
   let halfWidth = 0.08 + missingRatio * 0.20
 
-  // Feature agreement: if features disagree, widen the band
+  //Feature agreement: if features disagree, widen the band
   const normValues = features.filter(f => f.rawValue !== 0).map(f => f.normalised)
   if (normValues.length >= 2) {
     const mean = normValues.reduce((s, v) => s + v, 0) / normValues.length
@@ -1270,11 +1270,11 @@ export function quantifyUncertainty(
     halfWidth += disagreement * 0.3
   }
 
-  // Ceiling effect: high probability narrows the upper band
+  //Ceiling effect: high probability narrows the upper band
   const upper = Math.min(1.0, probability + halfWidth * (1.0 - probability * 0.5))
   const lower = Math.max(0.0, probability - halfWidth)
 
-  // Confidence level based on data completeness and agreement
+  //Confidence level based on data completeness and agreement
   const confidenceLevel = Number(
     Math.max(0, Math.min(1, 1 - missingDataPenalty * 0.5 - halfWidth * 0.5)).toFixed(3),
   )

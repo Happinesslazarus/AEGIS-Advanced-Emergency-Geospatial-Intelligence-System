@@ -13,18 +13,18 @@
  * - SOSButton component triggers POST /api/distress/activate
  *
  * Key sections (tabbed):
- * - Home         — safety summary and quick links
- * - My Reports   — citizen's own submitted reports
- * - Messages     — direct chat thread with operators
- * - Community    — community posts and events
- * - Preparedness — guides, checklists, risk scores
- * - Profile      — account settings and 2FA
+ * - Home         -- safety summary and quick links
+ * - My Reports   -- citizen's own submitted reports
+ * - Messages     -- direct chat thread with operators
+ * - Community    -- community posts and events
+ * - Preparedness -- guides, checklists, risk scores
+ * - Profile      -- account settings and 2FA
  *
- * - client/src/contexts/CitizenAuthContext.tsx — authenticated citizen state
- * - client/src/components/citizen/SOSButton.tsx — the emergency distress trigger
- * - client/src/hooks/useDistress.ts             — distress beacon state management
- * - server/src/routes/citizenRoutes.ts          — citizen-specific API endpoints
- * - server/src/routes/distressRoutes.ts         — SOS beacon backend
+ * - client/src/contexts/CitizenAuthContext.tsx -- authenticated citizen state
+ * - client/src/components/citizen/SOSButton.tsx -- the emergency distress trigger
+ * - client/src/hooks/useDistress.ts             -- distress beacon state management
+ * - server/src/routes/citizenRoutes.ts          -- citizen-specific API endpoints
+ * - server/src/routes/distressRoutes.ts         -- SOS beacon backend
  * */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
@@ -72,7 +72,7 @@ import AlertsPanel from '../components/shared/AlertsPanel'
 import AlertCaptionOverlay, { showAlertCaption } from '../components/shared/AlertCaptionOverlay'
 import { useAudioAlerts } from '../hooks/useAudioAlerts'
 
-// Code-split heavy components (loaded on demand per tab)
+//Code-split heavy components (loaded on demand per tab)
 const Chatbot = lazy(() => import('../components/citizen/Chatbot'))
 const LiveMap = lazy(() => import('../components/shared/LiveMap'))
 const WeatherPanel = lazy(() => import('../components/shared/WeatherPanel'))
@@ -101,8 +101,8 @@ import AppLayout from '../components/layout/AppLayout'
 import type { SidebarItem } from '../components/layout/Sidebar'
 import SessionExpiryHandler from '../components/shared/SessionExpiryHandler'
 
-// Use relative paths so Vite's proxy handles API requests (avoids CORS)
-// API_BASE imported from ../utils/helpers
+//Use relative paths so Vite's proxy handles API requests (avoids CORS)
+//API_BASE imported from ../utils/helpers
 
 type TabKey = 'overview' | 'livemap' | 'alerts' | 'reports' | 'messages' | 'community' | 'prepare' | 'news' | 'safety' | 'shelters' | 'risk' | 'emergency' | 'profile' | 'security' | 'settings'
 
@@ -133,11 +133,11 @@ const THREAD_CATEGORIES = [
   { value: 'alert', labelKey: 'citizen.thread.alertFollowup' as const },
 ]
 
-// getPasswordStrength + timeAgo imported from ../utils/helpers
+//getPasswordStrength + timeAgo imported from ../utils/helpers
 
-// MessageStatusIcon imported from ../components/ui/MessageStatusIcon
+//MessageStatusIcon imported from ../components/ui/MessageStatusIcon
 
-// Email verification banner with 60s resend cooldown
+//Email verification banner with 60s resend cooldown
 function EmailVerificationBanner({ token, lang, announce }: { token: string | null; lang: string; announce: (msg: string) => void }) {
   const [cooldown, setCooldown] = useState(0)
   const [sending, setSending] = useState(false)
@@ -175,13 +175,13 @@ function EmailVerificationBanner({ token, lang, announce }: { token: string | nu
         disabled={cooldown > 0 || sending}
         className="text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 dark:hover:bg-amber-900 disabled:opacity-60 disabled:cursor-not-allowed px-3 py-1 rounded-lg transition whitespace-nowrap"
       >
-        {sending ? 'Sending…' : cooldown > 0 ? `Resend in ${cooldown}s` : (t('citizen.verifyEmail.resend', lang) || 'Resend Email')}
+        {sending ? 'Sending...' : cooldown > 0 ? `Resend in ${cooldown}s` : (t('citizen.verifyEmail.resend', lang) || 'Resend Email')}
       </button>
     </div>
   )
 }
 
-// MAIN COMPONENT
+//MAIN COMPONENT
 
 export default function CitizenDashboard(): JSX.Element {
   usePageTitle('My Dashboard')
@@ -225,7 +225,7 @@ export default function CitizenDashboard(): JSX.Element {
   const [showAssistant, setShowAssistant] = useState(false)
   const [communityUnread, setCommunityUnread] = useState(0)
 
-  // New state for parity features
+  //New state for parity features
   const [showReportForm, setShowReportForm] = useState(false)
   const [showCommunityHelp, setShowCommunityHelp] = useState(false)
   const [showPreparednessGuide, setShowPreparednessGuide] = useState(false)
@@ -248,7 +248,7 @@ export default function CitizenDashboard(): JSX.Element {
 
   const [userPosition, setUserPosition] = useState<[number,number]|null>(null)
 
-  // Connect socket on mount
+  //Connect socket on mount
   useEffect(() => {
     if (token && !socket.connected) {
       socket.connect(token)
@@ -258,22 +258,22 @@ export default function CitizenDashboard(): JSX.Element {
     }
   }, [token])
 
-  // Fetch citizen threads when socket connects
+  //Fetch citizen threads when socket connects
   useEffect(() => {
     if (socket.connected) {
       socket.fetchCitizenThreads()
     }
   }, [socket.connected])
 
-  // Track community chat + post notifications when NOT on community tab
+  //Track community chat + post notifications when NOT on community tab
   useEffect(() => {
     const s = socket.socket
     if (!s) return
 
-    // Listen for the global notification event (sent to ALL sockets via io.emit)
-    // This works even when user is NOT in the community-chat room
+    //Listen for the global notification event (sent to ALL sockets via io.emit)
+    //This works even when user is NOT in the community-chat room
     const handleCommunityNotification = (data: { senderId?: string; senderName?: string }) => {
-      // Don't count own messages
+      //Don't count own messages
       if (data.senderId === user?.id) return
       if (activeTab !== 'community') {
         setCommunityUnread(prev => prev + 1)
@@ -295,21 +295,21 @@ export default function CitizenDashboard(): JSX.Element {
     }
   }, [socket.socket, activeTab, user?.id])
 
-  // Clear community unread when switching to community tab
+  //Clear community unread when switching to community tab
   useEffect(() => {
     if (activeTab === 'community') {
       setCommunityUnread(0)
     }
   }, [activeTab])
 
-  // Redirect if not authenticated
+  //Redirect if not authenticated
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       navigate('/citizen/login', { replace: true })
     }
   }, [loading, isAuthenticated, navigate])
 
-  // Load news from API — pool-based with batch pagination
+  //Load news from API -- pool-based with batch pagination
   const loadNews = useCallback(async (forceRefresh = false): Promise<void> => {
     if (newsLoadingRef.current) return
     newsLoadingRef.current = true
@@ -358,7 +358,7 @@ export default function CitizenDashboard(): JSX.Element {
       }
       return
     }
-    // Wrap around — fetch fresh from server
+    //Wrap around -- fetch fresh from server
     newsLoadingRef.current = true
     setNewsRefreshing(true)
     try {
@@ -392,7 +392,7 @@ export default function CitizenDashboard(): JSX.Element {
     return newsItems.filter(n => kws.some(k => (n.title + ' ' + n.source).toLowerCase().includes(k)))
   }, [newsItems, newsHazardFilter])
 
-  // Pull-to-refresh for mobile
+  //Pull-to-refresh for mobile
   const handlePullRefresh = useCallback(async () => {
     await Promise.all([
       refreshReports(),
@@ -410,7 +410,7 @@ export default function CitizenDashboard(): JSX.Element {
     loadNews(false)
   }, [loadNews])
 
-  // Sorted reports (live from API)
+  //Sorted reports (live from API)
   const sortedReports = useMemo(() => {
     let arr = [...reports]
     if (reportSearchTerm) {
@@ -438,7 +438,7 @@ export default function CitizenDashboard(): JSX.Element {
 
   const totalUnread = socket.threads.reduce((a, t) => a + (t.citizen_unread || 0), 0)
 
-  // Accessible tab switching with screen reader announcement
+  //Accessible tab switching with screen reader announcement
   const handleTabChange = useCallback((tab: TabKey) => {
     setActiveTab(tab)
     setSearchParams(tab === 'overview' ? {} : { tab }, { replace: true })
@@ -446,7 +446,7 @@ export default function CitizenDashboard(): JSX.Element {
     if (tabDef) announce(`Navigated to ${t(tabDef.labelKey, lang)} tab`)
   }, [announce, lang, setSearchParams])
 
-  // Swipe left/right to navigate between tabs on mobile
+  //Swipe left/right to navigate between tabs on mobile
   const SWIPABLE_TABS: TabKey[] = ['overview', 'livemap', 'alerts', 'reports', 'messages', 'community']
   const swipeRef = useSwipeGesture<HTMLDivElement>({
     onSwipe: useCallback((dir) => {
@@ -458,7 +458,7 @@ export default function CitizenDashboard(): JSX.Element {
     threshold: 60,
   })
 
-  // Sync tab when URL ?tab= param changes (e.g., browser back/forward)
+  //Sync tab when URL ?tab= param changes (e.g., browser back/forward)
   useEffect(() => {
     const urlTab = searchParams.get('tab')
     if (urlTab && VALID_TABS.has(urlTab as TabKey) && urlTab !== activeTab) {
@@ -751,7 +751,7 @@ export default function CitizenDashboard(): JSX.Element {
   )
 }
 
-// TAB: REPORTS — Professional-grade report dashboard
+//TAB: REPORTS -- Professional-grade report dashboard
 
 type ReportFilterLevel = 'all' | 'High' | 'Medium' | 'Low'
 type ReportStatusFilter = 'all' | 'Unverified' | 'Verified' | 'Urgent' | 'Resolved'
@@ -781,7 +781,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
     return { total: reports.length, high, medium, low, urgent, verified, unverified, resolved, withMedia, aiPowered }
   }, [reports])
 
-  // Severity bar percentages
+  //Severity bar percentages
   const total = stats.total || 1
   const pH = (stats.high / total) * 100
   const pM = (stats.medium / total) * 100
@@ -808,7 +808,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
               <span className="px-2.5 py-0.5 rounded-full bg-aegis-100 dark:bg-aegis-900/40 text-aegis-700 dark:text-aegis-300 text-xs font-bold">{stats.total}</span>
             </div>
             <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">
-              {stats.high} {t('cdash.reports.critical', lang)} · {stats.verified} {t('cdash.reports.verified', lang)} · {stats.aiPowered} {t('cdash.reports.aiAnalysed', lang)}
+              {stats.high} {t('cdash.reports.critical', lang)} - {stats.verified} {t('cdash.reports.verified', lang)} - {stats.aiPowered} {t('cdash.reports.aiAnalysed', lang)}
             </p>
           </div>
         </div>
@@ -997,7 +997,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
                 {t('cdash.reports.realTime', lang)}
               </span>
               <span className="text-gray-400 dark:text-gray-400">
-                {stats.withMedia} {t('cdash.reports.withMedia', lang)} · {stats.aiPowered} {t('cdash.reports.aiAnalysed', lang)}
+                {stats.withMedia} {t('cdash.reports.withMedia', lang)} - {stats.aiPowered} {t('cdash.reports.aiAnalysed', lang)}
               </span>
             </div>
             <span className="text-[9px] font-bold text-gray-400 dark:text-gray-400 px-2 py-0.5 rounded bg-gray-200/60 dark:bg-gray-700/40">{filtered.length} {t('cdash.reports.reports', lang)}</span>
@@ -1008,7 +1008,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
   )
 }
 
-// TAB: PREPAREDNESS — Emergency Preparedness Guide + Resources
+//TAB: PREPAREDNESS -- Emergency Preparedness Guide + Resources
 
 function PreparednessTab({ lang, onOpenGuide }: { lang: string; onOpenGuide: () => void }) {
   return (
@@ -1045,7 +1045,7 @@ function PreparednessTab({ lang, onOpenGuide }: { lang: string; onOpenGuide: () 
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-aegis-600 dark:group-hover:text-aegis-400 transition-colors flex items-center gap-1.5">{r.title}<ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" /></p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{r.source} · <span className={`font-semibold ${r.type === 'video' ? 'text-red-500' : 'text-blue-500'}`}>{r.type === 'video' ? t('cdash.prep.video', lang) : t('cdash.prep.article', lang)}</span></p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{r.source} - <span className={`font-semibold ${r.type === 'video' ? 'text-red-500' : 'text-blue-500'}`}>{r.type === 'video' ? t('cdash.prep.video', lang) : t('cdash.prep.article', lang)}</span></p>
             </div>
           </a>
         ))}
@@ -1054,7 +1054,7 @@ function PreparednessTab({ lang, onOpenGuide }: { lang: string; onOpenGuide: () 
   )
 }
 
-// TAB: NEWS — Live news with hazard filters, batch pagination, Prev/Next, WhatsApp share
+//TAB: NEWS -- Live news with hazard filters, batch pagination, Prev/Next, WhatsApp share
 
 function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATCH, filteredNewsItems, newsHazardFilter, setNewsHazardFilter, newsRefreshing, loadNews, nextNews, newsTotal, hasNextBatchInPool, hasMoreFromServer, lastFetched }: {
   newsPool: NewsItem[]
@@ -1074,7 +1074,7 @@ function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATCH, filteredNews
 }) {
   const lang = useLanguage()
 
-  // Auto-refresh every 15 minutes silently
+  //Auto-refresh every 15 minutes silently
   useEffect(() => {
     const interval = setInterval(() => { loadNews(false).catch(() => {}) }, 15 * 60 * 1000)
     return () => clearInterval(interval)
@@ -1115,7 +1115,7 @@ function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATCH, filteredNews
           {newsPool.length > 0 && (
             <span className="text-xs text-gray-400 dark:text-gray-500">
               {Math.floor(newsOffset / NEWS_BATCH) + 1}/{Math.ceil(newsPool.length / NEWS_BATCH)}
-              {lastFetched && ` · ${lastFetched.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+              {lastFetched && ` - ${lastFetched.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
             </span>
           )}
           {newsOffset > 0 && (
@@ -1123,7 +1123,7 @@ function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATCH, filteredNews
               onClick={() => setNewsOffset(o => Math.max(0, o - NEWS_BATCH))}
               className="flex items-center gap-1 text-xs text-gray-500 hover:text-aegis-600 bg-gray-100/80 dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 px-3 py-2 rounded-xl transition-all hover:scale-[1.02] font-bold"
             >
-              ← Prev
+ <- Prev
             </button>
           )}
           <button
@@ -1132,7 +1132,7 @@ function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATCH, filteredNews
             className="flex items-center gap-1.5 text-xs text-aegis-600 hover:text-aegis-700 bg-aegis-50/80 dark:bg-aegis-950/30 border border-aegis-200/60 dark:border-aegis-800/60 px-4 py-2 rounded-xl transition-all disabled:opacity-60 hover:scale-[1.02] active:scale-95 font-bold backdrop-blur-sm"
           >
             <RefreshCw className={`w-3.5 h-3.5 transition-transform duration-500 ${newsRefreshing ? 'animate-spin' : ''}`} />
-            {newsRefreshing ? 'Loading…' : hasNextBatchInPool || hasMoreFromServer ? 'Next →' : 'Refresh ↺'}
+ {newsRefreshing ? 'Loading...' : hasNextBatchInPool || hasMoreFromServer ? 'Next ->' : 'Refresh ↺'}
           </button>
         </div>
       </div>
@@ -1169,7 +1169,7 @@ function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATCH, filteredNews
           <div className="glass-card rounded-2xl p-8 text-center">
             <Newspaper className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
             <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-              {newsHazardFilter !== 'all' ? `No ${newsHazardFilter} articles in this batch — try Next ↺` : t('citizenPage.noNewsAvailable', lang)}
+              {newsHazardFilter !== 'all' ? `No ${newsHazardFilter} articles in this batch -- try Next ↺` : t('citizenPage.noNewsAvailable', lang)}
             </p>
           </div>
         )}
@@ -1184,7 +1184,7 @@ function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATCH, filteredNews
                   <span className={`text-[8px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${cfg.bg} border`}>{cfg.label}</span>
                 </div>
                 <a href={n.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold hover:text-aegis-600 transition-colors block">{n.title}</a>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{n.source} · {n.time}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{n.source} - {n.time}</p>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all">
                 <a href={waUrl} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp"
@@ -1201,7 +1201,7 @@ function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATCH, filteredNews
         })}
         {newsPool.length > NEWS_BATCH && (
           <div className="flex items-center justify-center gap-2 pt-1 text-xs text-gray-400">
-            <span>{newsOffset + 1}–{Math.min(newsOffset + NEWS_BATCH, newsPool.length)} of {newsTotal || newsPool.length} articles</span>
+            <span>{newsOffset + 1}-{Math.min(newsOffset + NEWS_BATCH, newsPool.length)} of {newsTotal || newsPool.length} articles</span>
           </div>
         )}
       </div>
@@ -1209,7 +1209,7 @@ function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATCH, filteredNews
   )
 }
 
-// COMMUNITY SECTION — Chat Room + Posts Feed with sub-tabs
+//COMMUNITY SECTION -- Chat Room + Posts Feed with sub-tabs
 
 function CommunitySection({ parentSocket }: { parentSocket?: Socket | null }) {
   const lang = useLanguage()
@@ -1265,7 +1265,7 @@ function CommunitySection({ parentSocket }: { parentSocket?: Socket | null }) {
   )
 }
 
-// TAB: LIVE MAP — DisasterMap + Intelligence + Weather + River Levels
+//TAB: LIVE MAP -- DisasterMap + Intelligence + Weather + River Levels
 
 function LiveMapTab({ reports, loc, userPosition, detectLocation, alerts, setSelectedAlert }: {
   reports: any[]; loc: any; userPosition: [number,number]|null; detectLocation: () => void; alerts: any[]; setSelectedAlert: (a: any) => void
@@ -1276,7 +1276,7 @@ function LiveMapTab({ reports, loc, userPosition, detectLocation, alerts, setSel
 
   return (
     <div className="space-y-4 -mx-2 md:-mx-4">
-      {/* Alerts Banner — shown first so critical warnings are immediately visible */}
+      {/* Alerts Banner -- shown first so critical warnings are immediately visible */}
       {alerts.length > 0 && (
         <div className="px-2 md:px-4 space-y-2">
           {alerts.slice(0, 3).map((a: any, i: number) => (
@@ -1325,7 +1325,7 @@ function LiveMapTab({ reports, loc, userPosition, detectLocation, alerts, setSel
         </div>
       </div>
 
-      {/* Map — Professional Live Incident Map Panel */}
+      {/* Map -- Professional Live Incident Map Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 px-2 md:px-4">
         <div className="lg:col-span-2">
           <ErrorBoundary name="LiveIncidentMapPanel" fallback={<div className="h-[450px] rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">Failed to load map</div>}>
@@ -1338,7 +1338,7 @@ function LiveMapTab({ reports, loc, userPosition, detectLocation, alerts, setSel
           <IntelligenceDashboard collapsed={true} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700" />
           {showWeather && <WeatherPanel />}
         </div>
-        {/* River Levels — full width below the map row for better readability */}
+        {/* River Levels -- full width below the map row for better readability */}
         {showRivers && (
           <div className="lg:col-span-3">
             <RiverGaugePanel />
@@ -1349,7 +1349,7 @@ function LiveMapTab({ reports, loc, userPosition, detectLocation, alerts, setSel
   )
 }
 
-// TAB 1: OVERVIEW
+//TAB 1: OVERVIEW
 
 function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnread, setActiveTab, reportStats, onReportEmergency, onCommunityHelp, submitSafetyCheckIn }: any) {
   const lang = useLanguage()
@@ -1541,7 +1541,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
         </div>
       )}
 
-      {/* Preparedness Journey — Risk → Prepare → Emergency */}
+ {/* Preparedness Journey -- Risk -> Prepare -> Emergency */}
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-gray-100 dark:border-gray-800/80 flex items-center justify-between">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1633,7 +1633,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
   )
 }
 
-// TAB 2: MESSAGES — Real-time Socket.IO Chat
+//TAB 2: MESSAGES -- Real-time Socket.IO Chat
 
 function MessagesTab({ socket, user }: { socket: any; user: any }) {
   const lang = useLanguage()
@@ -1682,12 +1682,12 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
     }
   }
 
-  // Scroll to bottom on new messages
+  //Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Auto-translate messages when language is not English
+  //Auto-translate messages when language is not English
   useEffect(() => {
     if (!autoTranslate) return
     const untranslated = messages.filter((m: any) => m.content && !translations[m.id])
@@ -1721,7 +1721,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
     return () => { cancelled = true }
   }, [autoTranslate, targetLang, messages, translations])
 
-  // Update autoTranslate when language changes
+  //Update autoTranslate when language changes
   useEffect(() => {
     setTargetLang(lang || 'en')
     setTranslations({})
@@ -1730,7 +1730,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
     }
   }, [lang])
 
-  // Close lang picker on outside click
+  //Close lang picker on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (langPickerRef.current && !langPickerRef.current.contains(e.target as Node)) setShowLangPicker(false)
@@ -1739,14 +1739,14 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Mark as read when viewing a thread
+  //Mark as read when viewing a thread
   useEffect(() => {
     if (activeThread) {
       markRead(activeThread.id, [])
     }
   }, [activeThread?.id, messages.length])
 
-  // Proactively fetch conversations as soon as messaging socket is ready.
+  //Proactively fetch conversations as soon as messaging socket is ready.
   useEffect(() => {
     if (!socket.connected) {
       hasAutoBootstrappedRef.current = false
@@ -1761,7 +1761,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
     return () => clearTimeout(followUp)
   }, [socket.connected])
 
-  // Auto-open the most recent thread once per connection so messages never appear blank on first load.
+  //Auto-open the most recent thread once per connection so messages never appear blank on first load.
   useEffect(() => {
     if (!socket.connected || activeThread || threads.length === 0 || hasAutoBootstrappedRef.current) return
     const mostRecent = [...threads].sort((a, b) =>
@@ -1773,7 +1773,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
     openThread(mostRecent, true)
   }, [socket.connected, threads, activeThread?.id])
 
-  // If thread is active but messages were not hydrated yet, retry once via REST.
+  //If thread is active but messages were not hydrated yet, retry once via REST.
   useEffect(() => {
     if (!activeThread?.id || messages.length > 0) return
     const retry = setTimeout(() => loadThreadMessages(activeThread.id), 500)
@@ -1783,7 +1783,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
   const handleSelectThread = (thread: ChatThread) => {
     openThread(thread, true)
     
-    // Also mark via REST to ensure server-side sync
+    //Also mark via REST to ensure server-side sync
     const token = getCitizenToken()
     if (token) {
       const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
@@ -1866,7 +1866,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
 
   const threadTypers = typingUsers.filter((t: any) => t.threadId === activeThread?.id && t.userId !== user.id)
 
-  // Thread List View
+  //Thread List View
   if (!activeThread) {
     return (
       <div className="max-w-3xl mx-auto">
@@ -1986,7 +1986,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
     )
   }
 
-  // Chat View (Active Thread)
+  //Chat View (Active Thread)
   return (
     <div className="max-w-3xl mx-auto flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)]">
       {/* Chat Header */}
@@ -2178,7 +2178,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
   )
 }
 
-// TAB 3: SAFETY CHECK-IN
+//TAB 3: SAFETY CHECK-IN
 
 function SafetyTab({ submitSafetyCheckIn, recentSafety, onFamilyCheckIn }: any) {
   const lang = useLanguage()
@@ -2228,7 +2228,7 @@ function SafetyTab({ submitSafetyCheckIn, recentSafety, onFamilyCheckIn }: any) 
       <div className="glass-card rounded-2xl p-6 space-y-5">
         <p className="text-sm text-gray-600 dark:text-gray-400">{t('cdash.safety.selectInstruction', lang)}</p>
 
-        {/* Status Buttons — Large & Prominent */}
+        {/* Status Buttons -- Large & Prominent */}
         <div className="grid grid-cols-3 gap-3">
           {[
             { key: 'safe' as const, label: t('citizen.safety.safeButton', lang), icon: CheckCircle, desc: t('cdash.safety.iAmSafe', lang) },
@@ -2332,7 +2332,7 @@ function SafetyTab({ submitSafetyCheckIn, recentSafety, onFamilyCheckIn }: any) 
   )
 }
 
-// TAB 4: PROFILE
+//TAB 4: PROFILE
 
 function ProfileRegionSelect({ value, onChange, country }: { value: string; onChange: (v: string) => void; country: string }) {
   const regions = REGION_MAP[country] || []
@@ -2360,7 +2360,7 @@ function ProfileRegionSelect({ value, onChange, country }: { value: string; onCh
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // If no regions for this country, show free-text input
+  //If no regions for this country, show free-text input
   if (regions.length === 0) {
     return (
       <input type="text" value={value} onChange={e => onChange(e.target.value)}
@@ -2371,7 +2371,7 @@ function ProfileRegionSelect({ value, onChange, country }: { value: string; onCh
 
   const selectedLabel = regions.find(r => r.value === value || r.label === value)?.label || value
 
-  // Compute portal position
+  //Compute portal position
   const getPortalStyle = (): React.CSSProperties => {
     if (!ref.current) return {}
     const rect = ref.current.getBoundingClientRect()
@@ -2576,7 +2576,7 @@ function ProfileTab({ user, updateProfile, uploadAvatar, refreshProfile }: any) 
                     {field.value}
                   </p>
                 ) : (
-                  <p className="text-sm text-gray-900 dark:text-white py-2.5 px-1 capitalize">{field.value || '—'}</p>
+                  <p className="text-sm text-gray-900 dark:text-white py-2.5 px-1 capitalize">{field.value || '--'}</p>
                 )
               )}
             </div>
@@ -2592,7 +2592,7 @@ function ProfileTab({ user, updateProfile, uploadAvatar, refreshProfile }: any) 
               className="w-full px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition resize-none" rows={3}
               placeholder={t('cdash.profile.bioPlaceholder', lang)} />
           ) : (
-            <p className="text-sm text-gray-900 dark:text-white py-2.5 px-1">{user.bio || '—'}</p>
+            <p className="text-sm text-gray-900 dark:text-white py-2.5 px-1">{user.bio || '--'}</p>
           )}
         </div>
       </div>
@@ -2649,8 +2649,8 @@ function ProfileTab({ user, updateProfile, uploadAvatar, refreshProfile }: any) 
             { label: t('cdash.profile.verified', lang), value: user.emailVerified ? t('cdash.profile.yes', lang) : t('cdash.profile.notYet', lang), icon: CheckCircle, color: user.emailVerified ? 'text-emerald-600' : 'text-amber-600' },
             { label: t('cdash.profile.role', lang), value: user.role, icon: Shield, capitalize: true },
             { label: t('cdash.profile.loginCount', lang), value: user.loginCount || 0, icon: Activity },
-            { label: t('cdash.profile.lastLogin', lang), value: user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : '—', icon: Clock },
-            { label: t('cdash.profile.memberSince', lang), value: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—', icon: Calendar },
+            { label: t('cdash.profile.lastLogin', lang), value: user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : '--', icon: Clock },
+            { label: t('cdash.profile.memberSince', lang), value: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '--', icon: Calendar },
           ].map((item, i) => (
             <div key={i} className="bg-gray-50/80 dark:bg-gray-800/40 rounded-xl p-3">
               <div className="flex items-center gap-1.5 mb-1">
@@ -2666,9 +2666,9 @@ function ProfileTab({ user, updateProfile, uploadAvatar, refreshProfile }: any) 
   )
 }
 
-// TAB 5: SECURITY — Change Password
+//TAB 5: SECURITY -- Change Password
 
-// WebAuthn base64url helpers used by PasskeySection
+//WebAuthn base64url helpers used by PasskeySection
 function _base64urlToBuffer(b64: string): ArrayBuffer {
   const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4))
   const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/') + pad)
@@ -2694,7 +2694,7 @@ function PasskeySection() {
   useEffect(() => {
     setSupportsWebAuthn(typeof window !== 'undefined' && !!window.PublicKeyCredential)
     loadPasskeys()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadPasskeys = async () => {
@@ -2721,7 +2721,7 @@ function PasskeySection() {
     setError('')
     setSuccess('')
     try {
-      // Step 1: get registration challenge
+      //Step 1: get registration challenge
       const optRes = await fetch('/api/security/passkeys/register', {
         method: 'POST',
         headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
@@ -2734,7 +2734,7 @@ function PasskeySection() {
       }
       const { options } = await optRes.json()
 
-      // Step 2: browser WebAuthn registration ceremony
+      //Step 2: browser WebAuthn registration ceremony
       const publicKey: PublicKeyCredentialCreationOptions = {
         ...options,
         challenge: _base64urlToBuffer(options.challenge),
@@ -2746,7 +2746,7 @@ function PasskeySection() {
       const cred = await navigator.credentials.create({ publicKey }) as PublicKeyCredential
       const attest = cred.response as AuthenticatorAttestationResponse
 
-      // Step 3: send attestation to server
+      //Step 3: send attestation to server
       const verifyRes = await fetch('/api/security/passkeys/verify', {
         method: 'POST',
         headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
@@ -2818,7 +2818,7 @@ function PasskeySection() {
             className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-indigo-600/20 hover:scale-[1.02] active:scale-[0.98]"
           >
             {registering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-            {registering ? 'Registering…' : 'Add Passkey'}
+            {registering ? 'Registering...' : 'Add Passkey'}
           </button>
         )}
       </div>
@@ -2844,7 +2844,7 @@ function PasskeySection() {
           <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
         </div>
       ) : passkeys.length === 0 ? (
-        <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">No passkeys yet. Click “Add Passkey” to register this device.</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">No passkeys yet. Click "Add Passkey" to register this device.</p>
       ) : (
         <ul className="space-y-2">
           {passkeys.map(pk => (
@@ -2854,7 +2854,7 @@ function PasskeySection() {
                 <div>
                   <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{pk.deviceName}</p>
                   <p className="text-[10px] text-gray-400">
-                    Added {fmtDate(pk.createdAt)}{pk.lastUsedAt ? ` · Last used ${fmtDate(pk.lastUsedAt)}` : ''}
+                    Added {fmtDate(pk.createdAt)}{pk.lastUsedAt ? ` - Last used ${fmtDate(pk.lastUsedAt)}` : ''}
                   </p>
                 </div>
               </div>
@@ -3022,7 +3022,7 @@ function SecurityTab({ changePassword }: any) {
   )
 }
 
-// TAB 6: SETTINGS — Preferences
+//TAB 6: SETTINGS -- Preferences
 
 function SettingsTab({ preferences, updatePreferences }: any) {
   const lang = useLanguage()
@@ -3050,7 +3050,7 @@ function SettingsTab({ preferences, updatePreferences }: any) {
     autoPlayCritical: prefs?.auto_play_critical ?? true,
     audioVolume: (() => {
       const raw = prefs?.audio_volume ?? 70
-      // Server stores as 0-1, display as 0-100
+      //Server stores as 0-1, display as 0-100
       return typeof raw === 'number' && raw <= 1 ? Math.round(raw * 100) : raw
     })(),
     captionsEnabled: prefs?.captions_enabled ?? false,
@@ -3060,11 +3060,11 @@ function SettingsTab({ preferences, updatePreferences }: any) {
     language: prefs?.language ?? 'en',
   })
 
-  // savedFormRef holds the last-saved snapshot for dirty-checking and cancel revert
+  //savedFormRef holds the last-saved snapshot for dirty-checking and cancel revert
   const savedFormRef = useRef(buildForm(preferences))
   const [form, setForm] = useState(() => buildForm(preferences))
 
-  // Sync form AND savedFormRef when preferences arrive from server
+  //Sync form AND savedFormRef when preferences arrive from server
   useEffect(() => {
     if (preferences) {
       const built = buildForm(preferences)
@@ -3073,29 +3073,29 @@ function SettingsTab({ preferences, updatePreferences }: any) {
     }
   }, [preferences])
 
-  // Live-apply dark mode immediately as user toggles
+  //Live-apply dark mode immediately as user toggles
   useEffect(() => {
     setTheme(form.darkMode ? 'default' : 'light')
   }, [form.darkMode])
 
-  // Live-apply compact view class on <html> immediately
+  //Live-apply compact view class on <html> immediately
   useEffect(() => {
     document.documentElement.classList.toggle('compact-view', form.compactView)
   }, [form.compactView])
 
-  // Live-apply language immediately
+  //Live-apply language immediately
   useEffect(() => {
     if (form.language) setLanguage(form.language)
   }, [form.language])
 
-  // Dirty state tracking against the saved snapshot
+  //Dirty state tracking against the saved snapshot
   const isDirty = JSON.stringify(form) !== JSON.stringify(savedFormRef.current)
 
   const handleSave = async () => {
     setSaving(true)
     const ok = await updatePreferences(form)
     if (ok) {
-      // Update the saved snapshot so isDirty resets
+      //Update the saved snapshot so isDirty resets
       savedFormRef.current = { ...form }
     }
     setSaving(false)
@@ -3107,12 +3107,12 @@ function SettingsTab({ preferences, updatePreferences }: any) {
   const handleCancel = () => {
     const reverted = { ...savedFormRef.current }
     setForm(reverted)
-    // Revert live DOM state
+    //Revert live DOM state
     setTheme(reverted.darkMode ? 'default' : 'light')
     document.documentElement.classList.toggle('compact-view', reverted.compactView)
     document.documentElement.setAttribute('data-caption-size', reverted.captionFontSize)
     if (reverted.language) setLanguage(reverted.language)
-    // Revert audio in localStorage
+    //Revert audio in localStorage
     const stored = JSON.parse(localStorage.getItem('aegis-audio-settings') || '{}')
     localStorage.setItem('aegis-audio-settings', JSON.stringify({
       ...stored, enabled: reverted.audioAlertsEnabled,
@@ -3120,12 +3120,12 @@ function SettingsTab({ preferences, updatePreferences }: any) {
     }))
   }
 
-  // Live-apply caption font size
+  //Live-apply caption font size
   useEffect(() => {
     document.documentElement.setAttribute('data-caption-size', form.captionFontSize)
   }, [form.captionFontSize])
 
-  // Sync audio settings to localStorage so useAudioAlerts picks them up
+  //Sync audio settings to localStorage so useAudioAlerts picks them up
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem('aegis-audio-settings') || '{}')
     localStorage.setItem('aegis-audio-settings', JSON.stringify({
@@ -3154,7 +3154,7 @@ function SettingsTab({ preferences, updatePreferences }: any) {
     }
   }, [form.audioAlertsEnabled, form.autoPlayCritical, speakAlert, stop])
 
-  // Fetch account deletion status
+  //Fetch account deletion status
   useEffect(() => {
     if (!token) return
     fetch('/api/citizen/deletion-status', {
@@ -3330,7 +3330,7 @@ function SettingsTab({ preferences, updatePreferences }: any) {
             <option value="xlarge">{t('cdash.settings.extraLarge', lang)}</option>
           </select>
           <p className="caption-size-preview mt-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-700 dark:text-gray-300 italic">
-            Caption preview text — emergency alert overlay
+            Caption preview text -- emergency alert overlay
           </p>
           <div className="mt-3 flex items-center gap-2">
             <button
@@ -3398,7 +3398,7 @@ function SettingsTab({ preferences, updatePreferences }: any) {
         </div>
       </div>
 
-      {/* Account Deletion — 30-day grace period */}
+      {/* Account Deletion -- 30-day grace period */}
       <div className="glass-card rounded-2xl p-6 space-y-4 border-2 border-red-200/50 dark:border-red-900/30">
         <h3 className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center">

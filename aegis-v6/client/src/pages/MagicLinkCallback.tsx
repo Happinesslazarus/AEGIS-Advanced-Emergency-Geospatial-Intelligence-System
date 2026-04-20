@@ -1,5 +1,5 @@
 /**
- * MagicLinkCallback.tsx — Handles magic link token verification
+ * MagicLinkCallback.tsx -- Handles magic link token verification
  * 
  * When user clicks the magic link in their email, they arrive at:
  * /citizen/magic-link?token=...

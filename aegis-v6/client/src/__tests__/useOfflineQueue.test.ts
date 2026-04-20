@@ -23,15 +23,15 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useOfflineQueue } from '../hooks/useOfflineQueue'
 
-// Mock navigator.onLine: a getter so we can change the returned value between
-// tests by updating the module-level variable mockOnlineStatus.
+//Mock navigator.onLine: a getter so we can change the returned value between
+//tests by updating the module-level variable mockOnlineStatus.
 let mockOnlineStatus = true
 Object.defineProperty(navigator, 'onLine', {
   get: () => mockOnlineStatus,
   configurable: true,
 })
 
-// Mock service worker
+//Mock service worker
 const mockServiceWorkerController = {
   postMessage: vi.fn(),
 }
@@ -293,11 +293,11 @@ describe('useOfflineQueue', () => {
         await result.current.enqueue('/api/2', 'POST', '{}')
       })
       
-      // Set IDs on queue items for matching
+      //Set IDs on queue items for matching
       result.current.queue[0].id = 1
       result.current.queue[1].id = 2
       
-      // Simulate service worker SYNC_SUCCESS message
+      //Simulate service worker SYNC_SUCCESS message
       const messageHandler = mockServiceWorkerListeners.get('message')
       if (messageHandler) {
         act(() => {

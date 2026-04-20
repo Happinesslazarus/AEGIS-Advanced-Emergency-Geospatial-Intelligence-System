@@ -13,7 +13,7 @@ import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import pool from '../models/db.js'
 
-// Configuration
+//Configuration
 
 /* Minimum password length */
 export const MIN_PASSWORD_LENGTH = 12
@@ -58,7 +58,7 @@ const COMMON_PASSWORDS = new Set([
   'passworrd','passwoord','psswd','passwd','pwd','passwrd','paswd','pswrd','ppass',
 ])
 
-// Password Validation
+//Password Validation
 
 export interface PasswordValidationResult {
   valid: boolean
@@ -122,7 +122,7 @@ export function validatePasswordStrength(password: string, email?: string): Pass
   return { valid: errors.length === 0, errors }
 }
 
-// Cryptographic Token Hashing
+//Cryptographic Token Hashing
 
 /* SHA-256 hash a token (for storing verification/reset tokens) */
 export function hashToken(token: string): string {
@@ -143,7 +143,7 @@ export function timingSafeCompare(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufA, bufB)
 }
 
-// Password History
+//Password History
 
 /**
  * Check if a new password matches any of the user's last N passwords.
@@ -185,7 +185,7 @@ export async function recordPasswordHistory(
   )
 }
 
-// Account Lockout
+//Account Lockout
 
 export interface LockoutStatus {
   locked: boolean
@@ -249,7 +249,7 @@ export async function resetFailedLogins(
   )
 }
 
-// IP Extraction
+//IP Extraction
 
 /* Extract client IP from request.
  * Relies on Express's built-in req.ip which respects the `trust proxy` setting.

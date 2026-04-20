@@ -15,7 +15,7 @@ import { AppError } from '../utils/AppError.js'
 
 const router = Router()
 
-// Helpers
+//Helpers
 
 /* Read a single system_config value by key. Returns null if missing. */
 async function getConfigValue(key: string): Promise<unknown | null> {
@@ -36,17 +36,17 @@ async function setConfigValue(key: string, value: unknown): Promise<void> {
   )
 }
 
-// GET /api/admin/setup/status
-// Publicly readable (used by frontend to decide whether to show setup wizard).
-// Does NOT leak sensitive data.
+//GET /api/admin/setup/status
+//Publicly readable (used by frontend to decide whether to show setup wizard).
+//Does NOT leak sensitive data.
 router.get('/status', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    // Check if system_config table exists (handles first migration not yet applied)
+    //Check if system_config table exists (handles first migration not yet applied)
     const tableCheck = await pool.query(
       `SELECT to_regclass('public.system_config') AS t`,
     )
     if (!tableCheck.rows[0]?.t) {
-      // Table doesn't exist yet — definitely first run
+      //Table doesn't exist yet -- definitely first run
       const adminCount = await pool.query(
         `SELECT COUNT(*)::int AS c FROM operators WHERE role = 'admin' AND deleted_at IS NULL`,
       )
@@ -81,7 +81,7 @@ router.get('/status', async (_req: Request, res: Response, next: NextFunction) =
   }
 })
 
-// POST /api/admin/setup/region
+//POST /api/admin/setup/region
 router.post('/region', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { region } = req.body
@@ -97,8 +97,8 @@ router.post('/region', authMiddleware, requireRole('admin'), async (req: AuthReq
   }
 })
 
-// POST /api/admin/setup/notifications
-// Saves which notification channels are configured (not the secrets themselves).
+//POST /api/admin/setup/notifications
+//Saves which notification channels are configured (not the secrets themselves).
 router.post('/notifications', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { channels } = req.body
@@ -106,7 +106,7 @@ router.post('/notifications', authMiddleware, requireRole('admin'), async (req: 
       throw AppError.badRequest('channels object is required.')
     }
 
-    // Store a summary of which channels were configured
+    //Store a summary of which channels were configured
     const summary: Record<string, boolean> = {}
     for (const key of ['smtp', 'telegram', 'twilio', 'webPush']) {
       summary[key] = !!channels[key]?.enabled
@@ -121,31 +121,31 @@ router.post('/notifications', authMiddleware, requireRole('admin'), async (req: 
   }
 })
 
-// POST /api/admin/setup/complete
-// Marks first-run setup as finished. Stores who completed it and when.
+//POST /api/admin/setup/complete
+//Marks first-run setup as finished. Stores who completed it and when.
 router.post('/complete', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id
 
-    // Verify an admin account exists
+    //Verify an admin account exists
     const adminCheck = await pool.query(
       `SELECT COUNT(*)::int AS c FROM operators WHERE role = 'admin' AND deleted_at IS NULL`,
     )
     if ((adminCheck.rows[0]?.c || 0) === 0) {
-      throw AppError.badRequest('Cannot complete setup — no admin account exists.')
+      throw AppError.badRequest('Cannot complete setup -- no admin account exists.')
     }
 
-    // Verify a region was configured
+    //Verify a region was configured
     const region = await getConfigValue('configured_region')
     if (!region) {
-      throw AppError.badRequest('Cannot complete setup — no region has been configured.')
+      throw AppError.badRequest('Cannot complete setup -- no region has been configured.')
     }
 
     await setConfigValue('setup_completed', true)
     await setConfigValue('setup_completed_at', new Date().toISOString())
     await setConfigValue('setup_completed_by', userId)
 
-    // Log activity
+    //Log activity
     try {
       await pool.query(
         `INSERT INTO activity_log (action, action_type, operator_id, operator_name)
@@ -158,7 +158,7 @@ router.post('/complete', authMiddleware, requireRole('admin'), async (req: AuthR
         ],
       )
     } catch {
-      // activity_log not critical
+      //activity_log not critical
     }
 
     res.json({ success: true, setupCompleted: true })
@@ -167,8 +167,8 @@ router.post('/complete', authMiddleware, requireRole('admin'), async (req: AuthR
   }
 })
 
-// POST /api/admin/setup/reset
-// Resets setup state. Only for recovery / development.
+//POST /api/admin/setup/reset
+//Resets setup state. Only for recovery / development.
 router.post('/reset', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const keysToReset = [
@@ -184,7 +184,7 @@ router.post('/reset', authMiddleware, requireRole('admin'), async (req: AuthRequ
       [keysToReset],
     )
 
-    // Log this sensitive action
+    //Log this sensitive action
     try {
       await pool.query(
         `INSERT INTO activity_log (action, action_type, operator_id, operator_name)
@@ -197,7 +197,7 @@ router.post('/reset', authMiddleware, requireRole('admin'), async (req: AuthRequ
         ],
       )
     } catch {
-      // non-critical
+      //non-critical
     }
 
     res.json({ success: true, message: 'Setup state has been reset.' })

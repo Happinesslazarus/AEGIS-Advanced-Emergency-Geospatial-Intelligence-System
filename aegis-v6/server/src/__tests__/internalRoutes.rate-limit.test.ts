@@ -14,18 +14,18 @@ import express from 'express'
 import type { Application } from 'express'
 import { Server } from 'http'
 
-// ─────────────────────────────────────────────────────────────────────────
-// Env stubs required by the module graph
-// ─────────────────────────────────────────────────────────────────────────
+// -
+//Env stubs required by the module graph
+// -
 process.env.JWT_SECRET       = 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-at-least-32-chars'
 process.env.INTERNAL_API_KEY = 'test-internal-key'
 process.env.NODE_ENV         = 'test'
 
-// ─────────────────────────────────────────────────────────────────────────
-// Mock the database pool — the route does INSERT INTO frontend_errors.
-// We want that to succeed so we can count up to the limit cleanly.
-// ─────────────────────────────────────────────────────────────────────────
+// -
+//Mock the database pool -- the route does INSERT INTO frontend_errors.
+//We want that to succeed so we can count up to the limit cleanly.
+// -
 const mockQuery: jest.Mock = jest.fn(async () => ({ rows: [], rowCount: 1 }))
 const mockPool = { query: mockQuery, on: jest.fn() }
 
@@ -34,7 +34,7 @@ jest.mock('../models/db.js', () => ({
   default: mockPool,
 }))
 
-// Mocks for services imported by the route file
+//Mocks for services imported by the route file
 jest.mock('../services/n8nHealthCheck.js',    () => ({ getN8nHealthState:    jest.fn().mockReturnValue({ healthy: true }) }))
 jest.mock('../services/cronJobs.js',          () => ({ isFallbackActive:     jest.fn().mockReturnValue(false) }))
 jest.mock('../services/externalApiWrapper.js',() => ({ getCircuitBreakerStates: jest.fn().mockReturnValue({}) }))
@@ -54,9 +54,9 @@ jest.mock('../utils/AppError.js', () => ({
 jest.mock('../services/logger.js', () => ({ logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() } }))
 jest.mock('../utils/logger.js',    () => ({ devLog: jest.fn() }))
 
-// ─────────────────────────────────────────────────────────────────────────
-// Build the minimal app
-// ─────────────────────────────────────────────────────────────────────────
+// -
+//Build the minimal app
+// -
 
 let app: Application
 let server: Server
@@ -76,11 +76,11 @@ afterAll(() => {
   server?.close()
 })
 
-// ─────────────────────────────────────────────────────────────────────────
-// Tests
-// ─────────────────────────────────────────────────────────────────────────
+// -
+//Tests
+// -
 
-describe('POST /api/internal/errors/frontend — rate limiting', () => {
+describe('POST /api/internal/errors/frontend -- rate limiting', () => {
   const validBody = {
     error_message: 'TypeError: Cannot read properties of undefined',
     component_name: 'DashboardPage',
@@ -98,12 +98,12 @@ describe('POST /api/internal/errors/frontend — rate limiting', () => {
       )
     )
     const statuses = responses.map(r => r.status)
-    // All should succeed (200 OK or whatever the route returns for success)
+    //All should succeed (200 OK or whatever the route returns for success)
     expect(statuses.every(s => s < 400)).toBe(true)
   }, 15_000)
 
   it('returns 429 on the 21st request from the same IP', async () => {
-    // One more after the 20 above
+    //One more after the 20 above
     const res = await request(app)
       .post('/api/internal/errors/frontend')
       .set('X-Forwarded-For', '10.0.0.1')
@@ -119,7 +119,7 @@ describe('POST /api/internal/errors/frontend — rate limiting', () => {
       .set('X-Forwarded-For', '10.0.0.2') // different IP
       .send(validBody)
 
-    // A fresh IP is not rate-limited
+    //A fresh IP is not rate-limited
     expect(res.status).toBeLessThan(400)
   })
 })

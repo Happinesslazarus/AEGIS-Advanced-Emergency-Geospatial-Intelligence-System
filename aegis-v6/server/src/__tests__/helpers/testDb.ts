@@ -12,7 +12,7 @@ import pg from 'pg'
 
 const { Pool } = pg
 
-// Pool singleton
+//Pool singleton
 
 let _pool: pg.Pool | null = null
 
@@ -31,7 +31,7 @@ export function getTestPool(): pg.Pool {
     )
   }
 
-  // Safety guard: refuse to run against anything that looks like production
+  //Safety guard: refuse to run against anything that looks like production
   if (/production|prod[_-]db/i.test(url)) {
     throw new Error('Refusing to run tests against a production-looking DATABASE_URL')
   }
@@ -46,11 +46,11 @@ export function getTestPool(): pg.Pool {
   return _pool
 }
 
-// Schema bootstrap
+//Schema bootstrap
 
 /**
  * Ensures the minimum schema required by integration tests exists.
- * Idempotent — safe to call in every beforeAll.
+ * Idempotent -- safe to call in every beforeAll.
  */
 export async function ensureTestSchema(): Promise<void> {
   const pool = getTestPool()
@@ -58,7 +58,7 @@ export async function ensureTestSchema(): Promise<void> {
   await pool.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`)
   await pool.query(`CREATE EXTENSION IF NOT EXISTS postgis`)
 
-  // Citizens (used by distress, reports, GDPR, community)
+  //Citizens (used by distress, reports, GDPR, community)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS citizens (
       id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -83,7 +83,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Operators
+  //Operators
   await pool.query(`
     CREATE TABLE IF NOT EXISTS operators (
       id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -97,7 +97,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Distress
+  //Distress
   await pool.query(`
     CREATE TABLE IF NOT EXISTS distress_calls (
       id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -136,7 +136,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Reports
+  //Reports
   await pool.query(`
     CREATE TABLE IF NOT EXISTS reports (
       id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -186,7 +186,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Alerts
+  //Alerts
   await pool.query(`
     CREATE TABLE IF NOT EXISTS alerts (
       id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -229,7 +229,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Community
+  //Community
   await pool.query(`
     CREATE TABLE IF NOT EXISTS community_posts (
       id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -276,7 +276,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Keep schema compatible with route-mirroring test handlers even if table existed earlier.
+  //Keep schema compatible with route-mirroring test handlers even if table existed earlier.
   await pool.query(`
     ALTER TABLE reports
     ALTER COLUMN report_number SET DEFAULT (
@@ -312,7 +312,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // GDPR / Messaging / Safety
+  //GDPR / Messaging / Safety
   await pool.query(`
     CREATE TABLE IF NOT EXISTS message_threads (
       id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -390,7 +390,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Flood predictions
+  //Flood predictions
   await pool.query(`
     CREATE TABLE IF NOT EXISTS flood_predictions (
       id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -410,7 +410,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Departments
+  //Departments
   await pool.query(`
     CREATE TABLE IF NOT EXISTS departments (
       id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -420,7 +420,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Delivery log (alerts)
+  //Delivery log (alerts)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS alert_delivery_log (
       id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -448,7 +448,7 @@ export async function ensureTestSchema(): Promise<void> {
   await pool.query(`ALTER TABLE alert_delivery_log ADD COLUMN IF NOT EXISTS retry_count INT DEFAULT 0`)
   await pool.query(`ALTER TABLE alert_delivery_log ADD COLUMN IF NOT EXISTS last_retry_at TIMESTAMPTZ`)
 
-  // Community help
+  //Community help
   await pool.query(`
     CREATE TABLE IF NOT EXISTS community_help (
       id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -458,7 +458,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Audit log
+  //Audit log
   await pool.query(`
     CREATE TABLE IF NOT EXISTS audit_log (
       id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -476,7 +476,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Chat (LLM chatbot)
+  //Chat (LLM chatbot)
   await pool.query(`
     DO $$ BEGIN
       IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'chat_session_status') THEN
@@ -518,7 +518,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Security events
+  //Security events
   await pool.query(`
     CREATE TABLE IF NOT EXISTS security_events (
       id          UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -532,7 +532,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Device trust (2FA bypass)
+  //Device trust (2FA bypass)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS trusted_devices (
       id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -554,7 +554,7 @@ export async function ensureTestSchema(): Promise<void> {
     WHERE revoked = false
   `)
 
-  // Operator security preferences
+  //Operator security preferences
   await pool.query(`
     CREATE TABLE IF NOT EXISTS operator_security_preferences (
       operator_id     UUID PRIMARY KEY REFERENCES operators(id) ON DELETE CASCADE,
@@ -567,7 +567,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // AI governance: activity log
+  //AI governance: activity log
   await pool.query(`
     CREATE TABLE IF NOT EXISTS activity_log (
       id           UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -580,7 +580,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // AI predictions
+  //AI predictions
   await pool.query(`
     CREATE TABLE IF NOT EXISTS ai_predictions (
       id                          UUID          PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -608,7 +608,7 @@ export async function ensureTestSchema(): Promise<void> {
     )
   `)
 
-  // Add PostGIS geometry columns to ai_predictions if extension is available
+  //Add PostGIS geometry columns to ai_predictions if extension is available
   await pool.query(`
     ALTER TABLE ai_predictions
     ADD COLUMN IF NOT EXISTS input_coordinates geometry(Point, 4326)
@@ -618,7 +618,7 @@ export async function ensureTestSchema(): Promise<void> {
     ADD COLUMN IF NOT EXISTS affected_area geometry
   `).catch(() => {})
 
-  // Model monitoring snapshots
+  //Model monitoring snapshots
   await pool.query(`
     CREATE TABLE IF NOT EXISTS model_monitoring_snapshots (
       id               UUID          PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -641,7 +641,7 @@ export async function ensureTestSchema(): Promise<void> {
   await pool.query(`ALTER TABLE model_monitoring_snapshots ADD COLUMN IF NOT EXISTS top_feature_means JSONB`)
   await pool.query(`ALTER TABLE model_monitoring_snapshots ADD COLUMN IF NOT EXISTS top_feature_stds JSONB`)
 
-  // Scheduled jobs log (cron audit)
+  //Scheduled jobs log (cron audit)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS scheduled_jobs (
       id               UUID          PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -655,7 +655,7 @@ export async function ensureTestSchema(): Promise<void> {
   `)
 }
 
-// Cleanup helpers
+//Cleanup helpers
 
 /* Tables in dependency-safe truncation order (children first). */
 const ALL_TEST_TABLES = [
@@ -706,7 +706,7 @@ export async function truncateAll(): Promise<void> {
  */
 export async function truncateTables(...tables: string[]): Promise<void> {
   const pool = getTestPool()
-  // Allowlist check to prevent SQL injection
+  //Allowlist check to prevent SQL injection
   for (const t of tables) {
     if (!ALL_TEST_TABLES.includes(t)) {
       throw new Error(`Unknown table: ${t}`)
@@ -715,7 +715,7 @@ export async function truncateTables(...tables: string[]): Promise<void> {
   await pool.query(`TRUNCATE ${tables.join(', ')} CASCADE`)
 }
 
-// Transaction wrapper (for single-test isolation)
+//Transaction wrapper (for single-test isolation)
 
 /**
  * Run a callback inside a transaction that is always rolled back.
@@ -736,7 +736,7 @@ export async function withRollback<T>(
   }
 }
 
-// Lifecycle
+//Lifecycle
 
 /**
  * Close the pool. Call in the final afterAll of each test file.

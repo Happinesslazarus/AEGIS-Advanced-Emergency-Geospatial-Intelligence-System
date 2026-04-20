@@ -30,12 +30,12 @@ import { twoFactorAuthTotal } from '../services/metrics.js'
 
 const router = Router()
 
-// TOTP Configuration
+//TOTP Configuration
 
 const ISSUER = 'AEGIS'
 const TOTP_DIGITS = 6
 const TOTP_PERIOD = 30
-const TOTP_WINDOW = 1 // —1 time step for clock skew tolerance
+const TOTP_WINDOW = 1 // --1 time step for clock skew tolerance
 
 /* Verify a TOTP code against a secret */
 function verifyTOTP(token: string, secret: string): boolean {
@@ -48,7 +48,7 @@ function generateOTPAuthURI(email: string, secret: string): string {
   return generateURI({ strategy: 'totp', issuer: ISSUER, label: email, secret, digits: TOTP_DIGITS, period: TOTP_PERIOD })
 }
 
-// Rate Limiters
+//Rate Limiters
 
 const twoFactorSetupLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -90,7 +90,7 @@ const twoFactorRegenLimiter = rateLimit({
   legacyHeaders: false,
 })
 
-// Helpers
+//Helpers
 
 /**
  * Record a failed 2FA attempt and apply lockout if threshold reached.
@@ -99,7 +99,7 @@ const twoFactorRegenLimiter = rateLimit({
 async function record2FAFailure(
   operatorId: string, clientIp: string, userAgent: string, metadata: Record<string, any>
 ): Promise<{ locked: boolean; lockoutMinutes: number }> {
-  // Atomically increment and fetch
+  //Atomically increment and fetch
   const result = await pool.query(
     `UPDATE operators
      SET two_factor_failed_attempts = two_factor_failed_attempts + 1
@@ -157,7 +157,7 @@ async function enforce2FALockout(operatorId: string): Promise<void> {
   }
 }
 
-// GET /api/auth/2fa/status
+//GET /api/auth/2fa/status
 
 router.get('/status', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -185,7 +185,7 @@ router.get('/status', authMiddleware, async (req: AuthRequest, res: Response, ne
   }
 })
 
-// POST /api/auth/2fa/setup
+//POST /api/auth/2fa/setup
 
 router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -193,7 +193,7 @@ router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthReq
     const clientIp = getClientIp(req)
     const userAgent = req.headers['user-agent'] as string
 
-    // Check if 2FA is already enabled
+    //Check if 2FA is already enabled
     const opResult = await pool.query(
       'SELECT two_factor_enabled, email, two_factor_secret FROM operators WHERE id = $1',
       [operatorId]
@@ -212,11 +212,11 @@ router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthReq
 
     if (existingEncryptedSecret) {
       try {
-        // Reuse pending setup secret so users can keep using the same authenticator entry.
+        //Reuse pending setup secret so users can keep using the same authenticator entry.
         secret = decrypt2FASecret(existingEncryptedSecret)
         reusedExistingSecret = true
       } catch {
-        // If stored secret is invalid/corrupt, rotate to a fresh one.
+        //If stored secret is invalid/corrupt, rotate to a fresh one.
         secret = generateSecret({ length: 20 })
         const encryptedSecret = encrypt2FASecret(secret)
         await pool.query(
@@ -239,7 +239,7 @@ router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthReq
 
     const otpAuthUrl = generateOTPAuthURI(email, secret)
 
-    // Generate QR code as data URL
+    //Generate QR code as data URL
     const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl, {
       width: 256,
       margin: 2,
@@ -263,7 +263,7 @@ router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthReq
   }
 })
 
-// POST /api/auth/2fa/verify
+//POST /api/auth/2fa/verify
 
 router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -276,7 +276,7 @@ router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthR
       throw AppError.badRequest('A valid 6-digit verification code is required.')
     }
 
-    // Fetch operator 2FA state
+    //Fetch operator 2FA state
     const opResult = await pool.query(
       'SELECT two_factor_enabled, two_factor_secret FROM operators WHERE id = $1',
       [operatorId]
@@ -295,7 +295,7 @@ router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthR
       throw AppError.badRequest('Two-factor setup has not been initiated. Call /2fa/setup first.')
     }
 
-    // Decrypt and verify the TOTP code
+    //Decrypt and verify the TOTP code
     const secret = decrypt2FASecret(op.two_factor_secret)
     const isValid = verifyTOTP(code, secret)
 
@@ -308,10 +308,10 @@ router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthR
       throw AppError.unauthorized('Invalid verification code. Please try again with a fresh code from your authenticator app.')
     }
 
-    // Generate backup codes
+    //Generate backup codes
     const { plainCodes, hashedCodes } = generateBackupCodes()
 
-    // Enable 2FA and record initial TOTP for replay protection
+    //Enable 2FA and record initial TOTP for replay protection
     const totpHash = hashTOTPCode(code)
     await pool.query(
       `UPDATE operators
@@ -349,7 +349,7 @@ router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthR
   }
 })
 
-// POST /api/auth/2fa/authenticate
+//POST /api/auth/2fa/authenticate
 
 router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -364,7 +364,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       throw AppError.badRequest('Verification code is required.')
     }
 
-    // Look up temp token
+    //Look up temp token
     const tokenHash = hashTempToken(tempToken)
     const tokenResult = await pool.query(
       `SELECT id, user_id, expires_at, consumed, ip_address, user_agent
@@ -379,7 +379,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
 
     const tempRecord = tokenResult.rows[0]
 
-    // Check if already consumed
+    //Check if already consumed
     if (tempRecord.consumed) {
       await logSecurityEvent({
         userId: tempRecord.user_id, userType: 'operator', eventType: '2fa_auth_failed',
@@ -388,7 +388,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       throw AppError.unauthorized('This temporary token has already been used. Please log in again.')
     }
 
-    // Check expiry
+    //Check expiry
     if (new Date(tempRecord.expires_at) < new Date()) {
       await pool.query('UPDATE two_factor_temp_tokens SET consumed = true WHERE id = $1', [tempRecord.id])
       await logSecurityEvent({
@@ -398,7 +398,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       throw AppError.unauthorized('Temporary token has expired. Please log in again.')
     }
 
-    // IP + User-Agent binding: reject if the request comes from a different origin
+    //IP + User-Agent binding: reject if the request comes from a different origin
     if (tempRecord.ip_address && tempRecord.ip_address !== clientIp) {
       await pool.query('UPDATE two_factor_temp_tokens SET consumed = true WHERE id = $1', [tempRecord.id])
       await logSecurityEvent({
@@ -418,10 +418,10 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       throw AppError.unauthorized('Session mismatch. Please log in again.')
     }
 
-    // Check brute-force lockout on the operator
+    //Check brute-force lockout on the operator
     await enforce2FALockout(tempRecord.user_id)
 
-    // Fetch operator
+    //Fetch operator
     const opResult = await pool.query(
       `SELECT id, email, display_name, role, department, avatar_url,
               two_factor_secret, two_factor_backup_codes, two_factor_enabled,
@@ -438,21 +438,21 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       throw AppError.badRequest('Two-factor authentication is not enabled for this account.')
     }
 
-    // Determine if the code is a TOTP code (6 digits) or a backup code
+    //Determine if the code is a TOTP code (6 digits) or a backup code
     const isBackupCode = code.length > 6 || code.includes('-')
     let backupCodeUsed = false
     let backupCodesRemaining: number | null = null
 
     if (isBackupCode) {
-      // Verify backup code
+      //Verify backup code
       const storedCodes: string[] = user.two_factor_backup_codes || []
       const matchIndex = verifyBackupCode(code, storedCodes)
 
       if (matchIndex === -1) {
-        // Record failure + possible lockout
+        //Record failure + possible lockout
         const failure = await record2FAFailure(tempRecord.user_id, clientIp, userAgent, { method: 'backup_code' })
         twoFactorAuthTotal.inc({ outcome: 'failure', method: 'backup_code' })
-        // Don't consume the temp token on failure — let them retry until lockout
+        //Don't consume the temp token on failure -- let them retry until lockout
         if (failure.locked) {
           await pool.query('UPDATE two_factor_temp_tokens SET consumed = true WHERE id = $1', [tempRecord.id])
           throw AppError.tooMany(`Account locked for ${failure.lockoutMinutes} minutes due to too many failed attempts.`)
@@ -460,7 +460,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
         throw AppError.unauthorized('Invalid code.')
       }
 
-      // Atomic backup code removal: use array_remove on the specific hash
+      //Atomic backup code removal: use array_remove on the specific hash
       const usedHash = storedCodes[matchIndex]
       const updateResult = await pool.query(
         `UPDATE operators
@@ -480,7 +480,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
 
       backupCodeUsed = true
     } else {
-      // Verify TOTP code
+      //Verify TOTP code
       const secret = decrypt2FASecret(user.two_factor_secret)
       const isValid = verifyTOTP(code, secret)
 
@@ -494,7 +494,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
         throw AppError.unauthorized('Invalid code.')
       }
 
-      // TOTP replay protection: reject if same code was used in the current window
+      //TOTP replay protection: reject if same code was used in the current window
       const codeHash = hashTOTPCode(code)
       if (isTOTPReplay(codeHash, user.two_factor_last_totp_hash, user.two_factor_last_totp_at)) {
         await logSecurityEvent({
@@ -504,34 +504,34 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
         throw AppError.unauthorized('This code has already been used. Please wait for a new code.')
       }
 
-      // Record this TOTP code for replay protection
+      //Record this TOTP code for replay protection
       await pool.query(
         'UPDATE operators SET two_factor_last_totp_hash = $1, two_factor_last_totp_at = NOW() WHERE id = $2',
         [codeHash, user.id]
       )
     }
 
-    // Success — consume temp token atomically (CAS to prevent race)
+    //Success -- consume temp token atomically (CAS to prevent race)
     const consumeResult = await pool.query(
       'UPDATE two_factor_temp_tokens SET consumed = true WHERE id = $1 AND consumed = false RETURNING id',
       [tempRecord.id]
     )
     if (consumeResult.rows.length === 0) {
-      // Another request already consumed this token (race condition)
+      //Another request already consumed this token (race condition)
       throw AppError.unauthorized('This temporary token has already been used. Please log in again.')
     }
 
-    // Reset failed attempts on success
+    //Reset failed attempts on success
     await reset2FAFailures(user.id)
     twoFactorAuthTotal.inc({ outcome: 'success', method: isBackupCode ? 'backup_code' : 'totp' })
 
-    // Update last verified timestamp
+    //Update last verified timestamp
     await pool.query(
       'UPDATE operators SET two_factor_last_verified_at = NOW(), last_login = NOW() WHERE id = $1',
       [user.id]
     )
 
-    // Issue full JWT
+    //Issue full JWT
     const token = generateToken({
       id: user.id, email: user.email,
       role: user.role, displayName: user.display_name,
@@ -564,14 +564,14 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       path: '/api/auth',
     })
 
-    // Trust device if requested (30-day remember-me)
+    //Trust device if requested (30-day remember-me)
     let deviceTrusted = false
     if (rememberDevice) {
       try {
         await trustDevice(user.id, userAgent || '', clientIp)
         deviceTrusted = true
       } catch {
-        // Non-critical — don't fail the login
+        //Non-critical -- don't fail the login
       }
     }
 
@@ -587,10 +587,10 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       deviceTrusted,
     }
 
-    // Generic warning without disclosing exact count
+    //Generic warning without disclosing exact count
     if (backupCodeUsed) {
       responseData.backupCodeWarning = 'A recovery code was used. Consider regenerating your backup codes in Settings.'
-      // Fire security alert for backup code usage
+      //Fire security alert for backup code usage
       alertBackupCodeUsed(user.id, backupCodesRemaining ?? 0, clientIp).catch(() => {})
     }
 
@@ -600,7 +600,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
   }
 })
 
-// POST /api/auth/2fa/disable
+//POST /api/auth/2fa/disable
 
 router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -616,10 +616,10 @@ router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: Aut
       throw AppError.badRequest('A valid TOTP code or backup code is required to disable 2FA.')
     }
 
-    // Check brute-force lockout
+    //Check brute-force lockout
     await enforce2FALockout(operatorId)
 
-    // Fetch operator
+    //Fetch operator
     const opResult = await pool.query(
       `SELECT id, password_hash, two_factor_enabled, two_factor_secret, two_factor_backup_codes,
               two_factor_last_totp_hash, two_factor_last_totp_at
@@ -636,14 +636,14 @@ router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: Aut
       throw AppError.badRequest('Two-factor authentication is not currently enabled.')
     }
 
-    // Verify password
+    //Verify password
     const passwordValid = await bcrypt.compare(password, op.password_hash)
     if (!passwordValid) {
       await record2FAFailure(operatorId, clientIp, userAgent, { action: 'disable', reason: 'wrong_password' })
       throw AppError.unauthorized('Invalid password.')
     }
 
-    // Verify second factor (TOTP or backup code)
+    //Verify second factor (TOTP or backup code)
     const isBackupCode = code.length > 6 || code.includes('-')
     let secondFactorValid = false
 
@@ -655,7 +655,7 @@ router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: Aut
       const secret = decrypt2FASecret(op.two_factor_secret)
       secondFactorValid = verifyTOTP(code, secret)
 
-      // Check replay
+      //Check replay
       if (secondFactorValid) {
         const codeHash = hashTOTPCode(code)
         if (isTOTPReplay(codeHash, op.two_factor_last_totp_hash, op.two_factor_last_totp_at)) {
@@ -669,10 +669,10 @@ router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: Aut
       throw AppError.unauthorized('Invalid verification code.')
     }
 
-    // Reset failures on success
+    //Reset failures on success
     await reset2FAFailures(operatorId)
 
-    // Disable 2FA — clear all 2FA data
+    //Disable 2FA -- clear all 2FA data
     await pool.query(
       `UPDATE operators
        SET two_factor_enabled = false,
@@ -694,7 +694,7 @@ router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: Aut
       ipAddress: clientIp, userAgent,
     })
 
-    // Fire security alert — 2FA disabled is a critical event
+    //Fire security alert -- 2FA disabled is a critical event
     alert2FADisabled(operatorId, clientIp).catch(() => {})
 
     await pool.query(
@@ -709,7 +709,7 @@ router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: Aut
   }
 })
 
-// POST /api/auth/2fa/regenerate-backup-codes
+//POST /api/auth/2fa/regenerate-backup-codes
 
 router.post('/regenerate-backup-codes', authMiddleware, twoFactorRegenLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -725,10 +725,10 @@ router.post('/regenerate-backup-codes', authMiddleware, twoFactorRegenLimiter, a
       throw AppError.badRequest('A valid 6-digit TOTP code is required.')
     }
 
-    // Check brute-force lockout
+    //Check brute-force lockout
     await enforce2FALockout(operatorId)
 
-    // Fetch operator
+    //Fetch operator
     const opResult = await pool.query(
       `SELECT id, password_hash, two_factor_enabled, two_factor_secret,
               two_factor_last_totp_hash, two_factor_last_totp_at
@@ -745,14 +745,14 @@ router.post('/regenerate-backup-codes', authMiddleware, twoFactorRegenLimiter, a
       throw AppError.badRequest('Two-factor authentication is not enabled.')
     }
 
-    // Verify password
+    //Verify password
     const passwordValid = await bcrypt.compare(password, op.password_hash)
     if (!passwordValid) {
       await record2FAFailure(operatorId, clientIp, userAgent, { action: 'regenerate', reason: 'wrong_password' })
       throw AppError.unauthorized('Invalid password.')
     }
 
-    // Verify TOTP code
+    //Verify TOTP code
     const secret = decrypt2FASecret(op.two_factor_secret)
     const isValid = verifyTOTP(code, secret)
     if (!isValid) {
@@ -760,20 +760,20 @@ router.post('/regenerate-backup-codes', authMiddleware, twoFactorRegenLimiter, a
       throw AppError.unauthorized('Invalid verification code.')
     }
 
-    // Check replay
+    //Check replay
     const codeHash = hashTOTPCode(code)
     if (isTOTPReplay(codeHash, op.two_factor_last_totp_hash, op.two_factor_last_totp_at)) {
       throw AppError.unauthorized('This code has already been used. Please wait for a new code.')
     }
 
-    // Reset failures and record TOTP for replay protection
+    //Reset failures and record TOTP for replay protection
     await reset2FAFailures(operatorId)
     await pool.query(
       'UPDATE operators SET two_factor_last_totp_hash = $1, two_factor_last_totp_at = NOW() WHERE id = $2',
       [codeHash, operatorId]
     )
 
-    // Generate new backup codes (old ones are completely replaced)
+    //Generate new backup codes (old ones are completely replaced)
     const { plainCodes, hashedCodes } = generateBackupCodes()
 
     await pool.query(

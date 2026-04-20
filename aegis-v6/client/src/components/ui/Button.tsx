@@ -8,7 +8,7 @@ import React, { forwardRef, memo } from 'react'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { Spinner } from './LoadingStates'
 
-// TYPES
+//TYPES
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'warning' | 'link'
 type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
@@ -36,7 +36,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   href?: string
 }
 
-// STYLES
+//STYLES
 
 const baseClasses = `
   inline-flex items-center justify-center font-medium
@@ -123,7 +123,7 @@ const iconOnlySizeClasses: Record<ButtonSize, string> = {
   xl: 'p-3',
 }
 
-// BUTTON COMPONENT
+//BUTTON COMPONENT
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   variant = 'primary',
@@ -198,7 +198,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
     </>
   )
   
-  // Accessibility: icon-only buttons must have aria-label
+  //Accessibility: icon-only buttons must have aria-label
   const computedAriaLabel = iconOnly && !ariaLabel 
     ? (typeof children === 'string' ? children : undefined)
     : ariaLabel
@@ -234,7 +234,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
 
 Button.displayName = 'Button'
 
-// BUTTON GROUP
+//BUTTON GROUP
 
 interface ButtonGroupProps {
   /** Attached buttons (connected borders) */
@@ -276,7 +276,7 @@ export const ButtonGroup = memo<ButtonGroupProps>(({
     )
   }
   
-  // Attached styling
+  //Attached styling
   const childCount = React.Children.count(children)
   
   return (
@@ -315,7 +315,7 @@ export const ButtonGroup = memo<ButtonGroupProps>(({
 
 ButtonGroup.displayName = 'ButtonGroup'
 
-// ICON BUTTON (alias for iconOnly)
+//ICON BUTTON (alias for iconOnly)
 
 interface IconButtonProps extends Omit<ButtonProps, 'iconOnly' | 'leftIcon' | 'rightIcon' | 'children'> {
   /** Icon element */
@@ -340,7 +340,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(({
 
 IconButton.displayName = 'IconButton'
 
-// CLOSE BUTTON
+//CLOSE BUTTON
 
 interface CloseButtonProps extends Omit<ButtonProps, 'iconOnly' | 'leftIcon' | 'rightIcon' | 'children' | 'variant'> {
   /** Label for accessibility */
@@ -366,7 +366,7 @@ export const CloseButton = forwardRef<HTMLButtonElement, CloseButtonProps>(({
 
 CloseButton.displayName = 'CloseButton'
 
-// ICONS
+//ICONS
 
 const CloseIcon: React.FC<{ className?: string }> = ({ className = 'h-4 w-4' }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -374,7 +374,7 @@ const CloseIcon: React.FC<{ className?: string }> = ({ className = 'h-4 w-4' }) 
   </svg>
 )
 
-// EXPORTS
+//EXPORTS
 
 export default {
   Button,

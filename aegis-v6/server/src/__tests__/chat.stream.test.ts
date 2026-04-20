@@ -11,7 +11,7 @@
   * - Run via: npm test -- chat.stream
  */
 
-// Environment setup (before any module imports)
+//Environment setup (before any module imports)
 
 process.env.JWT_SECRET            = 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET  = 'test-refresh-secret-at-least-32-chars'
@@ -19,7 +19,7 @@ process.env.NODE_ENV              = 'test'
 
 import jwt from 'jsonwebtoken'
 
-// Jest mocks (hoisted above imports by Jest transformer)
+//Jest mocks (hoisted above imports by Jest transformer)
 
 jest.mock('../services/chatService', () => ({
   processChat:            jest.fn(),
@@ -36,7 +36,7 @@ jest.mock('../services/llmRouter', () => ({
   chatCompletionStream: jest.fn(),
 }))
 
-// Imports
+//Imports
 
 import { describe, it, expect, beforeEach, beforeAll, afterAll, jest } from '@jest/globals'
 import request from 'supertest'
@@ -48,25 +48,25 @@ import { citizenToken, authHeader } from './helpers/testAuth'
 import chatRouter from '../routes/chatRoutes'
 import * as chatServiceMod from '../services/chatService'
 
-// Typed mock references
+//Typed mock references
 
 type AnyMock = jest.MockedFunction<(...args: any[]) => any>
 const mockProcessChatStream = chatServiceMod.processChatStream as AnyMock
 const mockVerifyOwnership   = chatServiceMod.verifySessionOwnership as AnyMock
 const mockGetBudget         = chatServiceMod.getChatSessionBudget as AnyMock
 
-// Test Express app
+//Test Express app
 
 const app = express()
 app.use(express.json())
 app.use('/api/chat', chatRouter)
-// Minimal error handler so AppError objects render as JSON
+//Minimal error handler so AppError objects render as JSON
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   res.status(err.statusCode || 500).json({ error: err.message })
 })
 
-// Use an explicit server with keepAliveTimeout=0 so supertest can detect
-// response completion for SSE streams without waiting for TCP-level close.
+//Use an explicit server with keepAliveTimeout=0 so supertest can detect
+//response completion for SSE streams without waiting for TCP-level close.
 let server: http.Server
 
 beforeAll((done) => {
@@ -79,7 +79,7 @@ afterAll((done) => {
   server.close(done as (err?: Error) => void)
 })
 
-// Raw HTTP helper for SSE (superagent treats text/event-stream as streaming)
+//Raw HTTP helper for SSE (superagent treats text/event-stream as streaming)
 
 interface HttpResponse { status: number; headers: Record<string, string | string[] | undefined>; text: string }
 
@@ -100,7 +100,7 @@ async function ssePost(path: string, body: object, token?: string): Promise<Http
   }
 }
 
-// SSE parse helper
+//SSE parse helper
 
 interface SseEvent { event: string; data: unknown }
 
@@ -121,7 +121,7 @@ function parseSse(body: string): SseEvent[] {
   return events
 }
 
-// Shared response fixture
+//Shared response fixture
 
 const SESS_ID = 'aaaaaaaa-bbbb-cccc-dddd-000000000001'
 
@@ -141,10 +141,10 @@ function makeResult(overrides: Record<string, unknown> = {}) {
   }
 }
 
-describe('POST /api/chat/stream — SSE event flow', () => {
+describe('POST /api/chat/stream -- SSE event flow', () => {
   beforeEach(() => { jest.clearAllMocks() })
 
-  // 1. Happy path: token stream
+  //1. Happy path: token stream
 
   it('emits start ? token events ? done in the correct order', async () => {
     mockProcessChatStream.mockImplementation(async (_req: any, handlers: any) => {
@@ -173,7 +173,7 @@ describe('POST /api/chat/stream — SSE event flow', () => {
     expect((doneEvent!.data as any).budgetRemaining).toBe(4995)
   })
 
-  // 2. Content moderation: replace event
+  //2. Content moderation: replace event
 
   it('emits a replace event when the service calls onReplace', async () => {
     const SAFE = 'I cannot provide that response. Please contact emergency services.'
@@ -194,7 +194,7 @@ describe('POST /api/chat/stream — SSE event flow', () => {
     expect(events.at(-1)?.event).toBe('done')
   })
 
-  // 3. Injection blocked: single token, done with policy-block model
+  //3. Injection blocked: single token, done with policy-block model
 
   it('emits a token with the blocked message when the service blocks injection', async () => {
     const BLOCKED = 'I cannot help with instruction override attempts.'
@@ -215,14 +215,14 @@ describe('POST /api/chat/stream — SSE event flow', () => {
     expect(done).toBeDefined()
   })
 
-  // 4. Service error: SSE error event
+  //4. Service error: SSE error event
 
   it('emits an error event and ends the stream when processChatStream throws', async () => {
     mockProcessChatStream.mockRejectedValue(new Error('LLM unavailable'))
 
       const res = await ssePost('/api/chat/stream', { message: 'Question that causes internal error' })
 
-    // SSE streams always return 200 once headers are sent
+    //SSE streams always return 200 once headers are sent
     expect(res.status).toBe(200)
     const events = parseSse(res.text)
     const errEvent = events.find(e => e.event === 'error')
@@ -230,7 +230,7 @@ describe('POST /api/chat/stream — SSE event flow', () => {
     expect((errEvent!.data as any).error).toBe('Streaming failed')
   })
 
-  // 5. Validation: missing message ? JSON 400 before SSE headers
+  //5. Validation: missing message ? JSON 400 before SSE headers
 
   it('returns 400 JSON when the message field is absent', async () => {
       const res = await ssePost('/api/chat/stream', {})
@@ -255,7 +255,7 @@ describe('POST /api/chat/stream — SSE event flow', () => {
     expect(mockProcessChatStream).not.toHaveBeenCalled()
   })
 
-    // 6. sessionId forwarding
+    //6. sessionId forwarding
 })
     it('forwards a provided sessionId to the service', async () => {
       const GIVEN = 'bbbbbbbb-0000-4000-8000-000000000002'
@@ -272,7 +272,7 @@ describe('POST /api/chat/stream — SSE event flow', () => {
       )
     })
 
-    // 7. Authenticated user identity is forwarded
+    //7. Authenticated user identity is forwarded
 
     it('passes citizenId from a valid JWT to the service', async () => {
       mockProcessChatStream.mockImplementation(async (_req: any, handlers: any) => {
@@ -317,7 +317,7 @@ describe('POST /api/chat/stream — SSE event flow', () => {
       )
     })
 
-describe('GET /api/chat/:id/budget — token budget endpoint', () => {
+describe('GET /api/chat/:id/budget -- token budget endpoint', () => {
   const SESS = 'cccccccc-0000-0000-0000-000000000003'
 
   beforeEach(() => {

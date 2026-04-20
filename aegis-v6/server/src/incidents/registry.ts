@@ -6,7 +6,7 @@
 
 import type { IncidentModule, IncidentRegistryEntry, IncidentOperationalStatus } from './types.js'
 
-// Import all incident modules
+//Import all incident modules
 
 import flood from './flood/index.js'
 import severeStorm from './severe_storm/index.js'
@@ -20,7 +20,7 @@ import publicSafety from './public_safety/index.js'
 import environmentalHazard from './environmental_hazard/index.js'
 import drought from './drought/index.js'
 
-// Registry
+//Registry
 
 const MODULES: IncidentModule[] = [
   flood,
@@ -41,7 +41,7 @@ for (const mod of MODULES) {
   moduleMap.set(mod.id, mod)
 }
 
-// Public API
+//Public API
 
 /* Get a specific incident module by ID */
 export function getIncidentModule(id: string): IncidentModule | undefined {

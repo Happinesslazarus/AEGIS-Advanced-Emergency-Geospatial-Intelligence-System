@@ -53,7 +53,7 @@ export default function PrivacyPage(): JSX.Element {
       const val = t(`${key}.p${p}`, lang) as string
       if (val && !val.startsWith(`${key}.p`)) paragraphs.push(val)
     }
-    // Pick up non-standard paragraph keys (voluntary, automatic, local, contact)
+    //Pick up non-standard paragraph keys (voluntary, automatic, local, contact)
     for (const suffix of ['voluntary', 'automatic', 'local', 'contact']) {
       const val = t(`${key}.${suffix}`, lang) as string
       if (val && !val.startsWith(`${key}.${suffix}`)) paragraphs.push(val)
@@ -63,7 +63,7 @@ export default function PrivacyPage(): JSX.Element {
       const val = t(`${key}.li${li}`, lang) as string
       if (val && !val.startsWith(`${key}.li`)) listItems.push(val)
     }
-    // Pick up numbered sub-items (vol1-3, auto1-3, local1-4)
+    //Pick up numbered sub-items (vol1-3, auto1-3, local1-4)
     for (const prefix of ['vol', 'auto', 'local']) {
       for (let n = 1; n <= 4; n++) {
         const val = t(`${key}.${prefix}${n}`, lang) as string

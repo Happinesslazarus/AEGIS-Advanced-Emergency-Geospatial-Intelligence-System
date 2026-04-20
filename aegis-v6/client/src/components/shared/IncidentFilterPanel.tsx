@@ -1,6 +1,6 @@
 /**
  * Sidebar filter panel for the incident list view. Lets users narrow
- * results by incident type (flood, fire, …), severity, date range,
+ * results by incident type (flood, fire, ...), severity, date range,
  * and geographic radius using Lucide icons for each category.
  */
 
@@ -14,7 +14,7 @@ import { useIncidents, type IncidentTypeId } from '../../contexts/IncidentContex
 import { INCIDENT_HEX as INCIDENT_COLORS } from '../../utils/colorTokens'
 import { useLanguage } from '../../hooks/useLanguage'
 
-/** Lucide icon for each incident type — no unicode emoji */
+/** Lucide icon for each incident type -- no unicode emoji */
 const INCIDENT_LUCIDE_ICONS: Record<string, ElementType> = {
   flood:                    Droplets,
   severe_storm:             CloudLightning,

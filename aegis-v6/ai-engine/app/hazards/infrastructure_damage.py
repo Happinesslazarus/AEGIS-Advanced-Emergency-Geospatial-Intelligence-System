@@ -9,7 +9,7 @@ with real UK bridge-scour incident data.
 """
 
 """
- AEGIS AI ENGINE — Infrastructure Damage Prediction Module
+ AEGIS AI ENGINE -- Infrastructure Damage Prediction Module
  Structural stress risk assessment using flood inundation, wind loading,
  ground movement (landslide/subsidence), and asset age proxies.
 """
@@ -29,7 +29,7 @@ from app.hazards.shap_explainer import explain_prediction
 
 class InfrastructureDamagePredictor:
     """
-    Infrastructure damage risk — roads, bridges, utilities.
+    Infrastructure damage risk -- roads, bridges, utilities.
     Aggregates flood depth risk, high wind loading, and slope instability
     to estimate structural stress on local infrastructure.
     """

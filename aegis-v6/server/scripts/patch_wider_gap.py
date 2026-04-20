@@ -39,7 +39,7 @@ NEW_FLOOD = """        if hz == 'flood':
 
 assert OLD_FLOOD in content, "Could not find flood threshold block!"
 content = content.replace(OLD_FLOOD, NEW_FLOOD)
-print("✓ Patched flood: top 15% rain for positive, bottom 50% for negative")
+print(" Patched flood: top 15% rain for positive, bottom 50% for negative")
 
 # Patch drought thresholds
 OLD_DROUGHT = """        elif hz == 'drought':
@@ -68,7 +68,7 @@ NEW_DROUGHT = """        elif hz == 'drought':
 
 assert OLD_DROUGHT in content, "Could not find drought threshold block!"
 content = content.replace(OLD_DROUGHT, NEW_DROUGHT)
-print("✓ Patched drought: bottom 15% rain for positive, top 50% for negative")
+print(" Patched drought: bottom 15% rain for positive, top 50% for negative")
 
 with open(FILE, 'w', encoding='utf-8') as f:
     f.write(content)

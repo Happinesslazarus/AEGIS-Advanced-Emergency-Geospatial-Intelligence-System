@@ -146,7 +146,7 @@ class TrainingSessionReport:
         json_path = REPORTS_DIR / f"training_session_{timestamp}.json"
         csv_path = REPORTS_DIR / f"training_session_{timestamp}.csv"
 
-        # JSON — full detail
+        # JSON -- full detail
         payload = {
             "generated_at": self.started_at.isoformat(),
             "region": self.region,
@@ -158,7 +158,7 @@ class TrainingSessionReport:
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, default=str)
 
-        # CSV — one row per hazard, suitable for a dissertation table
+        # CSV -- one row per hazard, suitable for a dissertation table
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(
                 f,
@@ -200,8 +200,8 @@ class TrainingSessionReport:
             f1 = e.get("f1_positive")
             n_pos = e.get("n_positive", 0)
 
-            auc_str = f"{auc:.4f}" if isinstance(auc, float) else "—"
-            f1_str = f"{f1:.3f}" if isinstance(f1, float) else "—"
+            auc_str = f"{auc:.4f}" if isinstance(auc, float) else "--"
+            f1_str = f"{f1:.3f}" if isinstance(f1, float) else "--"
             scope = e.get("region_scope", "")[:13]
             validity = e.get("data_validity", "")[:11]
             suitability = e.get("dissertation_suitability", "")[:11]
@@ -240,7 +240,7 @@ class TrainingSessionReport:
             if e.get("status") == HazardStatus.UNSUPPORTED.value
         ]
         if unsupported:
-            logger.info("UNSUPPORTED HAZARDS — REQUIRED DATASETS TO ENABLE")
+            logger.info("UNSUPPORTED HAZARDS -- REQUIRED DATASETS TO ENABLE")
             logger.info("-" * 110)
             for e in unsupported:
                 req = e.get("required_dataset") or "See hazard_status.py"

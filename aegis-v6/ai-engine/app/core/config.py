@@ -124,7 +124,7 @@ settings = Settings()
 if isinstance(settings.ALLOWED_ORIGINS, str):
     settings.ALLOWED_ORIGINS = settings.get_allowed_origins_list()
 
-# STRICT STARTUP VALIDATION — refuse to boot in production without API key
+# STRICT STARTUP VALIDATION -- refuse to boot in production without API key
 if settings.ENV == "production":
     _startup_errors = []
     if not settings.API_SECRET_KEY or len(settings.API_SECRET_KEY) < 16:
@@ -133,22 +133,22 @@ if settings.ENV == "production":
         )
     if settings.DATABASE_URL.startswith("postgresql://postgres:password@"):
         _startup_errors.append(
-            "DATABASE_URL is using the default placeholder password — must change for production"
+            "DATABASE_URL is using the default placeholder password -- must change for production"
         )
     if settings.DEBUG:
         _startup_errors.append(
-            "DEBUG=True in production — set DEBUG=False"
+            "DEBUG=True in production -- set DEBUG=False"
         )
     if _startup_errors:
         import sys
         print("\n  [ERR] FATAL AI ENGINE CONFIGURATION ERRORS:", file=sys.stderr)
         for e in _startup_errors:
-            print(f"     • {e}", file=sys.stderr)
+            print(f"     - {e}", file=sys.stderr)
         print("", file=sys.stderr)
         sys.exit(1)
 elif not settings.API_SECRET_KEY:
     import warnings
     warnings.warn(
-        "[AI ENGINE] API_SECRET_KEY not set — endpoints are unprotected (dev only)",
+        "[AI ENGINE] API_SECRET_KEY not set -- endpoints are unprotected (dev only)",
         stacklevel=1,
     )

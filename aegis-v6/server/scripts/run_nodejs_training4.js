@@ -1,4 +1,4 @@
-// Create admin operator and trigger Node.js ML training
+//Create admin operator and trigger Node.js ML training
 const http = require('http');
 const { Pool } = require('pg');
 
@@ -31,7 +31,7 @@ function httpReq(method, path, body, token) {
 }
 
 async function main() {
-  // 1. Check if admin exists
+  //1. Check if admin exists
   const existing = await pool.query("SELECT id FROM operators WHERE email = 'admin@aegis.com' LIMIT 1");
   
   if (existing.rows.length === 0) {
@@ -47,12 +47,12 @@ async function main() {
     console.log('1. Admin operator already exists');
   }
   
-  // 2. Get admin ID
+  //2. Get admin ID
   const adminRow = await pool.query("SELECT id FROM operators WHERE email = 'admin@aegis.com' LIMIT 1");
   const adminId = adminRow.rows[0].id;
   console.log('  Admin ID:', adminId);
   
-  // 3. Generate JWT directly with correct secret
+  //3. Generate JWT directly with correct secret
   console.log('\n2. Generating JWT...');
   const jwt = require('jsonwebtoken');
   const token = jwt.sign(
@@ -62,7 +62,7 @@ async function main() {
   );
   console.log('  JWT generated');
   
-  // 4. Trigger training
+  //4. Trigger training
   console.log('\n3. Triggering ML training pipeline...');
   const trainRes = await httpReq('POST', '/api/training/run', {}, token);
   console.log('  Status:', trainRes.status);

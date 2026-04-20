@@ -38,7 +38,7 @@ export default function AlertCaptionOverlay({
   const [visible, setVisible] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Expose a method to push captions (via custom event)
+  //Expose a method to push captions (via custom event)
   useEffect(() => {
     if (!enabled) return
 
@@ -54,13 +54,13 @@ export default function AlertCaptionOverlay({
       }
 
       setCaptions(prev => {
-        // Remove duplicates
+        //Remove duplicates
         const filtered = prev.filter(c => c.id !== caption.id)
         return [caption, ...filtered].slice(0, 3)
       })
       setVisible(true)
 
-      // Auto-hide
+      //Auto-hide
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       timeoutRef.current = setTimeout(() => {
         setVisible(false)
@@ -144,7 +144,7 @@ export default function AlertCaptionOverlay({
   )
 }
 
-// Helper to dispatch caption events from anywhere in the app
+//Helper to dispatch caption events from anywhere in the app
 export function showAlertCaption(alert: {
   id?: string; title: string; message: string; severity: string
 }) {

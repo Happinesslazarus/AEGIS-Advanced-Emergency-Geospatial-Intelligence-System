@@ -1,10 +1,10 @@
 """
-Unit tests for the MultimodalFusionService — validates:
-  • Bayesian log-odds fusion logic
-  • Shannon entropy uncertainty bounds
-  • Graceful fallback when no signals provided
-  • Severity scoring path (mocked CLIP)
-  • Signal contribution tracking
+Unit tests for the MultimodalFusionService -- validates:
+  - Bayesian log-odds fusion logic
+  - Shannon entropy uncertainty bounds
+  - Graceful fallback when no signals provided
+  - Severity scoring path (mocked CLIP)
+  - Signal contribution tracking
 """
 
 import sys
@@ -19,7 +19,7 @@ if str(AI_ROOT) not in sys.path:
     sys.path.insert(0, str(AI_ROOT))
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────
+# Helpers
 
 
 def _make_service():
@@ -42,14 +42,14 @@ def _mock_torch():
     return mock
 
 
-# ── Tests ──────────────────────────────────────────────────────────────────
+# Tests
 
 
 class TestBayesianFusion:
     """Core Bayesian log-odds combination logic."""
 
     def test_logodds_round_trip(self):
-        """prob → logodds → prob should be identity."""
+        """prob -> logodds -> prob should be identity."""
         from app.services.multimodal_fusion import prob_to_logodds, logodds_to_prob
         for p in [0.1, 0.25, 0.5, 0.75, 0.9]:
             lo = prob_to_logodds(p)
@@ -107,7 +107,7 @@ class TestFuseMethod:
     """Integration tests for the fuse() orchestrator."""
 
     def test_fuse_no_signals_returns_unknown(self):
-        """No ML features, no text, no image → should gracefully return."""
+        """No ML features, no text, no image -> should gracefully return."""
         try:
             svc = _make_service()
             result = svc.fuse(ml_features=None, text=None)
@@ -125,7 +125,7 @@ class TestFuseMethod:
             )
             assert result.get("confidence", 0) >= 0
         except ImportError:
-            pytest.skip("Skipped — heavy dependencies not available")
+            pytest.skip("Skipped -- heavy dependencies not available")
 
     def test_fuse_text_only(self):
         """Text only should produce a prediction via NLP path."""
@@ -137,4 +137,4 @@ class TestFuseMethod:
             )
             assert isinstance(result, dict)
         except ImportError:
-            pytest.skip("Skipped — heavy dependencies not available")
+            pytest.skip("Skipped -- heavy dependencies not available")

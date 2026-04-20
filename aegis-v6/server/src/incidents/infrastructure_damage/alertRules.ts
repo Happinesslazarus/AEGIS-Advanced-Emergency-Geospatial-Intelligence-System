@@ -14,7 +14,7 @@ export class InfrastructureDamageAlertRules {
     const results: AlertRuleResult[] = []
     const { recentReports, predictions } = context
 
-    // Rule 1: Structural collapse (highest priority)
+    //Rule 1: Structural collapse (highest priority)
     const collapsedReports = recentReports.filter(r => 
       r.customFields?.structuralIntegrity === 'Collapsed'
     )
@@ -27,7 +27,7 @@ export class InfrastructureDamageAlertRules {
       })
     }
 
-    // Rule 2: Emergency access blocked
+    //Rule 2: Emergency access blocked
     const blockedAccessReports = recentReports.filter(r => r.customFields?.emergencyAccess === true)
     if (blockedAccessReports.length >= 1) {
       results.push({
@@ -38,7 +38,7 @@ export class InfrastructureDamageAlertRules {
       })
     }
 
-    // Rule 3: Report density threshold
+    //Rule 3: Report density threshold
     if (recentReports.length >= 15) {
       results.push({
         shouldAlert: true,
@@ -62,7 +62,7 @@ export class InfrastructureDamageAlertRules {
       })
     }
 
-    // Rule 4: Bridge damage (critical infrastructure)
+    //Rule 4: Bridge damage (critical infrastructure)
     const bridgeDamageReports = recentReports.filter(r => 
       r.customFields?.damageType === 'Bridge'
     )
@@ -75,7 +75,7 @@ export class InfrastructureDamageAlertRules {
       })
     }
 
-    // Rule 5: Safety hazards
+    //Rule 5: Safety hazards
     const safetyHazardReports = recentReports.filter(r => r.customFields?.safetyHazard === true)
     if (safetyHazardReports.length >= 5) {
       results.push({

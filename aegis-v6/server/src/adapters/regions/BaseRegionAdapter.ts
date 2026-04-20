@@ -152,7 +152,7 @@ export abstract class BaseRegionAdapter implements RegionAdapter {
     return { ...(this.config.propagationMap || {}) }
   }
 
-  // Subclasses must implement provider-specific fetch methods
+  //Subclasses must implement provider-specific fetch methods
   abstract getFloodWarnings(): Promise<FloodWarning[]>
   abstract getRiverLevels(): Promise<RiverLevel[]>
   abstract getWeatherForecast(lat?: number, lng?: number): Promise<WeatherForecast | null>

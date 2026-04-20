@@ -1,5 +1,5 @@
 """
-Performs a systematic ablation study on the flood model — progressively
+Performs a systematic ablation study on the flood model -- progressively
 adds feature groups to a LightGBM classifier and measures the ROC-AUC
 improvement at each stage.  The result is a publication-quality plot ideal
 for a dissertation appendix ("how much does each feature class contribute?").
@@ -14,24 +14,24 @@ Feature groups (added cumulatively):
                                 koppen_zone
 
 Outputs:
-  reports/flood_ablation.csv   — AUC + precision/recall per stage
-  reports/flood_ablation.pdf   — step chart for dissertation figure
+  reports/flood_ablation.csv   -- AUC + precision/recall per stage
+  reports/flood_ablation.pdf   -- step chart for dissertation figure
 
 Glossary:
   ablation study  = removing/adding components of a system one-by-one to
                     measure each component's individual contribution to
                     overall performance
-  LightGBM        = Light Gradient Boosting Machine — fast tree ensemble
+  LightGBM        = Light Gradient Boosting Machine -- fast tree ensemble
   TimeSeriesSplit = cross-validation that never leaks future data into the
                     training fold; each fold's test set is always later than
                     its training set
-  SHAP            = Shapley Additive exPlanations — measures how much each
+  SHAP            = Shapley Additive exPlanations -- measures how much each
                     feature shifted the model's prediction away from the average
 
-  Reads from  ← data/processed/master_features_uk_2000_2024.parquet
-              ← data/labels/flood_labels.parquet
-  Writes to   → reports/flood_ablation.csv
-              → reports/flood_ablation.pdf
+  Reads from  <- data/processed/master_features_uk_2000_2024.parquet
+              <- data/labels/flood_labels.parquet
+  Writes to   -> reports/flood_ablation.csv
+              -> reports/flood_ablation.pdf
 
 Usage:
   python scripts/evaluation/ablation_study.py
@@ -229,7 +229,7 @@ def plot_results(summary: pd.DataFrame, out_path: Path) -> None:
     plt.tight_layout()
     plt.savefig(str(out_path), dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"  Chart (PDF) → {out_path}")
+    print(f"  Chart (PDF) -> {out_path}")
 
 
 def main(args: argparse.Namespace) -> None:
@@ -245,10 +245,10 @@ def main(args: argparse.Namespace) -> None:
         sys.exit(f"Flood labels not found: {labels_path}\n"
                  "Run: python scripts/labels/build_flood_labels.py")
 
-    print("[1/3] Loading data …")
+    print("[1/3] Loading data ...")
     df = load_data(master_path, labels_path)
 
-    print("[2/3] Running ablation stages …")
+    print("[2/3] Running ablation stages ...")
     rows = []
     for stage_def in FEATURE_STAGES:
         print(f"  Stage: {stage_def['name']}  "
@@ -262,9 +262,9 @@ def main(args: argparse.Namespace) -> None:
 
     summary = pd.DataFrame(rows)
 
-    print("[3/3] Writing outputs …")
+    print("[3/3] Writing outputs ...")
     summary.to_csv(str(REPORT_DIR / "flood_ablation.csv"), index=False)
-    print(f"  CSV → {REPORT_DIR / 'flood_ablation.csv'}")
+    print(f"  CSV -> {REPORT_DIR / 'flood_ablation.csv'}")
     plot_results(summary, REPORT_DIR / "flood_ablation.pdf")
 
 

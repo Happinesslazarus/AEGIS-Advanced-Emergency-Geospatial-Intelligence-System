@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-AEGIS AI Engine — Data Setup Helper
-====================================
+AEGIS AI Engine -- Data Setup Helper
 Run this script once before the first training run.  It:
 
   1. Auto-downloads everything that does not require registration (IBTrACS,
@@ -64,8 +63,8 @@ def _section(title: str) -> None:
 # 1.  Auto-downloadable datasets
 
 def setup_spei(force: bool = False) -> bool:
-    """CSIC SPEI Global v2.9 — drought labels (no registration required)."""
-    _section("SPEI — Drought labels (CSIC, CRU TS4 observed)")
+    """CSIC SPEI Global v2.9 -- drought labels (no registration required)."""
+    _section("SPEI -- Drought labels (CSIC, CRU TS4 observed)")
     try:
         from app.training.data_fetch_spei import download_spei_dataset, spei_is_available
         for scale in (3, 12):
@@ -79,7 +78,7 @@ def setup_spei(force: bool = False) -> bool:
                 if result:
                     print(f"{_OK}spei{scale:02d}.nc downloaded")
                 else:
-                    print(f"{_MISSING}spei{scale:02d}.nc download failed — see instructions above")
+                    print(f"{_MISSING}spei{scale:02d}.nc download failed -- see instructions above")
                     return False
         return True
     except Exception as exc:
@@ -88,8 +87,8 @@ def setup_spei(force: bool = False) -> bool:
 
 
 def setup_ibtracs(force: bool = False) -> bool:
-    """IBTrACS global storm tracks — severe storm labels (no registration required)."""
-    _section("IBTrACS — Storm labels (NCEI/WMO, per-basin CSVs)")
+    """IBTrACS global storm tracks -- severe storm labels (no registration required)."""
+    _section("IBTrACS -- Storm labels (NCEI/WMO, per-basin CSVs)")
     try:
         from app.training.data_fetch_ibtracs import download_ibtracs_basin
         basins = ["NA", "WP", "EP", "NI", "SI", "SP"]
@@ -109,8 +108,8 @@ def setup_ibtracs(force: bool = False) -> bool:
 
 
 def setup_stats19(force: bool = False) -> bool:
-    """UK DfT Stats19 road accident CSVs — public safety labels (no registration)."""
-    _section("Stats19 — Public safety labels (UK DfT, 2015-2023)")
+    """UK DfT Stats19 road accident CSVs -- public safety labels (no registration)."""
+    _section("Stats19 -- Public safety labels (UK DfT, 2015-2023)")
     try:
         from app.training.data_fetch_road_accidents import (
             download_stats19, road_accidents_available,
@@ -118,7 +117,7 @@ def setup_stats19(force: bool = False) -> bool:
         if road_accidents_available() and not force:
             print(f"{_OK}Stats19 files already present")
             return True
-        print(f"{_INFO}Downloading Stats19 CSVs for 2015–2023 (~5 MB/year) ...")
+        print(f"{_INFO}Downloading Stats19 CSVs for 2015-2023 (~5 MB/year) ...")
         paths = download_stats19(years=range(2015, 2024), force=force)
         print(f"{_OK}{len(paths)} Stats19 files downloaded")
         return len(paths) > 0
@@ -128,13 +127,13 @@ def setup_stats19(force: bool = False) -> bool:
 
 
 def setup_nhtsa_fars(force: bool = False) -> bool:
-    """US NHTSA FARS fatal accident data — public safety labels (no registration)."""
-    _section("NHTSA FARS — Public safety labels (US, 2015-2022)")
+    """US NHTSA FARS fatal accident data -- public safety labels (no registration)."""
+    _section("NHTSA FARS -- Public safety labels (US, 2015-2022)")
     try:
         from app.training.data_fetch_road_accidents import (
             download_nhtsa_fars, road_accidents_available,
         )
-        print(f"{_INFO}Downloading NHTSA FARS ZIPs for 2015–2022 (~20–40 MB/year) ...")
+        print(f"{_INFO}Downloading NHTSA FARS ZIPs for 2015-2022 (~20-40 MB/year) ...")
         paths = download_nhtsa_fars(years=range(2015, 2023), force=force)
         print(f"{_OK}{len(paths)} FARS files downloaded")
         return len(paths) > 0
@@ -144,16 +143,16 @@ def setup_nhtsa_fars(force: bool = False) -> bool:
 
 
 def setup_eia_oe417(force: bool = False) -> bool:
-    """EIA OE-417 power disturbance reports — power outage labels (no registration)."""
-    _section("EIA OE-417 — Power outage labels (US EIA, 2015-2024)")
+    """EIA OE-417 power disturbance reports -- power outage labels (no registration)."""
+    _section("EIA OE-417 -- Power outage labels (US EIA, 2015-2024)")
     try:
         from app.training.data_fetch_outages import download_eia_oe417, outages_available
         outages_available()  # logs UK embedded status
-        print(f"{_INFO}Downloading EIA OE-417 Excel files for 2015–2024 ...")
+        print(f"{_INFO}Downloading EIA OE-417 Excel files for 2015-2024 ...")
         paths = download_eia_oe417(years=range(2015, 2025), force=force)
         print(f"{_OK}{len(paths)} EIA OE-417 files downloaded")
         if len(paths) < 5:
-            print(f"{_INFO}UK storm outage records are embedded — US coverage is optional")
+            print(f"{_INFO}UK storm outage records are embedded -- US coverage is optional")
         return True  # UK records always present
     except Exception as exc:
         print(f"{_MISSING}EIA OE-417 setup error: {exc}")
@@ -161,8 +160,8 @@ def setup_eia_oe417(force: bool = False) -> bool:
 
 
 def setup_grdc_catalogue(force: bool = False) -> bool:
-    """GRDC station catalogue — water supply labels (free registration required)."""
-    _section("GRDC — Water supply labels (WMO gauge network)")
+    """GRDC station catalogue -- water supply labels (free registration required)."""
+    _section("GRDC -- Water supply labels (WMO gauge network)")
     try:
         from app.training.data_fetch_grdc import (
             download_grdc_station_list, water_supply_data_available,
@@ -178,10 +177,10 @@ def setup_grdc_catalogue(force: bool = False) -> bool:
             if result:
                 print(f"{_OK}GRDC catalogue downloaded: {result}")
             else:
-                print(f"{_INFO}GRDC catalogue unavailable — station data needs manual download")
+                print(f"{_INFO}GRDC catalogue unavailable -- station data needs manual download")
 
         print(f"{_INFO}Static water disruption events are always embedded (Cape Town,")
-        print(f"       UK 2018/2022, São Paulo, Lake Mead, etc.) — GRDC adds precision.")
+        print(f"       UK 2018/2022, São Paulo, Lake Mead, etc.) -- GRDC adds precision.")
         print(f"{_ACTION}For GRDC gauge data: register FREE at https://grdc.bafg.de")
         print(f"       then: python -c \"from app.training.data_fetch_grdc import")
         print(f"       download_grdc_station; download_grdc_station(6122100)\"")
@@ -194,8 +193,8 @@ def setup_grdc_catalogue(force: bool = False) -> bool:
 # 2.  Registration-required datasets
 
 def check_firms_key() -> bool:
-    """NASA FIRMS MAP_KEY — wildfire labels."""
-    _section("NASA FIRMS — Wildfire labels (satellite active fire pixels)")
+    """NASA FIRMS MAP_KEY -- wildfire labels."""
+    _section("NASA FIRMS -- Wildfire labels (satellite active fire pixels)")
     key = os.environ.get("FIRMS_MAP_KEY", "")
     if key:
         print(f"{_OK}FIRMS_MAP_KEY is set ({key[:8]}...)")
@@ -206,14 +205,14 @@ def check_firms_key() -> bool:
         print(f"{_ACTION}Register FREE at: https://firms.modaps.eosdis.nasa.gov/api/map_key/")
         print(f"       Then set: export FIRMS_MAP_KEY=your_key_here")
         print(f"       Without this, wildfire falls back to FWI threshold proxy labels")
-        print(f"       (data_validity='proxy', LeakageSeverity.LOW) — still trainable")
+        print(f"       (data_validity='proxy', LeakageSeverity.LOW) -- still trainable")
         print(f"       but not at maximum scientific quality.")
         return False
 
 
 def check_emdat() -> bool:
-    """EM-DAT global disaster catalog — infrastructure damage labels."""
-    _section("EM-DAT — Infrastructure damage labels (CRED)")
+    """EM-DAT global disaster catalog -- infrastructure damage labels."""
+    _section("EM-DAT -- Infrastructure damage labels (CRED)")
     emdat_path = _AI_ROOT / "data" / "emdat" / "emdat_export.xlsx"
     if emdat_path.exists():
         sz = emdat_path.stat().st_size // 1_000_000
@@ -225,7 +224,7 @@ def check_emdat() -> bool:
         print(f"{_ACTION}Register FREE at: https://public.emdat.be")
         print(f"       (requires institutional/academic affiliation)")
         print(f"       After registration:")
-        print(f"       1. Log in → Data → Select 'All disasters'")
+        print(f"       1. Log in -> Data -> Select 'All disasters'")
         print(f"       2. Download as Excel format")
         print(f"       3. Save to: {emdat_path}")
         print(f"       Without this, infrastructure_damage pipeline will raise")
@@ -261,13 +260,13 @@ def print_summary(results: dict[str, bool]) -> None:
         print(f"  {len(not_ready)} dataset(s) need attention (see [ACTION] items above).")
         print(f"  {len(trainable)} dataset(s) are ready.")
         print()
-        print("  You can still train — pipelines with missing optional data")
+        print("  You can still train -- pipelines with missing optional data")
         print("  will use embedded fallbacks where available:")
         print("    - power_outage:    UK storm records always embedded")
         print("    - water_supply:    static crisis events always embedded")
         print("    - wildfire:        falls back to FWI proxy (still trains)")
         print()
-        print("  infrastructure_damage requires EM-DAT — will be NOT_TRAINABLE")
+        print("  infrastructure_damage requires EM-DAT -- will be NOT_TRAINABLE")
         print("  until emdat_export.xlsx is placed in data/emdat/.")
         print()
         print("  When ready, run:")
@@ -278,7 +277,7 @@ def print_summary(results: dict[str, bool]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="AEGIS AI Engine — Data Setup Helper"
+        description="AEGIS AI Engine -- Data Setup Helper"
     )
     parser.add_argument(
         "--download", action="store_true",
@@ -295,7 +294,7 @@ def main() -> None:
     args = parser.parse_args()
     force = args.download
 
-    print("\nAEGIS AI Engine — Data Setup")
+    print("\nAEGIS AI Engine -- Data Setup")
     print("This script downloads all freely available training data and")
     print("guides you through datasets that require free registration.\n")
 

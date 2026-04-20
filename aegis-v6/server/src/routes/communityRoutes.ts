@@ -24,7 +24,7 @@ import { logger } from '../services/logger.js'
 
 const router = express.Router()
 
-// Rate limiting for community write operations
+//Rate limiting for community write operations
 const communityWriteLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 15,
@@ -33,7 +33,7 @@ const communityWriteLimiter = rateLimit({
   legacyHeaders: false,
 })
 
-// File Upload Configuration
+//File Upload Configuration
 const uploadsDir = path.join(process.cwd(), 'uploads', 'community')
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true })
@@ -63,9 +63,9 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 })
 
-// Helper: Get User Info
+//Helper: Get User Info
 async function getUserInfo(userId: string) {
-  // Single UNION query across both user tables — eliminates the N+1 sequential lookup
+  //Single UNION query across both user tables -- eliminates the N+1 sequential lookup
   const result = await pool.query(
     `SELECT id, email, display_name, avatar_url, role::text AS role FROM citizens WHERE id = $1
      UNION ALL
@@ -76,7 +76,7 @@ async function getUserInfo(userId: string) {
   return result.rows[0] || null
 }
 
-// GET /stats — Community member & activity stats (admin dashboard)
+//GET /stats -- Community member & activity stats (admin dashboard)
 router.get('/stats', authMiddleware, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const [membersRes, onlineRes] = await Promise.all([
@@ -96,7 +96,7 @@ router.get('/stats', authMiddleware, async (_req: AuthRequest, res: Response, ne
   }
 })
 
-// GET /posts/hazard-updates — Hazard-flagged posts only (M6)
+//GET /posts/hazard-updates -- Hazard-flagged posts only (M6)
 router.get('/posts/hazard-updates', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
@@ -126,7 +126,7 @@ router.get('/posts/hazard-updates', authMiddleware, async (req: AuthRequest, res
   }
 })
 
-// GET /posts — List all community posts with cursor pagination (M4)
+//GET /posts -- List all community posts with cursor pagination (M4)
 router.get('/posts', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
@@ -175,7 +175,7 @@ router.get('/posts', authMiddleware, async (req: AuthRequest, res: Response, nex
   }
 })
 
-// POST /posts — Create a new community post
+//POST /posts -- Create a new community post
 router.post('/posts', authMiddleware, communityWriteLimiter, upload.single('image'), validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
@@ -220,33 +220,33 @@ router.post('/posts', authMiddleware, communityWriteLimiter, upload.single('imag
   }
 })
 
-// POST /posts/:postId/like — Like/unlike a post
+//POST /posts/:postId/like -- Like/unlike a post
 router.post('/posts/:postId/like', authMiddleware, communityWriteLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
     if (!userId) throw AppError.unauthorized('Authentication required')
     const { postId } = req.params
 
-    // Check if already liked
+    //Check if already liked
     const likeCheck = await pool.query(
       'SELECT id FROM community_post_likes WHERE post_id = $1 AND user_id = $2',
       [postId, userId]
     )
 
     if (likeCheck.rows.length > 0) {
-      // Unlike
+      //Unlike
       await pool.query(
         'DELETE FROM community_post_likes WHERE post_id = $1 AND user_id = $2',
         [postId, userId]
       )
-      // Get updated count
+      //Get updated count
       const countResult = await pool.query(
         'SELECT COUNT(*) as cnt FROM community_post_likes WHERE post_id = $1',
         [postId]
       )
       const likes_count = parseInt(countResult.rows[0].cnt)
 
-      // Broadcast real-time update to all connected clients
+      //Broadcast real-time update to all connected clients
       const io = req.app.get('io')
       if (io) {
         io.emit('community:post:liked', { postId, userId, liked: false, likes_count })
@@ -254,32 +254,32 @@ router.post('/posts/:postId/like', authMiddleware, communityWriteLimiter, async 
 
       res.json({ liked: false, likes_count })
     } else {
-      // Like
+      //Like
       const likeId = uuid()
       await pool.query(
         'INSERT INTO community_post_likes (id, post_id, user_id, created_at) VALUES ($1, $2, $3, NOW())',
         [likeId, postId, userId]
       )
-      // Get updated count
+      //Get updated count
       const countResult = await pool.query(
         'SELECT COUNT(*) as cnt FROM community_post_likes WHERE post_id = $1',
         [postId]
       )
       const likes_count = parseInt(countResult.rows[0].cnt)
 
-      // Get liker info for notification
+      //Get liker info for notification
       const likerInfo = await getUserInfo(userId)
 
-      // Get post author to notify them
+      //Get post author to notify them
       const postResult = await pool.query('SELECT author_id FROM community_posts WHERE id = $1', [postId])
       const postAuthorId = postResult.rows[0]?.author_id
 
-      // Broadcast real-time update to all connected clients
+      //Broadcast real-time update to all connected clients
       const io = req.app.get('io')
       if (io) {
         io.emit('community:post:liked', { postId, userId, liked: true, likes_count, likerName: likerInfo?.display_name || 'Someone' })
 
-        // Notify post author (if not self-like)
+        //Notify post author (if not self-like)
         if (postAuthorId && postAuthorId !== userId) {
           io.to(`user:${postAuthorId}`).emit('community:post:notification', {
             type: 'like',
@@ -297,7 +297,7 @@ router.post('/posts/:postId/like', authMiddleware, communityWriteLimiter, async 
   }
 })
 
-// GET /posts/:postId/comments — Get comments for a post
+//GET /posts/:postId/comments -- Get comments for a post
 router.get('/posts/:postId/comments', authMiddleware, validate({ query: paginationSchema }), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { postId } = req.params
@@ -328,7 +328,7 @@ router.get('/posts/:postId/comments', authMiddleware, validate({ query: paginati
   }
 })
 
-// POST /posts/:postId/comments — Add a comment
+//POST /posts/:postId/comments -- Add a comment
 router.post('/posts/:postId/comments', authMiddleware, communityWriteLimiter, upload.single('image'), validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
@@ -364,23 +364,23 @@ router.post('/posts/:postId/comments', authMiddleware, communityWriteLimiter, up
       created_at: comment.created_at,
     }
 
-    // Get updated comment count
+    //Get updated comment count
     const countResult = await pool.query(
       'SELECT COUNT(*) as cnt FROM community_comments WHERE post_id = $1 AND deleted_at IS NULL',
       [postId]
     )
     const comments_count = parseInt(countResult.rows[0].cnt)
 
-    // Get post author to notify them
+    //Get post author to notify them
     const postResult = await pool.query('SELECT author_id FROM community_posts WHERE id = $1', [postId])
     const postAuthorId = postResult.rows[0]?.author_id
 
-    // Broadcast real-time update to all connected clients
+    //Broadcast real-time update to all connected clients
     const io = req.app.get('io')
     if (io) {
       io.emit('community:post:commented', { postId, comment: commentPayload, comments_count })
 
-      // Notify post author (if not self-comment)
+      //Notify post author (if not self-comment)
       if (postAuthorId && postAuthorId !== userId) {
         io.to(`user:${postAuthorId}`).emit('community:post:notification', {
           type: 'comment',
@@ -397,7 +397,7 @@ router.post('/posts/:postId/comments', authMiddleware, communityWriteLimiter, up
   }
 })
 
-// PUT /posts/:postId — Edit a post (owner only)
+//PUT /posts/:postId -- Edit a post (owner only)
 router.put('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
@@ -409,7 +409,7 @@ router.put('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Respo
       throw AppError.badRequest('Content is required')
     }
 
-    // Only the owner can edit
+    //Only the owner can edit
     const postCheck = await pool.query(
       'SELECT author_id FROM community_posts WHERE id = $1 AND deleted_at IS NULL',
       [postId]
@@ -438,7 +438,7 @@ router.put('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Respo
   }
 })
 
-// DELETE /posts/:postId — Delete a post (owner only)
+//DELETE /posts/:postId -- Delete a post (owner only)
 router.delete('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
@@ -447,7 +447,7 @@ router.delete('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Re
     const user = (req as any).user
     const isAdmin = user && ['admin', 'operator'].includes(String(user?.role || '').toLowerCase())
 
-    // Check post exists
+    //Check post exists
     const postCheck = await pool.query(
       'SELECT author_id FROM community_posts WHERE id = $1 AND deleted_at IS NULL',
       [postId]
@@ -457,13 +457,13 @@ router.delete('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Re
       throw AppError.notFound('Post not found')
     }
 
-    // Owner can always delete their own posts
+    //Owner can always delete their own posts
     if (postCheck.rows[0].author_id === userId) {
       await pool.query('UPDATE community_posts SET deleted_at = NOW() WHERE id = $1', [postId])
       return res.json({ deleted: true })
     }
 
-    // Admin can delete ONLY if post has been reported
+    //Admin can delete ONLY if post has been reported
     if (isAdmin) {
       const reportCheck = await pool.query(
         'SELECT COUNT(*) as cnt FROM community_post_reports WHERE post_id = $1',
@@ -473,7 +473,7 @@ router.delete('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Re
         throw AppError.forbidden('Admins can only delete reported posts')
       }
       await pool.query('UPDATE community_posts SET deleted_at = NOW() WHERE id = $1', [postId])
-      // Log moderation action for audit trail
+      //Log moderation action for audit trail
       await pool.query(
         `INSERT INTO community_moderation_logs (id, admin_id, action, target_type, target_id, reason, created_at)
          VALUES (gen_random_uuid(), $1, 'delete_post', 'post', $2, 'Reported post removed by admin', NOW())`,
@@ -489,7 +489,7 @@ router.delete('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Re
   }
 })
 
-// POST /posts/:postId/report — Report a community post
+//POST /posts/:postId/report -- Report a community post
 router.post('/posts/:postId/report', authMiddleware, communityWriteLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
@@ -504,7 +504,7 @@ router.post('/posts/:postId/report', authMiddleware, communityWriteLimiter, asyn
       throw AppError.badRequest('Invalid reason')
     }
 
-    // Check post exists
+    //Check post exists
     const postCheck = await pool.query(
       'SELECT id, author_id FROM community_posts WHERE id = $1 AND deleted_at IS NULL',
       [postId]
@@ -513,12 +513,12 @@ router.post('/posts/:postId/report', authMiddleware, communityWriteLimiter, asyn
       throw AppError.notFound('Post not found')
     }
 
-    // Can't report own post
+    //Can't report own post
     if (postCheck.rows[0].author_id === userId) {
       throw AppError.badRequest('Cannot report your own post')
     }
 
-    // Insert report (ON CONFLICT ignore duplicate)
+    //Insert report (ON CONFLICT ignore duplicate)
     await pool.query(
       `INSERT INTO community_post_reports (id, post_id, reporter_id, reason, details)
        VALUES ($1, $2, $3, $4, $5)
@@ -526,7 +526,7 @@ router.post('/posts/:postId/report', authMiddleware, communityWriteLimiter, asyn
       [uuid(), postId, userId, reason, details || null]
     )
 
-    // Get updated report count
+    //Get updated report count
     const countResult = await pool.query(
       'SELECT COUNT(*) as cnt FROM community_post_reports WHERE post_id = $1',
       [postId]
@@ -538,7 +538,7 @@ router.post('/posts/:postId/report', authMiddleware, communityWriteLimiter, asyn
   }
 })
 
-// GET /chat/messages — Get community chat history (M5: search support)
+//GET /chat/messages -- Get community chat history (M5: search support)
 router.get('/chat/messages', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const limit = parseInt((req.query.limit as string) || '50')
@@ -606,7 +606,7 @@ router.get('/chat/messages', authMiddleware, async (req: AuthRequest, res: Respo
   }
 })
 
-// GET /chat/profile/:senderType/:senderId — Public profile for community chat
+//GET /chat/profile/:senderType/:senderId -- Public profile for community chat
 router.get('/chat/profile/:senderType/:senderId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const senderType = String(req.params.senderType || '').toLowerCase()
@@ -657,7 +657,7 @@ router.get('/chat/profile/:senderType/:senderId', authMiddleware, async (req: Au
   }
 })
 
-// POST /join — Join community chat
+//POST /join -- Join community chat
 router.post('/join', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
@@ -666,7 +666,7 @@ router.post('/join', authMiddleware, async (req: AuthRequest, res: Response, nex
     const isOp = !['citizen', 'verified_citizen', 'community_leader'].includes(userRole)
     const userType = isOp ? 'operator' : 'citizen'
 
-    // Check if banned
+    //Check if banned
     const banCheck = await pool.query(
       `SELECT reason, is_permanent, expires_at FROM community_bans WHERE user_id = $1 AND (is_permanent = true OR expires_at > NOW())`,
       [userId]
@@ -693,7 +693,7 @@ router.post('/join', authMiddleware, async (req: AuthRequest, res: Response, nex
   }
 })
 
-// DELETE /leave — Leave community chat
+//DELETE /leave -- Leave community chat
 router.delete('/leave', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
@@ -705,7 +705,7 @@ router.delete('/leave', authMiddleware, async (req: AuthRequest, res: Response, 
   }
 })
 
-// GET /membership — Check membership status
+//GET /membership -- Check membership status
 router.get('/membership', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
@@ -739,7 +739,7 @@ router.get('/membership', authMiddleware, async (req: AuthRequest, res: Response
   }
 })
 
-// GET /chat/preview — Get last 5 messages for non-members
+//GET /chat/preview -- Get last 5 messages for non-members
 router.get('/chat/preview', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await pool.query(`
@@ -762,7 +762,7 @@ router.get('/chat/preview', async (_req: Request, res: Response, next: NextFunct
   }
 })
 
-// POST /chat/upload — Upload image for community chat
+//POST /chat/upload -- Upload image for community chat
 router.post('/chat/upload', authMiddleware, upload.single('image'), validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.file) {
@@ -775,12 +775,12 @@ router.post('/chat/upload', authMiddleware, upload.single('image'), validateMagi
   }
 })
 
-// POST /citizens/:citizenId/suspend — Suspend citizen account (operators only)
+//POST /citizens/:citizenId/suspend -- Suspend citizen account (operators only)
 router.post('/citizens/:citizenId/suspend', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const citizenId = req.params.citizenId
 
-    // Prefer suspension fields; fall back to legacy soft-delete if the schema lacks them.
+    //Prefer suspension fields; fall back to legacy soft-delete if the schema lacks them.
     let result
     try {
       result = await pool.query(
@@ -818,19 +818,19 @@ router.post('/citizens/:citizenId/suspend', authMiddleware, operatorOnly, async 
   }
 })
 
-// DELETE /citizens/:citizenId — Delete citizen account (self or operators)
+//DELETE /citizens/:citizenId -- Delete citizen account (self or operators)
 router.delete('/citizens/:citizenId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const citizenId = req.params.citizenId
     const user = req.user
     const isOperator = ['admin', 'operator', 'manager'].includes(String(user?.role || '').toLowerCase())
     
-    // Allow self-deletion or admin deletion
+    //Allow self-deletion or admin deletion
     if (user?.id !== citizenId && !isOperator) {
       throw AppError.forbidden('Unauthorized')
     }
     
-    // Soft delete
+    //Soft delete
     const result = await pool.query(
       `UPDATE citizens SET deleted_at = NOW() WHERE id = $1 RETURNING id, display_name`,
       [citizenId]

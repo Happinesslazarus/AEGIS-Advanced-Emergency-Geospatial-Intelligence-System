@@ -11,7 +11,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, ReactNode } from 'react'
 
-// ANIMATED PRESENCE — Mount/unmount with animation
+//ANIMATED PRESENCE -- Mount/unmount with animation
 
 interface AnimatedPresenceProps {
   show: boolean
@@ -82,7 +82,7 @@ export function AnimatedPresence({
   )
 }
 
-// STAGGERED LIST — Animate list items with delay
+//STAGGERED LIST -- Animate list items with delay
 
 interface StaggeredListProps {
   children: ReactNode[]
@@ -122,7 +122,7 @@ export function StaggeredList({
   )
 }
 
-// ANIMATED NUMBER — Count-up animation for statistics
+//ANIMATED NUMBER -- Count-up animation for statistics
 
 interface AnimatedNumberProps {
   value: number
@@ -154,7 +154,7 @@ export function AnimatedNumber({
       const elapsed = currentTime - startTime.current
       const progress = Math.min(elapsed / duration, 1)
 
-      // Ease out cubic
+      //Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3)
       const current = startValue.current + (value - startValue.current) * eased
 
@@ -177,7 +177,7 @@ export function AnimatedNumber({
   )
 }
 
-// RIPPLE BUTTON — Material-style ripple effect
+//RIPPLE BUTTON -- Material-style ripple effect
 
 interface RippleButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode
@@ -240,7 +240,7 @@ export function RippleButton({
   )
 }
 
-// FOCUS RING — Accessible focus indicator
+//FOCUS RING -- Accessible focus indicator
 
 export const focusRingClasses =
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-aegis-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900'
@@ -248,7 +248,7 @@ export const focusRingClasses =
 export const focusRingClassesInset =
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-aegis-500'
 
-// USE INTERSECTION — Animate when element enters viewport
+//USE INTERSECTION -- Animate when element enters viewport
 
 export function useIntersection(
   options: IntersectionObserverInit = { threshold: 0.1 }
@@ -274,7 +274,7 @@ export function useIntersection(
   return [ref, isVisible]
 }
 
-// REVEAL ON SCROLL — Wrapper component for scroll-triggered animations
+//REVEAL ON SCROLL -- Wrapper component for scroll-triggered animations
 
 interface RevealOnScrollProps {
   children: ReactNode
@@ -327,7 +327,7 @@ export function RevealOnScroll({
   )
 }
 
-// SUCCESS CHECKMARK — Animated success indicator
+//SUCCESS CHECKMARK -- Animated success indicator
 
 export function SuccessCheckmark({ size = 48, className = '' }: { size?: number; className?: string }) {
   return (
@@ -377,7 +377,7 @@ export function SuccessCheckmark({ size = 48, className = '' }: { size?: number;
   )
 }
 
-// LOADING DOTS — Animated loading indicator
+//LOADING DOTS -- Animated loading indicator
 
 export function LoadingDots({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   const sizes = {
@@ -400,7 +400,7 @@ export function LoadingDots({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   )
 }
 
-// PULSE DOT — Live indicator with pulse animation
+//PULSE DOT -- Live indicator with pulse animation
 
 interface PulseDotProps {
   color?: 'green' | 'red' | 'amber' | 'blue'
@@ -437,7 +437,7 @@ export function PulseDot({ color = 'green', size = 'sm', label }: PulseDotProps)
   )
 }
 
-// TYPEWRITER — Text typing animation
+//TYPEWRITER -- Text typing animation
 
 interface TypewriterProps {
   text: string

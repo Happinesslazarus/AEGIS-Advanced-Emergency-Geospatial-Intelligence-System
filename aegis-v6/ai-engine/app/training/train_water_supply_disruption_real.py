@@ -5,19 +5,19 @@ event records from two sources:
   1. GRDC (Global Runoff Data Centre) measured river discharge:
      Q10 low-flow labels (10th percentile of gauge record) for drought mode,
      Q90 high-flow labels for flood-turbidity mode.  Station gauge data is
-     independent of ERA5 — measured by national hydrological agencies.
+     independent of ERA5 -- measured by national hydrological agencies.
      Registration required: https://grdc.bafg.de
 
   2. Curated static water supply disruption events (embedded):
      20+ documented WHO/EA/USBR/ANA water supply disruption events from
-     5 continents (2015–2023).  These are service restriction or crisis events
-     from official water authority reports — not meteorological thresholds.
+     5 continents (2015-2023).  These are service restriction or crisis events
+     from official water authority reports -- not meteorological thresholds.
 
 Label independence:
   GRDC discharge = observed river telemetry (not ERA5 reanalysis)
   Static events = official water authority declarations (not ERA5)
   Features = ERA5 meteorological variables from Open-Meteo
-  → LeakageSeverity.NONE
+ -> LeakageSeverity.NONE
 
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Labels from data_fetch_grdc.py (GRDC + static events)
@@ -54,7 +54,7 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
             "GRDC (Global Runoff Data Centre, WMO) measured daily discharge: "
             "Q10 low-flow (drought) and Q90 high-flow (turbidity/contamination) "
             "labels at 22 key gauges globally.  "
-            "Curated static water supply disruption events (2015–2023): "
+            "Curated static water supply disruption events (2015-2023): "
             "WHO/EA/USBR/ANA/BOM documented water crises and restrictions from "
             "Cape Town Day Zero, Jordan water crisis, São Paulo Cantareira, "
             "Lake Mead shortage, UK 2018/2022 droughts, and more. "
@@ -81,7 +81,7 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
             ),
             "limitations": (
                 "GRDC station download requires free registration. "
-                "Static events are curated to documented disruptions — minor local "
+                "Static events are curated to documented disruptions -- minor local "
                 "disruptions not reaching national news are absent. "
                 "Q10/Q90 thresholds use station-specific long-term climatology "
                 "which requires multi-decade GRDC records."
@@ -99,11 +99,11 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
         # allow_temporal_drift=True because this is a GLOBAL 22-station model spanning
         # both hemispheres.  Northern and southern hemisphere drought seasons are offset
         # by 6 months, so quarter-to-quarter AUC variance is expected and does NOT
-        # indicate model degradation — it reflects legitimate seasonal heterogeneity
+        # indicate model degradation -- it reflects legitimate seasonal heterogeneity
         # across the training grid.  Drift is recorded as a warning, not a blocker.
         allow_temporal_drift=True,
         fixed_test_date="2022-01-01",
-        # GRDC/static event labels cluster in 2016–2021; 2022–2023 test window
+        # GRDC/static event labels cluster in 2016-2021; 2022-2023 test window
         # is sparsely populated.  Train as PARTIAL with CV-only AUC.
         allow_sparse_test=True,
     )
@@ -135,7 +135,7 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
         """Build water supply disruption labels from GRDC + static events."""
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build water supply labels")
+            raise RuntimeError("No weather data -- cannot build water supply labels")
 
         water_supply_data_available()  # logs data availability status
 
@@ -143,7 +143,7 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
         eff_start, eff_end = self._effective_dates()
         if eff_start != self.start_date or eff_end != self.end_date:
             logger.info(
-                f"Water supply: effective window {eff_start}–{eff_end} "
+                f"Water supply: effective window {eff_start}-{eff_end} "
                 f"(static events cover through {self._WATER_LAST_STATIC})"
             )
 
@@ -152,7 +152,7 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
             start_date=eff_start,
             end_date=eff_end,
             radius_km=200.0,
-            mode="drought",  # Q10 low-flow only — Q90 flood signal conflicts with drought features
+            mode="drought",  # Q10 low-flow only -- Q90 flood signal conflicts with drought features
         )
 
         # Supplement with EM-DAT drought/flood events if label count is thin
@@ -173,7 +173,7 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
         if labels.empty:
             raise RuntimeError(
                 "Water supply label builder returned empty result even after EM-DAT supplement.  "
-                f"Effective window: {eff_start}–{eff_end}.  "
+                f"Effective window: {eff_start}-{eff_end}.  "
                 "For GRDC gauge data: from app.training.data_fetch_grdc import "
                 "download_grdc_station; download_grdc_station(6122100)"
             )
@@ -190,7 +190,7 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
         """Build per-station features with soil moisture, ET, and station geography."""
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build features")
+            raise RuntimeError("No weather data -- cannot build features")
         features = build_per_station_features(
             weather,
             self.feature_engineer,
@@ -220,7 +220,7 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
     def hazard_feature_columns(self) -> list[str]:
         """Feature columns for water supply disruption 24h-ahead forecasting.
 
-        Labels from GRDC gauge discharge and static crisis events — all ERA5
+        Labels from GRDC gauge discharge and static crisis events -- all ERA5
         features are legitimate (no shared data source).
         """
         return [
@@ -233,7 +233,7 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
             "antecedent_rainfall_60d", "antecedent_rainfall_90d",
             "days_since_significant_rain",
             "rainfall_anomaly_monthly",
-            # SPEI drought indices — gold-standard water-stress signals
+            # SPEI drought indices -- gold-standard water-stress signals
             # (Vicente-Serrano et al., 2010). SPEI-3 captures seasonal water
             # deficit; SPEI-12 captures chronic multi-year drought stress on
             # reservoir and aquifer levels.
@@ -249,7 +249,7 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
             "temperature_2m", "temperature_anomaly",
             # Freezing (pipe bursts, infrastructure freeze)
             "freeze_thaw_cycles",
-            # Wind (secondary — evaporation driver)
+            # Wind (secondary -- evaporation driver)
             "wind_speed_10m",
             # Temporal
             "season_sin", "season_cos", "month",
@@ -257,20 +257,20 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
 
 
     def post_train_hook(self, calibrated_model, dataset, feature_cols, output_dir) -> dict:
-        """Geographic holdout evaluation — measures spatial generalisation.
+        """Geographic holdout evaluation -- measures spatial generalisation.
 
         Partitions the full merged dataset into four geographic clusters and
         evaluates the trained model on each cluster independently.  This is a
-        POST-HOC evaluation only — no data is excluded from training.  Its
+        POST-HOC evaluation only -- no data is excluded from training.  Its
         purpose is to diagnose whether the model generalises to each climate
         zone or whether high overall AUC masks poor performance in individual
         regions (e.g. performs well on Europe but poorly on the Middle East).
 
         Clusters
-        --------
+
         europe_uk   : lat > 48°N   (UK, Germany, Rhine, Thames, Scotland)
         north_am    : lat > 20°N and lon < -50°W  (Phoenix, Columbia, Mississippi)
-        middle_east : lat 20–40°N and lon 30–60°E  (Jordan, Baghdad)
+        middle_east : lat 20-40°N and lon 30-60°E  (Jordan, Baghdad)
         s_hemisphere: lat < 0°     (Cape Town, São Paulo, Sydney, Perth, Adelaide)
 
         Results saved to geographic_holdout.json in the model artifact directory.
@@ -281,7 +281,7 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
         from sklearn.metrics import roc_auc_score as _roc_auc_score
 
         if dataset is None or "station_lat" not in dataset.columns:
-            logger.warning("Geographic holdout skipped — station_lat not in dataset")
+            logger.warning("Geographic holdout skipped -- station_lat not in dataset")
             return {}
 
         clusters = {
@@ -322,16 +322,16 @@ class WaterSupplyDisruptionRealPipeline(BaseRealPipeline):
                 cluster_results[cluster_name] = {
                     "n_total": len(y_sub), "n_positive": 0, "n_negative": n_neg,
                     "roc_auc": None,
-                    "note": "no positive examples in cluster — AUC undefined",
+                    "note": "no positive examples in cluster -- AUC undefined",
                 }
-                logger.info(f"  Geographic holdout [{cluster_name}]: {len(y_sub)} samples, 0 positives — AUC undefined")
+                logger.info(f"  Geographic holdout [{cluster_name}]: {len(y_sub)} samples, 0 positives -- AUC undefined")
                 continue
 
             try:
                 proba = calibrated_model.predict_proba(X_sub)[:, 1]
                 if len(_np.unique(y_sub)) < 2:
                     auc = None
-                    note = "single class — AUC undefined"
+                    note = "single class -- AUC undefined"
                 else:
                     auc = float(_roc_auc_score(y_sub, proba))
                     note = ""

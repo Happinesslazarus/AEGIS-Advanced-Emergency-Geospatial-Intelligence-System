@@ -10,7 +10,7 @@
   * - Run via: npm test -- aiRegistry
  */
 
-// Environment bootstrap (must be before any imports that read env)
+//Environment bootstrap (must be before any imports that read env)
 process.env.JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-at-least-32-chars'
 process.env.NODE_ENV = 'test'
@@ -29,7 +29,7 @@ import {
 import { insertCitizen, insertOperator } from './helpers/testFixtures'
 import { AppError } from '../utils/AppError'
 
-// Mock AI client responses
+//Mock AI client responses
 
 const MOCK_ALL_HEALTH = {
   items: [
@@ -105,7 +105,7 @@ const MOCK_MARK_DEGRADED = {
   recommended_rollback_version: 'v2026.03.03.080723',
 }
 
-// Prometheus gauge tracker (replaces real prom-client calls)
+//Prometheus gauge tracker (replaces real prom-client calls)
 
 const gaugeCallLog: Array<{ labels: Record<string, string>; value: number }> = []
 const mockGaugeSet = jest.fn((labels: Record<string, string>, value: number) => {
@@ -113,8 +113,8 @@ const mockGaugeSet = jest.fn((labels: Record<string, string>, value: number) => 
 })
 const mockMetric = { set: mockGaugeSet, inc: jest.fn() }
 
-// In-process aiClient mock
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+//In-process aiClient mock
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockAiClient: Record<string, jest.Mock<any>> = {
   getAllRegistryHealth: jest.fn(),
   getRegistryHealth: jest.fn(),
@@ -123,7 +123,7 @@ const mockAiClient: Record<string, jest.Mock<any>> = {
   markRegistryDegraded: jest.fn(),
 }
 
-// App factory
+//App factory
 
 let app: express.Express
 
@@ -140,12 +140,12 @@ function buildRegistryTestApp(): express.Express {
   const _app = express()
   _app.use(express.json())
 
-  // Import real auth middleware so auth enforcement is not mocked
+  //Import real auth middleware so auth enforcement is not mocked
   const { authMiddleware, operatorOnly } = require('../middleware/auth')
 
   const router = express.Router()
 
-  // GET /health
+  //GET /health
   router.get('/health', authMiddleware, operatorOnly, async (_req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await mockAiClient.getAllRegistryHealth()
@@ -159,7 +159,7 @@ function buildRegistryTestApp(): express.Express {
     } catch (err) { next(err) }
   })
 
-  // GET /health/:hazardType/:regionId
+  //GET /health/:hazardType/:regionId
   router.get('/health/:hazardType/:regionId', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { hazardType, regionId } = req.params
@@ -174,7 +174,7 @@ function buildRegistryTestApp(): express.Express {
     } catch (err) { next(err) }
   })
 
-  // GET /drift/:hazardType/:regionId/:version
+  //GET /drift/:hazardType/:regionId/:version
   router.get('/drift/:hazardType/:regionId/:version', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { hazardType, regionId, version } = req.params
@@ -188,7 +188,7 @@ function buildRegistryTestApp(): express.Express {
     } catch (err) { next(err) }
   })
 
-  // GET /recommend-rollback/:hazardType/:regionId
+  //GET /recommend-rollback/:hazardType/:regionId
   router.get('/recommend-rollback/:hazardType/:regionId', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { hazardType, regionId } = req.params
@@ -197,7 +197,7 @@ function buildRegistryTestApp(): express.Express {
     } catch (err) { next(err) }
   })
 
-  // POST /mark-degraded/:hazardType/:regionId/:version
+  //POST /mark-degraded/:hazardType/:regionId/:version
   router.post('/mark-degraded/:hazardType/:regionId/:version', authMiddleware, operatorOnly, async (req: any, res: Response, next: NextFunction) => {
     try {
       if (req.user?.role !== 'admin') {
@@ -226,7 +226,7 @@ function buildRegistryTestApp(): express.Express {
 
   _app.use('/api/ai/registry', router)
 
-  // Error handler
+  //Error handler
   _app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.statusCode ?? err.status ?? 500
     res.status(status).json({ error: err.message ?? 'Internal Server Error' })
@@ -235,14 +235,14 @@ function buildRegistryTestApp(): express.Express {
   return _app
 }
 
-// Lifecycle
+//Lifecycle
 
 beforeAll(async () => {
   app = buildRegistryTestApp()
   await ensureTestSchema()
   await insertCitizen()
   await insertOperator()
-  // Insert admin so JWT operator_id can be traced in activity_log
+  //Insert admin so JWT operator_id can be traced in activity_log
   await insertOperator({
     id: TEST_ADMIN.id,
     email: TEST_ADMIN.email,
@@ -252,7 +252,7 @@ beforeAll(async () => {
 }, 30_000)
 
 beforeEach(() => {
-  // Reset all mock state before each test
+  //Reset all mock state before each test
   jest.clearAllMocks()
   gaugeCallLog.length = 0
   mockAiClient.getAllRegistryHealth.mockResolvedValue(MOCK_ALL_HEALTH)
@@ -272,11 +272,11 @@ afterAll(async () => {
   await closeTestPool()
 })
 
-// TESTS
+//TESTS
 
-describe('AI Model Governance — Registry Integration Tests', () => {
+describe('AI Model Governance -- Registry Integration Tests', () => {
 
-  // 1. Authentication protection (applies to all routes)
+  //1. Authentication protection (applies to all routes)
   describe('Authentication & Authorisation', () => {
 
     it('should deny unauthenticated GET /registry/health ? 401', async () => {
@@ -351,8 +351,8 @@ describe('AI Model Governance — Registry Integration Tests', () => {
     })
   })
 
-  // 2. GET /api/ai/registry/health (all models)
-  describe('GET /api/ai/registry/health — All model health', () => {
+  //2. GET /api/ai/registry/health (all models)
+  describe('GET /api/ai/registry/health -- All model health', () => {
 
     it('should return 200 with items array for operator', async () => {
       const res = await request(app)
@@ -403,7 +403,7 @@ describe('AI Model Governance — Registry Integration Tests', () => {
         .get('/api/ai/registry/health')
         .set(...authHeader(operatorToken()))
 
-      // 3 items — 2 gauge updates (drift + alert_status)
+      //3 items -- 2 gauge updates (drift + alert_status)
       expect(mockGaugeSet).toHaveBeenCalledTimes(6)
       const callArgs = mockGaugeSet.mock.calls[0] as [Record<string, string>, number]
       expect(callArgs[0]).toHaveProperty('hazard', 'flood')
@@ -443,13 +443,13 @@ describe('AI Model Governance — Registry Integration Tests', () => {
         .get('/api/ai/registry/health')
         .set(...authHeader(operatorToken()))
 
-      // No gauge calls — item has no current_version
+      //No gauge calls -- item has no current_version
       expect(mockGaugeSet).not.toHaveBeenCalled()
     })
   })
 
-  // 3. GET /api/ai/registry/health/:hazard/:region
-  describe('GET /api/ai/registry/health/:hazard/:region — Single model health', () => {
+  //3. GET /api/ai/registry/health/:hazard/:region
+  describe('GET /api/ai/registry/health/:hazard/:region -- Single model health', () => {
 
     it('should return 200 with flood/uk-default health for operator', async () => {
       const res = await request(app)
@@ -530,8 +530,8 @@ describe('AI Model Governance — Registry Integration Tests', () => {
     })
   })
 
-  // 4. GET /api/ai/registry/drift/:hazard/:region/:version
-  describe('GET /api/ai/registry/drift/:hazard/:region/:version — Drift snapshot', () => {
+  //4. GET /api/ai/registry/drift/:hazard/:region/:version
+  describe('GET /api/ai/registry/drift/:hazard/:region/:version -- Drift snapshot', () => {
 
     it('should return 200 with snapshot data for operator', async () => {
       const res = await request(app)
@@ -601,7 +601,7 @@ describe('AI Model Governance — Registry Integration Tests', () => {
         .get('/api/ai/registry/drift/flood/uk-default/v1')
         .set(...authHeader(operatorToken()))
 
-      // alertLevelToMetric('HEALTHY' undefined) ? 0
+      //alertLevelToMetric('HEALTHY' undefined) ? 0
       const zeroCall = gaugeCallLog.find(c => c.value === 0)
       expect(zeroCall).toBeDefined()
     })
@@ -617,8 +617,8 @@ describe('AI Model Governance — Registry Integration Tests', () => {
     })
   })
 
-  // 5. GET /api/ai/registry/recommend-rollback/:hazard/:region
-  describe('GET /api/ai/registry/recommend-rollback/:hazard/:region — Rollback recommendation', () => {
+  //5. GET /api/ai/registry/recommend-rollback/:hazard/:region
+  describe('GET /api/ai/registry/recommend-rollback/:hazard/:region -- Rollback recommendation', () => {
 
     it('should return 200 with rollback recommendation for operator', async () => {
       const res = await request(app)
@@ -690,8 +690,8 @@ describe('AI Model Governance — Registry Integration Tests', () => {
     })
   })
 
-  // 6. POST /api/ai/registry/mark-degraded/:hazard/:region/:version
-  describe('POST /api/ai/registry/mark-degraded/:hazard/:region/:version — Mark degraded', () => {
+  //6. POST /api/ai/registry/mark-degraded/:hazard/:region/:version
+  describe('POST /api/ai/registry/mark-degraded/:hazard/:region/:version -- Mark degraded', () => {
 
     it('should return 200 with success status for admin', async () => {
       const res = await request(app)
@@ -816,7 +816,7 @@ describe('AI Model Governance — Registry Integration Tests', () => {
 
       const pool = getTestPool()
       const { rows } = await pool.query('SELECT * FROM activity_log')
-      // aiClient failed before the DB write
+      //aiClient failed before the DB write
       expect(rows.length).toBe(0)
     })
 
@@ -834,7 +834,7 @@ describe('AI Model Governance — Registry Integration Tests', () => {
     })
   })
 
-  // 7. Prometheus metric value correctness
+  //7. Prometheus metric value correctness
   describe('Prometheus gauge value correctness', () => {
 
     it('alertLevelToMetric: INFO model sets gauge to 1', async () => {
@@ -893,7 +893,7 @@ describe('AI Model Governance — Registry Integration Tests', () => {
     })
   })
 
-  // 8. Snapshot row checks (model_monitoring_snapshots via aiClient mock)
+  //8. Snapshot row checks (model_monitoring_snapshots via aiClient mock)
   describe('Monitoring snapshot table (via aiClient mock verification)', () => {
 
     it('mockAiClient.getRegistryDrift is called once per drift request', async () => {

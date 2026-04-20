@@ -1,5 +1,5 @@
 ﻿/**
- * Device fingerprinting and trust management — generates SHA-256 fingerprints
+ * Device fingerprinting and trust management -- generates SHA-256 fingerprints
  * from User-Agent + IP subnet + operator ID and tracks trusted devices with
  * 30-day expiry (max 10 per user).
  *
@@ -15,12 +15,12 @@ import { logSecurityEvent } from './securityLogger.js'
 const TRUST_DURATION_DAYS = 30
 const MAX_TRUSTED_DEVICES = 10
 
-// Device Fingerprinting
+//Device Fingerprinting
 
 /**
  * Generate a deterministic device fingerprint hash.
  * Components: user-agent + operator ID (IP excluded so trust persists across
- * dynamic IPs, VPNs, and network changes — consistent with browser "remember me").
+ * dynamic IPs, VPNs, and network changes -- consistent with browser "remember me").
  */
 export function generateDeviceFingerprint(
   userAgent: string,
@@ -38,12 +38,12 @@ export function generateDeviceFingerprint(
  */
 function extractSubnet(ip: string): string {
   if (!ip) return 'unknown'
-  // IPv4
+  //IPv4
   const v4Parts = ip.replace(/^::ffff:/, '').split('.')
   if (v4Parts.length === 4) {
     return v4Parts.slice(0, 3).join('.')
   }
-  // IPv6: use first 4 groups
+  //IPv6: use first 4 groups
   const v6Parts = ip.split(':')
   if (v6Parts.length >= 4) {
     return v6Parts.slice(0, 4).join(':')
@@ -74,7 +74,7 @@ export function deriveDeviceName(userAgent: string): string {
   return `${browser} on ${os}`
 }
 
-// Trust Management
+//Trust Management
 
 /**
  * Check if a device is currently trusted for a given operator.
@@ -100,7 +100,7 @@ export async function isDeviceTrusted(
 
   if (result.rows.length === 0) return null
 
-  // Update last_used_at
+  //Update last_used_at
   await pool.query(
     'UPDATE trusted_devices SET last_used_at = NOW() WHERE id = $1',
     [result.rows[0].id]
@@ -121,7 +121,7 @@ export async function trustDevice(
   const deviceName = deriveDeviceName(userAgent)
   const expiresAt = new Date(Date.now() + TRUST_DURATION_DAYS * 24 * 60 * 60 * 1000)
 
-  // Upsert: if device already trusted, refresh expiry
+  //Upsert: if device already trusted, refresh expiry
   const result = await pool.query(
     `INSERT INTO trusted_devices (operator_id, device_hash, device_name, ip_address, expires_at)
      VALUES ($1, $2, $3, $4, $5)
@@ -130,8 +130,8 @@ export async function trustDevice(
     [operatorId, deviceHash, deviceName, ipAddress, expiresAt]
   )
 
-  // If insert failed due to no unique constraint on (operator_id, device_hash),
-  // try update existing
+  //If insert failed due to no unique constraint on (operator_id, device_hash),
+  //try update existing
   if (result.rows.length === 0) {
     const updateResult = await pool.query(
       `UPDATE trusted_devices
@@ -145,7 +145,7 @@ export async function trustDevice(
       return { deviceId: updateResult.rows[0].id, expiresAt }
     }
 
-    // Fresh insert (no existing record)
+    //Fresh insert (no existing record)
     const insertResult = await pool.query(
       `INSERT INTO trusted_devices (operator_id, device_hash, device_name, ip_address, expires_at)
        VALUES ($1, $2, $3, $4, $5)
@@ -153,7 +153,7 @@ export async function trustDevice(
       [operatorId, deviceHash, deviceName, ipAddress, expiresAt]
     )
 
-    // Enforce max devices limit - remove oldest
+    //Enforce max devices limit - remove oldest
     await enforceDeviceLimit(operatorId)
 
     return { deviceId: insertResult.rows[0].id, expiresAt }

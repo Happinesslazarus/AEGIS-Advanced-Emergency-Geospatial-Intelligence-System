@@ -20,7 +20,7 @@ function speak(text: string, rate = 1.0): void {
   u.rate = rate
   u.pitch = 1
   u.volume = 1
-  // Prefer an English voice
+  //Prefer an English voice
   const voices = window.speechSynthesis.getVoices()
   const en = voices.find(v => v.lang.startsWith('en') && v.default) || voices.find(v => v.lang.startsWith('en'))
   if (en) u.voice = en
@@ -33,7 +33,7 @@ export default function AccessibilityPanel(): JSX.Element {
   const [s, setS] = useState<A11y>(() => { try { const v = localStorage.getItem('aegis-a11y'); return v ? { ...DEF, ...JSON.parse(v) } : DEF } catch { return DEF } })
   const observerRef = useRef<MutationObserver | null>(null)
 
-  // Apply CSS-based accessibility settings
+  //Apply CSS-based accessibility settings
   useEffect(() => {
     localStorage.setItem('aegis-a11y', JSON.stringify(s)); const r = document.documentElement
     r.classList.toggle('high-contrast', s.highContrast); r.classList.toggle('large-text', s.largeText)
@@ -42,12 +42,12 @@ export default function AccessibilityPanel(): JSX.Element {
     document.body.style.filter = s.colourBlind !== 'none' ? `url(#${s.colourBlind})` : ''
   }, [s])
 
-  // Screen reader: read focused element on hover/focus, read alerts automatically
+  //Screen reader: read focused element on hover/focus, read alerts automatically
   const handleFocusRead = useCallback((e: FocusEvent | MouseEvent) => {
     if (!s.screenReader) return
     const el = e.target as HTMLElement
     if (!el) return
-    // Read from aria-label, alt, textContent in priority
+    //Read from aria-label, alt, textContent in priority
     const text = el.getAttribute('aria-label')
       || (el as HTMLImageElement).alt
       || el.getAttribute('title')
@@ -63,18 +63,18 @@ export default function AccessibilityPanel(): JSX.Element {
       return
     }
 
-    // Announce activation
+    //Announce activation
     speak('Screen reader activated. Hover over or focus on elements to hear them read aloud.')
 
-    // Listen for focus events to read out elements
+    //Listen for focus events to read out elements
     document.addEventListener('focusin', handleFocusRead, true)
 
-    // MutationObserver: automatically read new alert/notification elements
+    //MutationObserver: automatically read new alert/notification elements
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
         m.addedNodes.forEach(node => {
           if (!(node instanceof HTMLElement)) return
-          // Read elements with role="alert", role="status", or aria-live
+          //Read elements with role="alert", role="status", or aria-live
           const alertEl = node.matches('[role="alert"],[role="status"],[aria-live]')
             ? node
             : node.querySelector('[role="alert"],[role="status"],[aria-live]')

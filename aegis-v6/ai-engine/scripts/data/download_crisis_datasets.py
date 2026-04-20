@@ -487,7 +487,7 @@ def try_hf_download(data_root: Path) -> pd.DataFrame:
             "default",
             ["label", "category", "disaster_type", "class"],
         ),
-        # DisasterM3 (NeurIPS 2025) – uncomment if you have sufficient disk+bandwidth:
+        # DisasterM3 (NeurIPS 2025) - uncomment if you have sufficient disk+bandwidth:
         # ("Kingdrone-Junjue/DisasterM3", "default",
         #  ["disaster_type", "disaster_category", "label", "category", "class", "hazard"]),
     ]

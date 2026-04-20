@@ -46,7 +46,7 @@ export default function AppLayout({ children, activeKey, onNavigate, unreadMessa
         communityUnread={communityUnread}
       />
 
-      {/* Main content area — shifts right for the sidebar */}
+      {/* Main content area -- shifts right for the sidebar */}
       <main
         id="main-content"
         className={`pt-14 min-h-screen transition-all duration-300

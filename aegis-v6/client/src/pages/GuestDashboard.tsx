@@ -7,8 +7,8 @@
  * - Reads from AlertsContext and the public reports API endpoints
  * - Linked from LandingPage.tsx ("Continue as Guest" button)
  *
- * - client/src/pages/LandingPage.tsx — entry point that leads here
- * - client/src/pages/CitizenPage.tsx — a richer public view with form submission
+ * - client/src/pages/LandingPage.tsx -- entry point that leads here
+ * - client/src/pages/CitizenPage.tsx -- a richer public view with form submission
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
@@ -43,7 +43,7 @@ import ThemeSelector from '../components/ui/ThemeSelector'
 import { useTheme } from '../contexts/ThemeContext'
 import { SkeletonCard, SkeletonList } from '../components/ui/Skeleton'
 
-//  Icon mapping
+// Icon mapping
 const INCIDENT_ICONS: Record<string, React.ElementType> = {
   flood: Droplets,
   severe_storm: CloudLightning,
@@ -60,9 +60,9 @@ const INCIDENT_ICONS: Record<string, React.ElementType> = {
 
 const SEVERITY_COLORS = SEVERITY_PILL
 
-// SEVERITY_BG imported from colorTokens
+//SEVERITY_BG imported from colorTokens
 
-/* ── Style injection for guest welcome animations ── */
+/* -- Style injection for guest welcome animations -- */
 const GD_STYLE_ID = 'guest-dashboard-animations'
 function injectGuestAnimations() {
   if (document.getElementById(GD_STYLE_ID)) return
@@ -94,7 +94,7 @@ function injectGuestAnimations() {
   document.head.appendChild(style)
 }
 
-/* ── Animated counter ── */
+/* -- Animated counter -- */
 function AnimatedCounter({ value, duration = 1400, className = '' }: { value: number; duration?: number; className?: string }) {
   const [display, setDisplay] = useState(0)
   const prevRef = useRef(0)
@@ -120,7 +120,7 @@ function AnimatedCounter({ value, duration = 1400, className = '' }: { value: nu
   return <span className={`tabular-nums ${className}`}>{display.toLocaleString()}</span>
 }
 
-/* ── Typing text animation ── */
+/* -- Typing text animation -- */
 function TypingText({ texts, speed = 60, pause = 2500, className = '' }: { texts: string[]; speed?: number; pause?: number; className?: string }) {
   const [textIdx, setTextIdx] = useState(0)
   const [charIdx, setCharIdx] = useState(0)
@@ -154,7 +154,7 @@ function TypingText({ texts, speed = 60, pause = 2500, className = '' }: { texts
   )
 }
 
-/* ── Severity ring mini chart ── */
+/* -- Severity ring mini chart -- */
 function SeverityRing({ critical, high, medium, low }: { critical: number; high: number; medium: number; low: number }) {
   const total = critical + high + medium + low
   if (total === 0) return null
@@ -218,16 +218,16 @@ export default function GuestDashboard(): JSX.Element {
   const [mounted, setMounted] = useState(false)
   const signInRef = useRef<HTMLDivElement>(null)
 
-  // Inject animations on mount
+  //Inject animations on mount
   useEffect(() => { injectGuestAnimations(); setMounted(true) }, [])
 
-  // Live clock update every second
+  //Live clock update every second
   useEffect(() => {
     const iv = setInterval(() => setLiveClock(new Date()), 1000)
     return () => clearInterval(iv)
   }, [])
 
-  // Time-based greeting
+  //Time-based greeting
   const greeting = useMemo(() => {
     const h = liveClock.getHours()
     if (h < 12) return { text: 'Good Morning', icon: Sun, period: 'morning' }
@@ -235,7 +235,7 @@ export default function GuestDashboard(): JSX.Element {
     return { text: 'Good Evening', icon: Sparkles, period: 'evening' }
   }, [liveClock.getHours()])
 
-  // Close sign-in dropdown on outside click
+  //Close sign-in dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (signInRef.current && !signInRef.current.contains(e.target as Node)) setSignInOpen(false)
@@ -279,12 +279,12 @@ export default function GuestDashboard(): JSX.Element {
   const criticalAlerts = alerts.filter(a => a.severity === 'critical' || a.severity === 'high')
   const activeIncidents = incidents.filter(i => i.activeAlerts > 0 || i.activePredictions > 0)
 
-  // Threat level calculation
+  //Threat level calculation
   const threatLevel = criticalAlerts.length > 2 ? 'SEVERE' : criticalAlerts.length > 0 ? 'ELEVATED' : activeIncidents.length > 0 ? 'GUARDED' : 'LOW'
   const threatColor = { SEVERE: 'text-red-500', ELEVATED: 'text-orange-500', GUARDED: 'text-amber-500', LOW: 'text-green-500' }[threatLevel]
   const threatBg = { SEVERE: 'bg-red-500/10 border-red-500/20', ELEVATED: 'bg-orange-500/10 border-orange-500/20', GUARDED: 'bg-amber-500/10 border-amber-500/20', LOW: 'bg-green-500/10 border-green-500/20' }[threatLevel]
 
-  // Severity distribution for ring
+  //Severity distribution for ring
   const sevCounts = useMemo(() => ({
     critical: alerts.filter(a => a.severity === 'critical').length,
     high: alerts.filter(a => a.severity === 'high').length,
@@ -296,7 +296,7 @@ export default function GuestDashboard(): JSX.Element {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-aegis-50/30 dark:from-gray-950 dark:via-surface-ultra-dark dark:to-gray-950">
 
       {/*
-          MEGA NAVBAR — Dual-tier glassmorphic command center
+          MEGA NAVBAR -- Dual-tier glassmorphic command center
            */}
       <header className="sticky top-0 z-50">
         {/*  Top accent line with animated gradient  */}
@@ -340,7 +340,7 @@ export default function GuestDashboard(): JSX.Element {
                     </div>
                     <span className="text-[10px] font-bold text-green-600 dark:text-green-400">{ct('guest.live',lang)}</span>
                     <span className="text-[9px] text-gray-400 dark:text-gray-300 dark:text-white/50 font-medium">
-                      {lastUpdated ? lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
+                      {lastUpdated ? lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--'}
                     </span>
                   </div>
                   <div className={`flex items-center gap-1.5 ${threatBg} border px-2.5 py-1.5 rounded-xl`}>
@@ -362,7 +362,7 @@ export default function GuestDashboard(): JSX.Element {
                   ].map(s => (
                     <div key={s.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-default group">
                       <s.icon className={`w-3.5 h-3.5 ${s.color} ${s.pulse ? 'animate-pulse' : ''}`} />
-                      <span className={`text-xs font-bold tabular-nums ${s.color}`}>{loading ? '—' : s.value}</span>
+                      <span className={`text-xs font-bold tabular-nums ${s.color}`}>{loading ? '--' : s.value}</span>
                       <span className="text-[9px] text-gray-400 dark:text-gray-300 dark:text-white/50 font-medium hidden 2xl:inline">{s.label}</span>
                     </div>
                   ))}
@@ -427,7 +427,7 @@ export default function GuestDashboard(): JSX.Element {
                       <div className="px-4 py-3 border-t border-gray-100 dark:border-white/6 bg-gray-50/50 dark:bg-white/[0.02]">
                         <Link to="/citizen/login" onClick={() => setSignInOpen(false)}
                           className="text-[11px] text-aegis-600 dark:text-aegis-400 hover:text-aegis-500 dark:hover:text-aegis-300 transition-colors font-medium">
-                          {ct('guest.newHere',lang)} <span className="font-bold underline underline-offset-2">{ct('guest.createFreeAccount',lang)} →</span>
+ {ct('guest.newHere',lang)} <span className="font-bold underline underline-offset-2">{ct('guest.createFreeAccount',lang)} -></span>
                         </Link>
                       </div>
                     </div>
@@ -449,7 +449,7 @@ export default function GuestDashboard(): JSX.Element {
             </div>
           </div>
 
-          {/*  SECONDARY NAV — Feature links row  */}
+          {/*  SECONDARY NAV -- Feature links row  */}
           <div className="hidden md:block border-t border-gray-100 dark:border-white/[0.04] bg-gray-50/50 dark:bg-white/[0.015]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-10">
@@ -489,11 +489,11 @@ export default function GuestDashboard(): JSX.Element {
             <div className="sm:hidden border-t border-gray-200 dark:border-white/8 bg-white dark:bg-surface-ultra-dark px-4 py-4 space-y-2 animate-scale-in">
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <div className="text-center p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/8">
-                  <p className="text-lg font-black text-gray-900 dark:text-white">{loading ? '—' : activeIncidents.length}</p>
+                  <p className="text-lg font-black text-gray-900 dark:text-white">{loading ? '--' : activeIncidents.length}</p>
                   <p className="text-[9px] text-gray-400 dark:text-gray-300 dark:text-white/35 font-bold uppercase tracking-wider">{ct('guest.stats.incidents',lang)}</p>
                 </div>
                 <div className="text-center p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/8">
-                  <p className="text-lg font-black text-gray-900 dark:text-white">{loading ? '—' : alerts.length}</p>
+                  <p className="text-lg font-black text-gray-900 dark:text-white">{loading ? '--' : alerts.length}</p>
                   <p className="text-[9px] text-gray-400 dark:text-gray-300 dark:text-white/35 font-bold uppercase tracking-wider">{ct('guest.stats.alerts',lang)}</p>
                 </div>
                 <div className={`text-center p-2.5 rounded-xl ${threatBg} border`}>
@@ -536,7 +536,7 @@ export default function GuestDashboard(): JSX.Element {
                     <span key={i} className="text-[11px] text-white/90 font-medium inline-flex items-center gap-2">
                       <span className="text-red-200">◆</span>
                       {a.title}
-                      {a.location?.name && <span className="text-red-200/70">— {a.location.name}</span>}
+                      {a.location?.name && <span className="text-red-200/70">-- {a.location.name}</span>}
                     </span>
                   ))}
                 </div>
@@ -551,7 +551,7 @@ export default function GuestDashboard(): JSX.Element {
             <div className="max-w-7xl mx-auto px-4 py-1.5 flex items-center gap-2">
               <Bell className="w-3.5 h-3.5 text-amber-100 flex-shrink-0" />
               <span className="text-[11px] text-amber-50 font-medium">
-                {alerts.length} active alert{alerts.length !== 1 ? 's' : ''} in your region —{' '}
+                {alerts.length} active alert{alerts.length !== 1 ? 's' : ''} in your region --{' '}
                 <span className="font-bold">{alerts.slice(0, 2).map(a => a.title).join(', ')}</span>
                 {alerts.length > 2 && ` +${alerts.length - 2} more`}
               </span>
@@ -562,7 +562,7 @@ export default function GuestDashboard(): JSX.Element {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-        {/*  ADVANCED HERO — Command Center Welcome Board  */}
+        {/*  ADVANCED HERO -- Command Center Welcome Board  */}
         <div className={`relative overflow-hidden rounded-3xl shadow-2xl transition-opacity duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
           {/* Animated gradient background */}
           <div className="absolute inset-0 bg-gradient-to-br from-aegis-700 via-aegis-600 to-blue-700 dark:from-gray-950 dark:via-aegis-950 dark:to-blue-950 gd-gradient" />
@@ -756,7 +756,7 @@ export default function GuestDashboard(): JSX.Element {
           </div>
         </div>
 
-        {/*  QUICK EMERGENCY ACTIONS — Glass cards  */}
+        {/*  QUICK EMERGENCY ACTIONS -- Glass cards  */}
         <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
           {[
             { icon: Megaphone, label: 'Report Emergency', desc: 'Submit anonymous report', href: '/citizen', gradient: 'from-red-500 to-rose-600', shadow: 'shadow-red-500/20' },
@@ -778,7 +778,7 @@ export default function GuestDashboard(): JSX.Element {
           ))}
         </div>
 
-        {/*  STATUS CARDS — Glassmorphic with animated counters  */}
+        {/*  STATUS CARDS -- Glassmorphic with animated counters  */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 stagger-children">
           {[
             { label: t('dashboard:incidents.active', 'Active Incidents'), value: activeIncidents.length, icon: Activity, gradient: 'from-blue-500 to-indigo-600', shadow: 'shadow-blue-500/15', iconBg: 'bg-blue-500/10', trend: activeIncidents.length > 0 ? 'up' : null },
@@ -809,7 +809,7 @@ export default function GuestDashboard(): JSX.Element {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/*  Active Alerts — Enhanced  */}
+          {/*  Active Alerts -- Enhanced  */}
           <div className="lg:col-span-2 glass-card rounded-2xl overflow-hidden shadow-lg">
             <div className="px-5 py-4 border-b border-gray-200/50 dark:border-white/[0.06] flex items-center justify-between">
               <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
@@ -858,7 +858,7 @@ export default function GuestDashboard(): JSX.Element {
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-300 line-clamp-2">{alert.message}</p>
                         <p className="text-[10px] text-gray-400 dark:text-gray-300 dark:text-white/30 mt-1 font-medium">
-                          {alert.source} • {new Date(alert.issuedAt).toLocaleString()}
+                          {alert.source} - {new Date(alert.issuedAt).toLocaleString()}
                         </p>
                       </div>
                     </div>
@@ -868,7 +868,7 @@ export default function GuestDashboard(): JSX.Element {
             </div>
           </div>
 
-          {/*  Incident Types Status — Enhanced  */}
+          {/*  Incident Types Status -- Enhanced  */}
           <div className="glass-card rounded-2xl overflow-hidden shadow-lg">
             <div className="px-5 py-4 border-b border-gray-200/50 dark:border-white/[0.06]">
               <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
@@ -891,7 +891,7 @@ export default function GuestDashboard(): JSX.Element {
                       <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{inc.name}</p>
                       <p className="text-[10px] text-gray-400 dark:text-gray-300 dark:text-white/35 font-medium">
                         {inc.activeAlerts > 0 && `${inc.activeAlerts} alert${inc.activeAlerts > 1 ? 's' : ''}`}
-                        {inc.activeAlerts > 0 && inc.activePredictions > 0 && ' • '}
+                        {inc.activeAlerts > 0 && inc.activePredictions > 0 && ' - '}
                         {inc.activePredictions > 0 && `${inc.activePredictions} prediction${inc.activePredictions > 1 ? 's' : ''}`}
                         {!hasActivity && t('dashboard:incidents.normal', 'Normal')}
                       </p>
@@ -918,7 +918,7 @@ export default function GuestDashboard(): JSX.Element {
           </div>
         </div>
 
-        {/*  SAFETY GUIDANCE — Enhanced with visual cards  */}
+        {/*  SAFETY GUIDANCE -- Enhanced with visual cards  */}
         {predictions.length > 0 && (
           <div className="glass-card rounded-2xl overflow-hidden shadow-lg">
             <div className="px-5 py-4 border-b border-gray-200/50 dark:border-white/[0.06] flex items-center justify-between">
@@ -954,7 +954,7 @@ export default function GuestDashboard(): JSX.Element {
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {pred.location?.name || `${pred.location.lat.toFixed(2)}, ${pred.location.lng.toFixed(2)}`}
-                          {' · '}
+                          {' - '}
                           {Math.round(pred.probability * 100)}% probability
                         </p>
                       </div>
@@ -1010,7 +1010,7 @@ export default function GuestDashboard(): JSX.Element {
           </div>
         </div>
 
-        {/*  CTA — Polished sign-in prompt  */}
+        {/*  CTA -- Polished sign-in prompt  */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 p-8 text-center shadow-2xl">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-aegis-500/30 rounded-full blur-[100px]" />
@@ -1035,7 +1035,7 @@ export default function GuestDashboard(): JSX.Element {
         </div>
       </main>
 
-      {/*  Footer — Enhanced  */}
+      {/*  Footer -- Enhanced  */}
       <footer className="border-t border-gray-200 dark:border-white/[0.06] bg-white/80 dark:bg-surface-ultra-dark/80 backdrop-blur-lg py-6 mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -1043,7 +1043,7 @@ export default function GuestDashboard(): JSX.Element {
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-aegis-500 to-aegis-700 flex items-center justify-center">
                 <Shield className="w-3.5 h-3.5 text-white" />
               </div>
-              <span className="text-xs text-gray-500 dark:text-gray-300 dark:text-white/40 font-medium">{t('common:app.name')} — {t('common:app.fullName')}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-300 dark:text-white/40 font-medium">{t('common:app.name')} -- {t('common:app.fullName')}</span>
             </div>
             <div className="flex items-center gap-5 text-xs text-gray-400 dark:text-gray-300 dark:text-white/30">
               <Link to="/about" className="hover:text-gray-600 dark:hover:text-white/60 transition-colors">{t('common:about', 'About')}</Link>

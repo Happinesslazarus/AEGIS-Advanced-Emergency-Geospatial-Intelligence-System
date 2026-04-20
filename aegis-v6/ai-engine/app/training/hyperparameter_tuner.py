@@ -9,16 +9,11 @@ step in training_pipeline.py.
 - Best params passed to model_trainer.py for final training run
 """
 
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
 # Optuna-based hyperparameter optimization:
-# - Bayesian optimization
-# - Pruning underperforming trials
-# - Multi-objective optimization
-# - Integration with MLflow tracking
-# -------------------------------------------------------------------------------
+# Bayesian optimization
+# Pruning underperforming trials
+# Multi-objective optimization
+# Integration with MLflow tracking
 
 from __future__ import annotations
 

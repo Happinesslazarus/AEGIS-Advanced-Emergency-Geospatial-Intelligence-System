@@ -13,20 +13,20 @@
  * - Heavy sub-panels are lazy-loaded (CommandCenter, DistressPanel, etc.)
  *
  * Key panels (tabbed):
- * - Dashboard    — live incident stats and quick actions
- * - Reports      — full incident queue with AI scores and filters
- * - Map          — live geospatial view of all incidents
- * - Alerts       — send and manage emergency broadcasts
- * - Analytics    — historical stats and charts
- * - Messaging    — operator-to-citizen real-time chat
- * - Distress     — active SOS beacon map
- * - Users        — operator and citizen account management
+ * - Dashboard    -- live incident stats and quick actions
+ * - Reports      -- full incident queue with AI scores and filters
+ * - Map          -- live geospatial view of all incidents
+ * - Alerts       -- send and manage emergency broadcasts
+ * - Analytics    -- historical stats and charts
+ * - Messaging    -- operator-to-citizen real-time chat
+ * - Distress     -- active SOS beacon map
+ * - Users        -- operator and citizen account management
  *
- * - client/src/contexts/ReportsContext.tsx   — shared report state for all components
- * - client/src/utils/api.ts                  — all API call functions used here
- * - client/src/components/admin/             — sub-components for each panel
- * - server/src/routes/reportRoutes.ts        — the backend these panels read from
- * - server/src/routes/adminAiRoutes.ts       — AI management used in analytics panel
+ * - client/src/contexts/ReportsContext.tsx   -- shared report state for all components
+ * - client/src/utils/api.ts                  -- all API call functions used here
+ * - client/src/components/admin/             -- sub-components for each panel
+ * - server/src/routes/reportRoutes.ts        -- the backend these panels read from
+ * - server/src/routes/adminAiRoutes.ts       -- AI management used in analytics panel
  * */
 
 /* AdminPage.tsx ? Operator dashboard with reports, alerts, analytics, and messaging. */
@@ -61,7 +61,7 @@ import SetupWizard from './SetupWizard'
 import { useSetupStatus } from '../hooks/useSetupStatus'
 import IncidentFilterPanel from '../components/shared/IncidentFilterPanel'
 
-// Lazy load heavy components for bundle optimization
+//Lazy load heavy components for bundle optimization
 const DisasterMap = lazy(() => import('../components/shared/DisasterMap'))
 const LiveMap = lazy(() => import('../components/shared/LiveMap'))
 const Map3DView = lazy(() => import('../components/shared/Map3DView'))
@@ -157,20 +157,20 @@ export default function AdminPage(): JSX.Element {
   const [notesDraft, setNotesDraft] = useState('')
   const [notesEditing, setNotesEditing] = useState(false)
   const [notesSaving, setNotesSaving] = useState(false)
-  // Listen for global logout events and clear stored user
+  //Listen for global logout events and clear stored user
   React.useEffect(() => {
     const handler = () => { setUser(null); setAdminTokenReady(false) }
     window.addEventListener('ae:logout', handler)
     return () => window.removeEventListener('ae:logout', handler)
   }, [])
-  // Token arrives asynchronously from the silent refresh — flip adminTokenReady so
-  // the notification socket effect re-runs and can connect using the fresh JWT.
+  //Token arrives asynchronously from the silent refresh -- flip adminTokenReady so
+  //the notification socket effect re-runs and can connect using the fresh JWT.
   React.useEffect(() => {
     const handler = () => setAdminTokenReady(true)
     window.addEventListener('ae:token-set', handler)
     return () => window.removeEventListener('ae:token-set', handler)
   }, [])
-  // Audit section state
+  //Audit section state
   const [recentSort, setRecentSort] = useState<'newest'|'oldest'|'severity'|'ai-high'|'ai-low'>('newest')
   const [commandCenter, setCommandCenter] = useState<{
     generatedAt: string
@@ -193,7 +193,7 @@ export default function AdminPage(): JSX.Element {
   const [socketConnected, setSocketConnected] = useState(false)
   const [activityShowAll, setActivityShowAll] = useState(false)
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null)
-  // Tracks when the admin JWT is ready (may lag behind user state during silent refresh)
+  //Tracks when the admin JWT is ready (may lag behind user state during silent refresh)
   const [adminTokenReady, setAdminTokenReady] = useState(() => !!getToken())
 
   const predictionAreaOptions = useMemo(() => {
@@ -227,7 +227,7 @@ export default function AdminPage(): JSX.Element {
     }
   }, [user])
 
-  // Validate token on mount after silent-refresh settles.
+  //Validate token on mount after silent-refresh settles.
   useEffect(() => {
     let mounted = true
     ;(async () => {
@@ -237,7 +237,7 @@ export default function AdminPage(): JSX.Element {
     return () => { mounted = false }
   }, [])
 
-  // Lightweight socket for receiving community chat notifications (global broadcast)
+  //Lightweight socket for receiving community chat notifications (global broadcast)
   useEffect(() => {
     const token = getToken()
     if (!token || !user) return
@@ -282,7 +282,7 @@ export default function AdminPage(): JSX.Element {
 
     s.on('report:updated', (update: any) => {
       loadCommandCenter()
-      // Also update selReport if it's currently open and matches
+      //Also update selReport if it's currently open and matches
       if (update?.id) {
         setSelReport(prev => prev && prev.id === update.id ? { ...prev, status: update.status ?? prev.status } : prev)
       }
@@ -316,14 +316,14 @@ export default function AdminPage(): JSX.Element {
     }
   }, [predictionAreaOptions, predictionArea])
 
-  // Clear community badge when viewing community
+  //Clear community badge when viewing community
   useEffect(() => {
     if (view === 'community') {
       setCommunityUnread(0)
     }
   }, [view])
 
-  // Load audit log with unmount protection
+  //Load audit log with unmount protection
   useEffect(()=>{
     if(!user) return
     let cancelled = false
@@ -340,11 +340,11 @@ export default function AdminPage(): JSX.Element {
     return () => clearInterval(timer)
   }, [user, view, loadCommandCenter])
 
-  // Load predictions and deployments from real API (deduplicated by area)
+  //Load predictions and deployments from real API (deduplicated by area)
   useEffect(()=>{
     if(user){
       apiGetPredictions().then((raw: any[]) => {
-        // Deduplicate by area name ? keep highest probability per area
+        //Deduplicate by area name ? keep highest probability per area
         const byArea: Record<string, any> = {}
         for (const p of raw) {
           const key = (p.area || '').toLowerCase().trim()
@@ -361,7 +361,7 @@ export default function AdminPage(): JSX.Element {
     }
   },[user])
 
-  // Load users for user management view
+  //Load users for user management view
   useEffect(()=>{
     if(user && view === 'users'){
       apiGetUsers().then(d=>setUsers((d as any).users||d||[])).catch((err: any)=>{
@@ -372,7 +372,7 @@ export default function AdminPage(): JSX.Element {
     }
   },[user, view])
 
-  // Smart filter parser ? must be declared before filtered useMemo
+  //Smart filter parser ? must be declared before filtered useMemo
   const parseSmartFilter=(query:string,reps:Report[]):Report[]=>{    if(!query.trim())return reps
     const q=query.toLowerCase()
     let result=[...reps]
@@ -401,14 +401,14 @@ export default function AdminPage(): JSX.Element {
 
   const filtered = useMemo(()=>{
     let arr = [...reports]
-    // Apply smart filter first if present
+    //Apply smart filter first if present
     if(smartFilter.trim()){arr=parseSmartFilter(smartFilter,arr)}
-    // Then apply regular filters
+    //Then apply regular filters
     if(searchTerm){const s=searchTerm.toLowerCase();arr=arr.filter(r=>r.type?.toLowerCase().includes(s)||r.location?.toLowerCase().includes(s)||r.description?.toLowerCase().includes(s)||r.reportNumber?.toLowerCase().includes(s)||r.status?.toLowerCase().includes(s))}
     if(filterSeverity!=='all') arr=arr.filter(r=>r.severity===filterSeverity)
     if(filterStatus!=='all') arr=arr.filter(r=>r.status===filterStatus)
     if(filterType!=='all') arr=arr.filter(r=>r.incidentCategory===filterType)
-    // Filter by selected incident types from IncidentFilterPanel
+    //Filter by selected incident types from IncidentFilterPanel
     if(selectedTypes.length > 0) {
       arr = arr.filter(r => {
         const cat = (r.incidentCategory || '').toLowerCase()
@@ -471,7 +471,7 @@ export default function AdminPage(): JSX.Element {
   const doArchive=(id:string)=>askConfirm(t('admin.confirm.archiveTitle',lang),t('admin.confirm.archiveMsg',lang),'warning',async()=>{await doAction('Archived report','archive',id,archiveReport);pushNotification(t('admin.confirm.archiveSuccess',lang),'success');setSelReport(null)})
   const doFalseReport=(id:string)=>askConfirm(t('admin.confirm.falseTitle',lang),t('admin.confirm.falseMsg',lang),'danger',async()=>{await doAction('Marked as false report','false_report',id,markFalseReport);pushNotification(t('admin.confirm.falseSuccess',lang),'warning');setSelReport(null)})
 
-  // Bulk actions
+  //Bulk actions
   const runBulkAction = async (ids: string[], status: string, successMsg: string, notifType: 'success'|'warning'|'error') => {
     setBulkProgress({ current: 0, total: ids.length })
     try {
@@ -563,7 +563,7 @@ export default function AdminPage(): JSX.Element {
     }, format, `aegis-command-center-${new Date().toISOString().slice(0, 10)}`)
   }
 
-  // Keyboard shortcut: Ctrl+K focuses global search; ? opens shortcut overlay
+  //Keyboard shortcut: Ctrl+K focuses global search; ? opens shortcut overlay
   const globalSearchRef = useRef<HTMLInputElement>(null)
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -581,19 +581,19 @@ export default function AdminPage(): JSX.Element {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  // First-ever boot: allow creating the initial admin account before anyone has logged in
+  //First-ever boot: allow creating the initial admin account before anyone has logged in
   if (!user && setupStatus && !setupStatus.hasAdmin) {
     return <FirstAdminSetup onComplete={u => setUser(u)} />
   }
 
   if(!user) return <LoginPage onLogin={u=>setUser(u)}/>
 
-  // Role guard: only admin/operator roles may access this page
+  //Role guard: only admin/operator roles may access this page
   if (user.role !== 'admin' && user.role !== 'operator') {
     return <LoginPage onLogin={u=>setUser(u)}/>
   }
 
-  // First-run setup guard
+  //First-run setup guard
   if (!setupLoading && setupStatus && !setupStatus.setupCompleted && user.role === 'admin') {
     return <SetupWizard user={user} setupStatus={setupStatus} onComplete={() => { setupRefetch() }} />
   }
@@ -614,7 +614,7 @@ export default function AdminPage(): JSX.Element {
   const urgentCount   = reports.filter(r => r.status === 'Urgent').length
   const unverifiedCount = reports.filter(r => r.status === 'Unverified').length
 
-  // Badge counts per nav item
+  //Badge counts per nav item
   const NAV_BADGES: Record<string, number> = {
     reports:   urgentCount,
     community: communityUnread,
@@ -742,14 +742,14 @@ export default function AdminPage(): JSX.Element {
           />
         ))}
 
-        {/* INCIDENT COMMAND CONSOLE — Standalone SOC view */}
+        {/* INCIDENT COMMAND CONSOLE -- Standalone SOC view */}
         {view==='incident_console'&&(
           <IncidentCommandConsole
             onSelectIncident={(id) => { setFilterType(id || 'all'); setView('reports' as View) }}
           />
         )}
 
-        {/* REPORTS — Professional Incident Manager */}
+        {/* REPORTS -- Professional Incident Manager */}
         {view==='reports'&&(loading && reports.length === 0 ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -793,7 +793,7 @@ export default function AdminPage(): JSX.Element {
           />
         ))}
 
-        {/* MAP — Tactical Common Operating Picture */}
+        {/* MAP -- Tactical Common Operating Picture */}
         {view==='map'&&(
           <Suspense fallback={<div className="h-64 animate-pulse bg-gray-200 dark:bg-gray-800 rounded" />}>
           <LiveOperationsMap
@@ -916,7 +916,7 @@ export default function AdminPage(): JSX.Element {
           </div>
         )}
 
-        {/* CROWD DENSITY (Sensitive — Operator Only) */}
+        {/* CROWD DENSITY (Sensitive -- Operator Only) */}
         {view==='crowd'&&(
           <div className="animate-fade-in space-y-4">
             <div className="flex items-center gap-3">
@@ -972,7 +972,7 @@ export default function AdminPage(): JSX.Element {
           />
         )}
 
-      {/* REPORT DETAIL MODAL — Professional Glassmorphism Design */}
+      {/* REPORT DETAIL MODAL -- Professional Glassmorphism Design */}
       {selReport&&(()=>{
         const mediaItems = selReport.media && selReport.media.length > 0
           ? selReport.media
@@ -992,7 +992,7 @@ export default function AdminPage(): JSX.Element {
         const catIcons: Record<string,any> = { natural_disaster:Droplets, infrastructure:Building2, public_safety:ShieldAlert, community_safety:Users, environmental:Flame, medical:HeartPulse }
         const CatIcon = catIcons[selReport.incidentCategory] || AlertTriangle
 
-        // Category-specific recommended actions
+        //Category-specific recommended actions
         const getRecommendedActions = () => {
           const cat = selReport.incidentCategory
           const sev = selReport.severity
@@ -1021,7 +1021,7 @@ export default function AdminPage(): JSX.Element {
             if (sev === 'Medium') return ['Send environmental assessment team','Collect samples for lab analysis','Notify local environmental health','Monitor contamination spread']
             return ['Document for environmental report','Schedule routine inspection','Update environmental risk register']
           }
-          // Default fallback
+          //Default fallback
           if (sev === 'High') return ['Immediate deployment of emergency services','Evacuate affected area within 500m radius','Activate emergency barriers','Issue public alert via all channels']
           if (sev === 'Medium') return ['Monitor area closely for escalation','Pre-position emergency resources nearby','Issue advisory to local residents']
           return ['Continue monitoring','Log for historical analysis']
@@ -1190,7 +1190,7 @@ export default function AdminPage(): JSX.Element {
                 <div className="text-center py-4 text-gray-400 dark:text-gray-300 text-xs italic">{t('admin.detail.mediaNotAvailable',lang)}</div>
               )}
 
-              {/* Operator Notes — Inline Edit */}
+              {/* Operator Notes -- Inline Edit */}
               <div className="bg-gray-50/80 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-800">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-xs font-extrabold flex items-center gap-2 text-gray-700 dark:text-gray-200"><Edit2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300"/>{t('admin.detail.operatorNotes',lang)}</h4>
@@ -1205,7 +1205,7 @@ export default function AdminPage(): JSX.Element {
                     <textarea
                       value={notesDraft}
                       onChange={e=>setNotesDraft(e.target.value)}
-                      placeholder="Add operator notes…"
+                      placeholder="Add operator notes..."
                       rows={3}
                       className="w-full text-xs rounded-lg border border-aegis-200 dark:border-aegis-700/50 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 p-2 resize-none focus:outline-none focus:ring-2 focus:ring-aegis-400 dark:focus:ring-aegis-500"
                     />
@@ -1224,7 +1224,7 @@ export default function AdminPage(): JSX.Element {
                         }}
                         className="text-[11px] px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1 transition-all disabled:opacity-60"
                       >
-                        <CheckCircle className="w-3 h-3"/>{notesSaving ? 'Saving…' : 'Save'}
+                        <CheckCircle className="w-3 h-3"/>{notesSaving ? 'Saving...' : 'Save'}
                       </button>
                       <button onClick={()=>setNotesEditing(false)} className="text-[11px] px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold transition-all">Cancel</button>
                     </div>
@@ -1410,7 +1410,7 @@ export default function AdminPage(): JSX.Element {
   )
 }
 
-// MAP VIEW ? Live Operations Map with 2D Leaflet + 3D Deck.gl toggle
+//MAP VIEW ? Live Operations Map with 2D Leaflet + 3D Deck.gl toggle
 
 function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatus, setFilterStatus, socket, user, setSelReport, activeLocation, setActiveLocation, availableLocations }: {
   filtered: any[]; loc: any; filterSeverity: string; setFilterSeverity: (v: string) => void; filterStatus: string; setFilterStatus: (v: string) => void; socket: any; user: any; setSelReport: (r: any) => void;
@@ -1474,7 +1474,7 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
               <span className="flex items-center gap-1"><Layers className="w-3 h-3"/> {t('admin.mapView.layers',lang)}</span>
             </button>
           </div>
-          {/* Region Selector — Advanced LocationDropdown */}
+          {/* Region Selector -- Advanced LocationDropdown */}
           <LocationDropdown compact />
           {/* 2D / 3D Toggle ? enhanced */}
           <div className="flex bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg p-0.5 ring-1 ring-gray-200/60 dark:ring-gray-700/40 shadow-sm">
@@ -1559,6 +1559,6 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
     </div>
   )
 }
-// ADMIN COMMUNITY SECTION ? Live Chat + Posts Feed with sub-tabs + moderation
-// AdminCommunitySection replaced by AdminCommunityHub component
+//ADMIN COMMUNITY SECTION ? Live Chat + Posts Feed with sub-tabs + moderation
+//AdminCommunitySection replaced by AdminCommunityHub component
 

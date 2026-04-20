@@ -22,7 +22,7 @@
  *   isBelow(bp)               = true if the viewport is narrower than the named breakpoint
  *   isExactly(bp)             = true if the viewport falls within the named breakpoint's range
  *   isMobile                  = viewport is narrower than the tablet threshold (typically < 768px)
- *   isTablet                  = viewport is within tablet range (768px–1023px)
+ *   isTablet                  = viewport is within tablet range (768px-1023px)
  *   isDesktop                 = viewport is 1024px or wider
  *   orientation               = "landscape" when width > height; "portrait" otherwise
  *   safe area                 = insets used on notched phones (iPhone X+) to avoid content being
@@ -43,7 +43,7 @@ import { renderHook, act } from '@testing-library/react'
 import { useResponsive, useMediaQuery, BREAKPOINTS } from '../hooks/useResponsive'
 
 describe('useResponsive', () => {
-  // Save original dimensions so we can restore them after each test
+  //Save original dimensions so we can restore them after each test
   const originalInnerWidth = window.innerWidth
   const originalInnerHeight = window.innerHeight
 
@@ -52,7 +52,7 @@ describe('useResponsive', () => {
   })
 
   afterEach(() => {
-    // Restore the real window dimensions so later tests aren't affected
+    //Restore the real window dimensions so later tests aren't affected
     Object.defineProperty(window, 'innerWidth', {
       writable: true,
       configurable: true,
@@ -65,7 +65,7 @@ describe('useResponsive', () => {
     })
   })
 
-  // Helper: injects a fake viewport size into the test environment
+  //Helper: injects a fake viewport size into the test environment
   function setViewport(width: number, height: number) {
     Object.defineProperty(window, 'innerWidth', {
       writable: true,
@@ -81,7 +81,7 @@ describe('useResponsive', () => {
 
   describe('breakpoint detection', () => {
     test('detects xs breakpoint (< 640px)', () => {
-      setViewport(400, 800) // 400px wide — below the 640px sm threshold
+      setViewport(400, 800) // 400px wide -- below the 640px sm threshold
       const { result } = renderHook(() => useResponsive())
       expect(result.current.breakpoint).toBe('xs')
     })
@@ -177,7 +177,7 @@ describe('useResponsive', () => {
 
   describe('device flags', () => {
     test('isMobile is true for small viewports', () => {
-      // Phones typically have viewports under 768px wide
+      //Phones typically have viewports under 768px wide
       setViewport(500, 800)
       const { result } = renderHook(() => useResponsive())
       
@@ -187,7 +187,7 @@ describe('useResponsive', () => {
     })
 
     test('isTablet is true for medium viewports', () => {
-      // Tablets typically have viewports in the 768px-1023px range
+      //Tablets typically have viewports in the 768px-1023px range
       setViewport(800, 600)
       const { result } = renderHook(() => useResponsive())
       
@@ -197,7 +197,7 @@ describe('useResponsive', () => {
     })
 
     test('isDesktop is true for large viewports', () => {
-      // Desktops/laptops are typically 1024px wide or wider
+      //Desktops/laptops are typically 1024px wide or wider
       setViewport(1200, 800)
       const { result } = renderHook(() => useResponsive())
       
@@ -209,21 +209,21 @@ describe('useResponsive', () => {
 
   describe('orientation', () => {
     test('detects landscape orientation', () => {
-      // landscape = width > height
+      //landscape = width > height
       setViewport(1200, 800)
       const { result } = renderHook(() => useResponsive())
       expect(result.current.orientation).toBe('landscape')
     })
 
     test('detects portrait orientation', () => {
-      // portrait = height >= width (phone held upright)
+      //portrait = height >= width (phone held upright)
       setViewport(800, 1200)
       const { result } = renderHook(() => useResponsive())
       expect(result.current.orientation).toBe('portrait')
     })
 
     test('square viewport is portrait', () => {
-      // When width === height the hook ties-break to portrait
+      //When width === height the hook ties-break to portrait
       setViewport(800, 800)
       const { result } = renderHook(() => useResponsive())
       expect(result.current.orientation).toBe('portrait')
@@ -242,8 +242,8 @@ describe('useResponsive', () => {
 
   describe('safe area', () => {
     test('returns safe area insets object', () => {
-      // safe area = physical screen regions blocked by notch/home bar on modern phones;
-      // the hook exposes top/right/bottom/left insets so components can add padding
+      //safe area = physical screen regions blocked by notch/home bar on modern phones;
+      //the hook exposes top/right/bottom/left insets so components can add padding
       const { result } = renderHook(() => useResponsive())
       
       expect(result.current.safeArea).toHaveProperty('top')
@@ -271,7 +271,7 @@ describe('useResponsive', () => {
 })
 
 describe('useMediaQuery', () => {
-  // Minimal MediaQueryList stub — Node.js has no real matchMedia
+  //Minimal MediaQueryList stub -- Node.js has no real matchMedia
   const mockMediaQueryList = {
     matches: false,                    // current match state
     addEventListener: vi.fn(),         // subscribe to query changes
@@ -280,7 +280,7 @@ describe('useMediaQuery', () => {
 
   beforeEach(() => {
     vi.resetAllMocks()
-    // Replace window.matchMedia with a factory that returns our stub plus the query string
+    //Replace window.matchMedia with a factory that returns our stub plus the query string
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
       ...mockMediaQueryList,
       media: query, // echo the query back so the hook can read it
@@ -288,7 +288,7 @@ describe('useMediaQuery', () => {
   })
 
   test('returns initial match state', () => {
-    // Override: make matchMedia report the query matches
+    //Override: make matchMedia report the query matches
     ;(window.matchMedia as any).mockReturnValue({
       ...mockMediaQueryList,
       matches: true, // (min-width: 768px) matches at simulated viewport width
@@ -309,8 +309,8 @@ describe('useMediaQuery', () => {
   })
 
   test('adds event listener for changes', () => {
-    // The hook must call addEventListener('change', ...) so it re-evaluates
-    // when the user resizes the window across the media-query boundary
+    //The hook must call addEventListener('change', ...) so it re-evaluates
+    //when the user resizes the window across the media-query boundary
     renderHook(() => useMediaQuery('(min-width: 768px)'))
     
     expect(mockMediaQueryList.addEventListener).toHaveBeenCalledWith(
@@ -320,7 +320,7 @@ describe('useMediaQuery', () => {
   })
 
   test('removes event listener on unmount', () => {
-    // On unmount the hook must call removeEventListener to prevent memory leaks
+    //On unmount the hook must call removeEventListener to prevent memory leaks
     const { unmount } = renderHook(() => useMediaQuery('(min-width: 768px)'))
     
     unmount() // trigger the useEffect cleanup
@@ -334,8 +334,8 @@ describe('useMediaQuery', () => {
 
 describe('BREAKPOINTS constant', () => {
   test('has expected breakpoint values', () => {
-    // These pixel values mirror Tailwind CSS's default responsive breakpoints
-    // xs=0 sm=640 md=768 lg=1024 xl=1280 2xl=1536  (all in CSS pixels)
+    //These pixel values mirror Tailwind CSS's default responsive breakpoints
+    //xs=0 sm=640 md=768 lg=1024 xl=1280 2xl=1536  (all in CSS pixels)
     expect(BREAKPOINTS.xs).toBe(0)      // extra-small: any width (starting point)
     expect(BREAKPOINTS.sm).toBe(640)    // small: phablets and large phones landscape
     expect(BREAKPOINTS.md).toBe(768)    // medium: tablets
@@ -345,7 +345,7 @@ describe('BREAKPOINTS constant', () => {
   })
 
   test('breakpoints are in ascending order', () => {
-    // Sanity check: every breakpoint must be wider than the previous one
+    //Sanity check: every breakpoint must be wider than the previous one
     const values = Object.values(BREAKPOINTS)
     for (let i = 1; i < values.length; i++) {
       expect(values[i]).toBeGreaterThan(values[i - 1])

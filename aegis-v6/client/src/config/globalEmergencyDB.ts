@@ -25,11 +25,11 @@ export interface GlobalEmergencyEntry {
   units: { depth: 'cm' | 'inches'; temperature: 'C' | 'F'; distance: 'km' | 'miles'; speed: 'km/h' | 'mph' }
 }
 
-// 60+ Countries - Americas, Europe, Asia, Africa, Oceania, Middle East
+//60+ Countries - Americas, Europe, Asia, Africa, Oceania, Middle East
 
 export const GLOBAL_EMERGENCY_DB: GlobalEmergencyEntry[] = [
 
-  // AMERICAS
+  //AMERICAS
 
   { code: 'US', name: 'United States', flag: codeToFlag('US'), emergencyNumber: '911', police: '911', fire: '911', ambulance: '911',
     mentalHealth: { name: '988 Suicide & Crisis Lifeline', number: '988' },
@@ -84,7 +84,7 @@ export const GLOBAL_EMERGENCY_DB: GlobalEmergencyEntry[] = [
     disasterAgency: 'ODPM', weatherService: 'Trinidad Met Service', language: 'en', currency: 'TTD',
     units: { depth: 'cm', temperature: 'C', distance: 'km', speed: 'km/h' } },
 
-  // EUROPE
+  //EUROPE
 
   { code: 'GB', name: 'United Kingdom', flag: codeToFlag('GB'), emergencyNumber: '999', police: '999', fire: '999', ambulance: '999',
     mentalHealth: { name: 'Samaritans', number: '116 123' },
@@ -207,7 +207,7 @@ export const GLOBAL_EMERGENCY_DB: GlobalEmergencyEntry[] = [
     disasterAgency: 'AFAD', weatherService: 'MGM', language: 'tr', currency: 'TRY',
     units: { depth: 'cm', temperature: 'C', distance: 'km', speed: 'km/h' } },
 
-  // ASIA
+  //ASIA
 
   { code: 'IN', name: 'India', flag: codeToFlag('IN'), emergencyNumber: '112', police: '100', fire: '101', ambulance: '102',
     mentalHealth: { name: 'Vandrevala Foundation', number: '1860-2662-345' },
@@ -281,7 +281,7 @@ export const GLOBAL_EMERGENCY_DB: GlobalEmergencyEntry[] = [
     disasterAgency: 'NDRRMA', weatherService: 'DHM Nepal', language: 'ne', currency: 'NPR',
     units: { depth: 'cm', temperature: 'C', distance: 'km', speed: 'km/h' } },
 
-  // MIDDLE EAST
+  //MIDDLE EAST
 
   { code: 'AE', name: 'United Arab Emirates', flag: codeToFlag('AE'), emergencyNumber: '999', police: '999', fire: '997', ambulance: '998',
     mentalHealth: { name: 'Hope Helpline', number: '800 4673' },
@@ -333,7 +333,7 @@ export const GLOBAL_EMERGENCY_DB: GlobalEmergencyEntry[] = [
     disasterAgency: 'Home Front Command', weatherService: 'IMS', language: 'he', currency: 'ILS',
     units: { depth: 'cm', temperature: 'C', distance: 'km', speed: 'km/h' } },
 
-  // AFRICA
+  //AFRICA
 
   { code: 'ZA', name: 'South Africa', flag: codeToFlag('ZA'), emergencyNumber: '10111', police: '10111', fire: '10177', ambulance: '10177',
     mentalHealth: { name: 'SADAG', number: '0800 567 567' },
@@ -383,7 +383,7 @@ export const GLOBAL_EMERGENCY_DB: GlobalEmergencyEntry[] = [
     disasterAgency: 'INGD', weatherService: 'INAM', language: 'pt', currency: 'MZN',
     units: { depth: 'cm', temperature: 'C', distance: 'km', speed: 'km/h' } },
 
-  // OCEANIA
+  //OCEANIA
 
   { code: 'AU', name: 'Australia', flag: codeToFlag('AU'), emergencyNumber: '000', police: '000', fire: '000', ambulance: '000',
     mentalHealth: { name: 'Lifeline Australia', number: '13 11 14' },
@@ -409,7 +409,7 @@ export const GLOBAL_EMERGENCY_DB: GlobalEmergencyEntry[] = [
 ]
 
 // ???????????????????????????????????????????????????????????????
-//  LOOKUP HELPERS
+// LOOKUP HELPERS
 // ???????????????????????????????????????????????????????????????
 
 const _byCode = new Map<string, GlobalEmergencyEntry>()
@@ -420,7 +420,7 @@ export function lookupByCode(code: string): GlobalEmergencyEntry | undefined {
   return _byCode.get(code.toUpperCase())
 }
 
-/* Look up by country name (fuzzy — case-insensitive substring match) */
+/* Look up by country name (fuzzy -- case-insensitive substring match) */
 export function lookupByName(name: string): GlobalEmergencyEntry | undefined {
   const q = name.toLowerCase()
   return GLOBAL_EMERGENCY_DB.find(e => e.name.toLowerCase().includes(q))
@@ -428,12 +428,12 @@ export function lookupByName(name: string): GlobalEmergencyEntry | undefined {
 
 /* Map navigator.language locale to ISO country code */
 export function localeToCountryCode(locale: string): string {
-  // navigator.language can be: "en", "en-US", "en-GB", "zh-CN", "ar-SA", etc.
+  //navigator.language can be: "en", "en-US", "en-GB", "zh-CN", "ar-SA", etc.
   const parts = locale.split('-')
   if (parts.length >= 2) {
     return parts[parts.length - 1].toUpperCase()
   }
-  // Language-only fallback: map common languages to their primary country
+  //Language-only fallback: map common languages to their primary country
   const langMap: Record<string, string> = {
     en: 'GB', es: 'ES', fr: 'FR', de: 'DE', it: 'IT', pt: 'PT',
     ar: 'SA', zh: 'CN', ja: 'JP', ko: 'KR', hi: 'IN', ur: 'PK',

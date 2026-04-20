@@ -14,7 +14,7 @@ export class WaterSupplyAlertRules {
     const results: AlertRuleResult[] = []
     const { recentReports, predictions } = context
 
-    // Rule 1: Water contamination (highest priority)
+    //Rule 1: Water contamination (highest priority)
     const contaminationReports = recentReports.filter(r => r.customFields?.waterQualityIssue === true)
     if (contaminationReports.length >= 1) {
       results.push({
@@ -25,7 +25,7 @@ export class WaterSupplyAlertRules {
       })
     }
 
-    // Rule 2: Report density threshold
+    //Rule 2: Report density threshold
     if (recentReports.length >= 30) {
       results.push({
         shouldAlert: true,
@@ -49,7 +49,7 @@ export class WaterSupplyAlertRules {
       })
     }
 
-    // Rule 3: No water reports (complete loss of service)
+    //Rule 3: No water reports (complete loss of service)
     const noWaterReports = recentReports.filter(r => 
       r.customFields?.disruptionType === 'No Water'
     )
@@ -69,7 +69,7 @@ export class WaterSupplyAlertRules {
       })
     }
 
-    // Rule 4: Large affected population
+    //Rule 4: Large affected population
     const totalAffectedHouseholds = recentReports.reduce((sum, r) => {
       const households = Number(r.customFields?.affectedHouseholds || 5)
       return sum + households

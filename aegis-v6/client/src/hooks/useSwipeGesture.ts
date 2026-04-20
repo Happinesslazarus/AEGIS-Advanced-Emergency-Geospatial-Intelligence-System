@@ -1,5 +1,5 @@
 /**
- * useSwipeGesture — Touch swipe detection for mobile.
+ * useSwipeGesture -- Touch swipe detection for mobile.
  * Supports left, right, up, down swipes with configurable threshold.
  * Used for swipe-to-dismiss alerts, swipe between tabs, etc.
  */
@@ -52,7 +52,7 @@ export function useSwipeGesture<T extends HTMLElement = HTMLDivElement>({
     const absDx = Math.abs(dx)
     const absDy = Math.abs(dy)
 
-    // Determine if swipe is primarily horizontal or vertical
+    //Determine if swipe is primarily horizontal or vertical
     if (absDx > absDy && absDx >= threshold) {
       if (preventDefault) e.preventDefault()
       onSwipe(dx > 0 ? 'right' : 'left')
@@ -79,7 +79,7 @@ export function useSwipeGesture<T extends HTMLElement = HTMLDivElement>({
 }
 
 /**
- * useShakeGesture — Detect device shake for shake-to-report.
+ * useShakeGesture -- Detect device shake for shake-to-report.
  * Uses DeviceMotionEvent with a configurable acceleration threshold.
  */
 export function useShakeGesture({

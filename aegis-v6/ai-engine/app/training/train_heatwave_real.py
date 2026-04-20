@@ -3,8 +3,7 @@ Trains the heatwave risk-prediction model using real-world historical data from
 Open-Meteo and formally declared heatwave episode records from national
 meteorological services across Europe.
 
-Label source (INDEPENDENT — no leakage)
------------------------------------------
+Label source (INDEPENDENT -- no leakage)
 Labels are derived from the static OFFICIAL_HEATWAVES list in
 data_fetch_events.py, which catalogs formally declared heatwave episodes from:
 
@@ -22,30 +21,26 @@ geographic location.  This completely decouples labels from features.
 
 Because labels are independent event records, ALL temperature-related
 features can be retained as legitimate predictors:
-  - temperature_2m       — physical predictor of heatwave persistence
-  - apparent_temperature — heat stress proxy
-  - consecutive_hot_days — reinstated: no longer a label constructor
+  - temperature_2m       -- physical predictor of heatwave persistence
+  - apparent_temperature -- heat stress proxy
+  - consecutive_hot_days -- reinstated: no longer a label constructor
 
 Multi-region training (UK + Mediterranean + Central Europe)
-------------------------------------------------------------
-The OFFICIAL_HEATWAVES dataset provides events from 8 countries and ~2019–2025.
+The OFFICIAL_HEATWAVES dataset provides events from 8 countries and ~2019-2025.
 Multi-region training via GLOBAL_HEATWAVE_LOCATIONS (27 stations) ensures
 that all three chronological splits contain positive examples.
 
 Seasonal-stratified split
---------------------------
 The _chronological_split() override is retained as a belt-and-suspenders
 safeguard, ensuring positive samples are proportionally distributed across
 train / val / test folds even when declaration events cluster in summer.
 
 Forecast horizon
------------------
 task_type = "forecast", lead_hours = 24: the model predicts whether a declared
 heatwave will be active 24 hours ahead.  Features at T predict declarations
 at T+24h.
 
 Fallback behaviour
--------------------
 If the training window contains no declared heatwave episodes, the pipeline
 logs a warning.  The validator's min_positive_samples check will block
 training rather than producing a degenerate all-negative model.
@@ -86,8 +81,8 @@ class HeatwaveRealPipeline(BaseRealPipeline):
             "orange/rouge, AEMET aviso rojo (Spain), HHWS Level 3 (Italy), "
             "HNMS extreme heat advisories (Greece), DWD (Germany), IPMA "
             "(Portugal).  Static table in data_fetch_events.OFFICIAL_HEATWAVES "
-            "(30+ episodes, 2019–2025).  Labels are authoritative declarations "
-            "from public health / meteorological bodies — independent of any "
+            "(30+ episodes, 2019-2025).  Labels are authoritative declarations "
+            "from public health / meteorological bodies -- independent of any "
             "ERA5 feature variable."
         ),
         data_validity="independent",
@@ -97,13 +92,13 @@ class HeatwaveRealPipeline(BaseRealPipeline):
                 "Met Office HHA Level 3+, Météo-France vigilance canicule rouge/"
                 "orange, AEMET avisos naranja/rojo, Italian HHWS Level 3 alerts, "
                 "HNMS Greece extreme heat advisories.  "
-                "Static table in data_fetch_events.OFFICIAL_HEATWAVES (2019–2025)."
+                "Static table in data_fetch_events.OFFICIAL_HEATWAVES (2019-2025)."
             ),
             "description": (
                 "Positive labels: any hour within a formally declared heatwave "
                 "episode at a station covered by that declaration's geographic "
                 "scope.  Declarations represent national meteorological service "
-                "judgements that health-threatening heat conditions are present — "
+                "judgements that health-threatening heat conditions are present -- "
                 "they incorporate Tmax, Tmin, duration, humidity, and health "
                 "impacts; they are not a single ERA5 threshold. "
                 "Features at T predict heatwave declaration status at T+24h."
@@ -152,7 +147,7 @@ class HeatwaveRealPipeline(BaseRealPipeline):
         """
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build heatwave labels")
+            raise RuntimeError("No weather data -- cannot build heatwave labels")
 
         weather = weather.copy()
         weather["timestamp"] = pd.to_datetime(weather["timestamp"]).dt.floor("h")
@@ -196,7 +191,7 @@ class HeatwaveRealPipeline(BaseRealPipeline):
         """Build features per station with heat-related extended variables."""
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build features")
+            raise RuntimeError("No weather data -- cannot build features")
 
         return build_per_station_features(
             weather,
@@ -218,21 +213,21 @@ class HeatwaveRealPipeline(BaseRealPipeline):
         consecutive_hot_days has been REINSTATED: with independent labels,
         it represents genuine observed heat persistence that provides
         predictive power beyond a single temperature reading.  It is no
-        longer a label constructor — declarations are made by meteorological
+        longer a label constructor -- declarations are made by meteorological
         service forecasters using additional factors beyond the raw count.
         """
         return [
-            # Temperature — primary physical predictor
+            # Temperature -- primary physical predictor
             "temperature_2m",
             "apparent_temperature",
             "dewpoint_2m",
             "heat_index",
             "temperature_anomaly",
-            # Heat persistence — reinstated as legitimate predictor
+            # Heat persistence -- reinstated as legitimate predictor
             "consecutive_hot_days",
             # Atmospheric moisture
             "relative_humidity_2m",
-            # Synoptic pressure pattern — blocking highs sustain heat episodes
+            # Synoptic pressure pattern -- blocking highs sustain heat episodes
             "pressure_msl",
             "pressure_change_3h",
             "pressure_change_6h",
@@ -251,7 +246,7 @@ class HeatwaveRealPipeline(BaseRealPipeline):
         across all three folds by adjusting fold boundaries to the chronological
         positions of positive examples.
 
-        Temporal ordering within each fold is preserved — this is NOT random
+        Temporal ordering within each fold is preserved -- this is NOT random
         stratified sampling.
         """
         n = len(y)

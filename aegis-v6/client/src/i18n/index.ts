@@ -4,7 +4,7 @@
   * What this file does:
   * Re-exports the i18next config from client/src/i18n/config.ts
   * so the init side-effect runs on import:
-  *   import "client/src/i18n"  — triggers language setup
+  *   import "client/src/i18n"  -- triggers language setup
   *
   * How it connects:
   * - Imported in client/src/main.tsx to initialise translations

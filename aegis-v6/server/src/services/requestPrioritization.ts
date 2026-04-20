@@ -1,6 +1,6 @@
 ﻿/**
- * QoS middleware — Express middleware implementing multi-tier quality of service
- * with 5 priority levels (CRITICAL → BEST_EFFORT). Queues requests when
+ * QoS middleware -- Express middleware implementing multi-tier quality of service
+ * with 5 priority levels (CRITICAL -> BEST_EFFORT). Queues requests when
  * concurrency exceeds the limit and auto-escalates stuck requests.
  *
  * - Express middleware applied before route handlers
@@ -12,7 +12,7 @@ import { Request, Response, NextFunction } from 'express'
 import client from 'prom-client'
 import { logger } from './logger.js'
 
-// Prometheus metrics
+//Prometheus metrics
 const queueDepthGauge = new client.Gauge({
   name: 'aegis_qos_queue_depth',
   help: 'Current queue depth by priority',
@@ -32,7 +32,7 @@ const priorityEscalations = new client.Counter({
   labelNames: ['from', 'to'] as const,
 })
 
-// Priority levels (higher = more important)
+//Priority levels (higher = more important)
 export enum Priority {
   CRITICAL = 100,    // Emergency/distress, admin operations
   HIGH = 75,         // Authenticated users, time-sensitive
@@ -54,7 +54,7 @@ interface QueueEntry {
   escalationCount: number
 }
 
-// Priority queues (separate queue per priority level)
+//Priority queues (separate queue per priority level)
 const queues: Map<Priority, QueueEntry[]> = new Map([
   [Priority.CRITICAL, []],
   [Priority.HIGH, []],
@@ -63,7 +63,7 @@ const queues: Map<Priority, QueueEntry[]> = new Map([
   [Priority.BEST_EFFORT, []],
 ])
 
-// Configuration
+//Configuration
 const MAX_CONCURRENT = parseInt(process.env.QOS_MAX_CONCURRENT || '100', 10)
 const QUEUE_TIMEOUT_MS = parseInt(process.env.QOS_QUEUE_TIMEOUT_MS || '30000', 10)
 const ESCALATION_INTERVAL_MS = 2000  // Check for stuck requests every 2s
@@ -79,37 +79,37 @@ function determinePriority(req: Request): { priority: Priority; slaMs?: number }
   const user = (req as any).user
   const path = req.path
 
-  // CRITICAL: Emergency endpoints
+  //CRITICAL: Emergency endpoints
   if (path.startsWith('/api/distress') || path.includes('/sos')) {
     return { priority: Priority.CRITICAL, slaMs: 500 }
   }
 
-  // CRITICAL: Admin operations
+  //CRITICAL: Admin operations
   if (user?.role === 'admin') {
     return { priority: Priority.CRITICAL, slaMs: 2000 }
   }
 
-  // HIGH: Operators
+  //HIGH: Operators
   if (user?.role === 'operator' || user?.role === 'manager') {
     return { priority: Priority.HIGH, slaMs: 3000 }
   }
 
-  // HIGH: Real-time features
+  //HIGH: Real-time features
   if (path.startsWith('/api/chat') || path.includes('/realtime')) {
     return { priority: Priority.HIGH, slaMs: 5000 }
   }
 
-  // NORMAL: Authenticated citizens
+  //NORMAL: Authenticated citizens
   if (user) {
     return { priority: Priority.NORMAL, slaMs: 10000 }
   }
 
-  // LOW: Bulk operations
+  //LOW: Bulk operations
   if (path.includes('/bulk') || path.includes('/export') || path.includes('/import')) {
     return { priority: Priority.LOW, slaMs: 30000 }
   }
 
-  // BEST_EFFORT: Anonymous
+  //BEST_EFFORT: Anonymous
   return { priority: Priority.BEST_EFFORT, slaMs: 15000 }
 }
 
@@ -117,11 +117,11 @@ function determinePriority(req: Request): { priority: Priority; slaMs?: number }
  * Get next request to process (weighted fair queuing)
  */
 function getNextRequest(): QueueEntry | null {
-  // Process by priority order
+  //Process by priority order
   for (const priority of [Priority.CRITICAL, Priority.HIGH, Priority.NORMAL, Priority.LOW, Priority.BEST_EFFORT]) {
     const queue = queues.get(priority)!
     if (queue.length > 0) {
-      // Sort by deadline (earliest first) within same priority
+      //Sort by deadline (earliest first) within same priority
       queue.sort((a, b) => (a.deadline || Infinity) - (b.deadline || Infinity))
       return queue.shift()!
     }
@@ -144,7 +144,7 @@ function processQueue(): void {
     entry.resolve()
   }
 
-  // Update metrics
+  //Update metrics
   for (const [priority, queue] of queues) {
     queueDepthGauge.labels(String(priority)).set(queue.length)
   }
@@ -160,14 +160,14 @@ function escalateStuckRequests(): void {
     if (priority === Priority.CRITICAL) continue // Can't escalate higher
 
     for (const entry of queue) {
-      // Check if request is past SLA
+      //Check if request is past SLA
       const waitTime = now - entry.enqueuedAt
       if (entry.slaMs && waitTime > entry.slaMs && entry.escalationCount < MAX_ESCALATIONS) {
-        // Remove from current queue
+        //Remove from current queue
         const idx = queue.indexOf(entry)
         if (idx !== -1) queue.splice(idx, 1)
 
-        // Escalate to next priority level
+        //Escalate to next priority level
         const newPriority = getNextHigherPriority(priority)
         entry.priority = newPriority
         entry.escalationCount++
@@ -214,7 +214,7 @@ export async function qosMiddleware(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  // Skip for internal paths
+  //Skip for internal paths
   if (req.path === '/api/health' || req.path === '/metrics') {
     next()
     return
@@ -222,11 +222,11 @@ export async function qosMiddleware(
 
   const { priority, slaMs } = determinePriority(req)
 
-  // Fast path: if under capacity, proceed immediately
+  //Fast path: if under capacity, proceed immediately
   if (activeRequests < MAX_CONCURRENT) {
     activeRequests++
 
-    // Track completion
+    //Track completion
     res.on('finish', releaseRequest)
     res.on('close', releaseRequest)
 
@@ -234,7 +234,7 @@ export async function qosMiddleware(
     return
   }
 
-  // Queue the request
+  //Queue the request
   const entry: QueueEntry = {
     id: `req-${++requestIdCounter}`,
     priority,
@@ -256,9 +256,9 @@ export async function qosMiddleware(
   queues.get(priority)!.push(entry)
   queueDepthGauge.labels(String(priority)).set(queues.get(priority)!.length)
 
-  // Set queue timeout
+  //Set queue timeout
   const timeout = setTimeout(() => {
-    // Remove from queue
+    //Remove from queue
     for (const queue of queues.values()) {
       const idx = queue.indexOf(entry)
       if (idx !== -1) {
@@ -274,11 +274,11 @@ export async function qosMiddleware(
     await promise
     clearTimeout(timeout)
 
-    // Track completion
+    //Track completion
     res.on('finish', releaseRequest)
     res.on('close', releaseRequest)
 
-    // Add QoS headers
+    //Add QoS headers
     res.setHeader('X-QoS-Priority', String(priority))
     res.setHeader('X-QoS-Original-Priority', String(entry.originalPriority))
     res.setHeader('X-QoS-Wait-Ms', String(Date.now() - entry.enqueuedAt))
@@ -332,11 +332,11 @@ export function getQosStats(): {
  */
 export function setMaxConcurrent(limit: number): void {
   const oldLimit = MAX_CONCURRENT
-  // Note: This would require making MAX_CONCURRENT mutable
+  //Note: This would require making MAX_CONCURRENT mutable
   logger.info({ oldLimit, newLimit: limit }, '[QoS] Max concurrent adjusted')
 }
 
-// Start escalation checker
+//Start escalation checker
 setInterval(escalateStuckRequests, ESCALATION_INTERVAL_MS)
 
 export default {

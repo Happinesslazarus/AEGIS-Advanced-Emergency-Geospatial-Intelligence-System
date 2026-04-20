@@ -63,7 +63,7 @@ def ks_statistic(baseline_values: Iterable[float], current_values: Iterable[floa
     all_values = np.sort(np.concatenate([baseline, current]))
     # Manual two-sample ECDF via searchsorted avoids a scipy dependency.
     # searchsorted returns, for each value in all_values, how many baseline/
-    # current values are <= it — that gives the ECDF at each point.
+    # current values are <= it -- that gives the ECDF at each point.
     b_cdf = np.searchsorted(baseline, all_values, side="right") / baseline.size
     c_cdf = np.searchsorted(current, all_values, side="right") / current.size
     return float(np.max(np.abs(b_cdf - c_cdf)))
@@ -134,10 +134,10 @@ def drift_alert_level(score: float) -> str:
     """Map drift score to INFO/WARNING/CRITICAL.
 
     Thresholds follow the industry-standard PSI guidance:
-      PSI < 0.10 — no significant drift  (mapped → HEALTHY)
-      PSI 0.10-0.20 — minor drift        (mapped → INFO)
-      PSI 0.20-0.25 — moderate drift     (mapped → WARNING)
-      PSI > 0.25 — major drift           (mapped → CRITICAL)
+ PSI < 0.10 -- no significant drift (mapped -> HEALTHY)
+ PSI 0.10-0.20 -- minor drift (mapped -> INFO)
+ PSI 0.20-0.25 -- moderate drift (mapped -> WARNING)
+ PSI > 0.25 -- major drift (mapped -> CRITICAL)
     Our composite score uses 0.20/0.40/0.70 thresholds because it combines
     multiple metrics (PSI + KS + rank) and is therefore more sensitive.
     """

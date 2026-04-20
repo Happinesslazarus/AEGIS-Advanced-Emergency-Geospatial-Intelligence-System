@@ -1,5 +1,5 @@
 /**
- * LanguageDropdown.tsx — Advanced flag-grid language picker.
+ * LanguageDropdown.tsx -- Advanced flag-grid language picker.
  *
  * Trigger button shows the current language flag + native name.
  * Clicking opens a polished popover grid (matching LanguagePreferenceDialog
@@ -68,7 +68,7 @@ export default function LanguageDropdown({ darkNav = false, className = '' }: Pr
 
   return (
     <div className={`relative ${className}`} ref={ref}>
-      {/* Trigger — shows current flag + native name */}
+      {/* Trigger -- shows current flag + native name */}
       <button
         type="button"
         onClick={() => setOpen(v => !v)}

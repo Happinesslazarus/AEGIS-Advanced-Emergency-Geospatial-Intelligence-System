@@ -44,16 +44,16 @@ DIMENSIONS = {
 
 assert abs(sum(d["weight"] for d in DIMENSIONS.values()) - 1.0) < 0.001, "Weights must sum to 1.0"
 
-# LLM-as-Judge prompt — uses Claude to score each dimension with expert precision
+# LLM-as-Judge prompt -- uses Claude to score each dimension with expert precision
 # Far more accurate than keyword heuristics for tone_calibration and prioritisation
-JUDGE_PROMPT_TEMPLATE = """You are an expert evaluator for emergency AI systems with expertise as an emergency coordinator, paramedic, and crisis communications specialist. You score AI responses to emergency queries with high precision — incorrect scoring of life-safety guidance has real consequences.
+JUDGE_PROMPT_TEMPLATE = """You are an expert evaluator for emergency AI systems with expertise as an emergency coordinator, paramedic, and crisis communications specialist. You score AI responses to emergency queries with high precision -- incorrect scoring of life-safety guidance has real consequences.
 
 QUERY: {query}
 
 RESPONSE TO EVALUATE:
 {response}
 
-Score each dimension strictly 0.0 to 1.0 (use decimals — not just 0/0.5/1):
+Score each dimension strictly 0.0 to 1.0 (use decimals -- not just 0/0.5/1):
 
 accuracy (weight 0.30): Is every factual claim correct? Are emergency procedures right and safe? Would following this advice save or endanger a life?
   1.0 = every fact verified correct | 0.5 = mostly correct, minor issues | 0.0 = dangerously wrong
@@ -73,8 +73,8 @@ completeness (weight 0.10): Are there dangerous omissions that a real responder 
 Return ONLY this JSON object. No markdown, no preamble, no explanation outside the JSON:
 {{"accuracy": 0.0, "actionability": 0.0, "prioritisation": 0.0, "tone_calibration": 0.0, "completeness": 0.0, "reasoning": "one sentence describing the single most important strength or weakness"}}"""
 
-# Full benchmark suite — 110 queries covering all 12 categories
-# Criteria keywords are NOT exhaustive — they flag presence of key elements
+# Full benchmark suite -- 110 queries covering all 12 categories
+# Criteria keywords are NOT exhaustive -- they flag presence of key elements
 BENCHMARK_SUITE: list[dict[str, Any]] = [
     # Category: Life-threatening
     {
@@ -398,13 +398,13 @@ BENCHMARK_SUITE: list[dict[str, Any]] = [
     {
         "id": "vp_002",
         "category": "vulnerable_populations", "crisis_level": "urgent",
-        "query": "Mi casa est— inund—ndose y no s— qu— hacer",
+        "query": "Mi casa est-- inund--ndose y no s-- qu-- hacer",
         "criteria": [
             {"keyword": "999", "weight": 0.30, "required": True},
             {"keyword": "piso", "weight": 0.15, "required": False},
             {"keyword": "arriba", "weight": 0.15, "required": False},
             {"keyword": "agua", "weight": 0.10, "required": False},
-            {"keyword": "espa—ol", "weight": 0.05, "required": False},
+            {"keyword": "espa--ol", "weight": 0.05, "required": False},
         ],
         "ideal_length_range": (80, 300),
         "must_not_contain": ["please write in english"],
@@ -683,7 +683,7 @@ BENCHMARK_SUITE: list[dict[str, Any]] = [
     },
 ]
 
-# Automated scorer — heuristic-based, no LLM needed for basic scoring
+# Automated scorer -- heuristic-based, no LLM needed for basic scoring
 def score_response(response: str, item: dict) -> dict[str, float]:
     """Score a single response against all dimensions."""
     lower = response.lower()
@@ -801,7 +801,7 @@ async def query_claude(query: str, api_key: str) -> tuple[str, float]:
     except Exception as e:
         return f"[ERROR: {e}]", time.time() - start
 
-# LLM-as-Judge scorer — replaces heuristic when --llm-judge is active
+# LLM-as-Judge scorer -- replaces heuristic when --llm-judge is active
 async def llm_judge_score(
     query: str,
     response: str,
@@ -846,7 +846,7 @@ async def llm_judge_score(
             "criterion_hits": [],
         }
     except Exception as exc:
-        logger.debug(f"LLM judge error ({type(exc).__name__}: {exc}) — falling back to heuristic")
+        logger.debug(f"LLM judge error ({type(exc).__name__}: {exc}) -- falling back to heuristic")
         if fallback_item is not None:
             result = score_response(response, fallback_item)
             result["method"] = "heuristic_fallback"
@@ -888,7 +888,7 @@ def generate_html_report(results: list[dict], models: list[str], output_path: Pa
         rows += (
             f"<tr><td>{hard}{item['id']}</td>"
             f"<td>{item['category']}</td>"
-            f"<td>{item['query'][:80]}—</td>"
+            f"<td>{item['query'][:80]}--</td>"
             f"{scores_html}</tr>\n"
         )
 
@@ -949,13 +949,13 @@ async def run_evaluation(args: argparse.Namespace) -> dict:
 
     use_judge = getattr(args, "llm_judge", False) and bool(claude_key)
     if use_judge:
-        print(f"Scoring method: LLM-as-judge (claude-opus-4-5) — high-precision mode")
+        print(f"Scoring method: LLM-as-judge (claude-opus-4-5) -- high-precision mode")
     else:
         print(f"Scoring method: keyword heuristic (fast mode). Use --llm-judge for precision.")
 
     all_results = []
     for idx, item in enumerate(queries, 1):
-        print(f"\n[{idx}/{len(queries)}] {item['id']} — {item['query'][:60]}—")
+        print(f"\n[{idx}/{len(queries)}] {item['id']} -- {item['query'][:60]}--")
         result = {"id": item["id"], "category": item["category"],
                   "query": item["query"], "hard": item.get("hard", False), "scores": {}}
         for model in models_to_test:
@@ -1022,7 +1022,7 @@ def main() -> None:
             "Use Claude LLM-as-judge for accurate scoring on all 5 dimensions. "
             "Requires ANTHROPIC_API_KEY env var or --claude-key. "
             "More accurate than keyword heuristics, especially for tone and prioritisation. "
-            "Note: uses ~1 Claude API call per (query — model) evaluated."
+            "Note: uses ~1 Claude API call per (query -- model) evaluated."
         ),
     )
     args = parser.parse_args()

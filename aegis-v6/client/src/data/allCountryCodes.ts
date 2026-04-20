@@ -21,7 +21,7 @@ export interface CountryCode {
 }
 
 export const ALL_COUNTRY_CODES: CountryCode[] = [
-  // A
+  //A
   { code: 'AF', name: 'Afghanistan', dial: '+93', flag: codeToFlag('AF'), format: '70 123 4567' },
   { code: 'AL', name: 'Albania', dial: '+355', flag: codeToFlag('AL'), format: '66 123 4567' },
   { code: 'DZ', name: 'Algeria', dial: '+213', flag: codeToFlag('DZ'), format: '551 23 45 67' },
@@ -37,7 +37,7 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'AT', name: 'Austria', dial: '+43', flag: codeToFlag('AT'), format: '664 123456' },
   { code: 'AZ', name: 'Azerbaijan', dial: '+994', flag: codeToFlag('AZ'), format: '40 123 45 67' },
   
-  // B
+  //B
   { code: 'BS', name: 'Bahamas', dial: '+1242', flag: codeToFlag('BS'), format: '359 1234' },
   { code: 'BH', name: 'Bahrain', dial: '+973', flag: codeToFlag('BH'), format: '3600 1234' },
   { code: 'BD', name: 'Bangladesh', dial: '+880', flag: codeToFlag('BD'), format: '1812 345678' },
@@ -57,7 +57,7 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'BF', name: 'Burkina Faso', dial: '+226', flag: codeToFlag('BF'), format: '70 12 34 56' },
   { code: 'BI', name: 'Burundi', dial: '+257', flag: codeToFlag('BI'), format: '79 56 12 34' },
   
-  // C
+  //C
   { code: 'KH', name: 'Cambodia', dial: '+855', flag: codeToFlag('KH'), format: '91 234 567' },
   { code: 'CM', name: 'Cameroon', dial: '+237', flag: codeToFlag('CM'), format: '6 71 23 45 67' },
   { code: 'CA', name: 'Canada', dial: '+1', flag: codeToFlag('CA'), format: '(416) 555-1234' },
@@ -75,17 +75,17 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'CR', name: 'Costa Rica', dial: '+506', flag: codeToFlag('CR'), format: '8312 3456' },
   { code: 'HR', name: 'Croatia', dial: '+385', flag: codeToFlag('HR'), format: '91 234 5678' },
   { code: 'CU', name: 'Cuba', dial: '+53', flag: codeToFlag('CU'), format: '5 1234567' },
-  { code: 'CW', name: 'Cura—ao', dial: '+599', flag: codeToFlag('CW'), format: '9 518 1234' },
+  { code: 'CW', name: 'Cura--ao', dial: '+599', flag: codeToFlag('CW'), format: '9 518 1234' },
   { code: 'CY', name: 'Cyprus', dial: '+357', flag: codeToFlag('CY'), format: '96 123456' },
   { code: 'CZ', name: 'Czech Republic', dial: '+420', flag: codeToFlag('CZ'), format: '601 123 456' },
   
-  // D
+  //D
   { code: 'DK', name: 'Denmark', dial: '+45', flag: codeToFlag('DK'), format: '32 12 34 56' },
   { code: 'DJ', name: 'Djibouti', dial: '+253', flag: codeToFlag('DJ'), format: '77 83 10 01' },
   { code: 'DM', name: 'Dominica', dial: '+1767', flag: codeToFlag('DM'), format: '225 1234' },
   { code: 'DO', name: 'Dominican Republic', dial: '+1809', flag: codeToFlag('DO'), format: '809-234-5678' },
   
-  // E
+  //E
   { code: 'EC', name: 'Ecuador', dial: '+593', flag: codeToFlag('EC'), format: '99 123 4567' },
   { code: 'EG', name: 'Egypt', dial: '+20', flag: codeToFlag('EG'), format: '100 123 4567' },
   { code: 'SV', name: 'El Salvador', dial: '+503', flag: codeToFlag('SV'), format: '7012 3456' },
@@ -94,14 +94,14 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'EE', name: 'Estonia', dial: '+372', flag: codeToFlag('EE'), format: '5123 4567' },
   { code: 'ET', name: 'Ethiopia', dial: '+251', flag: codeToFlag('ET'), format: '91 123 4567' },
   
-  // F
+  //F
   { code: 'FJ', name: 'Fiji', dial: '+679', flag: codeToFlag('FJ'), format: '701 2345' },
   { code: 'FI', name: 'Finland', dial: '+358', flag: codeToFlag('FI'), format: '40 123 4567' },
   { code: 'FR', name: 'France', dial: '+33', flag: codeToFlag('FR'), format: '6 12 34 56 78' },
   { code: 'GF', name: 'French Guiana', dial: '+594', flag: codeToFlag('GF'), format: '694 20 12 34' },
   { code: 'PF', name: 'French Polynesia', dial: '+689', flag: codeToFlag('PF'), format: '87 12 34 56' },
   
-  // G
+  //G
   { code: 'GA', name: 'Gabon', dial: '+241', flag: codeToFlag('GA'), format: '06 03 12 34' },
   { code: 'GM', name: 'Gambia', dial: '+220', flag: codeToFlag('GM'), format: '301 2345' },
   { code: 'GE', name: 'Georgia', dial: '+995', flag: codeToFlag('GE'), format: '555 12 34 56' },
@@ -118,13 +118,13 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'GW', name: 'Guinea-Bissau', dial: '+245', flag: codeToFlag('GW'), format: '955 012 345' },
   { code: 'GY', name: 'Guyana', dial: '+592', flag: codeToFlag('GY'), format: '609 1234' },
   
-  // H
+  //H
   { code: 'HT', name: 'Haiti', dial: '+509', flag: codeToFlag('HT'), format: '34 10 1234' },
   { code: 'HN', name: 'Honduras', dial: '+504', flag: codeToFlag('HN'), format: '9123 4567' },
   { code: 'HK', name: 'Hong Kong', dial: '+852', flag: codeToFlag('HK'), format: '5123 4567' },
   { code: 'HU', name: 'Hungary', dial: '+36', flag: codeToFlag('HU'), format: '20 123 4567' },
   
-  // I
+  //I
   { code: 'IS', name: 'Iceland', dial: '+354', flag: codeToFlag('IS'), format: '611 1234' },
   { code: 'IN', name: 'India', dial: '+91', flag: codeToFlag('IN'), format: '81234 56789' },
   { code: 'ID', name: 'Indonesia', dial: '+62', flag: codeToFlag('ID'), format: '812 3456 7890' },
@@ -135,12 +135,12 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'IT', name: 'Italy', dial: '+39', flag: codeToFlag('IT'), format: '312 345 6789' },
   { code: 'CI', name: 'Ivory Coast', dial: '+225', flag: codeToFlag('CI'), format: '01 23 45 67' },
   
-  // J
+  //J
   { code: 'JM', name: 'Jamaica', dial: '+1876', flag: codeToFlag('JM'), format: '210 1234' },
   { code: 'JP', name: 'Japan', dial: '+81', flag: codeToFlag('JP'), format: '90 1234 5678' },
   { code: 'JO', name: 'Jordan', dial: '+962', flag: codeToFlag('JO'), format: '7 9012 3456' },
   
-  // K
+  //K
   { code: 'KZ', name: 'Kazakhstan', dial: '+7', flag: codeToFlag('KZ'), format: '771 000 9998' },
   { code: 'KE', name: 'Kenya', dial: '+254', flag: codeToFlag('KE'), format: '712 345678' },
   { code: 'KI', name: 'Kiribati', dial: '+686', flag: codeToFlag('KI'), format: '72012345' },
@@ -148,7 +148,7 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'KW', name: 'Kuwait', dial: '+965', flag: codeToFlag('KW'), format: '500 12345' },
   { code: 'KG', name: 'Kyrgyzstan', dial: '+996', flag: codeToFlag('KG'), format: '700 123 456' },
   
-  // L
+  //L
   { code: 'LA', name: 'Laos', dial: '+856', flag: codeToFlag('LA'), format: '20 23 123 456' },
   { code: 'LV', name: 'Latvia', dial: '+371', flag: codeToFlag('LV'), format: '21 234 567' },
   { code: 'LB', name: 'Lebanon', dial: '+961', flag: codeToFlag('LB'), format: '71 123 456' },
@@ -159,7 +159,7 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'LT', name: 'Lithuania', dial: '+370', flag: codeToFlag('LT'), format: '612 34567' },
   { code: 'LU', name: 'Luxembourg', dial: '+352', flag: codeToFlag('LU'), format: '628 123 456' },
   
-  // M
+  //M
   { code: 'MO', name: 'Macau', dial: '+853', flag: codeToFlag('MO'), format: '6612 3456' },
   { code: 'MK', name: 'Macedonia', dial: '+389', flag: codeToFlag('MK'), format: '72 345 678' },
   { code: 'MG', name: 'Madagascar', dial: '+261', flag: codeToFlag('MG'), format: '32 12 345 67' },
@@ -184,7 +184,7 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'MZ', name: 'Mozambique', dial: '+258', flag: codeToFlag('MZ'), format: '82 123 4567' },
   { code: 'MM', name: 'Myanmar', dial: '+95', flag: codeToFlag('MM'), format: '9 212 3456' },
   
-  // N
+  //N
   { code: 'NA', name: 'Namibia', dial: '+264', flag: codeToFlag('NA'), format: '81 123 4567' },
   { code: 'NR', name: 'Nauru', dial: '+674', flag: codeToFlag('NR'), format: '555 1234' },
   { code: 'NP', name: 'Nepal', dial: '+977', flag: codeToFlag('NP'), format: '984 1234567' },
@@ -198,10 +198,10 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'KP', name: 'North Korea', dial: '+850', flag: codeToFlag('KP'), format: '192 123 4567' },
   { code: 'NO', name: 'Norway', dial: '+47', flag: codeToFlag('NO'), format: '406 12 345' },
   
-  // O
+  //O
   { code: 'OM', name: 'Oman', dial: '+968', flag: codeToFlag('OM'), format: '9212 3456' },
   
-  // P
+  //P
   { code: 'PK', name: 'Pakistan', dial: '+92', flag: codeToFlag('PK'), format: '300 1234567' },
   { code: 'PW', name: 'Palau', dial: '+680', flag: codeToFlag('PW'), format: '620 1234' },
   { code: 'PS', name: 'Palestine', dial: '+970', flag: codeToFlag('PS'), format: '599 123 456' },
@@ -214,17 +214,17 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'PT', name: 'Portugal', dial: '+351', flag: codeToFlag('PT'), format: '912 345 678' },
   { code: 'PR', name: 'Puerto Rico', dial: '+1787', flag: codeToFlag('PR'), format: '787-234-5678' },
   
-  // Q
+  //Q
   { code: 'QA', name: 'Qatar', dial: '+974', flag: codeToFlag('QA'), format: '3312 3456' },
   
-  // R
-  { code: 'RE', name: 'R—union', dial: '+262', flag: codeToFlag('RE'), format: '692 12 34 56' },
+  //R
+  { code: 'RE', name: 'R--union', dial: '+262', flag: codeToFlag('RE'), format: '692 12 34 56' },
   { code: 'RO', name: 'Romania', dial: '+40', flag: codeToFlag('RO'), format: '712 034 567' },
   { code: 'RU', name: 'Russia', dial: '+7', flag: codeToFlag('RU'), format: '912 345-67-89' },
   { code: 'RW', name: 'Rwanda', dial: '+250', flag: codeToFlag('RW'), format: '720 123 456' },
   
-  // S
-  { code: 'BL', name: 'Saint Barth—lemy', dial: '+590', flag: codeToFlag('BL'), format: '690 30 12 34' },
+  //S
+  { code: 'BL', name: 'Saint Barth--lemy', dial: '+590', flag: codeToFlag('BL'), format: '690 30 12 34' },
   { code: 'SH', name: 'Saint Helena', dial: '+290', flag: codeToFlag('SH'), format: '51234' },
   { code: 'KN', name: 'Saint Kitts and Nevis', dial: '+1869', flag: codeToFlag('KN'), format: '765 1234' },
   { code: 'LC', name: 'Saint Lucia', dial: '+1758', flag: codeToFlag('LC'), format: '284 1234' },
@@ -233,7 +233,7 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'VC', name: 'Saint Vincent and the Grenadines', dial: '+1784', flag: codeToFlag('VC'), format: '430 1234' },
   { code: 'WS', name: 'Samoa', dial: '+685', flag: codeToFlag('WS'), format: '72 12345' },
   { code: 'SM', name: 'San Marino', dial: '+378', flag: codeToFlag('SM'), format: '66 66 12 12' },
-  { code: 'ST', name: 'S—o Tom— and Pr—ncipe', dial: '+239', flag: codeToFlag('ST'), format: '981 2345' },
+  { code: 'ST', name: 'S--o Tom-- and Pr--ncipe', dial: '+239', flag: codeToFlag('ST'), format: '981 2345' },
   { code: 'SA', name: 'Saudi Arabia', dial: '+966', flag: codeToFlag('SA'), format: '50 123 4567' },
   { code: 'SN', name: 'Senegal', dial: '+221', flag: codeToFlag('SN'), format: '70 123 45 67' },
   { code: 'RS', name: 'Serbia', dial: '+381', flag: codeToFlag('RS'), format: '60 1234567' },
@@ -257,7 +257,7 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'CH', name: 'Switzerland', dial: '+41', flag: codeToFlag('CH'), format: '78 123 45 67' },
   { code: 'SY', name: 'Syria', dial: '+963', flag: codeToFlag('SY'), format: '944 567 890' },
   
-  // T
+  //T
   { code: 'TW', name: 'Taiwan', dial: '+886', flag: codeToFlag('TW'), format: '912 345 678' },
   { code: 'TJ', name: 'Tajikistan', dial: '+992', flag: codeToFlag('TJ'), format: '917 12 3456' },
   { code: 'TZ', name: 'Tanzania', dial: '+255', flag: codeToFlag('TZ'), format: '621 234 567' },
@@ -273,7 +273,7 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'TC', name: 'Turks and Caicos Islands', dial: '+1649', flag: codeToFlag('TC'), format: '231 1234' },
   { code: 'TV', name: 'Tuvalu', dial: '+688', flag: codeToFlag('TV'), format: '901234' },
   
-  // U
+  //U
   { code: 'UG', name: 'Uganda', dial: '+256', flag: codeToFlag('UG'), format: '712 345678' },
   { code: 'UA', name: 'Ukraine', dial: '+380', flag: codeToFlag('UA'), format: '50 123 4567' },
   { code: 'AE', name: 'United Arab Emirates', dial: '+971', flag: codeToFlag('AE'), format: '50 123 4567' },
@@ -282,7 +282,7 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'UY', name: 'Uruguay', dial: '+598', flag: codeToFlag('UY'), format: '94 231 234' },
   { code: 'UZ', name: 'Uzbekistan', dial: '+998', flag: codeToFlag('UZ'), format: '91 234 56 78' },
   
-  // V
+  //V
   { code: 'VU', name: 'Vanuatu', dial: '+678', flag: codeToFlag('VU'), format: '591 2345' },
   { code: 'VA', name: 'Vatican City', dial: '+39', flag: codeToFlag('VA'), format: '312 345 6789' },
   { code: 'VE', name: 'Venezuela', dial: '+58', flag: codeToFlag('VE'), format: '412 1234567' },
@@ -290,13 +290,13 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
   { code: 'VG', name: 'Virgin Islands (British)', dial: '+1284', flag: codeToFlag('VG'), format: '300 1234' },
   { code: 'VI', name: 'Virgin Islands (US)', dial: '+1340', flag: codeToFlag('VI'), format: '642 1234' },
   
-  // W
+  //W
   { code: 'WF', name: 'Wallis and Futuna', dial: '+681', flag: codeToFlag('WF'), format: '82 12 34' },
   
-  // Y
+  //Y
   { code: 'YE', name: 'Yemen', dial: '+967', flag: codeToFlag('YE'), format: '712 345 678' },
   
-  // Z
+  //Z
   { code: 'ZM', name: 'Zambia', dial: '+260', flag: codeToFlag('ZM'), format: '95 1234567' },
   { code: 'ZW', name: 'Zimbabwe', dial: '+263', flag: codeToFlag('ZW'), format: '71 234 5678' },
 ]

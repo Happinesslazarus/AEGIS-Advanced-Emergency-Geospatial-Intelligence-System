@@ -8,10 +8,10 @@
  * - Works alongside auth.ts (which handles user-facing authentication)
  * - n8n workflows sign requests with HMAC-SHA256 via X-N8N-Signature header
  *
- * - internalApiKeyAuth — validates X-Internal-API-Key header
- * - n8nWebhookAuth — validates HMAC signature from n8n workflows
- * - internalAuth — combined: accepts API key OR webhook signature
- * - adminOnly / operatorOnly — role-based gates for internal routes
+ * - internalApiKeyAuth -- validates X-Internal-API-Key header
+ * - n8nWebhookAuth -- validates HMAC signature from n8n workflows
+ * - internalAuth -- combined: accepts API key OR webhook signature
+ * - adminOnly / operatorOnly -- role-based gates for internal routes
  * */
 
 import { Request, Response, NextFunction } from 'express'
@@ -19,13 +19,13 @@ import crypto from 'crypto'
 import { AuthRequest, authMiddleware } from './auth.js'
 import { logger } from '../services/logger.js'
 
-// Environment configuration with strict production enforcement
+//Environment configuration with strict production enforcement
 const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || (() => {
   if (process.env.NODE_ENV === 'production') {
     logger.fatal('[FATAL] INTERNAL_API_KEY is required in production')
     process.exit(1)
   }
-  // Development fallback - logged for visibility
+  //Development fallback - logged for visibility
   const devKey = 'dev-internal-key-' + crypto.randomBytes(16).toString('hex')
   logger.warn('[SECURITY] INTERNAL_API_KEY not set - using dev key')
   return devKey
@@ -41,7 +41,7 @@ const N8N_WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET || (() => {
   return devSecret
 })()
 
-// Allowed internal IP ranges (localhost, Docker networks)
+//Allowed internal IP ranges (localhost, Docker networks)
 const INTERNAL_IP_RANGES = [
   '127.0.0.1',
   '::1',
@@ -73,7 +73,7 @@ function validateWebhookSignature(payload: string, signature: string): boolean {
     .update(payload)
     .digest('hex')
   
-  // Timing-safe comparison to prevent timing attacks
+  //Timing-safe comparison to prevent timing attacks
   try {
     return crypto.timingSafeEqual(
       Buffer.from(signature),
@@ -89,7 +89,7 @@ function validateWebhookSignature(payload: string, signature: string): boolean {
  * Validates X-Internal-API-Key header
  */
 export function internalApiKeyAuth(req: Request, res: Response, next: NextFunction): void {
-  // Allow from internal IPs ONLY in local development — staging/production always require the key
+  //Allow from internal IPs ONLY in local development -- staging/production always require the key
   if (process.env.NODE_ENV === 'development' && isInternalIP(req.ip)) {
     return next()
   }
@@ -104,7 +104,7 @@ export function internalApiKeyAuth(req: Request, res: Response, next: NextFuncti
     return
   }
 
-  // Timing-safe comparison
+  //Timing-safe comparison
   try {
     const isValid = crypto.timingSafeEqual(
       Buffer.from(apiKey),
@@ -124,7 +124,7 @@ export function internalApiKeyAuth(req: Request, res: Response, next: NextFuncti
  * Validates X-N8N-Signature header (HMAC-SHA256)
  */
 export function n8nWebhookAuth(req: Request, res: Response, next: NextFunction): void {
-  // Allow from internal IPs ONLY in local development — staging/production always require signature
+  //Allow from internal IPs ONLY in local development -- staging/production always require signature
   if (process.env.NODE_ENV === 'development' && isInternalIP(req.ip)) {
     return next()
   }
@@ -139,7 +139,7 @@ export function n8nWebhookAuth(req: Request, res: Response, next: NextFunction):
     return
   }
 
-  // Validate signature against raw body
+  //Validate signature against raw body
   const payload = JSON.stringify(req.body)
   if (!validateWebhookSignature(payload, signature)) {
     logger.warn({ ip: req.ip }, '[Security] Invalid webhook signature')
@@ -154,12 +154,12 @@ export function n8nWebhookAuth(req: Request, res: Response, next: NextFunction):
  * Combined internal auth: API key OR valid webhook signature OR internal IP (dev only)
  */
 export function internalAuth(req: Request, res: Response, next: NextFunction): void {
-  // Allow from internal IPs ONLY in local development — staging/production always authenticate
+  //Allow from internal IPs ONLY in local development -- staging/production always authenticate
   if (process.env.NODE_ENV === 'development' && isInternalIP(req.ip)) {
     return next()
   }
 
-  // Check API key first
+  //Check API key first
   const apiKey = req.headers['x-internal-api-key'] as string
   if (apiKey) {
     try {
@@ -171,7 +171,7 @@ export function internalAuth(req: Request, res: Response, next: NextFunction): v
     } catch {}
   }
 
-  // Check webhook signature
+  //Check webhook signature
   const signature = req.headers['x-n8n-signature'] as string
   if (signature) {
     const payload = JSON.stringify(req.body)

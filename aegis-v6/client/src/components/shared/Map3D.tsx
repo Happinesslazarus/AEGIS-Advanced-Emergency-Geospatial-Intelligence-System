@@ -27,7 +27,7 @@ function esc(str: string | null | undefined): string {
     .replace(/'/g, '&#x27;')
 }
 
-// Default centre: Aberdeen
+//Default centre: Aberdeen
 const DEFAULT_CENTER: [number, number] = [-2.0943, 57.1497]
 const DEFAULT_ZOOM = 12.5
 
@@ -92,7 +92,7 @@ export default function Map3D({
   const [floodPredictions, setFloodPredictions] = useState<any>(null)
   const [evacuationRoutes, setEvacuationRoutes] = useState<any>(null)
 
-  // Fetch flood predictions and evacuation routes
+  //Fetch flood predictions and evacuation routes
   const fetchOverlays = useCallback(async () => {
     try {
       if (showFloodPredictions) {
@@ -114,7 +114,7 @@ export default function Map3D({
 
   useEffect(() => { fetchOverlays() }, [fetchOverlays])
 
-  // Initialize map
+  //Initialize map
   useEffect(() => {
     if (!mapContainer.current || !MAPBOX_TOKEN) return
 
@@ -137,11 +137,11 @@ export default function Map3D({
 
     mapRef.current = map
 
-    // Navigation control
+    //Navigation control
     map.addControl(new mapboxgl.NavigationControl({ showCompass: true, visualizePitch: true }), 'bottom-right')
 
     map.on('style.load', () => {
-      // Add terrain
+      //Add terrain
       if (showTerrain) {
         map.addSource('mapbox-dem', {
           type: 'raster-dem',
@@ -152,7 +152,7 @@ export default function Map3D({
         map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.3 })
       }
 
-      // Fog for globe effect
+      //Fog for globe effect
       map.setFog({
         color: 'rgb(20, 20, 30)',
         'high-color': 'rgb(36, 92, 223)',
@@ -161,7 +161,7 @@ export default function Map3D({
         'star-intensity': 0.4,
       })
 
-      // 3D buildings
+      //3D buildings
       if (showBuildings) {
         const layers = map.getStyle()?.layers || []
         let labelLayerId: string | undefined
@@ -202,17 +202,17 @@ export default function Map3D({
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update report markers
+  //Update report markers
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
 
-    // Remove existing markers
+    //Remove existing markers
     markersRef.current.forEach(m => m.remove())
     markersRef.current = []
 
     const map = mapRef.current
 
-    // Report markers
+    //Report markers
     reports.forEach(report => {
       if (!report.coordinates?.[0] || !report.coordinates?.[1]) return
 
@@ -251,7 +251,7 @@ export default function Map3D({
       markersRef.current.push(marker)
     })
 
-    // Distress beacon markers (pulsing red)
+    //Distress beacon markers (pulsing red)
     distressMarkers.forEach(dm => {
       const el = document.createElement('div')
       el.className = 'distress-marker-3d'
@@ -268,7 +268,7 @@ export default function Map3D({
               <div style="padding:8px; font-family:system-ui;">
                 <h4 style="margin:0 0 4px; font-size:13px; font-weight:600; color:#dc2626;">🚨 ${esc(t('map.distressBeacon', lang))}</h4>
                 <p style="margin:0; font-size:12px;">${esc(dm.citizenName)}</p>
-                <p style="margin:2px 0; font-size:10px; color:#aaa;">${dm.isVulnerable ? `⚠️ ${esc(t('map.vulnerablePerson', lang))}` : ''}</p>
+ <p style="margin:2px 0; font-size:10px; color:#aaa;">${dm.isVulnerable ? `!️ ${esc(t('map.vulnerablePerson', lang))}` : ''}</p>
                 <p style="margin:2px 0; font-size:10px; color:#aaa;">${esc(t('map.status', lang))}: ${esc(dm.status)}</p>
               </div>
             `)
@@ -279,19 +279,19 @@ export default function Map3D({
     })
   }, [reports, distressMarkers, mapLoaded, onReportClick])
 
-  // Add flood prediction GeoJSON layers
+  //Add flood prediction GeoJSON layers
   useEffect(() => {
     if (!mapRef.current || !mapLoaded || !floodPredictions) return
     const map = mapRef.current
 
-    // Remove old prediction layers
+    //Remove old prediction layers
     try {
       if (map.getLayer('flood-prediction-fill')) map.removeLayer('flood-prediction-fill')
       if (map.getLayer('flood-prediction-outline')) map.removeLayer('flood-prediction-outline')
       if (map.getSource('flood-predictions')) map.removeSource('flood-predictions')
     } catch {}
 
-    // Build GeoJSON from predictions
+    //Build GeoJSON from predictions
     const features: any[] = []
     for (const pred of floodPredictions) {
       if (pred.extent) {
@@ -344,7 +344,7 @@ export default function Map3D({
     }
   }, [floodPredictions, mapLoaded])
 
-  // Add evacuation route lines
+  //Add evacuation route lines
   useEffect(() => {
     if (!mapRef.current || !mapLoaded || !evacuationRoutes) return
     const map = mapRef.current
@@ -380,7 +380,7 @@ export default function Map3D({
     }
   }, [evacuationRoutes, mapLoaded])
 
-  // 2D / 3D toggle
+  //2D / 3D toggle
   const toggle3D = () => {
     if (!mapRef.current) return
     const next = !is3D
@@ -392,7 +392,7 @@ export default function Map3D({
     })
   }
 
-  // Basemap toggle
+  //Basemap toggle
   const toggleBasemap = () => {
     if (!mapRef.current) return
     const next = !isSatellite
@@ -404,7 +404,7 @@ export default function Map3D({
     )
   }
 
-  // Reset view
+  //Reset view
   const resetView = () => {
     if (!mapRef.current) return
     const mapCenter = center
@@ -419,7 +419,7 @@ export default function Map3D({
     })
   }
 
-  // No token fallback
+  //No token fallback
   if (!MAPBOX_TOKEN) {
     return (
       <div className={`relative flex items-center justify-center bg-gray-900 ${className}`} style={{ height }}>
@@ -449,7 +449,7 @@ export default function Map3D({
         .mapboxgl-popup-close-button { color: #94a3b8 !important; }
       `}</style>
 
-      {/* Control buttons — top right */}
+      {/* Control buttons -- top right */}
       <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
         {/* 3D/2D toggle */}
         <button
@@ -479,7 +479,7 @@ export default function Map3D({
         </button>
       </div>
 
-      {/* Legend — bottom left */}
+      {/* Legend -- bottom left */}
       <div className="absolute bottom-3 left-3 z-10 bg-gray-900/90 backdrop-blur-md border border-gray-700/60 rounded-lg p-2.5 shadow-lg">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">

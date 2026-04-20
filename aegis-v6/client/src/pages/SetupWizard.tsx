@@ -8,8 +8,8 @@
  * - Calls GET /api/admin/setup/status and POST /api/admin/setup/complete
  * - After completion, reloads to the main AdminPage dashboard
  *
- * - server/src/routes/setupRoutes.ts  — the setup completion API endpoints
- * - server/src/utils/setupDatabase.ts — database seeding logic
+ * - server/src/routes/setupRoutes.ts  -- the setup completion API endpoints
+ * - server/src/utils/setupDatabase.ts -- database seeding logic
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
@@ -60,7 +60,7 @@ type Step = 1 | 2 | 3 | 4
 
 /* Constants */
 
-// Build region list from all countries + EU bloc + Custom
+//Build region list from all countries + EU bloc + Custom
 const _countryRegions: RegionOption[] = [...COUNTRY_CODES]
   .sort((a, b) => a.name.localeCompare(b.name))
   .map(c => ({
@@ -89,19 +89,19 @@ const STEPS: { label: string; icon: React.ElementType }[] = [
 export default function SetupWizard({ user, onComplete, setupStatus }: SetupWizardProps): JSX.Element {
   const { dark } = useTheme()
 
-  // Wizard state
+  //Wizard state
   const [step, setStep] = useState<Step>(1)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Region state
+  //Region state
   const [selectedRegion, setSelectedRegion] = useState<string>(setupStatus.configuredRegion ?? '')
   const [customRegionName, setCustomRegionName] = useState('')
   const [availableRegions, setAvailableRegions] = useState<RegionOption[]>(REGION_OPTIONS)
   const [regionSearch, setRegionSearch] = useState('')
   const lang = useLanguage()
 
-  // Notification state
+  //Notification state
   const [channels, setChannels] = useState<NotificationChannels>({
     email: true,
     sms: false,
@@ -110,7 +110,7 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
   })
   const [webhookUrl, setWebhookUrl] = useState('')
 
-  // Fetch server-side regions with proper cancellation
+  //Fetch server-side regions with proper cancellation
   useEffect(() => {
     const controller = new AbortController()
     ;(async () => {
@@ -122,7 +122,7 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
           const data = await res.json()
           if (controller.signal.aborted) return
           const serverRegions: RegionOption[] = []
-          // Map known region IDs to ISO-2 country codes for flag emoji lookup
+          //Map known region IDs to ISO-2 country codes for flag emoji lookup
           const REGION_COUNTRY_MAP: Record<string, string> = {
             scotland: 'GB', england: 'GB', wales: 'GB', 'northern-ireland': 'GB',
             ireland: 'IE', france: 'FR', germany: 'DE', spain: 'ES',
@@ -135,7 +135,7 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
             if (iso.length === 2 && /^[A-Z]{2}$/.test(iso)) return codeToFlag(iso)
             return '\uD83C\uDF0D' // 🌍 globe fallback
           }
-          // Merge adapter regions
+          //Merge adapter regions
           if (data.adapterRegions?.length) {
             for (const r of data.adapterRegions) {
               if (!REGION_OPTIONS.find(o => o.id === r.id)) {
@@ -150,7 +150,7 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
               }
             }
           }
-          // Merge legacy regions
+          //Merge legacy regions
           if (data.regions?.length) {
             for (const r of data.regions) {
               if (!REGION_OPTIONS.find(o => o.id === r.id) && !serverRegions.find(o => o.id === r.id)) {
@@ -168,7 +168,7 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
           if (serverRegions.length) {
             setAvailableRegions([...REGION_OPTIONS.filter(r => r.id !== 'custom'), ...serverRegions, REGION_OPTIONS[REGION_OPTIONS.length - 1]])
           }
-          // Auto-select active region from server if none chosen
+          //Auto-select active region from server if none chosen
           if (!selectedRegion && data.activeRegion) {
             setSelectedRegion(data.activeRegion)
           }
@@ -197,7 +197,7 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
     if (!canGoNext()) return
     setError(null)
 
-    // Save state at each step
+    //Save state at each step
     if (step === 2) {
       try {
         setSaving(true)
@@ -367,7 +367,7 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
           type="text"
           value={regionSearch}
           onChange={e => setRegionSearch(e.target.value)}
-          placeholder={`Search ${availableRegions.length} countries…`}
+          placeholder={`Search ${availableRegions.length} countries...`}
           aria-label="Search deployment regions"
           className={`w-full pl-9 pr-4 py-2.5 rounded-lg border text-sm outline-none transition focus:ring-2 focus:ring-aegis-500/40 focus:border-aegis-400 ${
             dark
@@ -423,7 +423,7 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
     )
   }
 
-  // Continuation of StepRegion JSX (custom input + info banner)
+  //Continuation of StepRegion JSX (custom input + info banner)
   const StepRegionExtras = () => (
     <div className="space-y-4 mt-4">
       {selectedRegion === 'custom' && (
@@ -545,13 +545,13 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
                     />
                   </div>
                   {webhookState === 'invalid' && (
-                    <p className="text-xs text-red-500 mt-1">Must be a valid HTTPS URL (e.g. https://hooks.slack.com/…)</p>
+                    <p className="text-xs text-red-500 mt-1">Must be a valid HTTPS URL (e.g. https://hooks.slack.com/...)</p>
                   )}
                   {webhookState === 'valid' && (
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ Valid HTTPS webhook URL</p>
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1"> Valid HTTPS webhook URL</p>
                   )}
                   {!webhookState && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">You can configure this later in System Settings → Webhooks.</p>
+ <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">You can configure this later in System Settings -> Webhooks.</p>
                   )}
                 </>
               )

@@ -2,8 +2,7 @@
 Trains the infrastructure damage risk-prediction model using EM-DAT global
 disaster records as independent training labels.
 
-Label source (INDEPENDENT — no leakage)
------------------------------------------
+Label source (INDEPENDENT -- no leakage)
 EM-DAT (Emergency Events Database, CRED, Université catholique de Louvain):
   The world's most comprehensive global disaster event database since 1900.
   All infrastructure-relevant disaster types are used as positive labels:
@@ -24,13 +23,13 @@ EM-DAT (Emergency Events Database, CRED, Université catholique de Louvain):
 
 Label independence:
   EM-DAT records come from national disaster management agencies, insurance
-  reports, UN OCHA, and peer-reviewed literature — entirely independent of
+  reports, UN OCHA, and peer-reviewed literature -- entirely independent of
   ERA5 meteorological reanalysis used as features.
 
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Labels from data_fetch_emdat.py (EM-DAT export)
 - Features from multi_location_weather.py (GLOBAL_WILDFIRE_LOCATIONS used as
-  a proxy for multi-hazard coverage — 14 multi-climate sites)
+  a proxy for multi-hazard coverage -- 14 multi-climate sites)
 - Saves to model_registry/infrastructure_damage/ via ModelRegistry
 - Loaded at inference time by ai-engine/app/hazards/infrastructure_damage.py
 """
@@ -52,7 +51,7 @@ from app.training.data_fetch_emdat import (
 )
 
 # Use a broad multi-climate grid for infrastructure training
-# (re-uses GLOBAL_HEATWAVE_LOCATIONS — 27 sites spanning Europe + Turkey)
+# (re-uses GLOBAL_HEATWAVE_LOCATIONS -- 27 sites spanning Europe + Turkey)
 _INFRA_LOCATIONS = GLOBAL_HEATWAVE_LOCATIONS
 
 
@@ -65,15 +64,15 @@ class InfrastructureDamageRealPipeline(BaseRealPipeline):
         region_scope="MULTI-REGION",
         label_source=(
             "EM-DAT (Emergency Events Database, CRED / Université catholique de "
-            "Louvain, 2000–present): globally validated disaster records covering "
+            "Louvain, 2000-present): globally validated disaster records covering "
             "floods, storms, landslides, wildfires, and transport/industrial accidents "
             "with infrastructure damage.  Events matched to training stations by "
-            "lat/lon haversine (100km) — a radius chosen to reflect realistic "
+            "lat/lon haversine (100km) -- a radius chosen to reflect realistic "
             "infrastructure damage catchment areas (e.g., a major flood 100km away "
             "can disrupt power grids, transport networks, and water treatment plants "
             "serving the station's city).  "
             "EM-DAT data is curated from national disaster management agencies, "
-            "UN OCHA, insurance reports, and peer-reviewed literature — entirely "
+            "UN OCHA, insurance reports, and peer-reviewed literature -- entirely "
             "independent of ERA5 reanalysis.  "
             "Free registration: https://public.emdat.be"
         ),
@@ -82,7 +81,7 @@ class InfrastructureDamageRealPipeline(BaseRealPipeline):
             "category": "authoritative_event_record",
             "source": (
                 "EM-DAT global disaster database (CRED): "
-                "https://public.emdat.be — event types: Flood, Storm, Landslide, "
+                "https://public.emdat.be -- event types: Flood, Storm, Landslide, "
                 "Wildfire, Transport accident, Industrial accident.  "
                 "File: {ai-engine}/data/emdat/emdat_export.xlsx (manual download required)"
             ),
@@ -94,7 +93,7 @@ class InfrastructureDamageRealPipeline(BaseRealPipeline):
                 "cross-border power grid contingency assessment and by UK Highways "
                 "England for major incident planning zones.  "
                 "All hours in a positive station-day are labelled POSITIVE.  "
-                "Country-level fallback applies only to same-country stations — "
+                "Country-level fallback applies only to same-country stations -- "
                 "a disaster in France never labels a UK station as positive."
             ),
             "limitations": (
@@ -116,9 +115,9 @@ class InfrastructureDamageRealPipeline(BaseRealPipeline):
         min_positive_samples=20,
         min_stations=3,
         promotion_min_roc_auc=0.68,
-        # Use 2020-01-01 test date — EM-DAT has reliable coverage through 2019-2021.
+        # Use 2020-01-01 test date -- EM-DAT has reliable coverage through 2019-2021.
         # 2022-2023 window has near-zero events due to data-entry lag (confirmed:
-        # test set = all-negative → AUC undefined → 0.5 in prior runs).
+ # test set = all-negative -> AUC undefined -> 0.5 in prior runs).
         # 2020-2021 holdout gives a genuine temporal test with documented events.
         fixed_test_date="2020-01-01",
         allow_sparse_test=True,
@@ -128,7 +127,7 @@ class InfrastructureDamageRealPipeline(BaseRealPipeline):
         # This event clustering creates genuine quarter-level performance variation that
         # is NOT model degradation but reflects real-world extreme event variability.
         # Guha-Sapir et al. (2016) Annual Disaster Statistical Review confirms high
-        # year-to-year variance in European disaster counts (CV ≈ 0.45 for 2000–2015).
+        # year-to-year variance in European disaster counts (CV ≈ 0.45 for 2000-2015).
         allow_temporal_drift=True,
     )
 
@@ -146,7 +145,7 @@ class InfrastructureDamageRealPipeline(BaseRealPipeline):
         """Build infrastructure damage labels from EM-DAT disaster events."""
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build infrastructure labels")
+            raise RuntimeError("No weather data -- cannot build infrastructure labels")
 
         if not emdat_is_available():
             raise RuntimeError(
@@ -157,7 +156,7 @@ class InfrastructureDamageRealPipeline(BaseRealPipeline):
 
         # EM-DAT infrastructure-relevant disaster types.
         # Use the AEGIS canonical hazard names that exist as values in
-        # data_fetch_emdat.EMDAT_TYPE_MAP — "storm"/"transport"/"industrial"
+        # data_fetch_emdat.EMDAT_TYPE_MAP -- "storm"/"transport"/"industrial"
         # are not valid values and produce 0 results.
         # "infrastructure_damage" maps to EM-DAT "Transport accident" +
         # "Industrial accident"; "heatwave" captures extreme-cold damage.
@@ -177,7 +176,7 @@ class InfrastructureDamageRealPipeline(BaseRealPipeline):
                 station_locations=_INFRA_LOCATIONS,
                 start_date=self.start_date,
                 end_date=self.end_date,
-                radius_km=100.0,  # 100 km operational catchment — ENTSO-E / UK Highways England standard
+                radius_km=100.0,  # 100 km operational catchment -- ENTSO-E / UK Highways England standard
             )
             if not df.empty:
                 all_labels.append(df)
@@ -186,7 +185,7 @@ class InfrastructureDamageRealPipeline(BaseRealPipeline):
             raise RuntimeError(
                 "EM-DAT returned no events for the specified date range and locations.  "
                 "Ensure emdat_export.xlsx covers years "
-                f"{self.start_date[:4]}–{self.end_date[:4]}."
+                f"{self.start_date[:4]}-{self.end_date[:4]}."
             )
 
         # Union of all hazard type labels
@@ -209,7 +208,7 @@ class InfrastructureDamageRealPipeline(BaseRealPipeline):
         """Build per-station features with snow and soil moisture."""
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build features")
+            raise RuntimeError("No weather data -- cannot build features")
         return build_per_station_features(
             weather,
             self.feature_engineer,
@@ -222,7 +221,7 @@ class InfrastructureDamageRealPipeline(BaseRealPipeline):
     def hazard_feature_columns(self) -> list[str]:
         """Feature columns for infrastructure damage 12h-ahead forecasting.
 
-        Labels from EM-DAT observed disaster records — no ERA5 variable is
+        Labels from EM-DAT observed disaster records -- no ERA5 variable is
         the label source, so all meteorological predictors are legitimate.
         """
         return [

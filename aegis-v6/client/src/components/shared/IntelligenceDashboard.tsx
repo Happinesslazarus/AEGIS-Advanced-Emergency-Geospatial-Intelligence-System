@@ -183,7 +183,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
   const safeFetch = useCallback(async (url: string, init?: RequestInit): Promise<Response | null> => {
     try {
       const res = await fetch(url, init)
-      // Optional intelligence endpoints may be unavailable by role or backend version.
+      //Optional intelligence endpoints may be unavailable by role or backend version.
       if ([401, 403, 404].includes(res.status)) return null
       return res
     } catch (err: any) {
@@ -217,7 +217,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
 
       if (dashRes?.ok) {
         const raw = await dashRes.json()
-        // Map incident registry summary to our DashboardData shape
+        //Map incident registry summary to our DashboardData shape
         const byType: IncidentSummary[] = (raw.incidents || []).map((inc: any) => ({
           id: inc.id || inc.incidentType || '',
           activeCount: inc.activeCount ?? inc.active ?? 0,
@@ -316,13 +316,13 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
     return () => { fetchAbortRef.current?.abort() }
   }, [fetchAll])
 
-  // Auto-refresh every 60s
+  //Auto-refresh every 60s
   useEffect(() => {
     const t = setInterval(fetchAll, 60_000)
     return () => clearInterval(t)
   }, [fetchAll])
 
-  // Socket.IO live updates
+  //Socket.IO live updates
   useEffect(() => {
     if (!socket) return
 
@@ -338,14 +338,14 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
         timestamp:    payload.timestamp || new Date().toISOString(),
       }
       setLiveAlerts(prev => [alert, ...prev].slice(0, 5))
-      // Refresh dashboard counts when a high/critical alert arrives
+      //Refresh dashboard counts when a high/critical alert arrives
       if (payload.riskLevel === 'High' || payload.riskLevel === 'Critical') {
         fetchAll()
       }
     }
 
     const onPredictionsUpdated = () => {
-      // Batch prediction refresh — just reload counts
+      //Batch prediction refresh -- just reload counts
       fetchAll()
     }
 
@@ -398,7 +398,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
 
   return (
     <div className={`bg-white dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-2xl overflow-hidden ${className}`}>
-      {/* Header — coloured by highest threat */}
+      {/* Header -- coloured by highest threat */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className={`w-full px-4 py-3 flex items-center justify-between transition-colors hover:bg-gray-100 dark:hover:bg-gray-800/50 ${threatCfg.bg}`}
@@ -601,7 +601,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
                     onClick={() => setSelectedIncidentId(incident.incident_id)}
                     className={`w-full text-left rounded px-2 py-1 text-[10px] border ${selectedIncidentId === incident.incident_id ? 'border-aegis-500 bg-gray-100 dark:bg-gray-800' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'}`}
                   >
-                    {incidentLabel(incident.incident_type)} — {Math.round(incident.confidence * 100)}% — {incident.lifecycle_state}
+                    {incidentLabel(incident.incident_type)} -- {Math.round(incident.confidence * 100)}% -- {incident.lifecycle_state}
                   </button>
                 ))}
               </div>
@@ -649,7 +649,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
                     <AlertTriangle className={`w-2.5 h-2.5 mt-0.5 flex-shrink-0 ${a.riskLevel === 'Critical' ? 'text-red-400 animate-pulse' : 'text-amber-400'}`} />
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-semibold text-gray-900 dark:text-white truncate">{a.title}</p>
-                      <p className="text-[9px] text-gray-500 dark:text-gray-300">{incidentLabel(a.incidentType)} — {a.riskLevel}</p>
+                      <p className="text-[9px] text-gray-500 dark:text-gray-300">{incidentLabel(a.incidentType)} -- {a.riskLevel}</p>
                     </div>
                   </div>
                 ))}
@@ -667,10 +667,10 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-semibold text-gray-900 dark:text-white truncate">{insight.chain.join(' -> ')}</p>
                       <p className="text-[9px] text-gray-500 dark:text-gray-300">
-                        Confidence {Math.round(insight.confidence * 100)}%{insight.confidence_band ? ` — P50 ${Math.round(insight.confidence_band.p50 * 100)}% — P90 ${Math.round(insight.confidence_band.p90 * 100)}%` : ''}
+                        Confidence {Math.round(insight.confidence * 100)}%{insight.confidence_band ? ` -- P50 ${Math.round(insight.confidence_band.p50 * 100)}% -- P90 ${Math.round(insight.confidence_band.p90 * 100)}%` : ''}
                       </p>
                       {insight.likely_within_minutes && (
-                        <p className="text-[9px] text-gray-500 dark:text-gray-400">Likely within {insight.likely_within_minutes} min{insight.impact_score ? ` — Impact ${insight.impact_score}/100` : ''}</p>
+                        <p className="text-[9px] text-gray-500 dark:text-gray-400">Likely within {insight.likely_within_minutes} min{insight.impact_score ? ` -- Impact ${insight.impact_score}/100` : ''}</p>
                       )}
                     </div>
                   </div>
@@ -679,7 +679,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
             </div>
           )}
 
-          {/* River gauge list (flood intelligence — kept) */}
+          {/* River gauge list (flood intelligence -- kept) */}
           {rivers.length > 0 && (
             <div className="max-h-[160px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600">
               <p className="px-4 py-1 text-[10px] font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide border-b border-gray-100 dark:border-gray-700/20">{t('intel.riverGauges', lang)}</p>

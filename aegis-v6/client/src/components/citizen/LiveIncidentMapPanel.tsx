@@ -15,7 +15,7 @@ const DisasterMap = lazy(() => import('../shared/DisasterMap'))
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
-// Local error boundary just for the map tile area
+//Local error boundary just for the map tile area
 class MapErrorBoundary extends Component<{ children: React.ReactNode }, { failed: boolean }> {
   constructor(props: { children: React.ReactNode }) { super(props); this.state = { failed: false } }
   static getDerivedStateFromError() { return { failed: true } }
@@ -38,7 +38,7 @@ class MapErrorBoundary extends Component<{ children: React.ReactNode }, { failed
   }
 }
 
-// Config
+//Config
 
 type TimeRange = '1h' | '6h' | '24h' | '7d'
 
@@ -74,7 +74,7 @@ const SEVERITY_CFG: Record<SeverityLevel, { color: string; hex: string; bg: stri
   Low:    { color: 'text-blue-500', hex: '#3b82f6', bg: 'bg-blue-500', label: 'Low' },
 }
 
-// Helpers
+//Helpers
 
 function timeAgoShort(ts: string | number): string {
   const diff = Date.now() - new Date(ts).getTime()
@@ -92,7 +92,7 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-// SVG mini-components
+//SVG mini-components
 
 /* Tiny severity donut chart */
 function SeverityDonut({ high, medium, low }: { high: number; medium: number; low: number }) {
@@ -134,7 +134,7 @@ function SeverityBar({ high, medium, low }: { high: number; medium: number; low:
   )
 }
 
-// Main Component
+//Main Component
 
 interface Props {
   reports: Report[]
@@ -153,7 +153,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
   const [refreshAgo, setRefreshAgo] = useState('0s')
   const refreshRef = useRef<ReturnType<typeof setInterval>>()
 
-  // Refresh timer
+  //Refresh timer
   useEffect(() => {
     refreshRef.current = setInterval(() => {
       const diff = Date.now() - lastRefresh
@@ -163,10 +163,10 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
     return () => clearInterval(refreshRef.current)
   }, [lastRefresh])
 
-  // Refresh when reports change
+  //Refresh when reports change
   useEffect(() => { setLastRefresh(Date.now()) }, [reports])
 
-  //  Filtered reports
+  // Filtered reports
   const filteredReports = useMemo(() => {
     const now = Date.now()
     const range = TIME_RANGES.find(t => t.key === timeRange)!
@@ -180,7 +180,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
     })
   }, [reports, timeRange, categoryFilter])
 
-  //  Stats derived from filtered reports
+  // Stats derived from filtered reports
   const stats = useMemo(() => {
     const active = filteredReports.filter(r => r.status !== 'Resolved' && r.status !== 'Archived' && r.status !== 'False_Report')
     const critical = active.filter(r => r.severity === 'High')
@@ -190,14 +190,14 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
     const medium = filteredReports.filter(r => r.severity === 'Medium').length
     const low = filteredReports.filter(r => r.severity === 'Low').length
 
-    // Trend: compare first half vs second half of time window
+    //Trend: compare first half vs second half of time window
     const sorted = [...filteredReports].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
     const mid = Math.floor(sorted.length / 2)
     const firstHalf = sorted.slice(0, mid).length
     const secondHalf = sorted.slice(mid).length
     const trend = sorted.length < 4 ? 0 : secondHalf - firstHalf
 
-    // Nearby (within 10km of user)
+    //Nearby (within 10km of user)
     const nearby = userPosition
       ? active.filter(r => r.coordinates?.length === 2 && haversineKm(userPosition[0], userPosition[1], r.coordinates[0], r.coordinates[1]) <= 10).length
       : null
@@ -205,7 +205,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
     return { active: active.length, critical: critical.length, verified: verified.length, resolved: resolved.length, high, medium, low, trend, nearby }
   }, [filteredReports, userPosition])
 
-  //  Category counts for pill badges
+  // Category counts for pill badges
   const categoryCounts = useMemo(() => {
     const now = Date.now()
     const range = TIME_RANGES.find(t => t.key === timeRange)!
@@ -218,7 +218,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
     return counts
   }, [reports, timeRange])
 
-  //  Feed items (sorted by time, most recent first)
+  // Feed items (sorted by time, most recent first)
   const feedItems = useMemo(() => {
     return [...filteredReports]
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
@@ -231,7 +231,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
       })
   }, [filteredReports, userPosition])
 
-  //  Reports passed to DisasterMap (filtered)
+  // Reports passed to DisasterMap (filtered)
   const mapReports = useMemo(() => filteredReports, [filteredReports])
 
   const TrendIcon = stats.trend > 0 ? TrendingUp : stats.trend < 0 ? TrendingDown : Minus
@@ -262,7 +262,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
             </span>
           </div>
           <p className="text-[10px] text-gray-500 dark:text-gray-300 font-medium">
-            {stats.active} active · {stats.critical} critical · Updated {refreshAgo} ago
+            {stats.active} active - {stats.critical} critical - Updated {refreshAgo} ago
           </p>
         </div>
 
@@ -353,7 +353,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
               <div className="bg-white/80 dark:bg-gray-800/40 rounded-xl p-2 text-center border border-gray-100 dark:border-gray-700/30">
                 <TrendIcon className={`w-3.5 h-3.5 mx-auto mb-0.5 ${stats.trend > 0 ? 'text-red-500' : stats.trend < 0 ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-300'}`} />
                 <div className={`text-lg font-black leading-none ${stats.trend > 0 ? 'text-red-600 dark:text-red-400' : stats.trend < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
-                  {stats.trend > 0 ? `+${stats.trend}` : stats.trend === 0 ? '—' : stats.trend}
+                  {stats.trend > 0 ? `+${stats.trend}` : stats.trend === 0 ? '--' : stats.trend}
                 </div>
                 <div className="text-[8px] font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mt-0.5">Trend</div>
               </div>
@@ -440,7 +440,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
               </div>
             )}
 
-            {/* Empty feed overlay — when feed toggled on but no reports match */}
+            {/* Empty feed overlay -- when feed toggled on but no reports match */}
             {showFeed && feedItems.length === 0 && filteredReports.length === 0 && (
               <div className="absolute top-2 right-2 z-[700] w-[220px]">
                 <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-xl border border-gray-200/60 dark:border-gray-700/40 shadow-2xl overflow-hidden">
@@ -503,7 +503,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
 
             {/* Sources */}
             <div className="flex items-center gap-1.5 text-[9px] font-medium text-gray-400 dark:text-gray-300">
-              <span>Reports · Sensors · AI</span>
+              <span>Reports - Sensors - AI</span>
               <span className="text-[8px] px-1.5 py-0.5 rounded bg-gray-200/60 dark:bg-gray-700/40 font-bold">{filteredReports.length} total</span>
             </div>
           </div>

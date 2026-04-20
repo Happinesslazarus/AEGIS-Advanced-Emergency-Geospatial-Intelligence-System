@@ -38,12 +38,12 @@ export async function fetchWithFallback(
   riverName?: string,
   coordinates?: { lat: number; lng: number },
 ): Promise<RiverReading | null> {
-  // Try primary adapter
+  //Try primary adapter
   const primary = getAdapter(primaryProvider)
   const reading = await primary.fetchCurrentLevel(stationId, stationName, riverName)
   if (reading) return reading
 
-  // Fallback to OpenMeteo if coordinates are available
+  //Fallback to OpenMeteo if coordinates are available
   if (coordinates) {
     const coordStationId = `${coordinates.lat},${coordinates.lng}`
     const fallbackReading = await openMeteoAdapter.fetchCurrentLevel(
@@ -54,8 +54,8 @@ export async function fetchWithFallback(
     }
   }
 
-  // All providers failed — return null so UI shows 'no data' honestly
-  logger.warn({ stationId }, '[RiverAdapter] All providers failed — no data available')
+  //All providers failed -- return null so UI shows 'no data' honestly
+  logger.warn({ stationId }, '[RiverAdapter] All providers failed -- no data available')
   return null
 }
 
@@ -72,7 +72,7 @@ export async function fetchHistoryWithFallback(
   const history = await primary.fetchHistory(stationId, hours)
   if (history && history.readings.length > 0) return history
 
-  // Fallback to OpenMeteo
+  //Fallback to OpenMeteo
   if (coordinates) {
     const coordStationId = `${coordinates.lat},${coordinates.lng}`
     const fallback = await openMeteoAdapter.fetchHistory(coordStationId, hours)
@@ -81,7 +81,7 @@ export async function fetchHistoryWithFallback(
     }
   }
 
-  // All providers failed — return empty history
+  //All providers failed -- return empty history
   return { stationId, readings: [] }
 }
 

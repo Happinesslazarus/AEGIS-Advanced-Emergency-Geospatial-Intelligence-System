@@ -46,7 +46,7 @@ interface FinalLocationSelection {
   confirmed: boolean
 }
 
-// Quick observation tags for any incident type
+//Quick observation tags for any incident type
 const QUICK_OBSERVATIONS = [
   { key: 'smoke_visible',    icon: Wind,         label: 'Smoke visible' },
   { key: 'flames_fire',     icon: Flame,        label: 'Flames / fire' },
@@ -58,7 +58,7 @@ const QUICK_OBSERVATIONS = [
   { key: 'emer_services',   icon: Siren,         label: 'Emergency services' },
 ]
 
-// Same tile providers as DisasterMap/LiveMap — direct CDN, no proxy dependency
+//Same tile providers as DisasterMap/LiveMap -- direct CDN, no proxy dependency
 const FREE_TILE_PROVIDERS: TileProvider[] = [
   {
     name: 'Map',
@@ -88,7 +88,7 @@ function MapClickCapture({ onPick }: { onPick: (lat: number, lng: number) => voi
     click: (e) => onPick(e.latlng.lat, e.latlng.lng),
   })
   useEffect(() => {
-    // Show crosshair so users know the map is clickable
+    //Show crosshair so users know the map is clickable
     map.getContainer().style.cursor = 'crosshair'
     return () => { map.getContainer().style.cursor = '' }
   }, [map])
@@ -99,11 +99,11 @@ function MapModalResizeFix({ visible }: { visible: boolean }): null {
   const map = useMap()
   useEffect(() => {
     if (!visible) return
-    // Use ResizeObserver instead of brittle hardcoded timeouts
+    //Use ResizeObserver instead of brittle hardcoded timeouts
     const container = map.getContainer()
     const observer = new ResizeObserver(() => map.invalidateSize())
     observer.observe(container)
-    // Also invalidate once immediately on mount
+    //Also invalidate once immediately on mount
     map.invalidateSize()
     return () => observer.disconnect()
   }, [map, visible])
@@ -125,8 +125,8 @@ function MapFlyTo({ coords }: { coords: [number, number] | null }): null {
   return null
 }
 
-// Searchable combobox for incident category / subtype selection
-// Uses fixed positioning so the dropdown escapes overflow:hidden/auto modal containers
+//Searchable combobox for incident category / subtype selection
+//Uses fixed positioning so the dropdown escapes overflow:hidden/auto modal containers
 interface SearchableOption { key: string; label: string; icon?: string }
 function SearchableSelect({
   options,
@@ -150,7 +150,7 @@ function SearchableSelect({
     ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
     : options
 
-  // Compute fixed position from input rect so dropdown escapes overflow clipping
+  //Compute fixed position from input rect so dropdown escapes overflow clipping
   const openDropdown = () => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
@@ -158,7 +158,7 @@ function SearchableSelect({
       const spaceAbove = rect.top
       const dropHeight = Math.min(240, options.length * 44 + 16)
       const showAbove = spaceBelow < dropHeight && spaceAbove > dropHeight
-      // Clamp maxHeight to available viewport space (mobile overflow fix)
+      //Clamp maxHeight to available viewport space (mobile overflow fix)
       const maxH = Math.min(240, (showAbove ? spaceAbove : spaceBelow) - 8)
       setDropdownStyle({
         position: 'fixed',
@@ -174,7 +174,7 @@ function SearchableSelect({
     setOpen(true)
   }
 
-  // Close on outside click
+  //Close on outside click
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
@@ -187,7 +187,7 @@ function SearchableSelect({
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  // Reposition on scroll/resize while open
+  //Reposition on scroll/resize while open
   useEffect(() => {
     if (!open) return
     const reposition = () => {
@@ -236,7 +236,7 @@ function SearchableSelect({
               className="ml-1 text-gray-400 hover:text-gray-600 text-xs"
               onClick={e => { e.stopPropagation(); onChange(''); setQuery('') }}
               aria-label="Clear selection"
-            >✕</button>
+            >x</button>
           </>
         ) : (
           <>
@@ -244,7 +244,7 @@ function SearchableSelect({
               ref={inputRef}
               type="text"
               className="flex-1 bg-transparent outline-none text-sm placeholder:text-gray-400"
-              placeholder={open ? 'Type to filter…' : placeholder}
+              placeholder={open ? 'Type to filter...' : placeholder}
               value={query}
               onChange={e => { setQuery(e.target.value); if (!open) openDropdown() }}
               onFocus={() => openDropdown()}
@@ -255,7 +255,7 @@ function SearchableSelect({
         )}
       </div>
 
-      {/* Dropdown — rendered at fixed viewport position to escape overflow clipping */}
+      {/* Dropdown -- rendered at fixed viewport position to escape overflow clipping */}
       {open && (
         <ul
           style={dropdownStyle}
@@ -277,7 +277,7 @@ function SearchableSelect({
               >
                 {opt.icon && <LucideIcon name={opt.icon} className="w-4 h-4 text-aegis-500 shrink-0" />}
                 <span>{opt.label}</span>
-                {opt.key === value && <span className="ml-auto text-aegis-600 text-xs">✓</span>}
+                {opt.key === value && <span className="ml-auto text-aegis-600 text-xs"></span>}
               </li>
             ))
           )}
@@ -287,7 +287,7 @@ function SearchableSelect({
   )
 }
 
-// Draggable drop-pin for precision location correction
+//Draggable drop-pin for precision location correction
 function DraggablePin({
   position,
   onMove,
@@ -310,7 +310,7 @@ function DraggablePin({
         iconSize: [28, 36],
         iconAnchor: [14, 36],
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    //eslint-disable-next-line react-hooks/exhaustive-deps
     [colour],
   )
   return (
@@ -358,7 +358,7 @@ const scoreSuggestion = (
   else if (text.startsWith(q)) score += 90
   else if (text.includes(q)) score += 55
 
-  // Reward house-number/postcode exact snippets for precise address picking.
+  //Reward house-number/postcode exact snippets for precise address picking.
   const qTokens = q.split(/[\s,]+/).filter(Boolean)
   for (const token of qTokens) {
     if (token.length < 2) continue
@@ -409,7 +409,7 @@ const confidenceBandFromAccuracy = (accuracy: number | null): LocationConfidence
   return 'poor'
 }
 
-// Per-incident description placeholders
+//Per-incident description placeholders
 const DESCRIPTION_PLACEHOLDERS: Record<string, string> = {
   flood:                    'Describe water levels, affected streets, properties under water, people at risk...',
   severe_storm:             'Describe wind damage, fallen trees, structural damage, visibility issues...',
@@ -425,7 +425,7 @@ const DESCRIPTION_PLACEHOLDERS: Record<string, string> = {
   environmental_hazard:     'Describe the hazard type, materials involved, area and people affected...',
 }
 
-// Per-incident custom field definitions
+//Per-incident custom field definitions
 type FieldType = 'boolean' | 'number' | 'select' | 'text'
 interface CustomFieldDef { key: string; type: FieldType; options?: string[] }
 
@@ -478,7 +478,7 @@ const CUSTOM_FIELD_DEFS: Record<string, CustomFieldDef[]> = {
   ],
   public_safety_incident: [
     { key: 'injuriesReported', type: 'boolean' },
-    { key: 'crowdSize', type: 'select', options: ['small (<20)', 'medium (20–100)', 'large (100+)'] },
+    { key: 'crowdSize', type: 'select', options: ['small (<20)', 'medium (20-100)', 'large (100+)'] },
     { key: 'policeRequired', type: 'boolean' },
   ],
   environmental_hazard: [
@@ -518,7 +518,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
   const [gpsConsentOpen, setGpsConsentOpen] = useState(false)
   const [gpsConsentSource, setGpsConsentSource] = useState<'auto' | 'manual'>('manual')
   const [autoGpsPromptSeen, setAutoGpsPromptSeen] = useState(false)
-  // Extra intelligence fields
+  //Extra intelligence fields
   const [incidentTime, setIncidentTime] = useState('')
   const [estimatedAffected, setEstimatedAffected] = useState('')
   const [observedConditions, setObservedConditions] = useState<string[]>([])
@@ -547,7 +547,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
   const defaultLng = Number(import.meta.env.VITE_DEFAULT_REPORT_LNG ?? -2.09)
   const nominatimCountryCodes = String(import.meta.env.VITE_NOMINATIM_COUNTRY_CODES || 'gb')
 
-  // Reset custom fields when subtype changes
+  //Reset custom fields when subtype changes
   useEffect(() => { setCustomFields({}) }, [form.incidentSubtype])
 
   useEffect(() => {
@@ -578,7 +578,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
   const handleTileError = (): void => {
     setTileErrorCount((prev) => {
       const next = prev + 1
-      // If provider repeatedly fails, rotate to next free provider.
+      //If provider repeatedly fails, rotate to next free provider.
       if (next >= 5 && tileProviderIndex < FREE_TILE_PROVIDERS.length - 1) {
         setTileProviderIndex((idx) => Math.min(idx + 1, FREE_TILE_PROVIDERS.length - 1))
         return 0
@@ -598,7 +598,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
   const activeSubtype = form.incidentSubtype || form.incidentCategory
   const customFieldDefs = CUSTOM_FIELD_DEFS[activeSubtype] || []
   const descriptionPlaceholder = DESCRIPTION_PLACEHOLDERS[activeSubtype]
-    || 'Describe what you can see — damage, affected people, immediate risks...'
+    || 'Describe what you can see -- damage, affected people, immediate risks...'
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const files = Array.from(e.target.files || [])
@@ -677,7 +677,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
         await addReport({
           incidentCategory: form.incidentCategory as IncidentCategoryKey,
           incidentSubtype: form.incidentSubtype,
-          type: `${cat?.label || ''} — ${sub?.label || form.incidentSubtype}`,
+          type: `${cat?.label || ''} -- ${sub?.label || form.incidentSubtype}`,
           description: form.description,
           severity: form.severity as SeverityLevel,
           trappedPersons: form.trappedPersons as TrappedOption,
@@ -814,7 +814,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
       }
 
       try {
-        // Fast first fix (better UX responsiveness)
+        //Fast first fix (better UX responsiveness)
         const quickFix = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
             enableHighAccuracy: false,
@@ -824,7 +824,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
         })
         maybeUseFix(quickFix)
 
-        // Keep refining in background for better precision.
+        //Keep refining in background for better precision.
         const watchId = navigator.geolocation.watchPosition(
           (pos) => {
             maybeUseFix(pos)
@@ -833,7 +833,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
             }
           },
           () => {
-            // Ignore transient watch errors.
+            //Ignore transient watch errors.
           },
           { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         )
@@ -848,7 +848,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
           pushNotification(`Location captured but precision is low (±${reportedAccuracy}m). Move outdoors and tap GPS again for better accuracy.`, 'warning')
         }
       } catch (err: any) {
-        // If quick mode fails, attempt one high-accuracy capture before giving up.
+        //If quick mode fails, attempt one high-accuracy capture before giving up.
         try {
           const fallback = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -938,7 +938,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
     if (locationConfirmed || selectedCoords || gpsCoords) return
     if (form.location.trim().length < 3) return
 
-    // Ask only after user starts typing location input, never on sudden step entry.
+    //Ask only after user starts typing location input, never on sudden step entry.
     setGpsConsentSource('auto')
     setGpsConsentOpen(true)
     setAutoGpsPromptSeen(true)
@@ -957,7 +957,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
       setShowSuggestions(false)
       return
     }
-    // Skip Nominatim when value is already a coordinate pair (e.g. from GPS auto-fill)
+    //Skip Nominatim when value is already a coordinate pair (e.g. from GPS auto-fill)
     if (/^\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*$/.test(q)) {
       setAddressSuggestions([])
       setShowSuggestions(false)
@@ -1110,15 +1110,15 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
 
   const needsSub = form.incidentCategory && (DISASTER_SUBTYPES[form.incidentCategory as IncidentCategoryKey]?.length ?? 0) > 0
 
-  // Custom field renderer — citizen-friendly, all fields optional
+  //Custom field renderer -- citizen-friendly, all fields optional
   const renderCustomField = (field: CustomFieldDef): JSX.Element => {
     const label = t(`incidents:fields.${field.key}`, { defaultValue: field.key.replace(/([A-Z])/g, ' $1').trim() })
     const val = customFields[field.key]
     const base = 'py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0'
 
     if (field.type === 'boolean') {
-      // Three states: Yes (true) | Not sure (undefined/absent) | No (false)
-      // Tapping the active button returns to "not sure"
+      //Three states: Yes (true) | Not sure (undefined/absent) | No (false)
+      //Tapping the active button returns to "not sure"
       return (
         <div key={field.key} className={`flex items-center justify-between gap-3 ${base}`}>
           <span className="text-sm text-secondary leading-tight">{label}</span>
@@ -1140,7 +1140,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                   ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600'
                   : 'bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-50'
               }`}
-              title="Not sure — skip this"
+              title="Not sure -- skip this"
             >?</button>
             <button
               type="button"
@@ -1188,7 +1188,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
       )
     }
 
-    // text
+    //text
     return (
       <div key={field.key} className={`flex items-center gap-3 ${base}`}>
         <label className="text-sm text-gray-700 dark:text-gray-400 flex-1 leading-tight">{label}</label>
@@ -1203,7 +1203,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
     )
   }
 
-  // Derive the selected incident label for display
+  //Derive the selected incident label for display
   const selectedSubLabel = (() => {
     if (form.incidentSubtype) {
       const subs = DISASTER_SUBTYPES[form.incidentCategory as IncidentCategoryKey] || []
@@ -1240,35 +1240,35 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
         </div>
 
         <div className="p-4 sm:p-5">
-          {/* Step 1 — Incident category */}
+          {/* Step 1 -- Incident category */}
           {step === 1 && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">What type of incident?</h3>
               <SearchableSelect
                 options={INCIDENT_CATEGORIES.map(c => ({ key: c.key, label: c.label, icon: c.icon }))}
                 value={form.incidentCategory}
-                placeholder="Search or select incident type…"
+                placeholder="Search or select incident type..."
                 onChange={key => { up('incidentCategory', key); up('incidentSubtype', '') }}
               />
               {errors.incidentCategory && <p className="text-red-500 text-sm">{errors.incidentCategory}</p>}
             </div>
           )}
 
-          {/* Step 2 — Incident subtype */}
+          {/* Step 2 -- Incident subtype */}
           {step === 2 && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">What specifically?</h3>
               <SearchableSelect
                 options={(DISASTER_SUBTYPES[form.incidentCategory as IncidentCategoryKey] || []).map(s => ({ key: s.key, label: s.label, icon: s.icon }))}
                 value={form.incidentSubtype}
-                placeholder="Search or select subtype…"
+                placeholder="Search or select subtype..."
                 onChange={key => up('incidentSubtype', key)}
               />
               {errors.incidentSubtype && <p className="text-red-500 text-sm">{errors.incidentSubtype}</p>}
             </div>
           )}
 
-          {/* Step 3 — Description + incident-specific custom fields */}
+          {/* Step 3 -- Description + incident-specific custom fields */}
           {step === 3 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
@@ -1307,13 +1307,13 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
               {customFieldDefs.length > 0 && (
                 <div className="bg-blue-50 dark:bg-blue-950/20 rounded-xl p-3 border border-blue-200 dark:border-blue-800">
                   <div className="flex items-start gap-2 mb-3">
-                    <span className="text-blue-500 text-base mt-0.5">ℹ</span>
+ <span className="text-blue-500 text-base mt-0.5">i</span>
                     <div>
                       <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                        Optional — {selectedSubLabel} details
+                        Optional -- {selectedSubLabel} details
                       </p>
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
-                        Answer what you can. Skip anything you're not sure about — your report will still be sent.
+                        Answer what you can. Skip anything you're not sure about -- your report will still be sent.
                       </p>
                     </div>
                   </div>
@@ -1323,7 +1323,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
             </div>
           )}
 
-          {/* Step 4 — Severity */}
+          {/* Step 4 -- Severity */}
           {step === 4 && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">How severe?</h3>
@@ -1337,7 +1337,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
             </div>
           )}
 
-          {/* Step 5 — Trapped persons */}
+          {/* Step 5 -- Trapped persons */}
           {step === 5 && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">Anyone trapped?</h3>
@@ -1350,7 +1350,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
             </div>
           )}
 
-          {/* Step 6 — Location & evidence */}
+          {/* Step 6 -- Location & evidence */}
           {step === 6 && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Location & Evidence</h3>
@@ -1387,7 +1387,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                     </div>
                   </div>
                 )}
-                {isSearchingAddress && <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Searching address suggestions…</p>}
+                {isSearchingAddress && <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Searching address suggestions...</p>}
                 {showSuggestions && addressSuggestions.length > 0 && (
                   <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-52 overflow-y-auto">
                     {addressSuggestions.map((s, i) => (
@@ -1398,7 +1398,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                   </div>
                 )}
               </div>
-              {gpsStatus === 'denied' && <p className="text-[10px] text-amber-600">GPS unavailable — please type your location manually or select on map</p>}
+              {gpsStatus === 'denied' && <p className="text-[10px] text-amber-600">GPS unavailable -- please type your location manually or select on map</p>}
               {errors.location && <p className="text-red-500 text-sm">{errors.location}</p>}
 
               {/* Multi-Image Upload */}
@@ -1449,11 +1449,11 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
 
                 {finalLocation && !finalLocation.confirmed && finalLocation.confidence === 'poor' && (
                   <p className="text-[11px] text-amber-700 mt-1">
-                    GPS accuracy is poor — tap the map to refine the pin before confirming.
+                    GPS accuracy is poor -- tap the map to refine the pin before confirming.
                   </p>
                 )}
 
-                {/* Map picker — always visible, gold-standard UX */}
+                {/* Map picker -- always visible, gold-standard UX */}
                 <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 mt-1">
                   {/* Tile switcher */}
                   <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-2 py-1 border-b border-gray-200 dark:border-gray-700">
@@ -1489,7 +1489,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                     {!tileLoaded && (
                       <div className="absolute inset-x-0 top-0 z-[500] bg-amber-50/90 text-amber-700 text-[10px] px-2 py-1 flex items-center gap-1">
                         <span className="animate-spin inline-block w-2.5 h-2.5 border border-amber-500 border-t-transparent rounded-full" />
-                        Loading {FREE_TILE_PROVIDERS[tileProviderIndex].name} tiles…
+                        Loading {FREE_TILE_PROVIDERS[tileProviderIndex].name} tiles...
                       </div>
                     )}
 
@@ -1510,7 +1510,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                       />
                     )}
 
-                    {/* Draggable precision pin — drag to adjust location */}
+                    {/* Draggable precision pin -- drag to adjust location */}
                     {(selectedCoords || gpsCoords) && (
                       <DraggablePin
                         position={selectedCoords || gpsCoords!}
@@ -1524,7 +1524,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                   <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
                     <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-1">
                       {manualPinCoords
-                        ? 'Pinned manually — highest precision'
+                        ? 'Pinned manually -- highest precision'
                         : gpsCoords
                           ? `GPS fix${gpsAccuracy != null ? ` ±${gpsAccuracy}m` : ''}`
                           : 'Tap the map to drop a pin on the exact spot'}
@@ -1564,9 +1564,9 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                   onChange={e => setEstimatedAffected(e.target.value)}
                 >
                   <option value="">Unknown</option>
-                  <option value="1-5">1–5 people</option>
-                  <option value="6-20">6–20 people</option>
-                  <option value="21-100">21–100 people</option>
+                  <option value="1-5">1-5 people</option>
+                  <option value="6-20">6-20 people</option>
+                  <option value="21-100">21-100 people</option>
                   <option value="100+">Over 100</option>
                   <option value="neighbourhood">A neighbourhood</option>
                   <option value="district">A large area / district</option>
@@ -1586,7 +1586,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                         : 'border-emerald-500 text-emerald-700 hover:bg-emerald-50'
                     }`}
                   >
-                    {locationConfirmed ? '✓ Location confirmed' : 'Confirm location'}
+                    {locationConfirmed ? ' Location confirmed' : 'Confirm location'}
                   </button>
                 </div>
                 {mediaFiles.length > 0 && (
@@ -1605,7 +1605,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                     <input ref={fileRef} type="file" className="hidden" accept="image/jpeg,image/png,image/webp" multiple onChange={handleFiles} />
                     <Camera className="w-6 h-6 mx-auto text-gray-400 dark:text-gray-400 mb-1" />
                     <p className="text-sm font-medium">{mediaFiles.length > 0 ? `Add more (${MAX_IMAGES - mediaFiles.length} remaining)` : 'Add photo evidence'}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">JPG, PNG, WEBP · Max {MAX_SIZE_MB}MB each</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">JPG, PNG, WEBP - Max {MAX_SIZE_MB}MB each</p>
                   </div>
                 )}
               </div>

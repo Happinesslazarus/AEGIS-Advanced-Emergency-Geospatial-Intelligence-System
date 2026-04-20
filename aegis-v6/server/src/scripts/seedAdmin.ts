@@ -10,7 +10,7 @@
  * Usage:
  * npx ts-node server/src/scripts/seedAdmin.ts
  * INITIAL_ADMIN_EMAIL=x INITIAL_ADMIN_PASSWORD=y node dist/scripts/seedAdmin.js
- * Idempotent — if an operator with the given email already exists the script
+ * Idempotent -- if an operator with the given email already exists the script
  * logs a clear message and exits 0.
  * */
 
@@ -21,7 +21,7 @@ import readline from 'readline'
 import bcrypt from 'bcryptjs'
 import pg from 'pg'
 
-// Load .env robustly (same resolver as db.ts)
+//Load .env robustly (same resolver as db.ts)
 const envCandidates = [
   path.resolve('.env'),
   path.resolve('server', '.env'),
@@ -35,7 +35,7 @@ for (const envFile of envCandidates) {
 }
 if (!process.env.DATABASE_URL) dotenv.config()
 
-// Helpers
+//Helpers
 
 function log(msg: string) { console.log(`[seed-admin] ${msg}`) }
 function fail(msg: string): never {
@@ -88,7 +88,7 @@ async function prompt(question: string, hidden = false): Promise<string> {
             process.stdout.write('\b \b')
           }
         } else if (c === '\u0003') {
-          // Ctrl+C
+          //Ctrl+C
           process.exit(130)
         } else {
           input += c
@@ -105,20 +105,20 @@ async function prompt(question: string, hidden = false): Promise<string> {
   })
 }
 
-// Main
+//Main
 
 async function main() {
   const dbUrl = process.env.DATABASE_URL
   if (!dbUrl) fail('DATABASE_URL is not set. Ensure server/.env is configured.')
 
-  // Determine input mode
+  //Determine input mode
   let email = (process.env.INITIAL_ADMIN_EMAIL || '').trim()
   let password = (process.env.INITIAL_ADMIN_PASSWORD || '').trim()
   let name = (process.env.INITIAL_ADMIN_NAME || '').trim()
   const isEnvMode = !!(email && password)
 
   if (!isEnvMode) {
-    log('No INITIAL_ADMIN_EMAIL / INITIAL_ADMIN_PASSWORD found — entering interactive mode.')
+    log('No INITIAL_ADMIN_EMAIL / INITIAL_ADMIN_PASSWORD found -- entering interactive mode.')
     email = await prompt('Admin email: ')
     password = await prompt('Admin password: ', true)
     if (!name) name = await prompt('Full name (Enter for "System Admin"): ')
@@ -127,18 +127,18 @@ async function main() {
   email = email.toLowerCase().trim()
   if (!name) name = 'System Admin'
 
-  // Validate
+  //Validate
   const emailErr = validateEmail(email)
   if (emailErr) fail(emailErr)
 
   const pwErr = validatePassword(password)
   if (pwErr) fail(pwErr)
 
-  // Connect to DB
+  //Connect to DB
   const pool = new pg.Pool({ connectionString: dbUrl })
 
   try {
-    // Check for existing operator with this email
+    //Check for existing operator with this email
     const existing = await pool.query(
       `SELECT id, role, deleted_at FROM operators WHERE LOWER(email) = LOWER($1) LIMIT 1`,
       [email],
@@ -161,10 +161,10 @@ async function main() {
       return
     }
 
-    // Hash password with bcrypt 12 rounds (matches authRoutes.ts)
+    //Hash password with bcrypt 12 rounds (matches authRoutes.ts)
     const passwordHash = await bcrypt.hash(password, 12)
 
-    // Keep seed compatible across schema versions where optional auth columns may differ.
+    //Keep seed compatible across schema versions where optional auth columns may differ.
     const colsRes = await pool.query(
       `SELECT column_name FROM information_schema.columns
        WHERE table_schema = 'public' AND table_name = 'operators'`,
@@ -196,7 +196,7 @@ async function main() {
     log(`   name:  ${admin.display_name}`)
     log(`   role:  ${admin.role}`)
 
-    // Log activity
+    //Log activity
     try {
       await pool.query(
         `INSERT INTO activity_log (action, action_type, operator_id, operator_name)
@@ -204,7 +204,7 @@ async function main() {
         [`Initial admin seeded: ${name}`, 'system_seed', admin.id, name],
       )
     } catch {
-      // activity_log may not exist yet — non-fatal
+      //activity_log may not exist yet -- non-fatal
     }
   } finally {
     await pool.end()

@@ -9,17 +9,12 @@ experiment comparison utilities for selecting the best run.
 - Results surfaced in Admin panel via server/src/routes/adminRoutes.ts
 """
 
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
 # MLflow-based experiment tracking for:
-# - Model training runs
-# - Hyperparameter configurations
-# - Performance metrics
-# - Model artifacts
-# - Reproducibility
-# -------------------------------------------------------------------------------
+# Model training runs
+# Hyperparameter configurations
+# Performance metrics
+# Model artifacts
+# Reproducibility
 
 try:
     import mlflow

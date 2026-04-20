@@ -16,7 +16,7 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import { Server as HttpServer } from 'http'
 import { Server as SocketIOServer } from 'socket.io'
 
-// Test environment
+//Test environment
 process.env.JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-at-least-32-chars'
 process.env.NODE_ENV = 'test'
@@ -30,8 +30,8 @@ import {
 } from './helpers/testAuth'
 import { insertCitizen, insertOperator, DEFAULT_DISTRESS } from './helpers/testFixtures'
 
-// Build a lightweight Express app that mounts distress routes exactly
-// We mock `pool` at the module level so the route file picks up the test pool.
+//Build a lightweight Express app that mounts distress routes exactly
+//We mock `pool` at the module level so the route file picks up the test pool.
 
 let app: express.Express
 let httpServer: HttpServer
@@ -39,13 +39,13 @@ let io: SocketIOServer
 let emittedEvents: Array<{ event: string; args: unknown[] }>
 
 function buildTestApp() {
-  // Intercept pool import so routes use our test DB
+  //Intercept pool import so routes use our test DB
   const pool = getTestPool()
 
   const _app = express()
   _app.use(express.json())
 
-  // Minimal Socket.IO spy — records every emit
+  //Minimal Socket.IO spy -- records every emit
   emittedEvents = []
   httpServer = new HttpServer(_app)
   io = new SocketIOServer(httpServer, { serveClient: false })
@@ -60,25 +60,25 @@ function buildTestApp() {
   return { app: _app, pool }
 }
 
-// Lifecycle
+//Lifecycle
 
 beforeAll(async () => {
   const { app: _app, pool } = buildTestApp()
 
-  // We cannot directly import distressRoutes because it imports `pool` from
+  //We cannot directly import distressRoutes because it imports `pool` from
   // `../models/db.js` which reads DATABASE_URL.  Instead we build a thin
-  // router that exercises the SAME queries as the real route file so we test
-  // the actual SQL + middleware behaviour against a real Postgres.
+  //router that exercises the SAME queries as the real route file so we test
+  //the actual SQL + middleware behaviour against a real Postgres.
 
-  // Import auth middleware (it reads JWT_SECRET from env, which we set above)
+  //Import auth middleware (it reads JWT_SECRET from env, which we set above)
   const { authMiddleware, operatorOnly } = await import('../middleware/auth')
   const { AppError } = await import('../utils/AppError')
 
-  // Mount a router that mirrors distressRoutes.ts queries exactly
+  //Mount a router that mirrors distressRoutes.ts queries exactly
   const router = express.Router()
   router.use(authMiddleware)
 
-  // POST /activate
+  //POST /activate
   router.post('/activate', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { citizenId, citizenName, latitude, longitude, message, contactNumber } = req.body
@@ -111,7 +111,7 @@ beforeAll(async () => {
     } catch (err) { next(err) }
   })
 
-  // POST /location
+  //POST /location
   router.post('/location', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { distressId, latitude, longitude, accuracy, heading, speed } = req.body
@@ -132,7 +132,7 @@ beforeAll(async () => {
     } catch (err) { next(err) }
   })
 
-  // POST /cancel
+  //POST /cancel
   router.post('/cancel', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { distressId, citizenId } = req.body
@@ -147,7 +147,7 @@ beforeAll(async () => {
     } catch (err) { next(err) }
   })
 
-  // GET /active (operator only)
+  //GET /active (operator only)
   router.get('/active', operatorOnly, async (_req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await pool.query(
@@ -160,7 +160,7 @@ beforeAll(async () => {
     } catch (err) { next(err) }
   })
 
-  // GET /:id
+  //GET /:id
   router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await pool.query(
@@ -173,7 +173,7 @@ beforeAll(async () => {
     } catch (err) { next(err) }
   })
 
-  // POST /:id/acknowledge (operator)
+  //POST /:id/acknowledge (operator)
   router.post('/:id/acknowledge', operatorOnly, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { operatorId, triageLevel } = req.body
@@ -187,7 +187,7 @@ beforeAll(async () => {
     } catch (err) { next(err) }
   })
 
-  // POST /:id/resolve (operator)
+  //POST /:id/resolve (operator)
   router.post('/:id/resolve', operatorOnly, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { operatorId, resolution } = req.body
@@ -201,7 +201,7 @@ beforeAll(async () => {
     } catch (err) { next(err) }
   })
 
-  // GET /history (operator)
+  //GET /history (operator)
   router.get('/calls/history', operatorOnly, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const limit = Math.min(parseInt(req.query.limit as string) || 50, 200)
@@ -214,7 +214,7 @@ beforeAll(async () => {
     } catch (err) { next(err) }
   })
 
-  // Global error handler
+  //Global error handler
   _app.use('/distress', router)
   _app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.statusCode || err.status || 500
@@ -224,7 +224,7 @@ beforeAll(async () => {
   app = _app
 
   await ensureTestSchema()
-  // Seed required reference data
+  //Seed required reference data
   await insertCitizen()
   await insertOperator()
 }, 30_000)
@@ -247,12 +247,12 @@ afterAll(async () => {
   httpServer?.close()
   await closeTestPool()
 })
-// TESTS
+//TESTS
 describe('Distress / SOS Integration Tests', () => {
 
-  // Happy Path: Full SOS Lifecycle
+  //Happy Path: Full SOS Lifecycle
 
-  describe('Happy Path — Full Lifecycle', () => {
+  describe('Happy Path -- Full Lifecycle', () => {
     let distressId: string
 
     it('should activate an SOS beacon', async () => {
@@ -270,7 +270,7 @@ describe('Distress / SOS Integration Tests', () => {
     })
 
     it('should push a GPS heartbeat', async () => {
-      // Create fresh distress for this test
+      //Create fresh distress for this test
       const activate = await request(app)
         .post('/distress/activate')
         .set(...authHeader(citizenToken()))
@@ -292,12 +292,12 @@ describe('Distress / SOS Integration Tests', () => {
       expect(res.status).toBe(200)
       expect(res.body.success).toBe(true)
 
-      // Verify location was updated in the DB
+      //Verify location was updated in the DB
       const pool = getTestPool()
       const { rows } = await pool.query('SELECT latitude, longitude FROM distress_calls WHERE id = $1', [distressId])
       expect(rows[0].latitude).toBeCloseTo(57.15, 3)
 
-      // Verify history record
+      //Verify history record
       const history = await pool.query('SELECT * FROM distress_location_history WHERE distress_id = $1', [distressId])
       expect(history.rows.length).toBeGreaterThanOrEqual(1)
     })
@@ -327,13 +327,13 @@ describe('Distress / SOS Integration Tests', () => {
         .send(DEFAULT_DISTRESS)
       distressId = activate.body.distress.id
 
-      // First acknowledge
+      //First acknowledge
       await request(app)
         .post(`/distress/${distressId}/acknowledge`)
         .set(...authHeader(operatorToken()))
         .send({ operatorId: TEST_OPERATOR.id })
 
-      // Then resolve
+      //Then resolve
       const res = await request(app)
         .post(`/distress/${distressId}/resolve`)
         .set(...authHeader(operatorToken()))
@@ -346,7 +346,7 @@ describe('Distress / SOS Integration Tests', () => {
     })
 
     it('should list active distress calls for operators', async () => {
-      // Activate two separate distress calls
+      //Activate two separate distress calls
       const cit2 = await insertCitizen({ id: '00000000-0000-0000-0000-000000000099', email: 'cit2@test.local', display_name: 'Citizen Two' })
       await request(app)
         .post('/distress/activate')
@@ -367,7 +367,7 @@ describe('Distress / SOS Integration Tests', () => {
     })
   })
 
-  // Citizen cancellation
+  //Citizen cancellation
 
   describe('Citizen Cancellation', () => {
     it('should allow citizen to cancel own SOS', async () => {
@@ -405,7 +405,7 @@ describe('Distress / SOS Integration Tests', () => {
     })
   })
 
-  // Failure paths
+  //Failure paths
 
   describe('Failure Paths', () => {
     it('should reject activation without required fields', async () => {
@@ -468,7 +468,7 @@ describe('Distress / SOS Integration Tests', () => {
     })
   })
 
-  // Edge cases
+  //Edge cases
 
   describe('Edge Cases', () => {
     it('should handle extreme GPS coordinates', async () => {
@@ -493,7 +493,7 @@ describe('Distress / SOS Integration Tests', () => {
       expect(res.status).toBe(201)
       expect(res.body.distress.is_vulnerable).toBe(true)
 
-      // Reset
+      //Reset
       await pool.query('UPDATE citizens SET is_vulnerable = false WHERE id = $1', [TEST_CITIZEN.id])
     })
 
@@ -504,13 +504,13 @@ describe('Distress / SOS Integration Tests', () => {
         .send(DEFAULT_DISTRESS)
       const id = activate.body.distress.id
 
-      // First acknowledge succeeds
+      //First acknowledge succeeds
       await request(app)
         .post(`/distress/${id}/acknowledge`)
         .set(...authHeader(operatorToken()))
         .send({ operatorId: TEST_OPERATOR.id })
 
-      // Second acknowledge fails (status is no longer 'active')
+      //Second acknowledge fails (status is no longer 'active')
       const res = await request(app)
         .post(`/distress/${id}/acknowledge`)
         .set(...authHeader(operatorToken()))
@@ -565,7 +565,7 @@ describe('Distress / SOS Integration Tests', () => {
         .send(DEFAULT_DISTRESS)
       const distressId = activate.body.distress.id
 
-      // Push 3 GPS updates
+      //Push 3 GPS updates
       for (let i = 0; i < 3; i++) {
         await request(app)
           .post('/distress/location')

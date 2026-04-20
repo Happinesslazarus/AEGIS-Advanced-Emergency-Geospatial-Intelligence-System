@@ -24,7 +24,7 @@ import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 import MessageStatusIcon from './ui/MessageStatusIcon'
 
-// API_BASE imported from ../utils/helpers
+//API_BASE imported from ../utils/helpers
 
 const THREAD_CATEGORIES = [
   { value: 'general', labelKey: 'floatingChat.categories.general' },
@@ -34,7 +34,7 @@ const THREAD_CATEGORIES = [
   { value: 'account', labelKey: 'floatingChat.categories.account' },
 ]
 
-// timeAgoCompact + MessageStatusIcon imported from shared modules
+//timeAgoCompact + MessageStatusIcon imported from shared modules
 
 export default function FloatingChatWidget(): JSX.Element | null {
   const { user, token, isAuthenticated } = useCitizenAuth()
@@ -52,23 +52,23 @@ export default function FloatingChatWidget(): JSX.Element | null {
   const [creating, setCreating] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Determine visibility early - BEFORE any effects
+  //Determine visibility early - BEFORE any effects
   const path = location.pathname
   const shouldHide = useMemo(() => {
-    // Hide on admin pages
+    //Hide on admin pages
     if (path.startsWith('/admin')) return true
-    // Hide on citizen dashboard (it has its own MessagesTab)
+    //Hide on citizen dashboard (it has its own MessagesTab)
     if (path === '/citizen' || path === '/citizen/dashboard') return true
-    // Hide on citizen login
+    //Hide on citizen login
     if (path === '/citizen/login') return true
-    // Hide on landing page
+    //Hide on landing page
     if (path === '/') return true
-    // Only show if user is authenticated as a citizen
+    //Only show if user is authenticated as a citizen
     if (!isAuthenticated || !user) return true
     return false
   }, [path, isAuthenticated, user])
 
-  // Connect socket ONLY when visible and citizen token available
+  //Connect socket ONLY when visible and citizen token available
   useEffect(() => {
     if (shouldHide || !token) return
     if (!socket.connected) {
@@ -77,7 +77,7 @@ export default function FloatingChatWidget(): JSX.Element | null {
     return () => {}
   }, [token, shouldHide])
 
-  // Fetch threads on connect (only when visible)
+  //Fetch threads on connect (only when visible)
   useEffect(() => {
     if (shouldHide) return
     if (socket.connected) {
@@ -85,12 +85,12 @@ export default function FloatingChatWidget(): JSX.Element | null {
     }
   }, [socket.connected, shouldHide])
 
-  // Scroll to bottom on new messages
+  //Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [socket.messages])
 
-  // Return null early if should hide or not authenticated
+  //Return null early if should hide or not authenticated
   if (shouldHide) return null
   if (!isAuthenticated || !user) return null
 

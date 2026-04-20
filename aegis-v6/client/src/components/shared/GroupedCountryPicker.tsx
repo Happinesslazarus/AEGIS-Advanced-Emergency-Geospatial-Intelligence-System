@@ -1,6 +1,6 @@
 /**
  * Country selector whose options are grouped by continent (Africa,
- * Asia, Europe, …). Supports keyboard navigation and type-ahead
+ * Asia, Europe, ...). Supports keyboard navigation and type-ahead
  * search within the grouped list.
  */
 
@@ -33,7 +33,7 @@ export default function GroupedCountryPicker({
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Close on click outside
+  //Close on click outside
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -44,13 +44,13 @@ export default function GroupedCountryPicker({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Get selected entry
+  //Get selected entry
   const selected = useMemo(() => {
     if (!value) return null
     return ALL_COUNTRIES.find(c => c.name === value) || null
   }, [value])
 
-  // Filter countries by search
+  //Filter countries by search
   const filteredGroups = useMemo(() => {
     if (!search.trim()) return CONTINENT_GROUPS
     const q = search.toLowerCase()
@@ -129,7 +129,7 @@ export default function GroupedCountryPicker({
   )
 }
 
-// Region picker companion
+//Region picker companion
 interface RegionPickerProps {
   country: string
   value: string
@@ -143,7 +143,7 @@ export function RegionPicker({ country, value, onChange, darkMode = false, class
   const bg = darkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'
 
   if (!regions || regions.length === 0) {
-    // Free-text input for countries without predefined regions
+    //Free-text input for countries without predefined regions
     return (
       <input
         type="text"

@@ -33,7 +33,7 @@ MIN_AUC = 0.60
 with open(PROMOTIONS_FILE) as f:
     promotions = json.load(f)
 
-print(f"=== Auto-promote calibrated models — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n")
+print(f"=== Auto-promote calibrated models -- {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n")
 
 updated = 0
 for hazard, region in HAZARDS:
@@ -53,7 +53,7 @@ for hazard, region in HAZARDS:
 
         thr = meta.get("optimal_threshold")
         if thr is None:
-            continue  # no calibration — skip this artifact
+            continue  # no calibration -- skip this artifact
 
         auc = meta.get("performance_metrics", {}).get("roc_auc", 0) or 0
         version = meta["version"]
@@ -83,7 +83,7 @@ print()
 if updated:
     with open(PROMOTIONS_FILE, "w") as f:
         json.dump(promotions, f, indent=2)
-    print(f"promotions.json updated — {updated} new version(s) promoted.")
+    print(f"promotions.json updated -- {updated} new version(s) promoted.")
 else:
     print("Nothing changed.")
 

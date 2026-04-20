@@ -6,8 +6,8 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
-// AEGIS 6-Theme System
-// Each theme defines an accent palette + light/dark base
+//AEGIS 6-Theme System
+//Each theme defines an accent palette + light/dark base
 
 export type ThemeName = 'default' | 'light' | 'midnight' | 'ocean' | 'forest' | 'sunset' | 'rose'
 
@@ -42,14 +42,14 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | null>(null)
 
 function resolveTheme(name: string | null): ThemeName {
-  // Accept stored theme only if it still exists in the THEMES array.
-  // This guards against renamed or removed themes after an app update.
+  //Accept stored theme only if it still exists in the THEMES array.
+  //This guards against renamed or removed themes after an app update.
   if (name && THEMES.some(t => t.name === name)) return name as ThemeName
-  // Backward-compat: old builds stored 'dark' as a boolean string.
-  // Map it to 'default' (our dark blue theme) instead of showing a blank UI.
+  //Backward-compat: old builds stored 'dark' as a boolean string.
+  //Map it to 'default' (our dark blue theme) instead of showing a blank UI.
   if (name === 'dark') return 'default'
-  // No saved preference: fall back to the OS-level dark/light setting.
-  // window.matchMedia('(prefers-color-scheme: dark)') reads the system theme.
+  //No saved preference: fall back to the OS-level dark/light setting.
+  //window.matchMedia('(prefers-color-scheme: dark)') reads the system theme.
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'default' : 'light'
 }
 
@@ -61,22 +61,22 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
   const config = THEMES.find(t => t.name === theme) || THEMES[0]
 
   useEffect(() => {
-    // documentElement is the <html> tag — we apply theme classes here so
-    // Tailwind's `dark:` variants and our custom CSS variables work globally.
+    //documentElement is the <html> tag -- we apply theme classes here so
+    //Tailwind's `dark:` variants and our custom CSS variables work globally.
     const el = document.documentElement
-    // classList.toggle(class, force): adds 'dark' when isDark=true, removes it otherwise.
-    // Tailwind uses the 'dark' class on <html> to activate dark-mode styles.
+    //classList.toggle(class, force): adds 'dark' when isDark=true, removes it otherwise.
+    //Tailwind uses the 'dark' class on <html> to activate dark-mode styles.
     el.classList.toggle('dark', config.isDark)
-    // data-theme drives CSS custom-property overrides (--color-accent, --color-bg, etc.)
-    // defined in index.css, allowing per-theme color variation independent of dark/light.
+    //data-theme drives CSS custom-property overrides (--color-accent, --color-bg, etc.)
+    //defined in index.css, allowing per-theme color variation independent of dark/light.
     el.setAttribute('data-theme', theme)
-    // Persist so the correct theme is loaded on the next page visit.
+    //Persist so the correct theme is loaded on the next page visit.
     localStorage.setItem('aegis-theme', theme)
   }, [theme, config.isDark])
 
   const setTheme = (t: ThemeName) => setThemeState(t)
 
-  // backward compat: toggle cycles between default (dark) and light
+  //backward compat: toggle cycles between default (dark) and light
   const toggle = () => setThemeState(prev => {
     const cur = THEMES.find(t => t.name === prev)
     return cur?.isDark ? 'light' : 'default'
@@ -105,7 +105,7 @@ const THEME_DEFAULTS: ThemeContextType = {
 export function useTheme(): ThemeContextType {
   const ctx = useContext(ThemeContext)
   if (!ctx) {
-    if (import.meta.env.DEV) console.warn('[Theme] Context unavailable — returning safe defaults.')
+    if (import.meta.env.DEV) console.warn('[Theme] Context unavailable -- returning safe defaults.')
     return THEME_DEFAULTS
   }
   return ctx

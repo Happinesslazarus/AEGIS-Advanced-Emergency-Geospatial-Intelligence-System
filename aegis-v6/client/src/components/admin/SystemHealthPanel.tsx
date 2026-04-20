@@ -49,9 +49,9 @@ interface SystemHealth {
   workflow_definitions?: Array<{ name: string; nodeCount: number; active: boolean }>
 }
 
-// Helpers -------------------------------------------------------------------
+//Helpers
 
-// Convert seconds into a human-readable uptime string, e.g. "3d 2h 45m"
+//Convert seconds into a human-readable uptime string, e.g. "3d 2h 45m"
 function formatUptime(seconds: number): string {
   const d = Math.floor(seconds / 86400)
   const h = Math.floor((seconds % 86400) / 3600)
@@ -61,8 +61,8 @@ function formatUptime(seconds: number): string {
   return `${m}m`
 }
 
-// Map a latency value to a visual quality label + colour + bar percentage.
-// Thresholds are tuned for a local/LAN backend (≤50ms is great, >500ms is critical).
+//Map a latency value to a visual quality label + colour + bar percentage.
+//Thresholds are tuned for a local/LAN backend (≤50ms is great, >500ms is critical).
 function latencyQuality(ms: number): { label: string; color: string; barColor: string; pct: number } {
   if (ms <= 5)   return { label: 'Excellent', color: 'text-emerald-600 dark:text-emerald-400', barColor: 'bg-emerald-500', pct: 100 }
   if (ms <= 20)  return { label: 'Excellent', color: 'text-emerald-600 dark:text-emerald-400', barColor: 'bg-emerald-500', pct: 95 }
@@ -72,12 +72,12 @@ function latencyQuality(ms: number): { label: string; color: string; barColor: s
   return                { label: 'Critical',  color: 'text-red-600 dark:text-red-400',         barColor: 'bg-red-500',      pct: 15 }
 }
 
-// Health score formula (0-100):
-// - Database down: -40 points (most critical single-point failure)
-// - AI engine down: -25 points
-// - Scheduler unavailable: -15 points
-// - High recent error count: -8 to -15 points
-// - Open circuit breakers: -5 points each
+//Health score formula (0-100):
+//Database down: -40 points (most critical single-point failure)
+//AI engine down: -25 points
+//Scheduler unavailable: -15 points
+//High recent error count: -8 to -15 points
+//Open circuit breakers: -5 points each
 function computeHealthScore(h: SystemHealth): number {
   let score = 100
   if (!h.database.ok) score -= 40
@@ -86,7 +86,7 @@ function computeHealthScore(h: SystemHealth): number {
   if (!h.ai_engine.ok) score -= 25
   else if (h.ai_engine.latency_ms > 500) score -= 10
   else if (h.ai_engine.latency_ms > 200) score -= 5
-  // Scheduler is OK if n8n is healthy, OR if cron fallback is handling it, OR if n8n was never configured
+  //Scheduler is OK if n8n is healthy, OR if cron fallback is handling it, OR if n8n was never configured
   const schedulerOk = h.n8n.healthy || h.n8n.fallback_active || h.n8n.status === 'not_configured'
   if (!schedulerOk) score -= 15
   const totalErrors = h.recent_errors.frontend + h.recent_errors.system + h.recent_errors.external
@@ -117,9 +117,9 @@ function scoreLabel(score: number, lang: string): string {
   return t('admin.health.scorePoor', lang)
 }
 
-// Sub-components -------------------------------------------------------------
+//Sub-components
 
-// Small pill badge showing a green tick or red X with healthy/down label.
+//Small pill badge showing a green tick or red X with healthy/down label.
 function StatusBadge({ ok, label }: { ok: boolean; label?: string }) {
   const lang = useLanguage()
   return (
@@ -150,7 +150,7 @@ function LatencyBar({ ms, ok }: { ms: number; ok: boolean }) {
   )
 }
 
-// Main component -------------------------------------------------------------
+//Main component
 export default function SystemHealthPanel() {
   const [health, setHealth] = useState<SystemHealth | null>(null)
   const [loading, setLoading] = useState(true)
@@ -169,15 +169,15 @@ export default function SystemHealthPanel() {
     }
   }, [])
 
-  // Initial fetch + 30-second auto-refresh. Cleans up the interval on unmount.
+  //Initial fetch + 30-second auto-refresh. Cleans up the interval on unmount.
   useEffect(() => {
     fetchHealth()
     const interval = setInterval(fetchHealth, 30000)
     return () => clearInterval(interval)
   }, [fetchHealth])
 
-  // Keyboard shortcuts: R = refresh, ? = toggle shortcut help, Esc = close help
-  // Guard against firing while typing in form fields.
+  //Keyboard shortcuts: R = refresh, ? = toggle shortcut help, Esc = close help
+  //Guard against firing while typing in form fields.
   const [showKeyboard, setShowKeyboard] = useState(false)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -192,7 +192,7 @@ export default function SystemHealthPanel() {
     return () => document.removeEventListener('keydown', handler)
   }, [fetchHealth])
 
-  // Memoised so the expensive score computation only re-runs when health data changes
+  //Memoised so the expensive score computation only re-runs when health data changes
   const healthScore = useMemo(() => health ? computeHealthScore(health) : 0, [health])
 
   if (loading && !health) {
@@ -304,7 +304,7 @@ export default function SystemHealthPanel() {
               </div>
               <div className="flex items-end gap-2">
                 <span className="text-3xl font-black tabular-nums text-white">
-                  {health.server_uptime_s != null ? formatUptime(health.server_uptime_s) : '—'}
+                  {health.server_uptime_s != null ? formatUptime(health.server_uptime_s) : '--'}
                 </span>
               </div>
               <p className="text-xs text-white/30 mt-2">{t('admin.health.uptimeDesc', lang)}</p>
@@ -334,7 +334,7 @@ export default function SystemHealthPanel() {
                   <p className="text-xs text-white/30 mt-1">RSS: {health.memory.rss_mb} MB</p>
                 </>
               ) : (
-                <span className="text-2xl font-black text-white/40">—</span>
+                <span className="text-2xl font-black text-white/40">--</span>
               )}
             </div>
           </div>
@@ -465,7 +465,7 @@ export default function SystemHealthPanel() {
                 </div>
                 <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">
                   {t('admin.health.failures', lang)}: {state.failures}
-                  {state.lastFailure && ` — ${t('admin.health.lastFailure', lang)}: ${new Date(state.lastFailure).toLocaleTimeString()}`}
+                  {state.lastFailure && ` -- ${t('admin.health.lastFailure', lang)}: ${new Date(state.lastFailure).toLocaleTimeString()}`}
                 </p>
               </div>
             ))}

@@ -1,5 +1,5 @@
 ﻿/**
- * Regional flood threat assessor — combines river levels, verified incident
+ * Regional flood threat assessor -- combines river levels, verified incident
  * reports, and flood predictions into a GREEN/AMBER/RED/CRITICAL assessment.
  * Estimates at-risk properties, affected population, and evacuation routes.
  *
@@ -15,7 +15,7 @@ import pool from '../models/db.js'
 import type { Server as IOServer } from 'socket.io'
 import { logger } from './logger.js'
 
-// Configurable threat thresholds
+//Configurable threat thresholds
 
 interface ThreatThresholds {
   amberReportCount: number        // Reports needed for AMBER
@@ -31,10 +31,10 @@ const DEFAULT_THRESHOLDS: ThreatThresholds = {
   reportWindowHours: 24,
 }
 
-// Larger regions need more reports to trigger escalation
+//Larger regions need more reports to trigger escalation
 function getRegionThresholds(regionId: string): ThreatThresholds {
-  // Could be loaded from DB config in future
-  // For now, scale by known region population
+  //Could be loaded from DB config in future
+  //For now, scale by known region population
   const largeRegions = ['glasgow', 'edinburgh', 'london', 'manchester', 'birmingham']
   if (largeRegions.some(r => regionId.toLowerCase().includes(r))) {
     return { amberReportCount: 3, redReportCount: 8, criticalPredictionHours: 3, reportWindowHours: 24 }
@@ -42,7 +42,7 @@ function getRegionThresholds(regionId: string): ThreatThresholds {
   return DEFAULT_THRESHOLDS
 }
 
-// Types
+//Types
 
 export interface ThreatAssessment {
   level: ThreatLevel
@@ -62,7 +62,7 @@ export interface ThreatAssessment {
   calculatedAt: string
 }
 
-// State
+//State
 
 let lastThreatLevel: ThreatLevel | null = null
 let ioInstance: IOServer | null = null
@@ -71,7 +71,7 @@ export function setThreatIO(io: IOServer): void {
   ioInstance = io
 }
 
-// Core Calculation
+//Core Calculation
 
 export async function calculateThreatLevel(): Promise<ThreatAssessment> {
   const region = getActiveCityRegion()
@@ -79,7 +79,7 @@ export async function calculateThreatLevel(): Promise<ThreatAssessment> {
   const levels = await getCurrentLevels()
   const reasons: string[] = []
 
-  // 1. Analyze river levels
+  //1. Analyze river levels
   const hasElevated = levels.some(l => l.status === 'ELEVATED')
   const hasHigh = levels.some(l => l.status === 'HIGH')
   const hasCritical = levels.some(l => l.status === 'CRITICAL')
@@ -88,7 +88,7 @@ export async function calculateThreatLevel(): Promise<ThreatAssessment> {
   else if (hasHigh) reasons.push('One or more rivers at HIGH level')
   else if (hasElevated) reasons.push('One or more rivers at ELEVATED level')
 
-  // 2. Count verified reports in flood zones
+  //2. Count verified reports in flood zones
   let reportsInZones = 0
   try {
     const { rows } = await pool.query(`
@@ -100,14 +100,14 @@ export async function calculateThreatLevel(): Promise<ThreatAssessment> {
     `, [region.id])
     reportsInZones = parseInt(rows[0]?.cnt || '0')
   } catch {
-    // Continue with 0
+    //Continue with 0
   }
 
   if (reportsInZones > 0) {
     reasons.push(`${reportsInZones} verified report(s) in active period`)
   }
 
-  // 3. Check flood predictions
+  //3. Check flood predictions
   let predictedSevere = false
   try {
     const { rows } = await pool.query(`
@@ -132,10 +132,10 @@ export async function calculateThreatLevel(): Promise<ThreatAssessment> {
       if (predictedSevere) break
     }
   } catch {
-    // Continue
+    //Continue
   }
 
-  // 4. Determine overall threat level
+  //4. Determine overall threat level
   let level: ThreatLevel = 'GREEN'
 
   if (hasCritical || predictedSevere) {
@@ -146,7 +146,7 @@ export async function calculateThreatLevel(): Promise<ThreatAssessment> {
     level = 'AMBER'
   }
 
-  // 5. Get estimated impact numbers
+  //5. Get estimated impact numbers
   let estimatedProperties = 0
   let estimatedPeople = 0
   try {
@@ -160,10 +160,10 @@ export async function calculateThreatLevel(): Promise<ThreatAssessment> {
       estimatedPeople = parseInt(rows[0].estimated_people || '0')
     }
   } catch {
-    // Continue
+    //Continue
   }
 
-  // 6. Count active evacuation routes
+  //6. Count active evacuation routes
   let activeEvacRoutes = 0
   try {
     const { rows } = await pool.query(
@@ -172,7 +172,7 @@ export async function calculateThreatLevel(): Promise<ThreatAssessment> {
     )
     activeEvacRoutes = parseInt(rows[0]?.cnt || '0')
   } catch {
-    // Continue
+    //Continue
   }
 
   const assessment: ThreatAssessment = {
@@ -193,7 +193,7 @@ export async function calculateThreatLevel(): Promise<ThreatAssessment> {
     calculatedAt: new Date().toISOString(),
   }
 
-  // 7. Emit Socket.IO event if level changed
+  //7. Emit Socket.IO event if level changed
   if (lastThreatLevel !== null && lastThreatLevel !== level && ioInstance) {
     ioInstance.emit('threat:level_changed', {
       newLevel: level,
@@ -202,7 +202,7 @@ export async function calculateThreatLevel(): Promise<ThreatAssessment> {
       calculatedAt: assessment.calculatedAt,
     })
 
-    // Log the change
+    //Log the change
     pool.query(
       `INSERT INTO threat_level_log (region_id, level, previous_level, trigger_reasons, river_levels, active_reports)
        VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -227,7 +227,7 @@ export async function calculateMultiHazardThreat(): Promise<{
   const perHazard: Array<{ hazard: string; level: ThreatLevel; score: number; reasons: string[] }> = []
   const region = getActiveCityRegion()
 
-  // 1. Flood threats (leverage existing logic)
+  //1. Flood threats (leverage existing logic)
   try {
     const floodAssessment = await calculateThreatLevel()
     const floodScore = floodAssessment.level === 'CRITICAL' ? 100
@@ -244,7 +244,7 @@ export async function calculateMultiHazardThreat(): Promise<{
     perHazard.push({ hazard: 'flood', level: 'GREEN', score: 0, reasons: ['Unable to assess flood threat'] })
   }
 
-  // 2. Weather-based threats (storms, heatwave, etc.)
+  //2. Weather-based threats (storms, heatwave, etc.)
   try {
     const weatherReasons: string[] = []
     let weatherScore = 0
@@ -278,7 +278,7 @@ export async function calculateMultiHazardThreat(): Promise<{
     perHazard.push({ hazard: 'weather', level: 'GREEN', score: 0, reasons: ['Unable to assess weather threats'] })
   }
 
-  // 3. Report-based threats (all other incident types)
+  //3. Report-based threats (all other incident types)
   try {
     const reportReasons: string[] = []
     let reportScore = 0
@@ -311,13 +311,13 @@ export async function calculateMultiHazardThreat(): Promise<{
     perHazard.push({ hazard: 'reports', level: 'GREEN', score: 0, reasons: ['Unable to assess report-based threats'] })
   }
 
-  // Overall = MAX of individual hazard levels
+  //Overall = MAX of individual hazard levels
   const levelOrder: ThreatLevel[] = ['GREEN', 'AMBER', 'RED', 'CRITICAL']
   const overall = perHazard.reduce<ThreatLevel>((max, h) => {
     return levelOrder.indexOf(h.level) > levelOrder.indexOf(max) ? h.level : max
   }, 'GREEN')
 
-  // Composite = weighted average (flood 50%, weather 30%, reports 20%)
+  //Composite = weighted average (flood 50%, weather 30%, reports 20%)
   const weights: Record<string, number> = { flood: 0.5, weather: 0.3, reports: 0.2 }
   const composite = Math.round(
     perHazard.reduce((sum, h) => sum + h.score * (weights[h.hazard] || 0.1), 0),
@@ -338,14 +338,14 @@ export async function predictThreatTrajectory(): Promise<{
   const current = assessment.level
   const predictions: Array<{ hours: number; level: ThreatLevel; confidence: number }> = []
 
-  // Analyze river trends
+  //Analyze river trends
   const risingCount = assessment.riverSummary.filter(r => r.trend === 'rising').length
   const fallingCount = assessment.riverSummary.filter(r => r.trend === 'falling').length
   const totalRivers = assessment.riverSummary.length || 1
-  // Trend factor: +1 if all rising, -1 if all falling
+  //Trend factor: +1 if all rising, -1 if all falling
   const trendFactor = (risingCount - fallingCount) / totalRivers
 
-  // Analyze report velocity
+  //Analyze report velocity
   let reportAcceleration = 0
   try {
     const recent = await pool.query(
@@ -361,19 +361,19 @@ export async function predictThreatTrajectory(): Promise<{
     const prev2hRate = (recent.rows[0]?.prev_2h || 0) / 2
     reportAcceleration = prev2hRate > 0 ? (last1h - prev2hRate) / prev2hRate : (last1h > 0 ? 1 : 0)
   } catch {
-    // Continue with 0
+    //Continue with 0
   }
 
   const levelOrder: ThreatLevel[] = ['GREEN', 'AMBER', 'RED', 'CRITICAL']
   const currentIdx = levelOrder.indexOf(current)
 
   for (const hours of [1, 3, 6]) {
-    // Shift factor: positive = escalating, negative = de-escalating
+    //Shift factor: positive = escalating, negative = de-escalating
     const shift = (trendFactor * 0.6 + reportAcceleration * 0.4) * (hours / 3)
     let predictedIdx = Math.round(currentIdx + shift)
     predictedIdx = Math.max(0, Math.min(levelOrder.length - 1, predictedIdx))
 
-    // Confidence decreases with horizon
+    //Confidence decreases with horizon
     const confidence = Math.max(20, Math.round(85 - hours * 8 - Math.abs(shift) * 10))
 
     predictions.push({
@@ -401,7 +401,7 @@ export async function explainThreatLevel(): Promise<{
   const escalationTriggers: string[] = []
   const deescalationTriggers: string[] = []
 
-  // Build factors from assessment reasons
+  //Build factors from assessment reasons
   for (const reason of assessment.reasons) {
     let contribution: 'positive' | 'negative' | 'neutral' = 'negative'
     if (reason.toLowerCase().includes('normal') || reason.toLowerCase().includes('no ')) {
@@ -410,7 +410,7 @@ export async function explainThreatLevel(): Promise<{
     factors.push({ name: reason.split(':')[0] || reason, contribution, detail: reason })
   }
 
-  // River-based factors
+  //River-based factors
   const criticalRivers = assessment.riverSummary.filter(r => r.status === 'CRITICAL')
   const highRivers = assessment.riverSummary.filter(r => r.status === 'HIGH')
   const elevatedRivers = assessment.riverSummary.filter(r => r.status === 'ELEVATED')
@@ -424,7 +424,7 @@ export async function explainThreatLevel(): Promise<{
     })
   }
 
-  // Escalation triggers
+  //Escalation triggers
   if (assessment.level === 'GREEN') {
     escalationTriggers.push('Any river reaching ELEVATED level')
     escalationTriggers.push('1+ verified reports in flood zones')
@@ -437,7 +437,7 @@ export async function explainThreatLevel(): Promise<{
     escalationTriggers.push('Severe flood predicted within 2 hours')
   }
 
-  // De-escalation triggers
+  //De-escalation triggers
   if (assessment.level === 'CRITICAL') {
     deescalationTriggers.push('All rivers drop below severe threshold')
     deescalationTriggers.push('No severe flood predictions within 2 hours')
@@ -470,7 +470,7 @@ export async function getZoneThreatLevels(): Promise<
   const results: Array<{ zoneId: string; zoneName: string; level: ThreatLevel; reasons: string[]; score: number }> = []
 
   try {
-    // Get zone risk scores
+    //Get zone risk scores
     const zones = await pool.query(
       `SELECT id, zone_name, hazard_type, risk_score, confidence, contributing_factors
        FROM zone_risk_scores
@@ -482,10 +482,10 @@ export async function getZoneThreatLevels(): Promise<
       const reasons: string[] = []
       let score = parseInt(zone.risk_score) || 0
 
-      // Base reason from stored risk
+      //Base reason from stored risk
       reasons.push(`Base risk score: ${score}/100 (${zone.hazard_type})`)
 
-      // Check for recent reports in this zone
+      //Check for recent reports in this zone
       const zoneReports = await pool.query(
         `SELECT COUNT(*)::int as cnt FROM reports
          WHERE area = $1
@@ -500,7 +500,7 @@ export async function getZoneThreatLevels(): Promise<
         reasons.push(`${reportCount} verified report(s) in the last 24h`)
       }
 
-      // Parse contributing factors
+      //Parse contributing factors
       const factors = typeof zone.contributing_factors === 'string'
         ? JSON.parse(zone.contributing_factors)
         : zone.contributing_factors
@@ -508,7 +508,7 @@ export async function getZoneThreatLevels(): Promise<
         reasons.push(`Historical frequency: ${factors.historical_frequency} events`)
       }
 
-      // Determine threat level from score
+      //Determine threat level from score
       let level: ThreatLevel = 'GREEN'
       if (score >= 80) level = 'CRITICAL'
       else if (score >= 55) level = 'RED'

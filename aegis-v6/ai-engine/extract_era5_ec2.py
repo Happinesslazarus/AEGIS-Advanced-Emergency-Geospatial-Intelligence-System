@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-ERA5 point-extraction script — runs on EC2 in us-east-1.
+ERA5 point-extraction script -- runs on EC2 in us-east-1.
 
 Downloads NSF NCAR ERA5 files from s3://nsf-ncar-era5 (same-region, fast),
-extracts hourly values for all AEGIS training locations (2016–2023),
+extracts hourly values for all AEGIS training locations (2016-2023),
 and uploads per-hazard CSV caches to s3://aegis-v6-era5-results-523231703601.
 
 The CSV files are named to match the cache format expected by
@@ -24,18 +24,14 @@ from botocore.config import Config
 
 warnings.filterwarnings("ignore")
 
-# ---------------------------------------------------------------------------
 # Config
-# ---------------------------------------------------------------------------
 ERA5_BUCKET   = "nsf-ncar-era5"
 RESULTS_BUCKET = "aegis-v6-era5-results-523231703601"
 import os as _os
 START_YEAR = int(_os.environ.get("AEGIS_START_YEAR", "2016"))
 END_YEAR   = int(_os.environ.get("AEGIS_END_YEAR",   "2023"))
 
-# ---------------------------------------------------------------------------
 # All training location sets (mirrors multi_location_weather.py)
-# ---------------------------------------------------------------------------
 UK_GRID = [
     {"id": "london",      "lat": 51.51, "lon": -0.13, "region": "se_england"},
     {"id": "cambridge",   "lat": 52.21, "lon":  0.12, "region": "se_england"},
@@ -270,10 +266,8 @@ ALL_UNIQUE_LOCS = _dedup([
     SAFETY_LOCS, INFRA_LOCS, ENV_LOCS,
 ])
 
-# ---------------------------------------------------------------------------
 # ERA5 variable catalogue
-# ---------------------------------------------------------------------------
-# Analysis (instant) variables — one file per month
+# Analysis (instant) variables -- one file per month
 ANAL_VARS = {
     "128_167_2t":    ("VAR_2T",  "temperature_2m"),
     "128_168_2d":    ("VAR_2D",  "dewpoint_2m"),
@@ -288,7 +282,7 @@ ANAL_VARS = {
     "128_134_sp":    ("SP",      "surface_pressure"),
 }
 
-# Accumulated forecast — two 15-day files per month, need deaccumulation
+# Accumulated forecast -- two 15-day files per month, need deaccumulation
 ACCUMU_VARS = {
     "128_142_lsp":  ("LSP",  "precip_ls"),        # large-scale precip (m)
     "128_143_cp":   ("CP",   "precip_conv"),       # convective precip (m)
@@ -296,15 +290,13 @@ ACCUMU_VARS = {
     "128_169_ssrd": ("SSRD", "shortwave_radiation"), # solar (J/m²)
 }
 
-# Minmax forecast — two 15-day files per month
+# Minmax forecast -- two 15-day files per month
 MINMAX_VARS = {
     "128_049_10fg": ("VAR_10FG", "wind_gusts_10m"),
 }
 
 
-# ---------------------------------------------------------------------------
 # S3 utilities
-# ---------------------------------------------------------------------------
 fs_pub = s3fs.S3FileSystem(anon=True)
 s3_priv = boto3.client("s3", region_name="us-east-1")
 
@@ -335,7 +327,7 @@ def stream_extract(key: str, nc_var: str,
             la = xr.DataArray(lats, dims="points")
             lo = xr.DataArray(lons_360, dims="points")
 
-            # --- Layout 1: simple time dimension (analysis files) ---
+            # Layout 1: simple time dimension (analysis files)
             if "time" in ds.dims or "valid_time" in ds.dims:
                 pts = ds[nc_var].sel(latitude=la, longitude=lo, method="nearest")
                 arr = pts.values.astype(np.float32)   # (n_hours, n_locs)
@@ -348,7 +340,7 @@ def stream_extract(key: str, nc_var: str,
                 ds.close()
                 return arr, ts
 
-            # --- Layout 2: forecast_initial_time × forecast_hour ---
+            # Layout 2: forecast_initial_time × forecast_hour
             if "forecast_initial_time" in ds.dims and "forecast_hour" in ds.dims:
                 pts = ds[nc_var].sel(latitude=la, longitude=lo, method="nearest")
                 arr3 = pts.values.astype(np.float32)   # (n_init, n_fh, n_locs)
@@ -377,9 +369,7 @@ def stream_extract(key: str, nc_var: str,
         return None
 
 
-# ---------------------------------------------------------------------------
 # Deaccumulation helper
-# ---------------------------------------------------------------------------
 def deaccumulate(arr: np.ndarray, timestamps: pd.DatetimeIndex) -> np.ndarray:
     """Convert accumulated ERA5 forecast values to per-hour totals.
 
@@ -391,16 +381,14 @@ def deaccumulate(arr: np.ndarray, timestamps: pd.DatetimeIndex) -> np.ndarray:
     hours = timestamps.hour
     for i in range(len(timestamps)):
         if i == 0 or hours[i] in (0, 6, 12, 18):
-            # First step of a forecast window — value is the rate
+            # First step of a forecast window -- value is the rate
             out[i] = np.maximum(arr[i], 0)
         else:
             out[i] = np.maximum(arr[i] - arr[i - 1], 0)
     return out
 
 
-# ---------------------------------------------------------------------------
 # Per-month extraction
-# ---------------------------------------------------------------------------
 def _ym_str(year: int, month: int) -> str:
     return f"{year}{month:02d}"
 
@@ -409,14 +397,14 @@ def extract_month(year: int, month: int,
                   lats: list[float], lons_360: list[float]) -> dict[str, np.ndarray] | None:
     """Extract all variables for one calendar month.
 
-    Returns dict mapping column_name → np.ndarray of shape (n_hours, n_locs).
+ Returns dict mapping column_name -> np.ndarray of shape (n_hours, n_locs).
     Returns None if critical variables are missing.
     """
     ym = _ym_str(year, month)
     result: dict[str, np.ndarray] = {}
     timestamps: pd.DatetimeIndex | None = None
 
-    # --- Analysis (instant) variables ---
+    # Analysis (instant) variables
     anal_prefix = f"e5.oper.an.sfc/{ym}/"
     for var_key, (nc_name, col_name) in ANAL_VARS.items():
         keys = list_files(anal_prefix, var_key)
@@ -432,10 +420,10 @@ def extract_month(year: int, month: int,
         result[col_name] = arr
 
     if timestamps is None:
-        print(f"  ERROR: No timestamps for {ym} — skipping month")
+        print(f"  ERROR: No timestamps for {ym} -- skipping month")
         return None
 
-    # --- Accumulated forecast variables (two 15-day files) ---
+    # Accumulated forecast variables (two 15-day files)
     accumu_prefix = f"e5.oper.fc.sfc.accumu/{ym}/"
     for var_key, (nc_name, col_name) in ACCUMU_VARS.items():
         keys = list_files(accumu_prefix, var_key)
@@ -472,7 +460,7 @@ def extract_month(year: int, month: int,
         except Exception as e:
             print(f"  WARN: accumu {var_key} {ym} failed: {e}")
 
-    # --- Minmax forecast variables ---
+    # Minmax forecast variables
     minmax_prefix = f"e5.oper.fc.sfc.minmax/{ym}/"
     for var_key, (nc_name, col_name) in MINMAX_VARS.items():
         keys = list_files(minmax_prefix, var_key)
@@ -507,21 +495,19 @@ def extract_month(year: int, month: int,
     return result
 
 
-# ---------------------------------------------------------------------------
 # Unit conversions + derived variables
-# ---------------------------------------------------------------------------
 def apply_conversions(df: pd.DataFrame) -> pd.DataFrame:
-    # K → °C
+ # K -> °C
     for c in ("temperature_2m", "dewpoint_2m", "soil_temperature_0_to_7cm"):
         if c in df.columns:
             df[c] = df[c] - 273.15
 
-    # Pa → hPa
+ # Pa -> hPa
     for c in ("pressure_msl", "surface_pressure"):
         if c in df.columns:
             df[c] = df[c] / 100.0
 
-    # m → mm
+ # m -> mm
     for c in ("precip_ls", "precip_conv", "snowfall"):
         if c in df.columns:
             df[c] = (df[c] * 1000.0).clip(lower=0.0)
@@ -533,13 +519,13 @@ def apply_conversions(df: pd.DataFrame) -> pd.DataFrame:
     elif "precip_conv" in df.columns:
         df["precipitation"] = df["precip_conv"]; df.drop(columns=["precip_conv"], inplace=True)
 
-    # m → m (keep snow_depth as-is)
+ # m -> m (keep snow_depth as-is)
 
-    # fraction → %
+ # fraction -> %
     if "cloud_cover" in df.columns:
         df["cloud_cover"] = (df["cloud_cover"] * 100.0).clip(0, 100)
 
-    # J/m² → W/m² (deaccumulated J/m² per hour ÷ 3600)
+ # J/m² -> W/m² (deaccumulated J/m² per hour ÷ 3600)
     if "shortwave_radiation" in df.columns:
         df["shortwave_radiation"] = (df["shortwave_radiation"] / 3600.0).clip(lower=0.0)
 
@@ -570,9 +556,7 @@ def apply_conversions(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ---------------------------------------------------------------------------
 # Main extraction loop
-# ---------------------------------------------------------------------------
 def run_extraction():
     lats     = [loc["lat"]           for loc in ALL_UNIQUE_LOCS]
     lons_360 = [loc["lon"] % 360     for loc in ALL_UNIQUE_LOCS]
@@ -668,7 +652,7 @@ def _upload_final(all_rows):
         print(f"Still waiting for {len(missing)} parts: {missing}")
         print("Per-hazard CSV build will happen when the last instance finishes.")
         return
-    print("All 8 year parts present — merging and building per-hazard CSVs...")
+    print("All 8 year parts present -- merging and building per-hazard CSVs...")
 
     # Merge all 8 year parts
     import io
@@ -730,5 +714,5 @@ def _upload_final(all_rows):
 if __name__ == "__main__":
     print("=== AEGIS ERA5 Extraction Job ===")
     print(f"Unique locations: {len(ALL_UNIQUE_LOCS)}")
-    print(f"Years: {START_YEAR}–{END_YEAR}")
+    print(f"Years: {START_YEAR}-{END_YEAR}")
     run_extraction()

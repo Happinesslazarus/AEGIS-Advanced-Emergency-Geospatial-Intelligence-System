@@ -1,4 +1,4 @@
-// End-to-end test: submit a report and check AI analysis
+//End-to-end test: submit a report and check AI analysis
 const http = require('http');
 
 const JWT = (() => {
@@ -17,7 +17,7 @@ const JWT = (() => {
   return `${header}.${payload}.${sig}`;
 })();
 
-// Test 1: Get AI prediction status
+//Test 1: Get AI prediction status
 function testEndpoint(path, label) {
   return new Promise((resolve) => {
     const req = http.get(`http://localhost:3001${path}`, {
@@ -38,7 +38,7 @@ function testEndpoint(path, label) {
   });
 }
 
-// Test 2: Submit a test report (citizen endpoint, no auth needed)
+//Test 2: Submit a test report (citizen endpoint, no auth needed)
 function testReportSubmission() {
   return new Promise((resolve) => {
     const body = JSON.stringify({

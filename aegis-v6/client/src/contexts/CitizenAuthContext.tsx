@@ -6,14 +6,14 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react'
 import { API_BASE } from '../utils/helpers'
-// notifySocketAuthChange inlined below to avoid circular import with SocketContext
+//notifySocketAuthChange inlined below to avoid circular import with SocketContext
 
-// ─── In-memory citizen access token ────────────────────────────────────────
-// The access token is stored ONLY in JavaScript memory (never localStorage).
-// On page reload, silentRefresh() recovers a new access token using the
-// httpOnly refresh cookie the server sets on login/refresh.
-// This eliminates XSS token theft — even if an attacker injects script,
-// they cannot read the access token from localStorage.
+//In-memory citizen access token
+//The access token is stored ONLY in JavaScript memory (never localStorage).
+//On page reload, silentRefresh() recovers a new access token using the
+//httpOnly refresh cookie the server sets on login/refresh.
+//This eliminates XSS token theft -- even if an attacker injects script,
+//they cannot read the access token from localStorage.
 let _citizenAccessToken: string | null = null
 
 /** Get the current citizen access token (in-memory only). */
@@ -26,9 +26,9 @@ export function setCitizenToken(t: string | null): void {
   _citizenAccessToken = t
 }
 
-// API_BASE imported from ../utils/helpers
+//API_BASE imported from ../utils/helpers
 
-// Types
+//Types
 
 export interface CitizenUser {
   id: string
@@ -103,23 +103,23 @@ interface CitizenAuthContextType {
   unreadMessages: number
   loading: boolean
   isAuthenticated: boolean
-  // Auth actions
+  //Auth actions
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requires2FA?: boolean; tempToken?: string }>
   complete2FA: (token: string, user: CitizenUser, preferences?: CitizenPreferences) => Promise<void>
   register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>
   oauthLogin: (token: string) => Promise<{ success: boolean; error?: string }>
   logout: () => void
-  // Profile
+  //Profile
   updateProfile: (data: Partial<CitizenUser>) => Promise<boolean>
   uploadAvatar: (file: File) => Promise<string | null>
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>
   updatePreferences: (data: Partial<CitizenPreferences>) => Promise<boolean>
-  // Emergency contacts
+  //Emergency contacts
   addEmergencyContact: (data: { name: string; phone: string; relationship?: string; isPrimary?: boolean }) => Promise<boolean>
   removeEmergencyContact: (id: string) => Promise<boolean>
-  // Safety
+  //Safety
   submitSafetyCheckIn: (status: string, message?: string, lat?: number, lng?: number) => Promise<boolean>
-  // Refresh
+  //Refresh
   refreshProfile: () => Promise<void>
 }
 
@@ -141,22 +141,22 @@ export interface RegisterData {
 
 const CitizenAuthContext = createContext<CitizenAuthContextType | null>(null)
 
-// Helper
+//Helper
 
 async function apiFetch(path: string, options: RequestInit = {}) {
   const token = _citizenAccessToken
-  // AbortController lets us cancel the fetch if it takes longer than 10 seconds.
-  // After 10 000 ms we call controller.abort() which rejects the fetch promise.
+  //AbortController lets us cancel the fetch if it takes longer than 10 seconds.
+  //After 10 000 ms we call controller.abort() which rejects the fetch promise.
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 10000)
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> || {}),
   }
-  // Attach the JWT (JSON Web Token) in the Authorization header so the server
-  // can verify the caller's identity.  Bearer = "whoever holds this token is allowed".
+  //Attach the JWT (JSON Web Token) in the Authorization header so the server
+  //can verify the caller's identity.  Bearer = "whoever holds this token is allowed".
   if (token) headers['Authorization'] = `Bearer ${token}`
-  // CSRF double-submit: read the cookie and send as header for all state-changing requests
+  //CSRF double-submit: read the cookie and send as header for all state-changing requests
   const safeMethods = ['GET', 'HEAD', 'OPTIONS']
   const method = (options.method || 'GET').toUpperCase()
   if (!safeMethods.includes(method)) {
@@ -168,13 +168,13 @@ async function apiFetch(path: string, options: RequestInit = {}) {
     const res = await fetch(`${API_BASE}${path}`, { ...options, headers, signal: controller.signal, credentials: 'include' })
     const data = await res.json().catch(() => ({}))
 
-    // If the server replies 401 (Unauthorized) and this isn't already a refresh or
-    // login call (to avoid infinite loops), attempt a silent token refresh.
+    //If the server replies 401 (Unauthorized) and this isn't already a refresh or
+    //login call (to avoid infinite loops), attempt a silent token refresh.
     // "Silent" = uses the httpOnly refresh cookie sent by the browser automatically.
     if (res.status === 401 && path !== '/api/citizen-auth/refresh' && path !== '/api/citizen-auth/login') {
       const refreshed = await silentRefresh()
       if (refreshed) {
-        // Retry the original request with the newly issued access token.
+        //Retry the original request with the newly issued access token.
         const newToken = _citizenAccessToken
         const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` }
         const retryRes = await fetch(`${API_BASE}${path}`, { ...options, headers: retryHeaders, credentials: 'include' })
@@ -190,11 +190,11 @@ async function apiFetch(path: string, options: RequestInit = {}) {
     }
 
     if (!res.ok) {
-      // CSRF mismatch: stale cookie from a previous server session.
-      // The safest recovery is a full page reload which fetches a fresh CSRF cookie.
+      //CSRF mismatch: stale cookie from a previous server session.
+      //The safest recovery is a full page reload which fetches a fresh CSRF cookie.
       if (res.status === 403 && data?.code === 'CSRF_INVALID') {
         window.location.reload()
-        // Return a never-settling promise so callers don't render stale error state.
+        //Return a never-settling promise so callers don't render stale error state.
         return new Promise(() => {})
       }
       const errMsg = typeof data?.error === 'string' ? data.error : data?.error?.message || 'Request failed'
@@ -205,13 +205,13 @@ async function apiFetch(path: string, options: RequestInit = {}) {
     return data
   } catch (err: any) {
     if (err?.name === 'AbortError') {
-      // The fetch was cancelled because it exceeded the 10-second timeout.
+      //The fetch was cancelled because it exceeded the 10-second timeout.
       throw new Error('Request timed out. Please try again.')
     }
     throw err
   } finally {
-    // Always clear the timeout so we don't memory-leak the timer if the request
-    // finishes before 10 seconds.
+    //Always clear the timeout so we don't memory-leak the timer if the request
+    //finishes before 10 seconds.
     window.clearTimeout(timeout)
   }
 }
@@ -221,9 +221,9 @@ async function apiFetch(path: string, options: RequestInit = {}) {
  * read it (XSS protection).  The server verifies it and issues a new JWT. */
 let refreshPromise: Promise<boolean> | null = null
 async function silentRefresh(): Promise<boolean> {
-  // If another component already started a refresh, reuse that promise instead
-  // of sending duplicate requests.  This prevents a race condition where two
-  // expired requests both try to refresh at the same time.
+  //If another component already started a refresh, reuse that promise instead
+  //of sending duplicate requests.  This prevents a race condition where two
+  //expired requests both try to refresh at the same time.
   if (refreshPromise) return refreshPromise
   refreshPromise = (async () => {
     try {
@@ -248,7 +248,7 @@ async function silentRefresh(): Promise<boolean> {
   return refreshPromise
 }
 
-// Provider
+//Provider
 
 export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.Element {
   const [user, setUser] = useState<CitizenUser | null>(() => {
@@ -268,18 +268,18 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
 
   const isAuthenticated = !!user && !!token
 
-  // Save token to in-memory store (no longer persisted to localStorage)
+  //Save token to in-memory store (no longer persisted to localStorage)
   const saveToken = useCallback((t: string) => {
     _citizenAccessToken = t
     setToken(t)
-    // Notify SocketContext to reconnect — inline to avoid circular import
+    //Notify SocketContext to reconnect -- inline to avoid circular import
     window.dispatchEvent(new StorageEvent('storage', { key: 'aegis-citizen-token', newValue: t }))
   }, [])
 
   const saveUser = useCallback((u: CitizenUser | null) => {
     setUser(u)
     if (u) {
-      // Store minimal PII in localStorage (#78) - only what's needed for offline display
+      //Store minimal PII in localStorage (#78) - only what's needed for offline display
       const safeUser = {
         id: u.id,
         displayName: u.displayName,
@@ -303,14 +303,14 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     setEmergencyContacts([])
     setRecentSafety([])
     setUnreadMessages(0)
-    // Notify SocketContext to disconnect — inline to avoid circular import
+    //Notify SocketContext to disconnect -- inline to avoid circular import
     window.dispatchEvent(new StorageEvent('storage', { key: 'aegis-citizen-token', newValue: null }))
-    // Clear server-side refresh cookie (#25)
+    //Clear server-side refresh cookie (#25)
     fetch(`${API_BASE}/api/citizen-auth/logout`, { method: 'POST', credentials: 'include' })
       .catch(err => console.warn('[CitizenAuth] Logout sync failed:', err))
   }, [saveUser])
 
-  // Refresh full profile
+  //Refresh full profile
   const refreshProfile = useCallback(async () => {
     if (!_citizenAccessToken) {
       setLoading(false)
@@ -334,15 +334,15 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     }
   }, [clearAuth, saveUser])
 
-  // On mount: attempt silent refresh via httpOnly cookie to recover session.
-  // If we already have a token in memory (e.g. SPA navigation), just refresh profile.
-  // If not, try the server's refresh endpoint — the browser sends the httpOnly
-  // cookie automatically, and the server issues a new access token if valid.
+  //On mount: attempt silent refresh via httpOnly cookie to recover session.
+  //If we already have a token in memory (e.g. SPA navigation), just refresh profile.
+  //If not, try the server's refresh endpoint -- the browser sends the httpOnly
+  //cookie automatically, and the server issues a new access token if valid.
   useEffect(() => {
     if (_citizenAccessToken) {
       refreshProfile()
     } else {
-      // Try silent refresh — the stored user hint tells us a session may exist
+      //Try silent refresh -- the stored user hint tells us a session may exist
       const hasUserHint = !!localStorage.getItem('aegis-citizen-user')
       if (hasUserHint) {
         setLoading(true)
@@ -360,21 +360,21 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Login
+  //Login
   const login = useCallback(async (email: string, password: string) => {
     try {
       const data = await apiFetch('/api/citizen-auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       })
-      // 2FA gate: server returns requires2FA + tempToken when 2FA is enabled
+      //2FA gate: server returns requires2FA + tempToken when 2FA is enabled
       if (data.requires2FA) {
         return { success: false, requires2FA: true, tempToken: data.tempToken }
       }
       saveToken(data.token)
       saveUser(data.user)
       setPreferences(data.preferences)
-      // Auto-approve pending QR session (phone browser without 2FA)
+      //Auto-approve pending QR session (phone browser without 2FA)
       const pendingQr = sessionStorage.getItem('aegis_pending_qr_session')
       if (pendingQr) {
         sessionStorage.removeItem('aegis_pending_qr_session')
@@ -391,7 +391,7 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     }
   }, [saveToken])
 
-  // Register
+  //Register
   const register = useCallback(async (regData: RegisterData) => {
     try {
       const data = await apiFetch('/api/citizen-auth/register', {
@@ -406,14 +406,14 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     }
   }, [saveToken])
 
-  // Complete 2FA — called after successful 2FA challenge to save auth state
-  // Also loads the full profile (preferences, contacts, etc.) so the dashboard
-  // doesn't appear empty/blank compared to Google OAuth login.
+  //Complete 2FA -- called after successful 2FA challenge to save auth state
+  //Also loads the full profile (preferences, contacts, etc.) so the dashboard
+  //doesn't appear empty/blank compared to Google OAuth login.
   const complete2FA = useCallback(async (authToken: string, authUser: CitizenUser, prefs?: CitizenPreferences) => {
     saveToken(authToken)
     saveUser(authUser)
     if (prefs) setPreferences(prefs)
-    // Load full profile just like oauthLogin does
+    //Load full profile just like oauthLogin does
     try {
       const data = await apiFetch('/api/citizen-auth/me')
       saveUser(data.user)
@@ -422,9 +422,9 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
       setRecentSafety(data.recentSafetyCheckIns || [])
       setUnreadMessages(data.unreadMessages || 0)
     } catch {
-      // Non-fatal: user is still logged in with basic auth data
+      //Non-fatal: user is still logged in with basic auth data
     }
-    // Auto-approve pending QR session (phone browser email+password flow)
+    //Auto-approve pending QR session (phone browser email+password flow)
     const pendingQr = sessionStorage.getItem('aegis_pending_qr_session')
     if (pendingQr) {
       sessionStorage.removeItem('aegis_pending_qr_session')
@@ -437,14 +437,14 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     }
   }, [saveToken, saveUser])
 
-  // OAuth login — use token from Google OAuth redirect hash
-  // Validate token BEFORE persisting to avoid broken auth state
+  //OAuth login -- use token from Google OAuth redirect hash
+  //Validate token BEFORE persisting to avoid broken auth state
   const oauthLogin = useCallback(async (oauthToken: string) => {
     try {
-      // Temporarily set token in memory so apiFetch can use it
+      //Temporarily set token in memory so apiFetch can use it
       _citizenAccessToken = oauthToken
       const data = await apiFetch('/api/citizen-auth/me')
-      // Token validated — now persist properly
+      //Token validated -- now persist properly
       saveToken(oauthToken)
       saveUser(data.user)
       setPreferences(data.preferences)
@@ -453,14 +453,14 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
       setUnreadMessages(data.unreadMessages || 0)
       return { success: true }
     } catch (err: any) {
-      // Token was invalid — clear it
+      //Token was invalid -- clear it
       _citizenAccessToken = null
       setToken(null)
       return { success: false, error: err.message }
     }
   }, [saveToken, saveUser])
 
-  // Handle OAuth redirect token from URL hash (#26) — process only once
+  //Handle OAuth redirect token from URL hash (#26) -- process only once
   const oauthProcessedRef = useRef(false)
   useEffect(() => {
     if (oauthProcessedRef.current) return
@@ -469,28 +469,28 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
       oauthProcessedRef.current = true
       const tokenMatch = hash.match(/oauth_token=([^&]+)/)
       if (tokenMatch?.[1]) {
-        // Clear hash immediately to prevent token leaking in history/referrer
+        //Clear hash immediately to prevent token leaking in history/referrer
         window.history.replaceState(null, '', window.location.pathname + window.location.search)
         oauthLogin(tokenMatch[1])
       }
     }
   }, [oauthLogin])
 
-  // Logout
+  //Logout
   const logout = useCallback(() => {
     clearAuth()
-    // Redirect to login; window.location ensures full state reset
+    //Redirect to login; window.location ensures full state reset
     try { window.location.href = '/citizen/login' } catch {}
   }, [clearAuth])
 
-  // Listen for global logout events (from shared logout util) and clear auth state
+  //Listen for global logout events (from shared logout util) and clear auth state
   useEffect(() => {
     const handler = () => clearAuth()
     window.addEventListener('ae:logout', handler)
     return () => window.removeEventListener('ae:logout', handler)
   }, [clearAuth])
 
-  // Update profile
+  //Update profile
   const updateProfile = useCallback(async (data: Partial<CitizenUser>) => {
     try {
       const result = await apiFetch('/api/citizen-auth/profile', {
@@ -506,7 +506,7 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     }
   }, [saveUser, user])
 
-  // Upload avatar (multipart form)
+  //Upload avatar (multipart form)
   const uploadAvatar = useCallback(async (file: File): Promise<string | null> => {
     try {
       const formData = new FormData()
@@ -525,7 +525,7 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     }
   }, [saveUser, user])
 
-  // Change password
+  //Change password
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     try {
       await apiFetch('/api/citizen-auth/change-password', {
@@ -538,7 +538,7 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     }
   }, [])
 
-  // Update preferences
+  //Update preferences
   const updatePreferences = useCallback(async (data: Partial<CitizenPreferences>) => {
     try {
       const result = await apiFetch('/api/citizen-auth/preferences', {
@@ -553,7 +553,7 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     }
   }, [])
 
-  // Emergency contacts
+  //Emergency contacts
   const addEmergencyContact = useCallback(async (data: { name: string; phone: string; relationship?: string; isPrimary?: boolean }) => {
     try {
       const result = await apiFetch('/api/citizen-auth/emergency-contacts', {
@@ -577,7 +577,7 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     }
   }, [])
 
-  // Safety check-in
+  //Safety check-in
   const submitSafetyCheckIn = useCallback(async (status: string, message?: string, lat?: number, lng?: number) => {
     try {
       const result = await apiFetch('/api/citizen/safety', {
@@ -635,7 +635,7 @@ export function useCitizenAuth(): CitizenAuthContextType {
   const ctx = useContext(CitizenAuthContext)
   if (!ctx) {
     if (import.meta.env.DEV) {
-      console.warn('[CitizenAuth] Context unavailable — returning safe defaults. This is normal during HMR.')
+      console.warn('[CitizenAuth] Context unavailable -- returning safe defaults. This is normal during HMR.')
     }
     return CITIZEN_AUTH_DEFAULTS
   }

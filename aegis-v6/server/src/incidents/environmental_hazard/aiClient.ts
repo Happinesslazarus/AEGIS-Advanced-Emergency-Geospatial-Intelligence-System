@@ -58,7 +58,7 @@ export class EnvironmentalHazardAIClient {
       }]
     } catch (error) {
       logger.error({ err: error }, '[EnvironmentalHazard/AIClient] Prediction failed')
-      // Return fallback prediction
+      //Return fallback prediction
       return [{
         incidentType: 'environmental_hazard',
         severity: 'Low',

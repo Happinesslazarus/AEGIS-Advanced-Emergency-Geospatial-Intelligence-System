@@ -19,7 +19,7 @@ export class OpenMeteoAdapter implements RiverDataAdapter {
   readonly name = 'OpenMeteo'
 
   isAvailable(): boolean {
-    // Open-Meteo is always available — no API key required
+    //Open-Meteo is always available -- no API key required
     return true
   }
 
@@ -29,8 +29,8 @@ export class OpenMeteoAdapter implements RiverDataAdapter {
     riverName?: string,
   ): Promise<RiverReading | null> {
     try {
-      // Open-Meteo Flood API uses coordinates, not station IDs.
-      // We extract lat/lng from the stationId format "lat,lng" or use defaults.
+      //Open-Meteo Flood API uses coordinates, not station IDs.
+      //We extract lat/lng from the stationId format "lat,lng" or use defaults.
       const coords = this.parseCoordinates(stationId)
       if (!coords) {
         logger.warn({ stationId }, '[OpenMeteo] Cannot parse coordinates from stationId')
@@ -58,15 +58,15 @@ export class OpenMeteoAdapter implements RiverDataAdapter {
       const dailyTimes: string[] = data?.daily?.time || []
       const discharges: (number | null)[] = data?.daily?.river_discharge || []
 
-      // Find today's reading
+      //Find today's reading
       const today = new Date().toISOString().split('T')[0]
       const todayIdx = dailyTimes.indexOf(today)
       const currentDischarge = todayIdx >= 0 ? discharges[todayIdx] : discharges[discharges.length - 1]
 
       if (currentDischarge == null) return null
 
-      // Convert discharge (m—/s) to an approximate level using Manning's equation simplification
-      // This is a rough estimate — the relationship depends on channel geometry
+      //Convert discharge (m--/s) to an approximate level using Manning's equation simplification
+      //This is a rough estimate -- the relationship depends on channel geometry
       const estimatedLevel = this.dischargeToLevel(currentDischarge)
 
       return {
@@ -139,10 +139,10 @@ export class OpenMeteoAdapter implements RiverDataAdapter {
       .filter((r): r is RiverReading => r !== null)
   }
 
-  // Helpers
+  //Helpers
 
   private parseCoordinates(stationId: string): { lat: number; lng: number } | null {
-    // Accept "lat,lng" format
+    //Accept "lat,lng" format
     if (stationId.includes(',')) {
       const [latStr, lngStr] = stationId.split(',')
       const lat = parseFloat(latStr)
@@ -153,10 +153,10 @@ export class OpenMeteoAdapter implements RiverDataAdapter {
   }
 
    /**
-   * Rough conversion from discharge (m—/s) to water level (m).
-   * Uses a simplified power-law rating curve: h — a * Q^b
+   * Rough conversion from discharge (m--/s) to water level (m).
+   * Uses a simplified power-law rating curve: h -- a * Q^b
    * where a=0.3, b=0.4 are typical for medium rivers.
-   * This is an approximation — real deployments would use station-specific rating curves.
+   * This is an approximation -- real deployments would use station-specific rating curves.
    */
   private dischargeToLevel(dischargeCumecs: number): number {
     if (dischargeCumecs <= 0) return 0

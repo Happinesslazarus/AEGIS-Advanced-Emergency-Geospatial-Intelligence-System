@@ -8,7 +8,7 @@ system can warn residents in the affected service area.
 """
 
 """
- AEGIS AI ENGINE — Power Outage Prediction Module
+ AEGIS AI ENGINE -- Power Outage Prediction Module
  Rule-based risk scoring using weather extremes, grid vulnerability,
  and historical outage patterns.
 """

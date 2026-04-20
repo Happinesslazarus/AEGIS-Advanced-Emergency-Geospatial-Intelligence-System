@@ -1,13 +1,13 @@
 /**
- * githubOAuthRoutes.ts — GitHub OAuth2 Authentication
+ * githubOAuthRoutes.ts -- GitHub OAuth2 Authentication
  *
  * Endpoints:
- *   GET  /api/auth/github          — Redirect to GitHub consent
- *   GET  /api/auth/github/callback — Handle GitHub callback → JWT
+ *   GET  /api/auth/github          -- Redirect to GitHub consent
+ * GET /api/auth/github/callback -- Handle GitHub callback -> JWT
  *
  * Environment variables:
- *   GITHUB_CLIENT_ID      — GitHub OAuth App client ID
- *   GITHUB_CLIENT_SECRET   — GitHub OAuth App client secret
+ *   GITHUB_CLIENT_ID      -- GitHub OAuth App client ID
+ *   GITHUB_CLIENT_SECRET   -- GitHub OAuth App client secret
  *
  * Works for existing citizens only.
  */
@@ -26,7 +26,7 @@ const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || ''
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173'
 const githubEnabled = !!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)
 
-// In-memory state store for CSRF protection
+//In-memory state store for CSRF protection
 const oauthStates = new Map<string, { expiresAt: number }>()
 setInterval(() => {
   const now = Date.now()
@@ -35,7 +35,7 @@ setInterval(() => {
   }
 }, 30_000)
 
-// Secure code exchange (same pattern as Google OAuth)
+//Secure code exchange (same pattern as Google OAuth)
 interface PendingExchange {
   userId: string
   email: string
@@ -53,7 +53,7 @@ setInterval(() => {
 
 
 /**
- * GET /api/auth/github — Redirect to GitHub authorization
+ * GET /api/auth/github -- Redirect to GitHub authorization
  */
 router.get('/github', (req: Request, res: Response) => {
   if (!githubEnabled) {
@@ -75,7 +75,7 @@ router.get('/github', (req: Request, res: Response) => {
 })
 
 /**
- * GET /api/auth/github/callback — Handle GitHub redirect
+ * GET /api/auth/github/callback -- Handle GitHub redirect
  */
 router.get('/github/callback', async (req: Request, res: Response) => {
   if (!githubEnabled) {
@@ -91,7 +91,7 @@ router.get('/github/callback', async (req: Request, res: Response) => {
   oauthStates.delete(state as string)
 
   try {
-    // Exchange code for access token
+    //Exchange code for access token
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -104,7 +104,7 @@ router.get('/github/callback', async (req: Request, res: Response) => {
     const tokenData = await tokenResponse.json() as any
     if (!tokenData.access_token) throw new Error('No access token from GitHub')
 
-    // Get user profile
+    //Get user profile
     const [userRes, emailsRes] = await Promise.all([
       fetch('https://api.github.com/user', {
         headers: { Authorization: `Bearer ${tokenData.access_token}`, Accept: 'application/json' },
@@ -116,7 +116,7 @@ router.get('/github/callback', async (req: Request, res: Response) => {
     const profile = await userRes.json() as any
     const emails = await emailsRes.json() as any[]
 
-    // Get primary verified email
+    //Get primary verified email
     const rawPrimaryEmail = emails?.find((e: any) => e.primary && e.verified)?.email
       || emails?.find((e: any) => e.verified)?.email
       || profile.email
@@ -126,7 +126,7 @@ router.get('/github/callback', async (req: Request, res: Response) => {
     const displayName = profile.name || profile.login || primaryEmail.split('@')[0]
     const avatarUrl = profile.avatar_url || null
 
-    // Find existing citizen by normalized email.
+    //Find existing citizen by normalized email.
     let result = await pool.query(
       `SELECT id, email, display_name, role, avatar_url, is_active, deleted_at
        FROM citizens
@@ -136,21 +136,21 @@ router.get('/github/callback', async (req: Request, res: Response) => {
     )
     const citizen = result.rows[0]
 
-    // No account found — require manual registration first.
+    //No account found -- require manual registration first.
     if (!citizen || !citizen.is_active || citizen.deleted_at) {
       const params = new URLSearchParams({ error: 'oauth_account_not_found', social_email: primaryEmail })
       res.redirect(`${CLIENT_URL}/citizen/login?${params.toString()}`)
       return
     }
 
-    // Account exists — link GitHub and update login stats
+    //Account exists -- link GitHub and update login stats
     if (!citizen.avatar_url && avatarUrl) {
       await pool.query(`UPDATE citizens SET avatar_url = $1 WHERE id = $2`, [avatarUrl, citizen.id])
     }
     await pool.query(`UPDATE citizens SET oauth_provider = 'github', email_verified = true WHERE id = $1`, [citizen.id])
     await pool.query(`UPDATE citizens SET last_login = NOW(), login_count = login_count + 1 WHERE id = $1`, [citizen.id])
 
-    // Generate exchange code
+    //Generate exchange code
     const exchangeCode = crypto.randomBytes(32).toString('base64url')
     pendingExchanges.set(exchangeCode, {
       userId: citizen.id,
@@ -169,7 +169,7 @@ router.get('/github/callback', async (req: Request, res: Response) => {
 })
 
 /**
- * POST /api/auth/github/exchange — Exchange code for JWT
+ * POST /api/auth/github/exchange -- Exchange code for JWT
  */
 router.post('/github/exchange', async (req: Request, res: Response) => {
   const { code } = req.body
@@ -188,7 +188,7 @@ router.post('/github/exchange', async (req: Request, res: Response) => {
   })
   const refreshToken = generateRefreshToken({ id: pending.userId, role: pending.role })
 
-  // Store session in DB so refresh tokens can be validated later
+  //Store session in DB so refresh tokens can be validated later
   await createSession({
     userId: pending.userId,
     userType: 'citizen',
@@ -218,7 +218,7 @@ router.post('/github/exchange', async (req: Request, res: Response) => {
   })
 })
 
-// Status endpoint
+//Status endpoint
 router.get('/github/status', (_req: Request, res: Response) => {
   res.json({ github: githubEnabled })
 })

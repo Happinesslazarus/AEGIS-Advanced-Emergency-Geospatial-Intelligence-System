@@ -72,7 +72,7 @@ export interface ExecutionAuditEntry {
 
 
  /*
- * Get all model metrics from the database — NOT hardcoded.
+ * Get all model metrics from the database -- NOT hardcoded.
  * Used by AITransparencyDashboard to display real accuracy, F1, etc.
   */
 export async function getModelMetrics(): Promise<ModelMetrics[]> {
@@ -87,7 +87,7 @@ export async function getModelMetrics(): Promise<ModelMetrics[]> {
     )
 
     return result.rows.map((r: any) => {
-      // Normalize feature_importance: may be array [{n,v}] or object {features:[{name,importance}]}
+      //Normalize feature_importance: may be array [{n,v}] or object {features:[{name,importance}]}
       let fi: any[] = []
       const rawFi = r.feature_importance
       if (Array.isArray(rawFi)) {
@@ -96,7 +96,7 @@ export async function getModelMetrics(): Promise<ModelMetrics[]> {
         fi = rawFi.features.map((f: any) => ({ n: f.name || f.n || '', v: f.importance ?? f.v ?? 0 }))
       }
 
-      // Normalize confidence_distribution: may be array [{l,c}] or object {ranges:[{label,count}]}
+      //Normalize confidence_distribution: may be array [{l,c}] or object {ranges:[{label,count}]}
       let cd: any[] = []
       const rawCd = r.confidence_distribution
       if (Array.isArray(rawCd)) {
@@ -105,7 +105,7 @@ export async function getModelMetrics(): Promise<ModelMetrics[]> {
         cd = rawCd.ranges.map((d: any) => ({ l: d.label || d.l || '', c: d.count ?? d.c ?? 0 }))
       }
 
-      // Normalize confusion_matrix: ensure {labels:[], matrix:[[]]}
+      //Normalize confusion_matrix: ensure {labels:[], matrix:[[]]}
       let cm = { labels: [] as string[], matrix: [] as number[][] }
       const rawCm = r.confusion_matrix
       if (rawCm && typeof rawCm === 'object') {
@@ -136,8 +136,8 @@ export async function getModelMetrics(): Promise<ModelMetrics[]> {
 }
 
 
-// Per-hazard confidence thresholds — different hazards require different confidence
-// levels for automated decisions. Life-safety hazards need higher confidence.
+//Per-hazard confidence thresholds -- different hazards require different confidence
+//levels for automated decisions. Life-safety hazards need higher confidence.
 interface GovernanceThresholds {
   confidenceForAutoVerify: number   // Above this + low fake ? auto-verify
   confidenceForHumanReview: number  // Below this ? mandatory human review
@@ -146,21 +146,21 @@ interface GovernanceThresholds {
 }
 
 export const HAZARD_THRESHOLDS: Record<string, GovernanceThresholds> = {
-  // Life-safety hazards: higher bar for automation
+  //Life-safety hazards: higher bar for automation
   flood:              { confidenceForAutoVerify: 85, confidenceForHumanReview: 65, fakeProbabilityFlag: 0.60, autoVerifyRequiresPhoto: false },
   severe_storm:       { confidenceForAutoVerify: 85, confidenceForHumanReview: 65, fakeProbabilityFlag: 0.60, autoVerifyRequiresPhoto: false },
   wildfire:           { confidenceForAutoVerify: 90, confidenceForHumanReview: 70, fakeProbabilityFlag: 0.55, autoVerifyRequiresPhoto: true },
   landslide:          { confidenceForAutoVerify: 90, confidenceForHumanReview: 70, fakeProbabilityFlag: 0.55, autoVerifyRequiresPhoto: true },
-  // Infrastructure hazards: moderate bar
+  //Infrastructure hazards: moderate bar
   power_outage:       { confidenceForAutoVerify: 80, confidenceForHumanReview: 55, fakeProbabilityFlag: 0.65, autoVerifyRequiresPhoto: false },
   water_supply:       { confidenceForAutoVerify: 80, confidenceForHumanReview: 55, fakeProbabilityFlag: 0.65, autoVerifyRequiresPhoto: false },
   infrastructure_damage: { confidenceForAutoVerify: 85, confidenceForHumanReview: 60, fakeProbabilityFlag: 0.60, autoVerifyRequiresPhoto: true },
-  // Other hazards
+  //Other hazards
   heatwave:           { confidenceForAutoVerify: 80, confidenceForHumanReview: 55, fakeProbabilityFlag: 0.65, autoVerifyRequiresPhoto: false },
   drought:            { confidenceForAutoVerify: 75, confidenceForHumanReview: 50, fakeProbabilityFlag: 0.70, autoVerifyRequiresPhoto: false },
   public_safety:      { confidenceForAutoVerify: 90, confidenceForHumanReview: 70, fakeProbabilityFlag: 0.50, autoVerifyRequiresPhoto: false },
   environmental_hazard: { confidenceForAutoVerify: 80, confidenceForHumanReview: 55, fakeProbabilityFlag: 0.65, autoVerifyRequiresPhoto: false },
-  // Default for unknown types
+  //Default for unknown types
   default:            { confidenceForAutoVerify: 80, confidenceForHumanReview: 60, fakeProbabilityFlag: 0.65, autoVerifyRequiresPhoto: false },
 }
 
@@ -169,7 +169,7 @@ function getThresholdsForHazard(hazardType?: string): GovernanceThresholds {
   return HAZARD_THRESHOLDS.default
 }
 
-// Default threshold used for health-check queries (not hazard-specific)
+//Default threshold used for health-check queries (not hazard-specific)
 const DEFAULT_CONFIDENCE_THRESHOLD = HAZARD_THRESHOLDS.default.confidenceForHumanReview
 
  /*
@@ -195,20 +195,20 @@ export async function enforceGovernance(
     routedTo: null,
   }
 
-  // Rule 1: Low confidence ? mandatory human review
+  //Rule 1: Low confidence ? mandatory human review
   if (aiConfidence < thresholds.confidenceForHumanReview) {
     decision.requiresHumanReview = true
-    decision.reviewReason = `AI confidence ${aiConfidence}% below ${thresholds.confidenceForHumanReview}% threshold for ${hazardType || 'unknown'} — human review required`
+    decision.reviewReason = `AI confidence ${aiConfidence}% below ${thresholds.confidenceForHumanReview}% threshold for ${hazardType || 'unknown'} -- human review required`
     decision.routedTo = 'review_queue'
   }
 
-  // Rule 2: High fake probability ? auto-flag + human review
+  //Rule 2: High fake probability ? auto-flag + human review
   if (fakeProbability > thresholds.fakeProbabilityFlag) {
     decision.requiresHumanReview = true
     decision.reviewReason = `Fake probability ${(fakeProbability * 100).toFixed(0)}% exceeds ${(thresholds.fakeProbabilityFlag * 100).toFixed(0)}% threshold`
     decision.autoActions.push('auto_flagged')
 
-    // Auto-flag the report — log failure so ops know if governance decisions aren't persisting
+    //Auto-flag the report -- log failure so ops know if governance decisions aren't persisting
     await pool.query(
       `UPDATE reports SET status = 'flagged' WHERE id = $1 AND status = 'unverified'`,
       [reportId],
@@ -217,7 +217,7 @@ export async function enforceGovernance(
     })
   }
 
-  // Rule 3: Vulnerable person ? elevated priority
+  //Rule 3: Vulnerable person ? elevated priority
   if (vulnerablePersonAlert) {
     decision.autoActions.push('vulnerable_priority')
     if (severity === 'high' || severity === 'medium') {
@@ -225,7 +225,7 @@ export async function enforceGovernance(
     }
   }
 
-  // Rule 4: Auto-verify only if meets ALL criteria
+  //Rule 4: Auto-verify only if meets ALL criteria
   const photoOk = !thresholds.autoVerifyRequiresPhoto || hasPhoto
   if (severity === 'high' && aiConfidence >= thresholds.confidenceForAutoVerify && fakeProbability < 0.3 && photoOk) {
     decision.autoActions.push('auto_verified')
@@ -237,7 +237,7 @@ export async function enforceGovernance(
     })
   }
 
-  // Log governance decision and audit trail in a transaction so both succeed or both fail
+  //Log governance decision and audit trail in a transaction so both succeed or both fail
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
@@ -303,7 +303,7 @@ export async function computeConfidenceDistribution(
 
     const params: any[] = []
     if (modelName) {
-      // Validate model name to prevent LIKE-injection and information leakage
+      //Validate model name to prevent LIKE-injection and information leakage
       if (!/^[a-zA-Z0-9_\-./]{1,128}$/.test(modelName)) {
         throw new Error('Invalid model name format')
       }
@@ -315,7 +315,7 @@ export async function computeConfidenceDistribution(
 
     const result = await pool.query(query, params)
 
-    // Ensure all buckets exist
+    //Ensure all buckets exist
     const buckets = ['<50%', '50-59%', '60-69%', '70-79%', '80-89%', '=90%']
     const distribution = buckets.map(b => ({
       label: b,
@@ -404,7 +404,7 @@ export async function checkModelDrift(): Promise<DriftCheck[]> {
     )
 
     for (const model of models.rows) {
-      // Get baseline metrics from model training
+      //Get baseline metrics from model training
       const baseline = await pool.query(
         `SELECT accuracy, precision_score, recall, f1_score
          FROM ai_model_metrics
@@ -414,7 +414,7 @@ export async function checkModelDrift(): Promise<DriftCheck[]> {
 
       if (baseline.rows.length === 0) continue
 
-      // Compute current accuracy from recent executions
+      //Compute current accuracy from recent executions
       const recent = await pool.query(
         `SELECT
            COUNT(*)::int as total,
@@ -445,7 +445,7 @@ export async function checkModelDrift(): Promise<DriftCheck[]> {
 
       checks.push(check)
 
-      // Store drift metric
+      //Store drift metric
       await pool.query(
         `INSERT INTO model_drift_metrics
          (model_name, model_version, metric_name, baseline_value, current_value, drift_detected, threshold)
@@ -477,7 +477,7 @@ export async function addTrainingLabel(
     [reportId, labelType, labelValue, operatorId, confidence || null],
   )
 
-  // Update reporter scores if this is a genuine/fake label
+  //Update reporter scores if this is a genuine/fake label
   if (labelType === 'is_genuine') {
     const report = await pool.query(
       `SELECT reporter_ip FROM reports WHERE id = $1`,
@@ -512,7 +512,7 @@ export async function computeRiskHeatmap(): Promise<
   Array<{ lat: number; lng: number; intensity: number; zone: string; eventCount: number }>
 > {
   try {
-    // Get zone risk from historical events
+    //Get zone risk from historical events
     const historical = await pool.query(
       `SELECT area,
               ST_Y(coordinates::geometry) as lat, ST_X(coordinates::geometry) as lng,
@@ -528,7 +528,7 @@ export async function computeRiskHeatmap(): Promise<
        GROUP BY area, ST_Y(coordinates::geometry), ST_X(coordinates::geometry)`,
     )
 
-    // Get recent report density
+    //Get recent report density
     const recentReports = await pool.query(
       `SELECT ST_Y(coordinates::geometry) as lat, ST_X(coordinates::geometry) as lng,
               COUNT(*)::int as count
@@ -538,14 +538,14 @@ export async function computeRiskHeatmap(): Promise<
        GROUP BY ST_Y(coordinates::geometry), ST_X(coordinates::geometry)`,
     )
 
-    // Build heatmap points
+    //Build heatmap points
     const heatmap = historical.rows.map((r: any) => {
-      // Base intensity from historical frequency and severity
+      //Base intensity from historical frequency and severity
       const frequencyScore = Math.min(1.0, r.event_count / 12) // Normalise by max 12 events
       const severityScore = parseFloat(r.avg_severity) || 0.5
       const baseIntensity = frequencyScore * 0.6 + severityScore * 0.4
 
-      // Boost from recent report density
+      //Boost from recent report density
       const nearbyReports = recentReports.rows.filter((rr: any) =>
         Math.abs(rr.lat - r.lat) < 0.03 && Math.abs(rr.lng - r.lng) < 0.03,
       )
@@ -560,7 +560,7 @@ export async function computeRiskHeatmap(): Promise<
       }
     })
 
-    // Store zone risk scores
+    //Store zone risk scores
     for (const point of heatmap) {
       await pool.query(
         `INSERT INTO zone_risk_scores
@@ -604,7 +604,7 @@ export async function estimateDamageCost(
   confidence: number
   breakdown: Record<string, number>
 }> {
-  // Load historical data for regression baseline
+  //Load historical data for regression baseline
   const historical = await pool.query(
     `SELECT severity, damage_gbp, affected_people, duration_hours, peak_water_level_m
      FROM historical_flood_events
@@ -618,8 +618,8 @@ export async function estimateDamageCost(
     }
   }
 
-  // Multi-factor regression estimate
-  // Base cost per severity level (derived from historical averages)
+  //Multi-factor regression estimate
+  //Base cost per severity level (derived from historical averages)
   const severityCosts: Record<string, number> = {
     critical: 4500000,
     high: 2000000,
@@ -629,23 +629,23 @@ export async function estimateDamageCost(
 
   const baseCost = severityCosts[severity] || 500000
 
-  // Area multiplier (larger affected area = more damage)
+  //Area multiplier (larger affected area = more damage)
   const areaMultiplier = 1 + Math.log2(Math.max(1, affectedAreaKm2)) * 0.3
 
-  // Population density multiplier
+  //Population density multiplier
   const popMultiplier = 1 + Math.log2(Math.max(1, populationDensity / 100)) * 0.2
 
-  // Duration multiplier (longer floods = more damage)
+  //Duration multiplier (longer floods = more damage)
   const durationMultiplier = 1 + Math.log2(Math.max(1, durationHours / 24)) * 0.25
 
-  // Water depth multiplier
+  //Water depth multiplier
   const depthMultiplier = waterDepthM > 0 ? 1 + Math.log2(Math.max(1, waterDepthM)) * 0.4 : 1
 
   const estimatedCost = Math.round(
     baseCost * areaMultiplier * popMultiplier * durationMultiplier * depthMultiplier,
   )
 
-  // Estimate affected properties and people from historical ratios
+  //Estimate affected properties and people from historical ratios
   const avgPeoplePerGbpM = historical.rows.reduce(
     (sum: number, r: any) => sum + (r.affected_people / Math.max(1, r.damage_gbp / 1000000)), 0,
   ) / historical.rows.length
@@ -653,7 +653,7 @@ export async function estimateDamageCost(
   const affectedPeople = Math.round(avgPeoplePerGbpM * estimatedCost / 1000000)
   const affectedProperties = Math.round(affectedPeople * 0.4) // Avg 2.5 people per property
 
-  // Confidence based on how much data we have
+  //Confidence based on how much data we have
   const confidence = Math.min(85, 40 + historical.rows.length * 5)
 
   const breakdown = {
@@ -668,7 +668,7 @@ export async function estimateDamageCost(
     recovery_costs: Math.round(estimatedCost * 0.10),
   }
 
-  // Store estimate
+  //Store estimate
   await pool.query(
     `INSERT INTO damage_estimates
      (zone_name, estimated_cost_gbp, affected_properties, affected_people,
@@ -695,7 +695,7 @@ export async function checkRetrainingNeeded(): Promise<{
   let maxNewLabels = 0
 
   try {
-    // Get all models with their metrics
+    //Get all models with their metrics
     const models = await pool.query(
       `SELECT DISTINCT ON (model_name) model_name, model_version, last_trained
        FROM ai_model_metrics
@@ -706,7 +706,7 @@ export async function checkRetrainingNeeded(): Promise<{
       const modelReasons: string[] = []
       const modelName = model.model_name
 
-      // Check 1: Drift exceeds threshold
+      //Check 1: Drift exceeds threshold
       const driftResult = await pool.query(
         `SELECT current_value, baseline_value, drift_detected,
                 ABS(current_value - baseline_value) as drift_magnitude
@@ -725,7 +725,7 @@ export async function checkRetrainingNeeded(): Promise<{
         }
       }
 
-      // Check 2: New training labels since last train date
+      //Check 2: New training labels since last train date
       const lastTrained = model.last_trained || new Date(0)
       const labelsResult = await pool.query(
         `SELECT COUNT(*)::int as cnt FROM training_labels
@@ -738,7 +738,7 @@ export async function checkRetrainingNeeded(): Promise<{
         modelReasons.push(`${newLabels} new training labels since last train date`)
       }
 
-      // Check 3: Model age exceeds 30 days
+      //Check 3: Model age exceeds 30 days
       if (model.last_trained) {
         const ageMs = Date.now() - new Date(model.last_trained).getTime()
         const ageDays = ageMs / (1000 * 60 * 60 * 24)
@@ -758,7 +758,7 @@ export async function checkRetrainingNeeded(): Promise<{
     logger.error({ err }, '[Governance] Retraining check failed')
   }
 
-  // Determine priority
+  //Determine priority
   let priority: 'low' | 'medium' | 'high' = 'low'
   if (maxDrift > 0.2) {
     priority = 'high'
@@ -782,7 +782,7 @@ export async function computeFairnessMetrics(): Promise<{
   const recommendations: string[] = []
 
   try {
-    // Global average confidence
+    //Global average confidence
     const globalResult = await pool.query(
       `SELECT AVG(ai_confidence) as avg_conf, COUNT(*)::int as cnt
        FROM reports
@@ -795,7 +795,7 @@ export async function computeFairnessMetrics(): Promise<{
       return { locationBias: [], overallFairness: 100, recommendations: ['No reports with AI confidence to analyze'] }
     }
 
-    // Per-zone average confidence
+    //Per-zone average confidence
     const zoneResult = await pool.query(
       `SELECT
          COALESCE(area, 'Unknown') as zone,
@@ -821,17 +821,17 @@ export async function computeFairnessMetrics(): Promise<{
         reportCount: row.report_count,
       })
 
-      // Flag zones with >15% deviation
+      //Flag zones with >15% deviation
       if (deviation > 15) {
         const direction = zoneAvg < globalAvg ? 'lower' : 'higher'
         recommendations.push(
-          `Zone "${row.zone}" has ${direction} avg confidence (${zoneAvg.toFixed(1)}%) vs global (${globalAvg.toFixed(1)}%) — ${deviation.toFixed(1)}% deviation`,
+          `Zone "${row.zone}" has ${direction} avg confidence (${zoneAvg.toFixed(1)}%) vs global (${globalAvg.toFixed(1)}%) -- ${deviation.toFixed(1)}% deviation`,
         )
       }
     }
 
-    // Overall fairness: 100 = perfectly fair, decreases with max deviation
-    // Scale: 15% deviation = 0 fairness deduction, >15% starts reducing
+    //Overall fairness: 100 = perfectly fair, decreases with max deviation
+    //Scale: 15% deviation = 0 fairness deduction, >15% starts reducing
     const overallFairness = Math.max(0, Math.round(100 - Math.max(0, maxDeviation - 5) * (100 / 50)))
 
     if (recommendations.length === 0) {
@@ -877,7 +877,7 @@ export async function generateModelExplanation(
 
     const topFactors: string[] = []
 
-    // Extract contributing factors from various possible structures
+    //Extract contributing factors from various possible structures
     if (Array.isArray(analysis.contributing_factors)) {
       for (const f of analysis.contributing_factors.slice(0, 5)) {
         topFactors.push(typeof f === 'string' ? f : f.name || f.factor || String(f))
@@ -888,14 +888,14 @@ export async function generateModelExplanation(
       }
     }
 
-    // Extract severity, classification, fake probability info
+    //Extract severity, classification, fake probability info
     if (analysis.severity) topFactors.push(`Severity: ${analysis.severity}`)
     if (analysis.classification) topFactors.push(`Classification: ${analysis.classification}`)
     if (typeof analysis.fake_probability === 'number') {
       topFactors.push(`Authenticity score: ${((1 - analysis.fake_probability) * 100).toFixed(0)}%`)
     }
 
-    // Build human-readable explanation
+    //Build human-readable explanation
     const parts: string[] = []
     parts.push(`The AI analyzed this report with ${confidence}% confidence.`)
 
@@ -938,7 +938,7 @@ export async function checkGovernanceHealth(): Promise<{
   const stats: Record<string, number> = {}
 
   try {
-    // Count auto-verified reports in last hour
+    //Count auto-verified reports in last hour
     const autoVerified = await pool.query(
       `SELECT COUNT(*)::int as cnt FROM reports
        WHERE status = 'verified' AND verified_at > NOW() - INTERVAL '1 hour'
@@ -949,7 +949,7 @@ export async function checkGovernanceHealth(): Promise<{
       violations.push(`High auto-verification rate: ${stats.autoVerifiedLastHour} reports auto-verified in the last hour (threshold: 50)`)
     }
 
-    // Count flagged reports in last hour
+    //Count flagged reports in last hour
     const flagged = await pool.query(
       `SELECT COUNT(*)::int as cnt FROM reports
        WHERE status = 'flagged' AND created_at > NOW() - INTERVAL '1 hour'
@@ -960,7 +960,7 @@ export async function checkGovernanceHealth(): Promise<{
       violations.push(`High flagging rate: ${stats.flaggedLastHour} reports flagged in the last hour (threshold: 20)`)
     }
 
-    // Count reports pending human review
+    //Count reports pending human review
     const pendingReview = await pool.query(
       `SELECT COUNT(*)::int as cnt FROM reports
        WHERE status = 'unverified' AND ai_confidence < ${DEFAULT_CONFIDENCE_THRESHOLD}
@@ -971,7 +971,7 @@ export async function checkGovernanceHealth(): Promise<{
       violations.push(`Review backlog: ${stats.pendingHumanReview} reports pending human review (threshold: 100)`)
     }
 
-    // Check for models with consecutive errors
+    //Check for models with consecutive errors
     const modelErrors = await pool.query(
       `SELECT model_name, COUNT(*)::int as error_count
        FROM ai_executions
@@ -985,7 +985,7 @@ export async function checkGovernanceHealth(): Promise<{
       violations.push(`Model "${row.model_name}" has ${row.error_count} consecutive errors in the last hour`)
     }
 
-    // Additional stats
+    //Additional stats
     const totalReports = await pool.query(
       `SELECT COUNT(*)::int as cnt FROM reports WHERE deleted_at IS NULL`,
     )
@@ -1010,7 +1010,7 @@ export async function checkGovernanceHealth(): Promise<{
 
 
 /**
- * Detect severity assignment bias — whether AI assigns certain severity levels
+ * Detect severity assignment bias -- whether AI assigns certain severity levels
  * disproportionately compared to human overrides.
  */
 export async function computeSeverityBias(): Promise<{
@@ -1048,7 +1048,7 @@ export async function computeSeverityBias(): Promise<{
 
       if (overrideRate > 25 && row.total >= 10) {
         recommendations.push(
-          `Severity "${row.severity}" has ${overrideRate.toFixed(1)}% override rate — consider retraining severity model`,
+          `Severity "${row.severity}" has ${overrideRate.toFixed(1)}% override rate -- consider retraining severity model`,
         )
       }
     }
@@ -1068,7 +1068,7 @@ export async function computeSeverityBias(): Promise<{
 
 
 /**
- * Detect time-of-day performance variation — whether AI confidence or error rates
+ * Detect time-of-day performance variation -- whether AI confidence or error rates
  * vary systematically by hour of day (e.g., night shift lower quality).
  */
 export async function computeTemporalBias(): Promise<{
@@ -1099,7 +1099,7 @@ export async function computeTemporalBias(): Promise<{
     const peakHours: number[] = []
     const lowHours: number[] = []
 
-    // Compute global average
+    //Compute global average
     let totalConf = 0, totalCount = 0
     for (const row of result.rows) {
       totalConf += parseFloat(row.avg_conf) * row.report_count
@@ -1129,12 +1129,12 @@ export async function computeTemporalBias(): Promise<{
 
     if (lowHours.length > 0) {
       recommendations.push(
-        `Hours ${lowHours.join(', ')} show lower AI confidence — consider reviewing overnight processing quality`,
+        `Hours ${lowHours.join(', ')} show lower AI confidence -- consider reviewing overnight processing quality`,
       )
     }
     if (peakHours.length > 0) {
       recommendations.push(
-        `Hours ${peakHours.join(', ')} show higher AI confidence — baseline for model performance`,
+        `Hours ${peakHours.join(', ')} show higher AI confidence -- baseline for model performance`,
       )
     }
     if (!biasDetected) {
@@ -1150,7 +1150,7 @@ export async function computeTemporalBias(): Promise<{
 
 
 /**
- * Detect language-based performance variation — whether AI performs differently
+ * Detect language-based performance variation -- whether AI performs differently
  * on reports in different languages.
  */
 export async function computeLanguageBias(): Promise<{
@@ -1179,7 +1179,7 @@ export async function computeLanguageBias(): Promise<{
 
     const languageStats: Array<{ language: string; avgConfidence: number; reportCount: number; fakeDetectionRate: number }> = []
 
-    // Compute global baseline
+    //Compute global baseline
     let totalConf = 0, totalCount = 0
     for (const row of result.rows) {
       totalConf += parseFloat(row.avg_conf) * row.report_count
@@ -1198,11 +1198,11 @@ export async function computeLanguageBias(): Promise<{
         fakeDetectionRate: Math.round(avgFakeProb * 1000) / 10,
       })
 
-      // Flag languages with >15% lower confidence than global
+      //Flag languages with >15% lower confidence than global
       if (avgConf < globalAvg - 15 && row.report_count >= 10) {
         underperformingLanguages.push(row.language)
         recommendations.push(
-          `Language "${row.language}" has ${(globalAvg - avgConf).toFixed(1)}% lower confidence — consider language-specific training data`,
+          `Language "${row.language}" has ${(globalAvg - avgConf).toFixed(1)}% lower confidence -- consider language-specific training data`,
         )
       }
     }
@@ -1241,7 +1241,7 @@ export async function generateBiasReport(): Promise<{
 
   const criticalIssues: string[] = []
 
-  // Identify critical bias issues
+  //Identify critical bias issues
   if (location.overallFairness < 60) {
     criticalIssues.push('Location bias: Overall fairness below 60%')
   }
@@ -1255,7 +1255,7 @@ export async function generateBiasReport(): Promise<{
     criticalIssues.push(`Language bias: ${language.underperformingLanguages.length} languages underperforming`)
   }
 
-  // Compute overall bias score (100 = no bias)
+  //Compute overall bias score (100 = no bias)
   let biasDeductions = 0
   biasDeductions += (100 - location.overallFairness) * 0.3
   if (severity.biasDetected) biasDeductions += 20

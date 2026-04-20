@@ -219,7 +219,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
                       <span className="text-sm font-semibold text-gray-900 dark:text-white">{post.author_name}</span>
                       {post.location && (
                         <span className="text-[10px] text-gray-400 dark:text-gray-300 flex items-center gap-0.5">
-                          <span>•</span> {post.location}
+                          <span>-</span> {post.location}
                         </span>
                       )}
                     </div>
@@ -386,7 +386,7 @@ function OverviewPanel({ stats, reportedPosts, onTabChange }: { stats: Community
   )
 }
 
-// MAIN COMPONENT
+//MAIN COMPONENT
 export default function AdminCommunityHub(): JSX.Element {
   const lang = useLanguage()
   const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'messages' | 'posts' | 'moderation'>('overview')
@@ -406,7 +406,7 @@ export default function AdminCommunityHub(): JSX.Element {
     try {
       const headers = getAuthHeaders()
 
-      // Fetch posts (includes report counts)
+      //Fetch posts (includes report counts)
       const postsRes = await fetch(`${API_BASE}/api/community/posts?limit=100`, { headers })
       let posts: any[] = []
       let reported: ReportedPost[] = []
@@ -422,7 +422,7 @@ export default function AdminCommunityHub(): JSX.Element {
           .sort((a: any, b: any) => Number(b.reports_count) - Number(a.reports_count))
       }
 
-      // Fetch recent chat messages count (approximate — API has no count endpoint)
+      //Fetch recent chat messages count (approximate -- API has no count endpoint)
       const chatRes = await fetch(`${API_BASE}/api/community/chat/messages?limit=50`, { headers })
       let msgCount = 0
       if (chatRes.ok) {
@@ -430,7 +430,7 @@ export default function AdminCommunityHub(): JSX.Element {
         msgCount = Array.isArray(msgs) ? msgs.length : (Array.isArray(msgs?.messages) ? msgs.messages.length : 0)
       }
 
-      // Fetch community member stats
+      //Fetch community member stats
       let totalMembers = 0
       let onlineNow = 0
       try {
@@ -440,7 +440,7 @@ export default function AdminCommunityHub(): JSX.Element {
           totalMembers = sd.totalMembers || 0
           onlineNow = sd.onlineNow || 0
         }
-      } catch { /* stats endpoint unavailable — keep previous values */ }
+      } catch { /* stats endpoint unavailable -- keep previous values */ }
 
       setStats(prev => ({
         totalMessages: msgCount > 0 ? msgCount : prev.totalMessages,
@@ -471,7 +471,7 @@ export default function AdminCommunityHub(): JSX.Element {
 
   const TABS = ['overview', 'chat', 'messages', 'posts', 'moderation'] as const
 
-  // Keyboard shortcuts
+  //Keyboard shortcuts
   const [showKeyboard, setShowKeyboard] = useState(false)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -532,7 +532,7 @@ export default function AdminCommunityHub(): JSX.Element {
         </div>
       )}
 
-      {/* Tab Bar — Premium pill tabs, scrollable on small screens */}
+      {/* Tab Bar -- Premium pill tabs, scrollable on small screens */}
       <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl overflow-x-auto scrollbar-none shadow-inner">
         {tabs.map(tab => (
           <button

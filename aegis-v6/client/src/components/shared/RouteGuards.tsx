@@ -9,7 +9,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { getToken, getAnyToken } from '../../utils/api'
 import { getCitizenToken } from '../../contexts/CitizenAuthContext'
 
-// TYPES
+//TYPES
 
 export type UserRole = 'admin' | 'operator' | 'viewer' | 'citizen' | 'guest'
 
@@ -26,7 +26,7 @@ interface RoleGuardProps extends RouteGuardProps {
   roles: UserRole[]
 }
 
-// TOKEN UTILITIES
+//TOKEN UTILITIES
 
 /** Parse JWT payload without verification (client-side only) */
 function parseJwtPayload(token: string): Record<string, unknown> | null {
@@ -58,13 +58,13 @@ export function isTokenExpired(token: string | null): boolean {
 
 /** Get current user's role from stored tokens */
 export function getCurrentRole(): UserRole | null {
-  // Check admin/operator token first
+  //Check admin/operator token first
   const adminToken = getToken()
   if (adminToken && !isTokenExpired(adminToken)) {
     return getRoleFromToken(adminToken)
   }
   
-  // Check citizen token
+  //Check citizen token
   const citizenToken = getCitizenToken()
   if (citizenToken && !isTokenExpired(citizenToken)) {
     return 'citizen'
@@ -73,7 +73,7 @@ export function getCurrentRole(): UserRole | null {
   return null
 }
 
-// GUARD COMPONENTS
+//GUARD COMPONENTS
 
 /**
  * Requires any authenticated user (admin, operator, viewer, or citizen).
@@ -179,7 +179,7 @@ export function GuestOnlyRoute({
   const location = useLocation()
   const isAuthenticated = !!getAnyToken()
   
-  // If trying to access login while authenticated, redirect to dashboard
+  //If trying to access login while authenticated, redirect to dashboard
   if (isAuthenticated) {
     const currentRole = getCurrentRole()
     const defaultRedirect = currentRole === 'citizen' ? '/citizen/dashboard' : '/admin'
@@ -191,7 +191,7 @@ export function GuestOnlyRoute({
   return <>{children}</>
 }
 
-// HOOKS
+//HOOKS
 
 /**
  * Hook to check current user's role and permissions.

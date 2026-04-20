@@ -1,4 +1,4 @@
-// Create admin user in DB and trigger training
+//Create admin user in DB and trigger training
 const http = require('http');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
@@ -38,7 +38,7 @@ function post(path, body, token) {
 }
 
 async function main() {
-  // 1. Create admin user with bcrypt hash
+  //1. Create admin user with bcrypt hash
   console.log('1. Creating admin user...');
   const hash = await bcrypt.hash('Admin123!@#', 12);
   
@@ -53,7 +53,7 @@ async function main() {
     console.log('  DB error:', e.message);
   }
   
-  // 2. Login
+  //2. Login
   console.log('\n2. Logging in...');
   const loginRes = await post('/api/auth/login', {
     email: 'admin@aegis.com',
@@ -69,7 +69,7 @@ async function main() {
   const token = loginRes.body.token;
   console.log('  Got JWT token');
   
-  // 3. Trigger training
+  //3. Trigger training
   console.log('\n3. Triggering ML training pipeline...');
   const trainRes = await post('/api/training/run', {}, token);
   console.log('  Status:', trainRes.status);

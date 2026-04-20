@@ -8,7 +8,7 @@
  * - Consumed by flood, heatwave, and spatial route handlers
  */
 
-// Return types
+//Return types
 
 export interface FloodWarning {
   id: string
@@ -137,7 +137,7 @@ export interface MonitoredCity {
   cityRegionId?: string
 }
 
-// Adapter interface
+//Adapter interface
 
 export interface RegionAdapter {
   /* Unique identifier for this region (e.g. 'scotland', 'england', 'global') */

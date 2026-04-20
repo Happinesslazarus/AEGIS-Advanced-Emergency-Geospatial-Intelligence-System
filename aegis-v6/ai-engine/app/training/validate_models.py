@@ -190,7 +190,7 @@ async def validate_hazard(
                 result.model_conf = round(float(full_conf), 4)
                 result.model_risk = full_risk
             else:
-                # No model — full prediction IS the stub
+                # No model -- full prediction IS the stub
                 result.model_available = False
 
             # Check SHAP
@@ -222,7 +222,7 @@ def print_report(all_results: Dict[str, List[ValidationResult]]) -> None:
 
         has_model = any(r.model_available for r in results)
         if not has_model:
-            print("  Status: NO TRAINED MODEL — using rule-based stub only")
+            print("  Status: NO TRAINED MODEL -- using rule-based stub only")
             summary["NO_MODEL"] += len(results)
             for r in results:
                 print(f"    {r.scenario:25s}  stub_prob={r.stub_prob:.4f}  conf={r.stub_conf:.3f}  risk={r.stub_risk}")
@@ -244,7 +244,7 @@ def print_report(all_results: Dict[str, List[ValidationResult]]) -> None:
                 continue
 
             delta = r.delta or 0.0
-            arrow = "↑" if delta > 0.05 else ("↓" if delta < -0.05 else "≈")
+            arrow = "^" if delta > 0.05 else ("v" if delta < -0.05 else "≈")
             shap_flag = " [SHAP]" if r.shap_available else ""
 
             print(
@@ -272,17 +272,17 @@ def print_report(all_results: Dict[str, List[ValidationResult]]) -> None:
         if any(r.verdict() == "DEGRADED" for r in rs)
     ]
     if degraded_hazards:
-        print(f"    ⚠  Models showing degradation: {', '.join(degraded_hazards)}")
+        print(f"    !  Models showing degradation: {', '.join(degraded_hazards)}")
         print(f"       Consider keeping rule-based as primary for these hazards")
     else:
-        print(f"    ✓  No models showing degradation vs rule-based baseline")
+        print(f"      No models showing degradation vs rule-based baseline")
 
     no_model_hazards = [
         h for h, rs in all_results.items()
         if all(not r.model_available for r in rs)
     ]
     if no_model_hazards:
-        print(f"    ⚠  Hazards without trained models: {', '.join(no_model_hazards)}")
+        print(f"    !  Hazards without trained models: {', '.join(no_model_hazards)}")
         print(f"       Run training pipelines to create models")
 
     print("=" * 80)

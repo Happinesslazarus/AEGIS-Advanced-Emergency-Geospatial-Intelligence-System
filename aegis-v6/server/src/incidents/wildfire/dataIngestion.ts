@@ -15,11 +15,11 @@ export class WildfireDataIngestion {
     try {
       const apiKey = process.env.NASA_FIRMS_API_KEY
       if (!apiKey) {
-        logger.warn('[Wildfire] NASA FIRMS API key not configured — wildfire satellite data disabled. Set NASA_FIRMS_API_KEY in .env. Get a free key from: https://firms.modaps.eosdis.nasa.gov/api/area/')
+        logger.warn('[Wildfire] NASA FIRMS API key not configured -- wildfire satellite data disabled. Set NASA_FIRMS_API_KEY in .env. Get a free key from: https://firms.modaps.eosdis.nasa.gov/api/area/')
         return { recordsIngested: 0, source: 'NASA FIRMS (no API key)' }
       }
 
-      // NASA FIRMS area format: csv/{map_key}/{source}/{area}/{dayRange}/{date}
+      //NASA FIRMS area format: csv/{map_key}/{source}/{area}/{dayRange}/{date}
       const source = 'VIIRS_NOAA20_NRT'
       const area = `${lat},${lon},${radius}km`
       const dayRange = 1

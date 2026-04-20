@@ -4,11 +4,10 @@ Multi-region training (UK + Norway + Nepal + Colombia + Philippines + Japan +
 Italy) based on the NASA Global Landslide Catalog event distribution.
 
 Why the label source changed
------------------------------
 The original design derived labels by applying BGS rainfall trigger thresholds
 (24h > 50mm OR 72h > 100mm) to observed rainfall data.  This is a tautology:
 rainfall_24h and rainfall_72h were also in the feature set.  A model trained on
-these labels learns to apply the threshold rule — it does not learn the actual
+these labels learns to apply the threshold rule -- it does not learn the actual
 landslide-triggering relationship.
 
 The new design uses ACTUAL LANDSLIDE EVENT RECORDS as labels:
@@ -21,15 +20,13 @@ PREDICTORS.  The model learns which rainfall conditions actually trigger
 slides, rather than reconstructing a threshold rule.
 
 Global scope necessity
------------------------
-The UK has roughly 50–100 documented landslide events per year across BGS
+The UK has roughly 50-100 documented landslide events per year across BGS
 records, many without precise timestamps.  Across a 2-year training window
 with hourly data and 3 UK stations, this yields very few positive samples.
 Nepal, Colombia, and the Philippines each contribute thousands of events to
 the NASA GLC, providing sufficient positives for valid model evaluation.
 
 NASA GLC integration
----------------------
 In production: fetch events from NASA GLC via the ESRI REST API at
 https://maps.nccs.nasa.gov/arcgis/rest/services/ISERV/NASA_GLC/FeatureServer/0/query
 and match each event (date + lat/lon) to the nearest weather station within
@@ -38,7 +35,7 @@ a configurable radius.
 This pipeline provides the full matching framework with a graceful fallback:
 if the catalog API is unreachable, the pipeline falls back to the BGS rainfall
 trigger approach but marks labels as data_validity='invalid' to prevent
-tautological training — the validator will then block training with a clear
+tautological training -- the validator will then block training with a clear
 NOT_TRAINABLE reason rather than silently producing inflated metrics.
 
 - Extends ai-engine/app/training/base_real_pipeline.py
@@ -64,7 +61,7 @@ from app.training.multi_location_weather import (
 )
 
 # Maximum distance (degrees lat/lon) from event to weather station for a match.
-# ~0.23° ≈ 25km at the equator; acceptable for catchment-scale matching.
+# 0.23° ≈ 25km at the equator; acceptable for catchment-scale matching.
 _MATCH_RADIUS_DEG = 0.23
 
 
@@ -100,7 +97,7 @@ class LandslideRealPipeline(BaseRealPipeline):
             "category": "recorded_events",
             "source": (
                 "NASA Global Landslide Catalog (GLC) / Cooperative Open Online "
-                "Landslide Repository (COOLR) — https://maps.nccs.nasa.gov; "
+                "Landslide Repository (COOLR) -- https://maps.nccs.nasa.gov; "
                 "BGS National Landslide Database for UK-specific events"
             ),
             "description": (
@@ -109,7 +106,7 @@ class LandslideRealPipeline(BaseRealPipeline):
                 "weather station within 25km of a recorded GLC/COOLR event during "
                 "the 6h window before the event timestamp.  All other station-"
                 "hours are labelled negative.  Rainfall and soil-moisture features "
-                "are legitimate predictors — they are NOT used to define labels."
+                "are legitimate predictors -- they are NOT used to define labels."
             ),
             "limitations": (
                 "NASA GLC has reporting bias toward road networks and populated "
@@ -128,7 +125,7 @@ class LandslideRealPipeline(BaseRealPipeline):
         min_positive_samples=20,
         min_stations=3,
         promotion_min_roc_auc=0.70,
-        # Use 2020-01-01 test date — EM-DAT has good coverage through 2019-2021.
+        # Use 2020-01-01 test date -- EM-DAT has good coverage through 2019-2021.
         # 2022-2023 window has zero events due to data-entry lag, making test AUC undefined.
         # 2020-2021 holdout gives a genuine temporal test with real positive events.
         fixed_test_date="2020-01-01",
@@ -155,7 +152,7 @@ class LandslideRealPipeline(BaseRealPipeline):
             )
 
         # If GLC unavailable, use EM-DAT landslide + mass-movement events.
-        # Use the actual weather date range (cache may not cover full start→end span
+ # Use the actual weather date range (cache may not cover full start->end span
         # due to rate-limit gaps) so EM-DAT positives fall within the feature window.
         if landslide_events.empty:
             from app.training.data_fetch_emdat import build_emdat_label_df
@@ -167,7 +164,7 @@ class LandslideRealPipeline(BaseRealPipeline):
                 emdat_start = self.start_date
                 emdat_end   = self.end_date
             logger.info(
-                f"  EM-DAT fallback window: {emdat_start} → {emdat_end} "
+ f" EM-DAT fallback window: {emdat_start} -> {emdat_end} "
                 f"(weather cache actual range)"
             )
             station_locs = [
@@ -177,7 +174,7 @@ class LandslideRealPipeline(BaseRealPipeline):
             # Collect EM-DAT labels from multiple hazard types that trigger
             # landslides: "landslide" directly + "flood" (flash floods trigger
             # debris flows) + "severe_storm" (rainfall-induced).
-            # Radius 400 km — landslide-prone terrain is often remote so a
+            # Radius 400 km -- landslide-prone terrain is often remote so a
             # wider match compensates for sparse station coverage.
             emdat_label_frames: list[pd.DataFrame] = []
             for h_type, r_km in [
@@ -199,7 +196,7 @@ class LandslideRealPipeline(BaseRealPipeline):
                     emdat_label_frames.append(_df)
 
             if emdat_label_frames:
-                # Union of all hazard labels — any positive counts
+                # Union of all hazard labels -- any positive counts
                 combined = pd.concat(emdat_label_frames, ignore_index=True)
                 emdat_labels = (
                     combined.groupby(["timestamp", "station_id"])["label"]
@@ -226,7 +223,7 @@ class LandslideRealPipeline(BaseRealPipeline):
 
         Priority order:
           1. Local cached CSV  (data/glc/global_landslide_catalog.csv)
-          2. NASA bulk static CSV download (most reliable — single HTTPS GET)
+          2. NASA bulk static CSV download (most reliable -- single HTTPS GET)
           3. ESRI FeatureServer REST API (paginated, SSL relaxed)
 
         Returns DataFrame with columns: [event_id, date, latitude, longitude,
@@ -240,18 +237,18 @@ class LandslideRealPipeline(BaseRealPipeline):
         cache_path = os.path.join(cache_dir, "global_landslide_catalog.csv")
         os.makedirs(cache_dir, exist_ok=True)
 
-        # ------------------------------------------------------------------ #
+        # #
         # 1. Local CSV cache                                                   #
-        # ------------------------------------------------------------------ #
+        # #
         if os.path.exists(cache_path):
             logger.info(f"  GLC: loading from local cache {cache_path}")
             return self._parse_glc_csv(cache_path)
 
-        # ------------------------------------------------------------------ #
+        # #
         # 2. NASA bulk static CSV (most reliable single-request path)          #
-        # ------------------------------------------------------------------ #
+        # #
         bulk_urls = [
-            # Figshare mirror — stable long-term DOI
+            # Figshare mirror -- stable long-term DOI
             "https://figshare.com/ndownloader/files/12057988",
             # NASA direct (may require Earthdata login in future)
             "https://maps.nccs.nasa.gov/download/landslides/global_landslide_catalog_export.csv",
@@ -293,9 +290,9 @@ class LandslideRealPipeline(BaseRealPipeline):
                 except Exception as exc:
                     logger.warning(f"  GLC bulk download failed ({url}): {exc}")
 
-        # ------------------------------------------------------------------ #
+        # #
         # 3. ESRI FeatureServer REST API (paginated, SSL relaxed)              #
-        # ------------------------------------------------------------------ #
+        # #
         base_url = (
             "https://maps.nccs.nasa.gov/arcgis/rest/services/ISERV/"
             "NASA_GLC/FeatureServer/0/query"
@@ -362,7 +359,7 @@ class LandslideRealPipeline(BaseRealPipeline):
                 offset += page_size
 
         if not all_rows:
-            raise RuntimeError("NASA GLC ESRI REST API returned 0 features — falling back to EM-DAT")
+            raise RuntimeError("NASA GLC ESRI REST API returned 0 features -- falling back to EM-DAT")
 
         events = pd.DataFrame(all_rows)
         events = events.dropna(subset=["date", "latitude", "longitude"])
@@ -385,7 +382,7 @@ class LandslideRealPipeline(BaseRealPipeline):
             logger.warning(f"  GLC CSV parse failed ({path}): {exc}")
             return pd.DataFrame()
 
-        # Normalise column names — different export versions use different names
+        # Normalise column names -- different export versions use different names
         df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
 
         # Date column candidates
@@ -453,7 +450,7 @@ class LandslideRealPipeline(BaseRealPipeline):
         events = raw_data.get("landslide_events", pd.DataFrame())
 
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build landslide labels")
+            raise RuntimeError("No weather data -- cannot build landslide labels")
 
         weather = weather.copy()
         weather["timestamp"] = pd.to_datetime(weather["timestamp"])
@@ -476,7 +473,7 @@ class LandslideRealPipeline(BaseRealPipeline):
                 logger.info("  Using pre-matched EM-DAT landslide labels directly.")
                 self.HAZARD_CONFIG.label_provenance["category"] = "recorded_events"
                 self.HAZARD_CONFIG.label_provenance["source"] = (
-                    "EM-DAT (CRED) global landslide/mass-movement records — "
+                    "EM-DAT (CRED) global landslide/mass-movement records -- "
                     "independent of ERA5 reanalysis"
                 )
                 self.HAZARD_CONFIG.data_validity = "independent"
@@ -484,7 +481,7 @@ class LandslideRealPipeline(BaseRealPipeline):
             # GLC format: spatially match events to stations
             return self._match_events_to_stations(all_records, events, station_coords)
 
-        # Fallback: BGS rainfall thresholds — mark as tautological so validator blocks it
+        # Fallback: BGS rainfall thresholds -- mark as tautological so validator blocks it
         logger.warning(
             "No GLC landslide event records available.  "
             "Falling back to BGS rainfall trigger thresholds "
@@ -495,7 +492,7 @@ class LandslideRealPipeline(BaseRealPipeline):
         self.HAZARD_CONFIG.label_provenance["category"] = "tautological_fallback"
         self.HAZARD_CONFIG.label_provenance["description"] = (
             "FALLBACK: NASA GLC API unavailable.  Labels derived from BGS rainfall "
-            "trigger thresholds.  THIS IS TAUTOLOGICAL — rainfall_24h and "
+            "trigger thresholds.  THIS IS TAUTOLOGICAL -- rainfall_24h and "
             "rainfall_72h appear in both label definition and feature set.  "
             "Validator will block training."
         )
@@ -523,7 +520,7 @@ class LandslideRealPipeline(BaseRealPipeline):
         labels = pd.concat(fallback_labels, ignore_index=True)
         n_pos = int(labels["label"].sum())
         logger.info(
-            f"  Landslide labels (FALLBACK — TAUTOLOGICAL): "
+            f"  Landslide labels (FALLBACK -- TAUTOLOGICAL): "
             f"{n_pos} positive, {len(labels) - n_pos} negative"
         )
         return labels
@@ -571,7 +568,7 @@ class LandslideRealPipeline(BaseRealPipeline):
         """Build per-station features including rainfall accumulations."""
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build features")
+            raise RuntimeError("No weather data -- cannot build features")
 
         return build_per_station_features(
             weather,
@@ -588,12 +585,12 @@ class LandslideRealPipeline(BaseRealPipeline):
         """Feature columns for landslide 6h-ahead risk forecasting.
 
         With real event labels (GLC), rainfall features are LEGITIMATE
-        PREDICTORS — not label constructors.  The full rainfall accumulation
+        PREDICTORS -- not label constructors.  The full rainfall accumulation
         hierarchy is included to capture different triggering regimes
         (flash rainfall vs antecedent soil saturation vs snowmelt).
         """
         return [
-            # Rainfall accumulations — primary landslide triggers
+            # Rainfall accumulations -- primary landslide triggers
             "rainfall_1h", "rainfall_3h", "rainfall_6h", "rainfall_12h",
             "rainfall_24h", "rainfall_48h", "rainfall_72h", "rainfall_7d",
             # Antecedent soil saturation
@@ -601,7 +598,7 @@ class LandslideRealPipeline(BaseRealPipeline):
             "antecedent_rainfall_30d",
             "days_since_significant_rain",
             "rainfall_intensity_max_1h",
-            # Soil moisture (saturation state — independent of event label)
+            # Soil moisture (saturation state -- independent of event label)
             "soil_moisture_0_to_7cm",
             "soil_moisture_7_to_28cm",
             # Snowmelt proxy (temperature crossing 0°C with snow present)

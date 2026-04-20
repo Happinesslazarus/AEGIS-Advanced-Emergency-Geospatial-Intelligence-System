@@ -46,7 +46,7 @@ function buildAIPredictionPayload() {
   });
 }
 
-// Metrics
+//Metrics
 const reportListDuration   = new Trend('report_list_duration', true);
 const reportSubmitDuration = new Trend('report_submit_duration', true);
 const alertListDuration    = new Trend('alert_list_duration', true);
@@ -58,7 +58,7 @@ const chatStreamDuration   = new Trend('chat_stream_duration', true);
 const errorRate = new Rate('errors');
 const reportsSubmitted = new Counter('reports_submitted');
 
-// Options
+//Options
 export const options = {
   scenarios: {
     list_reports: {
@@ -122,7 +122,7 @@ export const options = {
   },
 };
 
-// Handlers
+//Handlers
 export function listReports() {
   const r = http.get(`${BASE}/api/reports`);
   reportListDuration.add(r.timings.duration);
@@ -193,4 +193,4 @@ export function streamChat() {
   errorRate.add(!check(r, { '200': (x) => x.status === 200 }));
   sleep(1);
 }
-
+

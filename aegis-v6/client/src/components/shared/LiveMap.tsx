@@ -49,7 +49,7 @@ interface Props {
   onReportClick?: (r: any) => void
 }
 
-// Tile providers — imported from shared mapTileProviders.ts
+//Tile providers -- imported from shared mapTileProviders.ts
 const TILES = {
   dark: OSM_TILE,
   satellite: SATELLITE_TILE,
@@ -119,7 +119,7 @@ function createDistressIcon(): L.DivIcon {
   })
 }
 
-// Inject CSS for marker animations
+//Inject CSS for marker animations
 const MARKER_CSS = `
   @keyframes pulse-ring {
     0% { transform: scale(1); opacity: 1; }
@@ -171,7 +171,7 @@ export default function LiveMap({
   const stationLayerRef = useRef<L.LayerGroup>(L.layerGroup())
   const riskLayerRef = useRef<L.LayerGroup>(L.layerGroup())
   const heatmapLayerRef = useRef<L.Layer | null>(null)
-  // Stable ref for onReportClick — avoids infinite loop when parent doesn't memoize the callback
+  //Stable ref for onReportClick -- avoids infinite loop when parent doesn't memoize the callback
   const onReportClickRef = useRef(onReportClick)
   useEffect(() => { onReportClickRef.current = onReportClick })
 
@@ -202,7 +202,7 @@ export default function LiveMap({
       return [directLat, directLng]
     }
 
-    // Deterministic fallback: seed around current map center without hardcoded cities.
+    //Deterministic fallback: seed around current map center without hardcoded cities.
     const seed = String(prediction?.area || prediction?.id || index)
     let hash = 0
     for (let i = 0; i < seed.length; i += 1) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0
@@ -211,7 +211,7 @@ export default function LiveMap({
     return [center[0] + latOffset, center[1] + lngOffset]
   }, [center?.[0], center?.[1]])
 
-  // Toggle layer visibility on map
+  //Toggle layer visibility on map
   useEffect(() => {
     if (!mapRef.current) return
     const map = mapRef.current
@@ -230,7 +230,7 @@ export default function LiveMap({
     toggleLayer(heatmapLayerRef.current, layers.heatmap)
   }, [layers])
 
-  // Inject custom CSS once
+  //Inject custom CSS once
   useEffect(() => {
     if (!document.getElementById('livemap-styles')) {
       const style = document.createElement('style')
@@ -240,7 +240,7 @@ export default function LiveMap({
     }
   }, [])
 
-  // Initialize map
+  //Initialize map
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
 
@@ -257,10 +257,10 @@ export default function LiveMap({
     }).addTo(map)
     tileLayerRef.current = tiles
 
-    // Add attribution in bottom-right
+    //Add attribution in bottom-right
     L.control.attribution({ position: 'bottomright', prefix: false }).addTo(map)
 
-    // Add layers
+    //Add layers
     reportLayerRef.current.addTo(map)
     riverLayerRef.current.addTo(map)
     distressLayerRef.current.addTo(map)
@@ -271,7 +271,7 @@ export default function LiveMap({
 
     mapRef.current = map
 
-    // Fix Leaflet size calc on mount
+    //Fix Leaflet size calc on mount
     setTimeout(() => map.invalidateSize(), 100)
 
     return () => {
@@ -280,20 +280,20 @@ export default function LiveMap({
     }
   }, [])
 
-  // Fly to new location when center/zoom props change
+  //Fly to new location when center/zoom props change
   useEffect(() => {
     if (!mapRef.current) return
     mapRef.current.flyTo(center, zoom, { animate: true, duration: 1.5 })
   }, [center[0], center[1], zoom])
 
-  // Switch basemap tiles
+  //Switch basemap tiles
   useEffect(() => {
     if (!mapRef.current || !tileLayerRef.current) return
     const tileInfo = TILES[basemap]
     tileLayerRef.current.setUrl(tileInfo.url)
   }, [basemap])
 
-  // Render report markers
+  //Render report markers
   useEffect(() => {
     const layer = reportLayerRef.current
     layer.clearLayers()
@@ -315,7 +315,7 @@ export default function LiveMap({
           </div>
           <p style="font-weight:600;font-size:13px;margin:0 0 4px;">${r.title || r.category || r.type || t('map.reportDefault', lang)}</p>
           <p style="color:#9ca3af;font-size:11px;margin:0 0 4px;">${r.location || ''}</p>
-          ${r.description ? `<p style="color:#d1d5db;font-size:10px;margin:0 0 6px;max-height:40px;overflow:hidden;">${r.description.substring(0, 120)}${r.description.length > 120 ? '—' : ''}</p>` : ''}
+          ${r.description ? `<p style="color:#d1d5db;font-size:10px;margin:0 0 6px;max-height:40px;overflow:hidden;">${r.description.substring(0, 120)}${r.description.length > 120 ? '--' : ''}</p>` : ''}
           <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #374151;padding-top:6px;margin-top:4px;">
             <span style="font-size:9px;color:#6b7280;">${r.status || ''}</span>
             <span style="font-size:9px;color:#6b7280;">${r.created_at ? new Date(r.created_at).toLocaleString() : ''}</span>
@@ -333,7 +333,7 @@ export default function LiveMap({
     setMarkerCount(prev => ({ ...prev, reports: count }))
   }, [reports])
 
-  // Fetch & render river gauge stations
+  //Fetch & render river gauge stations
   const fetchRivers = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/rivers/levels`)
@@ -369,7 +369,7 @@ export default function LiveMap({
               </div>
               <div>
                 <span style="font-size:9px;color:#9ca3af;text-transform:uppercase;">${t('map.flow', lang)}</span>
-                <div style="font-size:14px;font-weight:700;font-family:monospace;">${station.flowCumecs?.toFixed(1) ?? '—'} m—/s</div>
+                <div style="font-size:14px;font-weight:700;font-family:monospace;">${station.flowCumecs?.toFixed(1) ?? '--'} m--/s</div>
               </div>
             </div>
             <div style="margin-bottom:6px;">
@@ -396,7 +396,7 @@ export default function LiveMap({
     } catch {}
   }, [])
 
-  // Fetch & render distress beacons
+  //Fetch & render distress beacons
   const fetchDistress = useCallback(async () => {
     try {
       const token = getAnyToken()
@@ -438,7 +438,7 @@ export default function LiveMap({
     } catch {}
   }, [])
 
-  // Fetch evacuation routes
+  //Fetch evacuation routes
   const fetchEvacuation = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/incidents/flood/evacuation/routes`)
@@ -448,7 +448,7 @@ export default function LiveMap({
     } catch {}
   }, [])
 
-  // Render evacuation routes
+  //Render evacuation routes
   useEffect(() => {
     const layer = evacuationLayerRef.current
     layer.clearLayers()
@@ -479,7 +479,7 @@ export default function LiveMap({
     }
   }, [showEvacuationRoutes, evacuationData])
 
-  // Fetch & render real SEPA/EA gauge stations
+  //Fetch & render real SEPA/EA gauge stations
   const fetchStations = useCallback(async () => {
     try {
       const params = new URLSearchParams({
@@ -490,7 +490,7 @@ export default function LiveMap({
 
       let res = await fetch(`${API}/api/flood-data/stations?${params.toString()}`)
       if (!res.ok) {
-        // Fallback keeps backward compatibility with older backends.
+        //Fallback keeps backward compatibility with older backends.
         res = await fetch(`${API}/api/flood-data/stations?region=global&${params.toString()}`)
       }
       if (!res.ok) return
@@ -541,7 +541,7 @@ export default function LiveMap({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${colour}" stroke-width="2"><path d="M7 16.3c2.2 0 4-1.83 6.2-1.83 2.2 0 4 1.83 6.2 1.83"/><path d="M7 11.3c2.2 0 4-1.83 6.2-1.83 2.2 0 4 1.83 6.2 1.83"/></svg>
               <span style="font-weight:700;font-size:12px;">${p.station_name || p.station_id}</span>
             </div>
-            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;">${p.river_name || ''} — ${p.jurisdiction || 'EA'}</div>
+            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;">${p.river_name || ''} -- ${p.jurisdiction || 'EA'}</div>
             ${level > 0 ? `
               <div style="margin-bottom:6px;">
                 <div style="display:flex;justify-content:space-between;font-size:9px;color:#9ca3af;margin-bottom:2px;">
@@ -566,7 +566,7 @@ export default function LiveMap({
     } catch {}
   }, [center])
 
-  // Fetch & render live flood predictions as risk circles
+  //Fetch & render live flood predictions as risk circles
   const fetchPredictions = useCallback(async () => {
     if (!showFloodPredictions) return
     try {
@@ -584,9 +584,9 @@ export default function LiveMap({
 
         const prob = parseFloat(p.probability) || 0
         const colour = prob >= 0.75 ? '#dc2626' : prob >= 0.5 ? '#f97316' : '#eab308'
-        const radiusM = 800 + prob * 1200 // 800—2000m based on probability
+        const radiusM = 800 + prob * 1200 // 800--2000m based on probability
 
-        // Shaded risk circle
+        //Shaded risk circle
         const circle = L.circle(coords, {
           radius: radiusM,
           color: colour,
@@ -618,7 +618,7 @@ export default function LiveMap({
             <div style="font-size:9px;color:#60a5fa;margin-bottom:4px;display:flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" style="flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>${p.matched_pattern || ''}</div>
             ${p.next_areas?.length ? `<div style="font-size:9px;color:#fbbf24;display:flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" style="flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>${t('map.downstream', lang)}: ${p.next_areas.join(', ')}</div>` : ''}
             <div style="border-top:1px solid #374151;padding-top:4px;margin-top:4px;font-size:8px;color:#6b7280;">
-              ${t('map.confidence', lang)}: ${p.confidence}% — ${p.model_version}
+              ${t('map.confidence', lang)}: ${p.confidence}% -- ${p.model_version}
             </div>
           </div>
         `, { maxWidth: 300 })
@@ -629,7 +629,7 @@ export default function LiveMap({
     } catch {}
   }, [showFloodPredictions, resolvePredictionCoords])
 
-  // Fetch & render PostGIS risk layer (flood polygons)
+  //Fetch & render PostGIS risk layer (flood polygons)
   const fetchRiskLayer = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/map/risk-layer`)
@@ -671,7 +671,7 @@ export default function LiveMap({
     } catch {}
   }, [])
 
-  // Fetch & render real heatmap data
+  //Fetch & render real heatmap data
   const fetchHeatmap = useCallback(async () => {
     try {
       if (!mapRef.current) return
@@ -680,7 +680,7 @@ export default function LiveMap({
       const data = await res.json()
       if (!data?.points?.length) return
 
-      // Remove old heatmap
+      //Remove old heatmap
       if (heatmapLayerRef.current && mapRef.current) {
         mapRef.current.removeLayer(heatmapLayerRef.current)
         heatmapLayerRef.current = null
@@ -702,7 +702,7 @@ export default function LiveMap({
     } catch {}
   }, [])
 
-  // Initial data fetch — after all useCallbacks are declared
+  //Initial data fetch -- after all useCallbacks are declared
   useEffect(() => {
     fetchRivers()
     fetchDistress()
@@ -712,7 +712,7 @@ export default function LiveMap({
     fetchRiskLayer()
     fetchHeatmap()
 
-    // Refresh live data every 5 minutes
+    //Refresh live data every 5 minutes
     const interval = setInterval(() => {
       fetchRivers()
       fetchStations()
@@ -720,7 +720,7 @@ export default function LiveMap({
     return () => clearInterval(interval)
   }, [fetchRivers, fetchDistress, fetchEvacuation, fetchStations, fetchPredictions, fetchRiskLayer, fetchHeatmap])
 
-  // Custom controls
+  //Custom controls
   const zoomIn = () => mapRef.current?.zoomIn()
   const zoomOut = () => mapRef.current?.zoomOut()
   const resetView = () => mapRef.current?.setView(center, zoom, { animate: true })
@@ -740,7 +740,7 @@ export default function LiveMap({
       {/* Map container */}
       <div ref={containerRef} className="w-full h-full" style={{ background: '#0f172a' }} />
 
-      {/* Basemap switcher — top-right */}
+      {/* Basemap switcher -- top-right */}
       <div className="absolute top-3 right-3 z-10 flex gap-1 bg-gray-900/90 backdrop-blur-md rounded-lg border border-gray-700/50 p-1">
         <button
           onClick={() => setBasemap('dark')}
@@ -765,7 +765,7 @@ export default function LiveMap({
         </button>
       </div>
 
-      {/* Zoom controls — right side */}
+      {/* Zoom controls -- right side */}
       <div className="absolute right-3 top-14 z-10 flex flex-col gap-1 bg-gray-900/90 backdrop-blur-md rounded-lg border border-gray-700/50 p-1">
         <button onClick={zoomIn} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={t('map.zoomIn', lang)}>
           <ZoomIn className="w-3.5 h-3.5" />
@@ -834,7 +834,7 @@ export default function LiveMap({
         </div>
       )}
 
-      {/* Live status badge — bottom-left */}
+      {/* Live status badge -- bottom-left */}
       <div className="absolute bottom-3 left-3 z-10 bg-gray-900/90 backdrop-blur-md rounded-lg border border-gray-700/50 px-3 py-1.5 flex items-center gap-3">
         <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
@@ -842,7 +842,7 @@ export default function LiveMap({
         </div>
         <div className="h-3 w-px bg-gray-700" />
         <span className="text-[10px] text-gray-400 dark:text-gray-300">
-          {markerCount.reports} {t('map.reports', lang)} — {markerCount.rivers + markerCount.stations} {t('map.stations', lang)} — {markerCount.predictions} {t('map.predictions', lang)} — {markerCount.distress} SOS
+          {markerCount.reports} {t('map.reports', lang)} -- {markerCount.rivers + markerCount.stations} {t('map.stations', lang)} -- {markerCount.predictions} {t('map.predictions', lang)} -- {markerCount.distress} SOS
         </span>
       </div>
     </div>

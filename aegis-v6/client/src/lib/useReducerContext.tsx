@@ -24,7 +24,7 @@ import {
   type Reducer,
 } from 'react'
 
-// GENERIC TYPES
+//GENERIC TYPES
 
 /** Base action shape */
 export interface Action<T extends string = string> {
@@ -43,7 +43,7 @@ export function createAction<T extends string, P>(type: T) {
   return (payload?: P) => (payload !== undefined ? { type, payload } : { type })
 }
 
-// CONTEXT FACTORY
+//CONTEXT FACTORY
 
 interface ReducerContextOptions<S, A extends Action> {
   /** Display name for React DevTools */
@@ -82,11 +82,11 @@ export function createReducerContext<S, A extends Action>(
   StateContext.displayName = `${name}State`
   DispatchContext.displayName = `${name}Dispatch`
   
-  // Enhanced reducer with middleware
+  //Enhanced reducer with middleware
   const enhancedReducer: Reducer<S, A> = (state, action) => {
     const newState = reducer(state, action)
     
-    // Run middleware after state update
+    //Run middleware after state update
     middleware.forEach(fn => {
       try {
         fn(newState, action)
@@ -143,7 +143,7 @@ export function createReducerContext<S, A extends Action>(
   }
 }
 
-// MIDDLEWARE HELPERS
+//MIDDLEWARE HELPERS
 
 /** Logging middleware for development */
 export function createLoggerMiddleware<S, A extends Action>(name: string) {
@@ -167,7 +167,7 @@ export function createPersistMiddleware<S, A extends Action>(
       const toPersist = selector ? selector(state) : state
       localStorage.setItem(key, JSON.stringify(toPersist))
     } catch {
-      // Ignore storage errors
+      //Ignore storage errors
     }
   }
 }
@@ -180,12 +180,12 @@ export function loadPersistedState<S>(key: string, defaultState: S): S {
       return { ...defaultState, ...JSON.parse(stored) }
     }
   } catch {
-    // Ignore parse errors
+    //Ignore parse errors
   }
   return defaultState
 }
 
-// SELECTOR HELPERS
+//SELECTOR HELPERS
 
 /** Create a memoized selector hook */
 export function createSelector<S, T>(
@@ -198,7 +198,7 @@ export function createSelector<S, T>(
   }
 }
 
-// ASYNC ACTION HELPERS
+//ASYNC ACTION HELPERS
 
 type AsyncActionState = 'idle' | 'loading' | 'success' | 'error'
 

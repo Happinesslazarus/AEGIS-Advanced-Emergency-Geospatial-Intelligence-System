@@ -45,11 +45,11 @@ export interface IncidentTypeConfig {
   alertThresholds: IncidentThresholds
 }
 
-// Built-in incident type catalogue. Each entry defines:
-// - fieldSchema: extra structured fields the UI collects for this incident type
-// - widgets: which dashboard panels activate when this type is active
-// - aiModel: the AI engine model used to score predictions for this type
-// - alertThresholds: confidence % at which advisory/warning/critical alerts fire
+//Built-in incident type catalogue. Each entry defines:
+//fieldSchema: extra structured fields the UI collects for this incident type
+//widgets: which dashboard panels activate when this type is active
+//aiModel: the AI engine model used to score predictions for this type
+//alertThresholds: confidence % at which advisory/warning/critical alerts fire
 const DEFAULT_INCIDENT_TYPES: Record<string, IncidentTypeConfig> = {
   flood: {
     id: 'flood', name: 'Flood', category: 'natural_disaster', enabled: true,
@@ -173,8 +173,8 @@ const DEFAULT_INCIDENT_TYPES: Record<string, IncidentTypeConfig> = {
   },
 }
 
-// Override file path: can be set by INCIDENT_TYPES_OVERRIDE_PATH env var.
-// If absent, defaults to incident-types.override.json in the process working directory.
+//Override file path: can be set by INCIDENT_TYPES_OVERRIDE_PATH env var.
+//If absent, defaults to incident-types.override.json in the process working directory.
 const overridePath = process.env.INCIDENT_TYPES_OVERRIDE_PATH
   ? path.resolve(process.env.INCIDENT_TYPES_OVERRIDE_PATH)
   : path.resolve(process.cwd(), 'incident-types.override.json')

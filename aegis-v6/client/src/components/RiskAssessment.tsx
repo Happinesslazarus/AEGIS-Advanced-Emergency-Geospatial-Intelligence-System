@@ -83,7 +83,7 @@ export default function CitizenPage(): JSX.Element {
   const [sosActive, setSosActive] = useState(false)
   const [sosSending, setSosSending] = useState(false)
 
-  // Handle URL params for deep-linking (e.g. from web push notifications)
+  //Handle URL params for deep-linking (e.g. from web push notifications)
   useEffect(() => {
     const tabParam = searchParams.get('tab')
     const alertParam = searchParams.get('alert')
@@ -92,7 +92,7 @@ export default function CitizenPage(): JSX.Element {
       if (validTabs.includes(tabParam)) setActiveTab(tabParam)
     }
     if (alertParam) {
-      // Fetch the specific alert and show detail modal
+      //Fetch the specific alert and show detail modal
       fetch(`/api/alerts`)
         .then(r => r.json())
         .then(data => {
@@ -107,7 +107,7 @@ export default function CitizenPage(): JSX.Element {
           }
         })
         .catch(() => {})
-      // Clean the URL param after handling
+      //Clean the URL param after handling
       searchParams.delete('alert')
       searchParams.delete('tab')
       setSearchParams(searchParams, { replace: true })
@@ -144,14 +144,14 @@ export default function CitizenPage(): JSX.Element {
     }
   }
 
-  // Guest SOS Handler
+  //Guest SOS Handler
   const handleGuestSOS = () => {
     if (sosCountdown !== null) {
-      // Cancel countdown
+      //Cancel countdown
       setSosCountdown(null)
       return
     }
-    // Start 5-second countdown
+    //Start 5-second countdown
     let count = 5
     setSosCountdown(count)
     const timer = setInterval(() => {
@@ -169,7 +169,7 @@ export default function CitizenPage(): JSX.Element {
   const sendGuestSOS = async () => {
     setSosSending(true)
     try {
-      // Get GPS location
+      //Get GPS location
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         if (!navigator.geolocation) return reject(new Error('No GPS'))
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000, enableHighAccuracy: true })
@@ -178,7 +178,7 @@ export default function CitizenPage(): JSX.Element {
       const lat = position?.coords.latitude ?? userPosition?.[0] ?? loc.center?.[0] ?? 57.15
       const lng = position?.coords.longitude ?? userPosition?.[1] ?? loc.center?.[1] ?? -2.11
 
-      // Submit emergency report via public reports API
+      //Submit emergency report via public reports API
       const csrfSos = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
       const response = await fetch('/api/reports', {
         method: 'POST',
@@ -186,7 +186,7 @@ export default function CitizenPage(): JSX.Element {
         body: JSON.stringify({
           type: 'SOS Emergency',
           severity: 'High',
-          description: 'GUEST SOS EMERGENCY — Citizen requires immediate assistance. Activated from public safety page.',
+          description: 'GUEST SOS EMERGENCY -- Citizen requires immediate assistance. Activated from public safety page.',
           location: `GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}`,
           latitude: lat,
           longitude: lng,
@@ -200,7 +200,7 @@ export default function CitizenPage(): JSX.Element {
 
       setSosActive(true)
       pushNotification(t('citizenPage.sosSent', lang), 'error')
-      // Auto-clear after 30 seconds
+      //Auto-clear after 30 seconds
       setTimeout(() => setSosActive(false), 30000)
     } catch (err: any) {
       pushNotification(t('citizenPage.sosFailed', lang), 'error')
@@ -231,7 +231,7 @@ export default function CitizenPage(): JSX.Element {
       const normalizedChannels = subChannels.map(ch => ch === 'webpush' ? 'web' : ch)
       const formattedPhone = subPhone ? formatPhoneWithCountry(selectedCountry, subPhone) : ''
       
-      // Subscribe to Web Push first if selected AND VAPID is configured on the server
+      //Subscribe to Web Push first if selected AND VAPID is configured on the server
       if (subChannels.includes('webpush') && webPushStatus.enabled) {
         try {
           await subscribeToWebPush(subEmail)
@@ -244,7 +244,7 @@ export default function CitizenPage(): JSX.Element {
         }
       }
       
-      // Register subscription preferences on server
+      //Register subscription preferences on server
       await apiSubscribe({ 
         email: subEmail, 
         phone: formattedPhone, 
@@ -341,7 +341,7 @@ export default function CitizenPage(): JSX.Element {
       url: window.location.href,
     }
 
-    // Try native Web Share API first
+    //Try native Web Share API first
     if (navigator.share) {
       try {
         await navigator.share(shareData)
@@ -352,13 +352,13 @@ export default function CitizenPage(): JSX.Element {
         }
       }
     } else {
-      // Fallback: Copy to clipboard and show mailto option
+      //Fallback: Copy to clipboard and show mailto option
       const reportText = `${shareData.title}\n\n${shareData.text}\n\nView on AEGIS: ${shareData.url}`
       try {
         await navigator.clipboard.writeText(reportText)
         pushNotification(t('citizenPage.copiedToClipboard', lang), 'success')
         
-        // Also offer email option
+        //Also offer email option
         const mailtoLink = `mailto:?subject=${encodeURIComponent(shareData.title)}&body=${encodeURIComponent(reportText)}`
         window.open(mailtoLink, '_blank')
       } catch {
@@ -381,7 +381,7 @@ export default function CitizenPage(): JSX.Element {
     if (item.key === 'alerts') { navigate('/alerts'); return }
     const validTabs = ['map', 'reports', 'shelters', 'news']
     if (validTabs.includes(item.key)) { setActiveTab(item.key); return }
-    // Citizen-only tabs — navigate to dashboard with tab param
+    //Citizen-only tabs -- navigate to dashboard with tab param
     const dashboardTabs = ['risk', 'emergency', 'prepare', 'messages', 'safety', 'profile', 'settings']
     if (dashboardTabs.includes(item.key)) { navigate(`/citizen/dashboard?tab=${item.key}`); return }
   }
@@ -516,7 +516,7 @@ export default function CitizenPage(): JSX.Element {
           <div className="space-y-4 animate-fade-in">
             {/* Professional Live Incident Map Panel */}
             <LiveIncidentMapPanel reports={reports} userPosition={userPosition} center={loc.center} zoom={loc.zoom} />
-            {/* Panels below map — full-width responsive grid */}
+            {/* Panels below map -- full-width responsive grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <IntelligenceDashboard collapsed={true} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg" />
               <WeatherPanel/>
@@ -582,7 +582,7 @@ export default function CitizenPage(): JSX.Element {
                       <a href={n.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold hover:text-aegis-600 transition-colors block">
                         {n.title}
                       </a>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{n.source} · {n.time}</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{n.source} - {n.time}</p>
                     </div>
                     <a href={n.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] text-aegis-600 hover:text-aegis-700 bg-aegis-50 dark:bg-aegis-950/20 border border-aegis-200/60 dark:border-aegis-800/60 px-3 py-1.5 rounded-xl flex-shrink-0 transition-all opacity-0 group-hover:opacity-100 font-bold">
                       <ExternalLink className="w-3 h-3"/> {t('citizen.news.source', lang)}
@@ -594,7 +594,7 @@ export default function CitizenPage(): JSX.Element {
           </div>
         )}
 
-        {/* SIGN-IN PROMO — Citizen-Only Features */}
+        {/* SIGN-IN PROMO -- Citizen-Only Features */}
         <div className="glass-card rounded-2xl p-6 border border-amber-200/60 dark:border-amber-800/40 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/60 dark:from-amber-950/20 dark:via-gray-900 dark:to-orange-950/10">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-md">
@@ -713,7 +713,7 @@ export default function CitizenPage(): JSX.Element {
           'bg-gradient-to-br from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 hover:scale-110 shadow-red-600/40 active:scale-95'
         }`}
         aria-label={t('citizen.sos.aria', lang)}
-        title={sosActive ? t('citizen.sos.active', lang) : sosCountdown !== null ? `${t('citizen.sos.sendingIn', lang)} ${sosCountdown}s — ${t('citizen.sos.tapCancel', lang)}` : t('citizen.sos.holdSend', lang)}
+        title={sosActive ? t('citizen.sos.active', lang) : sosCountdown !== null ? `${t('citizen.sos.sendingIn', lang)} ${sosCountdown}s -- ${t('citizen.sos.tapCancel', lang)}` : t('citizen.sos.holdSend', lang)}
       >
         {sosCountdown !== null ? (
           <span className="text-2xl font-black text-white">{sosCountdown}</span>
@@ -731,7 +731,7 @@ export default function CitizenPage(): JSX.Element {
         </div>
       )}
 
-      {/* FLOATING CHATBOT BUTTON — only opens on click, never auto */}
+      {/* FLOATING CHATBOT BUTTON -- only opens on click, never auto */}
       {!showChatbot && (
         <button onClick={()=>setShowChatbot(true)} className="fixed bottom-6 right-6 z-[90] w-16 h-16 bg-gradient-to-br from-aegis-500 to-aegis-700 hover:from-aegis-400 hover:to-aegis-600 text-white rounded-2xl shadow-2xl shadow-aegis-600/40 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95" aria-label={t('nav.aiAssistant', lang)}>
           <MessageCircle className="w-6 h-6"/>
@@ -1012,7 +1012,7 @@ export default function CitizenPage(): JSX.Element {
   )
 }
 
-// GuestReportsTab — Professional-grade Recent Reports for guest page
+//GuestReportsTab -- Professional-grade Recent Reports for guest page
 
 function GuestReportsTab({ reports, sorted, loading, searchTerm, setSearchTerm, sortField, setSortField, sortOrder, setSortOrder, onViewReport, onShareReport, onPrintReport, onNewReport, lang }: any) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'Unverified' | 'Verified' | 'Urgent' | 'Resolved'>('all')

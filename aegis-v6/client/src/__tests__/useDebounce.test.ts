@@ -46,7 +46,7 @@ describe('useDebounce', () => {
   })
 
   test('returns initial value immediately', () => {
-    // On first render the debounced value equals the input — no delay on initial mount
+    //On first render the debounced value equals the input -- no delay on initial mount
     const { result } = renderHook(() => useDebounce('initial', 300))
     expect(result.current).toBe('initial')
   })
@@ -59,23 +59,23 @@ describe('useDebounce', () => {
 
     expect(result.current).toBe('first')
 
-    // Simulate the parent passing a new value (e.g. user typed)
+    //Simulate the parent passing a new value (e.g. user typed)
     rerender({ value: 'second' })
     
-    // The debounced value has NOT updated yet — we're still within the 300ms window
+    //The debounced value has NOT updated yet -- we're still within the 300ms window
     expect(result.current).toBe('first')
 
-    // Advance the fake clock 150ms — still within the 300ms delay
+    //Advance the fake clock 150ms -- still within the 300ms delay
     act(() => { vi.advanceTimersByTime(150) })
     expect(result.current).toBe('first')
 
-    // Advance another 200ms (total 350ms) — past the delay threshold
+    //Advance another 200ms (total 350ms) -- past the delay threshold
     act(() => { vi.advanceTimersByTime(200) })
     expect(result.current).toBe('second') // now the update goes through
   })
 
   test('uses default delay of 300ms', () => {
-    // When no delay is specified the hook defaults to 300ms
+    //When no delay is specified the hook defaults to 300ms
     const { result, rerender } = renderHook(
       ({ value }) => useDebounce(value),
       { initialProps: { value: 'a' } }
@@ -91,28 +91,28 @@ describe('useDebounce', () => {
   })
 
   test('resets timer on rapid value changes', () => {
-    // If the user types rapidly, only the final keypress should trigger the update
+    //If the user types rapidly, only the final keypress should trigger the update
     const { result, rerender } = renderHook(
       ({ value }) => useDebounce(value, 200),
       { initialProps: { value: 'start' } }
     )
 
-    // Three quick changes within the 200ms window
+    //Three quick changes within the 200ms window
     rerender({ value: 'change1' })
-    act(() => { vi.advanceTimersByTime(100) }) // 100ms in — timer reset
+    act(() => { vi.advanceTimersByTime(100) }) // 100ms in -- timer reset
 
     rerender({ value: 'change2' })
-    act(() => { vi.advanceTimersByTime(100) }) // 100ms in (from change2) — timer reset again
+    act(() => { vi.advanceTimersByTime(100) }) // 100ms in (from change2) -- timer reset again
 
     rerender({ value: 'final' }) // last change; starts a fresh 200ms countdown
 
-    // Only after full delay from last change does the value propagate
+    //Only after full delay from last change does the value propagate
     act(() => { vi.advanceTimersByTime(200) })
     expect(result.current).toBe('final')
   })
 
   test('handles numeric values', () => {
-    // Debounce works with any value type, including numbers
+    //Debounce works with any value type, including numbers
     const { result, rerender } = renderHook(
       ({ value }) => useDebounce(value, 100),
       { initialProps: { value: 0 } }
@@ -124,7 +124,7 @@ describe('useDebounce', () => {
   })
 
   test('handles object values', () => {
-    // Objects are compared by reference — the hook doesn't do deep equality checks
+    //Objects are compared by reference -- the hook doesn't do deep equality checks
     const obj1 = { id: 1, name: 'test' }
     const obj2 = { id: 2, name: 'updated' }
     
@@ -141,8 +141,8 @@ describe('useDebounce', () => {
   })
 
   test('handles null and undefined', () => {
-    // Nullable generics: useDebounce<string | null | undefined> ensures TypeScript
-    // accepts null and undefined as valid values without type errors
+    //Nullable generics: useDebounce<string | null | undefined> ensures TypeScript
+    //accepts null and undefined as valid values without type errors
     const { result, rerender } = renderHook(
       ({ value }) => useDebounce<string | null | undefined>(value, 100),
       { initialProps: { value: 'value' as string | null | undefined } }
@@ -158,8 +158,8 @@ describe('useDebounce', () => {
   })
 
   test('cleans up timer on unmount', () => {
-    // vi.spyOn wraps clearTimeout so we can assert the hook cancels the pending
-    // setTimeout when the component unmounts, preventing a dangling timer
+    //vi.spyOn wraps clearTimeout so we can assert the hook cancels the pending
+    //setTimeout when the component unmounts, preventing a dangling timer
     const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
     
     const { rerender, unmount } = renderHook(
@@ -185,12 +185,12 @@ describe('useDebouncedCallback', () => {
   })
 
   test('delays callback execution', () => {
-    // useDebouncedCallback wraps a function and delays its execution
+    //useDebouncedCallback wraps a function and delays its execution
     const callback = vi.fn()
     const { result } = renderHook(() => useDebouncedCallback(callback, 200))
 
     act(() => { result.current('arg1') }) // call the debounced wrapper
-    expect(callback).not.toHaveBeenCalled() // original not called yet — still waiting
+    expect(callback).not.toHaveBeenCalled() // original not called yet -- still waiting
 
     act(() => { vi.advanceTimersByTime(200) }) // skip past the 200ms delay
     expect(callback).toHaveBeenCalledWith('arg1') // now fired with the original argument
@@ -198,7 +198,7 @@ describe('useDebouncedCallback', () => {
   })
 
   test('uses default delay of 300ms', () => {
-    // Without a delay argument the default is 300ms
+    //Without a delay argument the default is 300ms
     const callback = vi.fn()
     const { result } = renderHook(() => useDebouncedCallback(callback))
 
@@ -212,31 +212,31 @@ describe('useDebouncedCallback', () => {
   })
 
   test('cancels previous call on rapid invocations', () => {
-    // Only the LAST call in a rapid burst should execute — classic debounce behaviour
+    //Only the LAST call in a rapid burst should execute -- classic debounce behaviour
     const callback = vi.fn()
     const { result } = renderHook(() => useDebouncedCallback(callback, 100))
 
-    // Three calls in quick succession, each within the 100ms window of the previous
+    //Three calls in quick succession, each within the 100ms window of the previous
     act(() => { result.current('call1') })
-    act(() => { vi.advanceTimersByTime(50) }) // 50ms — call1 timer not yet fired
+    act(() => { vi.advanceTimersByTime(50) }) // 50ms -- call1 timer not yet fired
     
     act(() => { result.current('call2') }) // resets the timer
-    act(() => { vi.advanceTimersByTime(50) }) // 50ms from call2 — not yet fired
+    act(() => { vi.advanceTimersByTime(50) }) // 50ms from call2 -- not yet fired
     
     act(() => { result.current('call3') }) // resets again
     
-    act(() => { vi.advanceTimersByTime(100) }) // 100ms from call3 — fires now
+    act(() => { vi.advanceTimersByTime(100) }) // 100ms from call3 -- fires now
 
-    // Only the last call executes; earlier ones were cancelled
+    //Only the last call executes; earlier ones were cancelled
     expect(callback).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenLastCalledWith('call3')
   })
 
   test('passes all arguments to callback', () => {
-    // Any arguments passed to the debounced wrapper are forwarded to the original callback
+    //Any arguments passed to the debounced wrapper are forwarded to the original callback
     const callback = vi.fn()
     const { result } = renderHook(() => useDebouncedCallback(callback, 100))
-    // Call the debounced function with multiple arguments
+    //Call the debounced function with multiple arguments
     act(() => { result.current('arg1', 'arg2', 42) })
     act(() => { vi.advanceTimersByTime(200) })
     expect(callback).toHaveBeenCalledWith('arg1', 'arg2', 42)
@@ -338,21 +338,21 @@ describe('useDebouncedCallback', () => {
     const callback = vi.fn()
     const { result } = renderHook(() => useDebouncedCallback(callback, 100))
 
-    // First call
+    //First call
     act(() => { result.current('call1') })
     act(() => { vi.advanceTimersByTime(50) })
     
-    // Second call before first timer fires
+    //Second call before first timer fires
     act(() => { result.current('call2') })
     act(() => { vi.advanceTimersByTime(50) })
     
-    // Third call before second timer fires
+    //Third call before second timer fires
     act(() => { result.current('call3') })
     
-    // Advance past the delay
+    //Advance past the delay
     act(() => { vi.advanceTimersByTime(100) })
 
-    // Only last call should execute
+    //Only last call should execute
     expect(callback).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenLastCalledWith('call3')
   })
@@ -368,8 +368,8 @@ describe('useDebouncedCallback', () => {
   })
 
   test('cleans up timer on unmount', () => {
-    // Same memory-safety check as useDebounce: cancel the pending setTimeout so
-    // the callback doesn't fire after the component is removed from the DOM
+    //Same memory-safety check as useDebounce: cancel the pending setTimeout so
+    //the callback doesn't fire after the component is removed from the DOM
     const callback = vi.fn()
     const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
     
@@ -383,8 +383,8 @@ describe('useDebouncedCallback', () => {
   })
 
   test('allows multiple independent debounced callbacks', () => {
-    // Each useDebouncedCallback() instance has its own independent timer —
-    // callback1 firing at 100ms should NOT affect callback2's 200ms countdown
+    //Each useDebouncedCallback() instance has its own independent timer
+    //callback1 firing at 100ms should NOT affect callback2's 200ms countdown
     const callback1 = vi.fn()
     const callback2 = vi.fn()
     
@@ -400,7 +400,7 @@ describe('useDebouncedCallback', () => {
     expect(callback1).toHaveBeenCalledWith('a')
     expect(callback2).not.toHaveBeenCalled()
 
-    act(() => { vi.advanceTimersByTime(100) }) // total 200ms — callback2 now fires
+    act(() => { vi.advanceTimersByTime(100) }) // total 200ms -- callback2 now fires
     expect(callback2).toHaveBeenCalledWith('b')
   })
 })

@@ -87,9 +87,9 @@ export const SEVERITY_LEVELS: SeverityConfig[] = [
 ]
 
 export const TRAPPED_OPTIONS: TrappedOptionConfig[] = [
-  { key: 'yes', label: 'Yes — People are trapped or in immediate danger', urgent: true },
-  { key: 'property', label: 'No — But property or infrastructure at risk', urgent: false },
-  { key: 'no', label: 'No — Situation is currently safe', urgent: false },
+  { key: 'yes', label: 'Yes -- People are trapped or in immediate danger', urgent: true },
+  { key: 'property', label: 'No -- But property or infrastructure at risk', urgent: false },
+  { key: 'no', label: 'No -- Situation is currently safe', urgent: false },
 ]
 
 export const COMMUNITY_HELP_TYPES: CommunityHelpType[] = [

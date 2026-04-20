@@ -47,7 +47,7 @@ export interface AIAnalysis {
   fakeProbability: number; photoVerified: boolean; photoValidation?: PhotoValidation
   estimatedWaterDepth: string | null; vulnerablePersonAlert?: boolean; crossReferenced: string[]
   mlPowered?: boolean; modelsUsed?: string[]; predictedCategory?: string
-  // snake_case aliases returned by backend
+  //snake_case aliases returned by backend
   panic_level?: string; fake_probability?: number; photo_verified?: boolean; water_depth?: string
   sources?: string; reasoning?: string
 }

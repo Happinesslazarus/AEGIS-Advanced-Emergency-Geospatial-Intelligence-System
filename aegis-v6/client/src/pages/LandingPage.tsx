@@ -10,10 +10,10 @@
  * - ThemeSelector and LanguageSelector in the header allow global preferences
  * - Uses useReveal() (IntersectionObserver) for scroll-triggered animations
  *
- * - client/src/pages/CitizenAuthPage.tsx  — where the citizen login button leads
- * - client/src/pages/AdminPage.tsx        — where the operator login button leads
- * - client/src/pages/GuestDashboard.tsx   — read-only public map view
- * - client/src/utils/i18n.ts              — translations used throughout this page
+ * - client/src/pages/CitizenAuthPage.tsx  -- where the citizen login button leads
+ * - client/src/pages/AdminPage.tsx        -- where the operator login button leads
+ * - client/src/pages/GuestDashboard.tsx   -- read-only public map view
+ * - client/src/utils/i18n.ts              -- translations used throughout this page
  * */
 
 import { Link } from 'react-router-dom'
@@ -41,7 +41,7 @@ function useReveal(threshold = 0.15) {
   return { ref, visible }
 }
 
-/*  Parallax scroll hook — returns a CSS transform based on scroll position  */
+/*  Parallax scroll hook -- returns a CSS transform based on scroll position  */
 function useParallax(speed = 0.3) {
   const ref = useRef<HTMLElement>(null)
   const [offset, setOffset] = useState(0)
@@ -97,7 +97,7 @@ export default function LandingPage(): JSX.Element {
   const [mobileNav, setMobileNav] = useState(false)
   const heroParallax = useParallax(0.15)
 
-  // Mobile menu: scroll lock + escape key close
+  //Mobile menu: scroll lock + escape key close
   useEffect(() => {
     if (!mobileNav) return
     document.body.style.overflow = 'hidden'
@@ -125,7 +125,7 @@ export default function LandingPage(): JSX.Element {
       </div>
 
       {/*
-          // NAVIGATION
+          //NAVIGATION
        */}
       <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-2xl border-b border-gray-200/60 dark:border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -189,7 +189,7 @@ export default function LandingPage(): JSX.Element {
       </nav>
 
       {/*
-          // HERO SECTION
+          //HERO SECTION
        */}
       <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-20 text-center">
         <Reveal>
@@ -233,7 +233,7 @@ export default function LandingPage(): JSX.Element {
           </div>
         </Reveal>
 
-        {/*  Hero visual — animated radar/pulse  */}
+        {/*  Hero visual -- animated radar/pulse  */}
         <Reveal delay={400}>
           <div className="relative max-w-3xl mx-auto mt-4">
             <div className="relative bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-gray-200/80 dark:border-white/[0.06] shadow-2xl shadow-gray-200/40 dark:shadow-black/40 p-6 sm:p-8 overflow-hidden">
@@ -266,7 +266,7 @@ export default function LandingPage(): JSX.Element {
       </section>
 
       {/*
-          STATS SECTION — Animated counters
+          STATS SECTION -- Animated counters
        */}
       <section className="relative z-10 border-y border-gray-200/60 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
@@ -294,7 +294,7 @@ export default function LandingPage(): JSX.Element {
       </section>
 
       {/*
-          // FEATURES SHOWCASE
+          //FEATURES SHOWCASE
        */}
       <section id="features" className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
         <Reveal>
@@ -311,7 +311,7 @@ export default function LandingPage(): JSX.Element {
             { icon: Map, title: '2D + 3D Intelligence Maps', desc: 'Leaflet and Deck.gl-powered maps with flood prediction overlays, evacuation routes, and heatmaps.', color: 'text-aegis-600', bg: 'bg-aegis-50 dark:bg-aegis-500/10', border: 'hover:border-aegis-300 dark:hover:border-aegis-500/30' },
             { icon: Brain, title: 'AI Severity Assessment', desc: 'NLP-based report classification, fake detection, and automated severity scoring with confidence levels.', color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-500/10', border: 'hover:border-purple-300 dark:hover:border-purple-500/30' },
             { icon: BarChart3, title: 'Predictive Analytics', desc: 'Machine learning models for flood, drought, and heatwave forecasting with regional risk scores.', color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'hover:border-amber-300 dark:hover:border-amber-500/30' },
-            { icon: Layers, title: 'Multi-Hazard Modular Design', desc: 'Extensible architecture supporting floods, fires, earthquakes, storms — any hazard type.', color: 'text-cyan-600', bg: 'bg-cyan-50 dark:bg-cyan-500/10', border: 'hover:border-cyan-300 dark:hover:border-cyan-500/30' },
+            { icon: Layers, title: 'Multi-Hazard Modular Design', desc: 'Extensible architecture supporting floods, fires, earthquakes, storms -- any hazard type.', color: 'text-cyan-600', bg: 'bg-cyan-50 dark:bg-cyan-500/10', border: 'hover:border-cyan-300 dark:hover:border-cyan-500/30' },
             { icon: Eye, title: 'Real-Time Monitoring', desc: 'WebSocket-driven live dashboards with river gauges, weather feeds, and incident status updates.', color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-500/10', border: 'hover:border-green-300 dark:hover:border-green-500/30' },
             { icon: Users, title: 'Community Hub', desc: 'Citizen reporting portal with crisis chat, crowd density heatmaps, and shelter finder.', color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-500/10', border: 'hover:border-indigo-300 dark:hover:border-indigo-500/30' },
             { icon: Lock, title: 'Role-Based Access Control', desc: 'JWT authentication with separate citizen and operator portals, rate limiting, and audit trails.', color: 'text-gray-600', bg: 'bg-gray-100 dark:bg-white/5', border: 'hover:border-gray-400 dark:hover:border-gray-500/30' },
@@ -331,7 +331,7 @@ export default function LandingPage(): JSX.Element {
       </section>
 
       {/*
-          HOW IT WORKS — 3 step flow
+          HOW IT WORKS -- 3 step flow
        */}
       <section id="how-it-works" className="relative z-10 bg-gray-50/80 dark:bg-white/[0.01] border-y border-gray-200/60 dark:border-white/5">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
@@ -339,7 +339,7 @@ export default function LandingPage(): JSX.Element {
             <div className="text-center mb-16">
               <span className="text-xs font-bold text-aegis-600 dark:text-aegis-400 tracking-widest uppercase">Process</span>
               <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mt-3 mb-4">How AEGIS Protects Communities</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-300 max-w-2xl mx-auto">From citizen report to emergency response in seconds — powered by AI and real-time data.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300 max-w-2xl mx-auto">From citizen report to emergency response in seconds -- powered by AI and real-time data.</p>
             </div>
           </Reveal>
 
@@ -368,7 +368,7 @@ export default function LandingPage(): JSX.Element {
       </section>
 
       {/*
-          DATA SOURCES — Trust badges
+          DATA SOURCES -- Trust badges
        */}
       <section id="data-sources" className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
         <Reveal>
@@ -401,7 +401,7 @@ export default function LandingPage(): JSX.Element {
       </section>
 
       {/*
-          // CTA BANNER
+          //CTA BANNER
        */}
       <section className="relative z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-20">
@@ -415,7 +415,7 @@ export default function LandingPage(): JSX.Element {
               <div className="relative z-10 text-center sm:text-left sm:flex items-center justify-between gap-8">
                 <div>
                   <h2 className="text-2xl sm:text-3xl font-black text-white mb-3">Ready to Explore AEGIS?</h2>
-                  <p className="text-sm text-aegis-100/80 max-w-md leading-relaxed">Access the public dashboard to view live alerts, flood maps, and community safety tools — no login required.</p>
+                  <p className="text-sm text-aegis-100/80 max-w-md leading-relaxed">Access the public dashboard to view live alerts, flood maps, and community safety tools -- no login required.</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 mt-6 sm:mt-0 flex-shrink-0">
                   <Link to="/guest" className="group bg-white text-aegis-700 hover:bg-aegis-50 px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl">
@@ -432,7 +432,7 @@ export default function LandingPage(): JSX.Element {
       </section>
 
       {/*
-          // FOOTER
+          //FOOTER
        */}
       <footer className="relative z-10 border-t border-gray-200/60 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
@@ -446,7 +446,7 @@ export default function LandingPage(): JSX.Element {
                 <span className="font-black text-sm text-aegis-600 dark:text-aegis-400">AEGIS</span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-300 leading-relaxed mb-3">
-                Advanced Emergency Geospatial Intelligence System — AI-powered disaster response for the UK.
+                Advanced Emergency Geospatial Intelligence System -- AI-powered disaster response for the UK.
               </p>
               <p className="text-[10px] text-gray-400 dark:text-gray-300">{t('landing.meta.projectCredit', lang)}</p>
             </div>
@@ -505,9 +505,9 @@ export default function LandingPage(): JSX.Element {
             <p className="text-[10px] text-gray-400 dark:text-gray-300">{t('landing.footerSignature', lang)}</p>
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-300"><Lock className="w-3 h-3" /> End-to-End Encrypted</span>
-              <span className="text-gray-300 dark:text-gray-700">·</span>
+              <span className="text-gray-300 dark:text-gray-700">-</span>
               <span className="flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-300"><Wifi className="w-3 h-3" /> 99.9% Uptime</span>
-              <span className="text-gray-300 dark:text-gray-700">·</span>
+              <span className="text-gray-300 dark:text-gray-700">-</span>
               <span className="text-[10px] text-gray-400 dark:text-gray-300">GDPR Compliant</span>
             </div>
           </div>

@@ -13,7 +13,7 @@ const STATIC_CACHE = `${CACHE_VERSION}-static`
 const DATA_CACHE = `${CACHE_VERSION}-data`
 const IMAGE_CACHE = `${CACHE_VERSION}-images`
 
-// App shell files to pre-cache on install
+//App shell files to pre-cache on install
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -22,7 +22,7 @@ const APP_SHELL = [
   '/icons/icon-512x512.png',
 ]
 
-// INSTALL — Pre-cache app shell
+//INSTALL -- Pre-cache app shell
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -33,7 +33,7 @@ self.addEventListener('install', (event) => {
   )
 })
 
-// ACTIVATE — Clean old caches
+//ACTIVATE -- Clean old caches
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -50,22 +50,22 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-// FETCH — Routing strategies
+//FETCH -- Routing strategies
 
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
 
-  // Skip non-GET requests (POST/PUT/DELETE go straight to network)
+  //Skip non-GET requests (POST/PUT/DELETE go straight to network)
   if (request.method !== 'GET') return
 
-  // Skip cross-origin requests except tile servers
+  //Skip cross-origin requests except tile servers
   if (url.origin !== self.location.origin && !isTileRequest(url)) return
 
-  // API requests: network-first (but never cache authenticated responses)
+  //API requests: network-first (but never cache authenticated responses)
   if (url.pathname.startsWith('/api/')) {
     if (request.headers.get('Authorization')) {
-      // Authenticated request — pass through to network without caching
+      //Authenticated request -- pass through to network without caching
       event.respondWith(
         fetch(request).catch(() =>
           new Response(JSON.stringify({ error: 'Offline', cached: false }), {
@@ -80,19 +80,19 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Tile / WMS requests: stale-while-revalidate with longer TTL
+  //Tile / WMS requests: stale-while-revalidate with longer TTL
   if (isTileRequest(url)) {
     event.respondWith(staleWhileRevalidate(request, IMAGE_CACHE))
     return
   }
 
-  // Images: stale-while-revalidate
+  //Images: stale-while-revalidate
   if (request.destination === 'image' || /\.(png|jpg|jpeg|gif|svg|ico|webp)$/i.test(url.pathname)) {
     event.respondWith(staleWhileRevalidate(request, IMAGE_CACHE))
     return
   }
 
-  // App shell (HTML, CSS, JS): cache-first
+  //App shell (HTML, CSS, JS): cache-first
   event.respondWith(cacheFirst(request, STATIC_CACHE))
 })
 
@@ -119,7 +119,7 @@ async function cacheFirst(request, cacheName) {
     }
     return response
   } catch {
-    // Offline — return cached index.html for navigation requests (SPA)
+    //Offline -- return cached index.html for navigation requests (SPA)
     if (request.mode === 'navigate') {
       return caches.match('/index.html')
     }
@@ -167,7 +167,7 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached || (await networkPromise) || new Response('', { status: 503 })
 }
 
-// OFFLINE QUEUE — Store failed POST/PUT requests for background sync
+//OFFLINE QUEUE -- Store failed POST/PUT requests for background sync
 
 const QUEUE_STORE = 'aegis-offline-queue'
 
@@ -222,14 +222,14 @@ function openDB() {
   })
 }
 
-// Listen for messages from the client to queue offline requests
+//Listen for messages from the client to queue offline requests
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'QUEUE_REQUEST') {
     const { url, method, body, headers } = event.data
     addToQueue({ url, method, body, headers, timestamp: Date.now() })
       .then(() => {
         event.source?.postMessage({ type: 'QUEUED', url })
-        // Try to register background sync
+        //Try to register background sync
         if (self.registration.sync) {
           self.registration.sync.register('aegis-sync')
         }
@@ -248,7 +248,7 @@ self.addEventListener('message', (event) => {
   }
 })
 
-// BACKGROUND SYNC — Replay offline queue when back online
+//BACKGROUND SYNC -- Replay offline queue when back online
 
 self.addEventListener('sync', (event) => {
   if (event.tag === 'aegis-sync') {
@@ -270,7 +270,7 @@ async function replayQueue() {
 
       if (response.ok) {
         await removeFromQueue(entry.id)
-        // Notify clients
+        //Notify clients
         const allClients = await self.clients.matchAll()
         allClients.forEach((client) =>
           client.postMessage({ type: 'SYNC_SUCCESS', url: entry.url, id: entry.id })
@@ -278,12 +278,12 @@ async function replayQueue() {
       }
     } catch (err) {
       console.warn(`[SW] Replay failed for ${entry.url}:`, err.message)
-      // Leave in queue for next sync attempt
+      //Leave in queue for next sync attempt
     }
   }
 }
 
-// PUSH NOTIFICATIONS
+//PUSH NOTIFICATIONS
 
 self.addEventListener('push', (event) => {
   let data = {}
@@ -322,7 +322,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, options))
 })
 
-// NOTIFICATION CLICK
+//NOTIFICATION CLICK
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
@@ -330,14 +330,14 @@ self.addEventListener('notificationclick', (event) => {
   if (event.action === 'dismiss') return
 
   const relativePath = event.notification.data?.url || '/'
-  // openWindow() requires an absolute URL in all browsers
+  //openWindow() requires an absolute URL in all browsers
   const targetUrl = relativePath.startsWith('http')
     ? relativePath
     : self.location.origin + relativePath
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Focus an existing window that is already on the same path
+      //Focus an existing window that is already on the same path
       for (const client of clientList) {
         try {
           const clientPath = new URL(client.url).pathname + new URL(client.url).search
@@ -347,7 +347,7 @@ self.addEventListener('notificationclick', (event) => {
           }
         } catch { /* ignore malformed URLs */ }
       }
-      // Nothing matched — focus any open AEGIS tab and navigate it, or open a new one
+      //Nothing matched -- focus any open AEGIS tab and navigate it, or open a new one
       if (clientList.length > 0 && 'navigate' in clientList[0]) {
         clientList[0].navigate(targetUrl)
         return clientList[0].focus()
@@ -357,9 +357,9 @@ self.addEventListener('notificationclick', (event) => {
   )
 })
 
-// PERIODIC CACHE CLEANUP
+//PERIODIC CACHE CLEANUP
 
-// Clean image cache if it gets too large (max 200 entries)
+//Clean image cache if it gets too large (max 200 entries)
 async function trimCache(cacheName, maxItems = 200) {
   const cache = await caches.open(cacheName)
   const keys = await cache.keys()
@@ -370,7 +370,7 @@ async function trimCache(cacheName, maxItems = 200) {
   }
 }
 
-// Run cleanup periodically via message
+//Run cleanup periodically via message
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'TRIM_CACHES') {
     trimCache(IMAGE_CACHE, 200)

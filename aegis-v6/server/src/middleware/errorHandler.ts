@@ -37,7 +37,7 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
-  // If headers already sent, delegate to Express default handler
+  //If headers already sent, delegate to Express default handler
   if (res.headersSent) {
     _next(err)
     return
@@ -48,25 +48,25 @@ export function errorHandler(
   let message = 'Something went wrong on our end. Please try again, or contact support if the problem persists.'
   let details: unknown
 
-  // AppError (our own typed errors)
+  //AppError (our own typed errors)
   if (err instanceof AppError) {
     statusCode = err.statusCode
     errorCode = err.errorCode
     message = err.message
     details = err.details
 
-  // Zod validation errors — turn field paths into readable sentences
+  //Zod validation errors -- turn field paths into readable sentences
   } else if (err instanceof ZodError) {
     statusCode = 400
     errorCode = 'VALIDATION_ERROR'
     const fieldErrors = err.issues.map((i) => {
       const p = (i.path || []).map(String).join('.')
-      return p ? `"${p}" — ${i.message}` : i.message
+      return p ? `"${p}" -- ${i.message}` : i.message
     })
     message = `Please fix the following before submitting: ${fieldErrors.join('; ')}.`
     details = fieldErrors
 
-  // JWT errors
+  //JWT errors
   } else if (err.name === 'TokenExpiredError') {
     statusCode = 401
     errorCode = 'TOKEN_EXPIRED'
@@ -76,11 +76,11 @@ export function errorHandler(
     errorCode = 'AUTH_ERROR'
     message = 'Your authentication token is invalid. Please sign in again.'
 
-  // PostgreSQL constraint violations
+  //PostgreSQL constraint violations
   } else if (err.code === '23505') {
     statusCode = 409
     errorCode = 'CONFLICT'
-    // Extract the conflicting field name from the detail string if available
+    //Extract the conflicting field name from the detail string if available
     const field = err.detail?.match(/\(([^)]+)\)/)?.[1] || 'value'
     message = `A record with this ${field} already exists. Please use a different value.`
   } else if (err.code === '23503') {
@@ -101,7 +101,7 @@ export function errorHandler(
     errorCode = 'INTERNAL_ERROR'
     message = 'A database configuration error occurred. Please contact support.'
 
-  // Multer file upload errors
+  //Multer file upload errors
   } else if (err.name === 'MulterError') {
     statusCode = 400
     errorCode = 'UPLOAD_ERROR'
@@ -115,26 +115,26 @@ export function errorHandler(
       message = 'File upload failed. Please check the file and try again.'
     }
 
-  // Malformed JSON body
+  //Malformed JSON body
   } else if (err.type === 'entity.parse.failed') {
     statusCode = 400
     errorCode = 'BAD_REQUEST'
     message = 'The request body contains invalid JSON. Please check your input and try again.'
 
-  // Rate limit (express-rate-limit sets status 429)
+  //Rate limit (express-rate-limit sets status 429)
   } else if (err.statusCode === 429 || err.status === 429) {
     statusCode = 429
     errorCode = 'RATE_LIMITED'
     message = 'You are sending requests too quickly. Please wait a moment and try again.'
 
-  // Generic Error fallback — show actual message in dev, safe message in prod
+  //Generic Error fallback -- show actual message in dev, safe message in prod
   } else if (err instanceof Error) {
     message = isProduction
       ? 'Something went wrong on our end. Please try again, or contact support if the problem persists.'
       : err.message
   }
 
-  // Structured logging
+  //Structured logging
   const logContext: Record<string, unknown> = {
     requestId: (req as any).requestId,
     statusCode,
@@ -145,14 +145,14 @@ export function errorHandler(
   }
 
   if (statusCode >= 500) {
-    // Include full error object (Pino serialises stack, message, etc.)
+    //Include full error object (Pino serialises stack, message, etc.)
     logContext.err = err
     logger.error(logContext, message)
   } else {
     logger.warn(logContext, message)
   }
 
-  // Send response
+  //Send response
   res.status(statusCode).json({
     success: false,
     error: {

@@ -18,7 +18,7 @@ interface LocationContextType {
 }
 
 export const LOCATIONS: Record<string, LocationConfig> = {
-  // GLOBAL
+  //GLOBAL
   world: {
     name: 'All Regions', center: [20, 0], zoom: 2,
     bounds: [[-85, -180], [85, 180]], rivers: ['Nile', 'Amazon', 'Yangtze', 'Mississippi', 'Ganges', 'Congo', 'Mekong', 'Danube'],
@@ -30,7 +30,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     ],
     emergencyContacts: { emergency: '112', nhs: '', nonEmergency: '' },
   },
-  // CONTINENTAL
+  //CONTINENTAL
   asia: {
     name: 'Asia', center: [28, 90], zoom: 3,
     bounds: [[-10, 40], [55, 150]], rivers: ['Ganges', 'Brahmaputra', 'Yangtze', 'Mekong', 'Indus', 'Yellow River'],
@@ -294,7 +294,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     ],
     emergencyContacts: { emergency: '000', nhs: '', nonEmergency: '' },
   },
-  // UK & SCOTLAND
+  //UK & SCOTLAND
   uk: {
     name: 'United Kingdom', center: [54.5, -2.5], zoom: 6,
     bounds: [[49.5, -8.5], [59, 2]], rivers: ['Thames', 'Severn', 'Trent', 'Clyde', 'Dee', 'Don'],
@@ -400,10 +400,10 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
   const [activeLocation, setActiveLocation] = useState<string>('world')
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null)
 
-  // detectUserLocation: dual-strategy GPS fix.
-  // We call both getCurrentPosition (fast, low-accuracy) and watchPosition
+  //detectUserLocation: dual-strategy GPS fix.
+  //We call both getCurrentPosition (fast, low-accuracy) and watchPosition
   // (continuous updates) simultaneously so we can show a rough location
-  // immediately and upgrade to a precise fix when one arrives.
+  //immediately and upgrade to a precise fix when one arrives.
   const detectUserLocation = (): void => {
     if (!('geolocation' in navigator)) return
 
@@ -412,24 +412,24 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
     let watchId: number | null = null
 
     const finish = (): void => {
-      // clearWatch stops the continuous GPS updates, which saves battery.
+      //clearWatch stops the continuous GPS updates, which saves battery.
       if (watchId !== null) navigator.geolocation.clearWatch(watchId)
       if (best) {
         setUserPosition([best.coords.latitude, best.coords.longitude])
       }
     }
 
-    // Hard deadline: after 12 seconds we accept whatever fix we have.
-    // This prevents the UI from spinning indefinitely in poor GPS conditions.
+    //Hard deadline: after 12 seconds we accept whatever fix we have.
+    //This prevents the UI from spinning indefinitely in poor GPS conditions.
     const timer = setTimeout(() => {
       finish()
     }, 12000)
 
-    // First call: single shot — usually fast but accuracy can be 50-1000m.
+    //First call: single shot -- usually fast but accuracy can be 50-1000m.
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         best = pos
-        // If accuracy is already within 30 metres, stop early — good enough.
+        //If accuracy is already within 30 metres, stop early -- good enough.
         if (pos.coords.accuracy <= 30) {
           clearTimeout(timer)
           finish()
@@ -439,21 +439,21 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
 
-    // Second call: continuous watch — updates as the GPS chip gets a better lock.
-    // Each new position is compared against 'best' and stored if more accurate.
+    //Second call: continuous watch -- updates as the GPS chip gets a better lock.
+    //Each new position is compared against 'best' and stored if more accurate.
     watchId = navigator.geolocation.watchPosition(
       (pos) => {
         if (!best || pos.coords.accuracy < best.coords.accuracy) {
           best = pos
         }
-        // 20 metres is considered precise enough for incident map targeting.
+        //20 metres is considered precise enough for incident map targeting.
         if (best.coords.accuracy <= 20) {
           clearTimeout(timer)
           finish()
         }
       },
       () => {
-        // Ignore watch errors while timer is active.
+        //Ignore watch errors while timer is active.
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     )
@@ -487,7 +487,7 @@ const LOCATION_DEFAULTS: LocationContextType = {
 export function useLocation(): LocationContextType {
   const ctx = useContext(LocationContext)
   if (!ctx) {
-    if (import.meta.env.DEV) console.warn('[Location] Context unavailable — returning safe defaults.')
+    if (import.meta.env.DEV) console.warn('[Location] Context unavailable -- returning safe defaults.')
     return LOCATION_DEFAULTS
   }
   return ctx

@@ -20,7 +20,7 @@
 import client from 'prom-client'
 import { logger } from './logger.js'
 
-// Prometheus metrics
+//Prometheus metrics
 const circuitState = new client.Gauge({
   name: 'aegis_circuit_breaker_state',
   help: 'Circuit breaker state (0=closed, 1=half_open, 2=open)',
@@ -51,7 +51,7 @@ const circuitRejected = new client.Counter({
   labelNames: ['circuit'] as const,
 })
 
-// Circuit states
+//Circuit states
 export enum CircuitState {
   CLOSED = 0,      // Normal operation
   HALF_OPEN = 1,   // Testing if service recovered
@@ -86,10 +86,10 @@ interface Circuit {
   fallback?: () => Promise<any>
 }
 
-// Registry of all circuits
+//Registry of all circuits
 const circuits: Map<string, Circuit> = new Map()
 
-// Default configuration
+//Default configuration
 const DEFAULT_CONFIG: CircuitConfig = {
   failureThreshold: 5,
   successThreshold: 3,
@@ -151,10 +151,10 @@ export async function execute<T>(
 
   const effectiveFallback = fallback || circuit.fallback
 
-  // Check state transitions
+  //Check state transitions
   checkStateTransition(circuit)
 
-  // If open, reject immediately (fail fast)
+  //If open, reject immediately (fail fast)
   if (circuit.state === CircuitState.OPEN) {
     circuitRejected.labels(circuitName).inc()
 
@@ -166,7 +166,7 @@ export async function execute<T>(
     throw new CircuitOpenError(circuitName)
   }
 
-  // If half-open, check if we can try
+  //If half-open, check if we can try
   if (circuit.state === CircuitState.HALF_OPEN) {
     if (circuit.stats.halfOpenRequests >= circuit.config.halfOpenRequests) {
       circuitRejected.labels(circuitName).inc()
@@ -180,7 +180,7 @@ export async function execute<T>(
     circuit.stats.halfOpenRequests++
   }
 
-  // Execute the function
+  //Execute the function
   circuit.stats.totalRequests++
 
   try {
@@ -204,7 +204,7 @@ function recordSuccess(circuit: Circuit): void {
     circuitSuccesses.labels(circuit.name).inc()
 
     if (circuit.stats.successes >= circuit.config.successThreshold) {
-      // Recovery confirmed, close circuit
+      //Recovery confirmed, close circuit
       transitionTo(circuit, CircuitState.CLOSED)
       resetStats(circuit)
     }
@@ -220,18 +220,18 @@ function recordFailure(circuit: Circuit): void {
   circuitFailures.labels(circuit.name).inc()
 
   if (circuit.state === CircuitState.HALF_OPEN) {
-    // Failure in half-open means service still failing
+    //Failure in half-open means service still failing
     transitionTo(circuit, CircuitState.OPEN)
     return
   }
 
-  // Check if should open
+  //Check if should open
   const { config, stats } = circuit
 
-  // Need minimum volume before opening
+  //Need minimum volume before opening
   if (stats.totalRequests < config.volumeThreshold) return
 
-  // Check failure percentage
+  //Check failure percentage
   const errorPercentage = (stats.failures / stats.totalRequests) * 100
 
   if (errorPercentage >= config.errorPercentageThreshold) {
@@ -239,7 +239,7 @@ function recordFailure(circuit: Circuit): void {
     return
   }
 
-  // Check absolute threshold
+  //Check absolute threshold
   if (stats.failures >= config.failureThreshold) {
     transitionTo(circuit, CircuitState.OPEN)
   }
@@ -251,7 +251,7 @@ function recordFailure(circuit: Circuit): void {
 function checkStateTransition(circuit: Circuit): void {
   const now = Date.now()
 
-  // Reset failure counter if old failures expired
+  //Reset failure counter if old failures expired
   if (
     circuit.state === CircuitState.CLOSED &&
     circuit.stats.lastFailure > 0 &&
@@ -260,7 +260,7 @@ function checkStateTransition(circuit: Circuit): void {
     resetStats(circuit)
   }
 
-  // Transition from open to half-open after timeout
+  //Transition from open to half-open after timeout
   if (
     circuit.state === CircuitState.OPEN &&
     now - circuit.stats.openedAt > circuit.config.timeout
@@ -414,7 +414,7 @@ export class CircuitOpenError extends Error {
   }
 }
 
-// Pre-configured circuits for AEGIS services
+//Pre-configured circuits for AEGIS services
 export const Circuits = {
   DATABASE: 'database',
   REDIS: 'redis',
@@ -426,9 +426,9 @@ export const Circuits = {
   PUSH_NOTIFICATION: 'push_notification',
 } as const
 
-// Initialize common circuits
+//Initialize common circuits
 export function initCircuits(): void {
-  // Database: high threshold, fast recovery
+  //Database: high threshold, fast recovery
   getCircuit(Circuits.DATABASE, {
     failureThreshold: 10,
     successThreshold: 5,
@@ -436,14 +436,14 @@ export function initCircuits(): void {
     volumeThreshold: 20,
   })
 
-  // Redis: moderate tolerance
+  //Redis: moderate tolerance
   getCircuit(Circuits.REDIS, {
     failureThreshold: 5,
     successThreshold: 3,
     timeout: 10000,
   })
 
-  // AI Engine: higher tolerance (can be slow)
+  //AI Engine: higher tolerance (can be slow)
   getCircuit(Circuits.AI_ENGINE, {
     failureThreshold: 3,
     successThreshold: 2,
@@ -451,7 +451,7 @@ export function initCircuits(): void {
     errorPercentageThreshold: 30,
   })
 
-  // External APIs: lower tolerance
+  //External APIs: lower tolerance
   getCircuit(Circuits.EXTERNAL_WEATHER, {
     failureThreshold: 3,
     timeout: 45000,

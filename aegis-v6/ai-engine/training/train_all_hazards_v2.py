@@ -4,8 +4,8 @@ hazard types in dependency order, handling failures gracefully so a single
 broken label file doesn't abort the entire run.
 
 Execution order:
-  1. flood           (train_flood_v2.py     — stacked ensemble)
-  2. drought         (train_drought_v2.py   — LightGBM)
+  1. flood           (train_flood_v2.py     -- stacked ensemble)
+  2. drought         (train_drought_v2.py   -- LightGBM)
   3. heatwave        (generic pipeline)
   4. wildfire        (generic pipeline)
   5. severe_storm    (generic pipeline)
@@ -37,12 +37,12 @@ Glossary:
                   the training labels are noisy (power/water/infra/safety);
                   displayed in the AEGIS operator dashboard as a confidence caveat
 
-  Calls       → training/train_flood_v2.py (subprocess or import)
-  Calls       → training/train_drought_v2.py (subprocess or import)
-  Reads from  ← data/processed/master_features_uk_2000_2024.parquet
-  Reads from  ← data/labels/<hazard>_labels.parquet
-  Writes to   → model_registry/<hazard>/
-  Report      → reports/v2_training_summary.csv
+  Calls       -> training/train_flood_v2.py (subprocess or import)
+  Calls       -> training/train_drought_v2.py (subprocess or import)
+  Reads from  <- data/processed/master_features_uk_2000_2024.parquet
+  Reads from  <- data/labels/<hazard>_labels.parquet
+  Writes to   -> model_registry/<hazard>/
+  Report      -> reports/v2_training_summary.csv
 
 Usage:
   python training/train_all_hazards_v2.py
@@ -84,9 +84,7 @@ REPORT_DIR   = _AI_ROOT / "reports"
 SEED = 42
 np.random.seed(SEED)
 
-# ---------------------------------------------------------------------------
 # Hazard config: label column, label file, weak-label flag
-# ---------------------------------------------------------------------------
 
 HAZARD_CONFIGS: dict[str, dict] = {
     "flood":                     {"label_col": "flood_label",                "weak": False},
@@ -115,9 +113,7 @@ FEATURE_COLS: list[str] = [
 ]
 
 
-# ---------------------------------------------------------------------------
 # Generic training pipeline shared by most hazards
-# ---------------------------------------------------------------------------
 
 def train_generic_hazard(
     hazard: str,
@@ -134,7 +130,7 @@ def train_generic_hazard(
     label_file  = HAZARD_CONFIGS.get(hazard, {}).get("label_file", hazard)
     label_path  = LABEL_DIR / f"{label_file}_labels.parquet"
 
-    # ── Load data ──────────────────────────────────────────────────────────
+    # Load data
     if not master_path.exists():
         raise FileNotFoundError(f"Master dataset not found: {master_path}")
     if not label_path.exists():
@@ -146,7 +142,7 @@ def train_generic_hazard(
     df["date"] = pd.to_datetime(df["date"])
     df     = df.sort_values("date").reset_index(drop=True)
 
-    # ── Time-series split ─────────────────────────────────────────────────
+    # Time-series split
     train = df[df["date"] <  "2021-01-01"]
     val   = df[(df["date"] >= "2021-01-01") & (df["date"] < "2023-01-01")]
     test  = df[df["date"] >= "2023-01-01"]
@@ -169,7 +165,7 @@ def train_generic_hazard(
 
     scale_pos = float((y_tr == 0).sum() / max((y_tr == 1).sum(), 1))
 
-    # ── LightGBM baseline (no Optuna for speed; use fixed sensible defaults) ─
+    # LightGBM baseline (no Optuna for speed; use fixed sensible defaults)
     # For the non-flagship hazards we skip Optuna to save time.
     # For Optuna on all hazards, pass --trials to the specific train script.
     model = LGBMClassifier(
@@ -185,11 +181,11 @@ def train_generic_hazard(
     )
     model.fit(X_tr, y_tr)
 
-    # ── Calibration ────────────────────────────────────────────────────────
+    # Calibration
     calibrated = CalibratedClassifierCV(model, cv="prefit", method="isotonic")
     calibrated.fit(X_va, y_va)
 
-    # ── Evaluation ────────────────────────────────────────────────────────
+    # Evaluation
     proba   = calibrated.predict_proba(X_te)[:, 1]
     preds   = (proba >= 0.5).astype(int)
     metrics = {
@@ -204,7 +200,7 @@ def train_generic_hazard(
     print(f"  {hazard:30s}  acc={metrics['accuracy']:.4f}  auc={metrics['roc_auc']:.4f}"
           f"  {'[WEAK LABELS]' if is_weak else ''}")
 
-    # ── SHAP ──────────────────────────────────────────────────────────────
+    # SHAP
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     try:
         explainer   = shap.TreeExplainer(model)
@@ -215,7 +211,7 @@ def train_generic_hazard(
     except Exception as exc:
         print(f"  SHAP failed for {hazard}: {exc}")
 
-    # ── Save to registry ──────────────────────────────────────────────────
+    # Save to registry
     reg_dir = REGISTRY_DIR / hazard
     reg_dir.mkdir(parents=True, exist_ok=True)
     version = f"{hazard}_uk_v2"
@@ -230,7 +226,7 @@ def train_generic_hazard(
     joblib.dump(artifact, str(reg_dir / f"{version}.pkl"), compress=3)
     (reg_dir / f"{version}.json").write_text(json.dumps(metrics, indent=2))
 
-    # ── W&B ───────────────────────────────────────────────────────────────
+    # W&B
     if not no_wandb:
         try:
             import wandb
@@ -242,9 +238,7 @@ def train_generic_hazard(
     return metrics
 
 
-# ---------------------------------------------------------------------------
 # Special-case delegators for flood and drought
-# ---------------------------------------------------------------------------
 
 def train_flood_v2_subprocess(args: argparse.Namespace) -> dict:
     """Delegate to train_flood_v2.py (has custom stacking + LSTM logic)."""
@@ -279,23 +273,19 @@ def train_drought_v2_subprocess(args: argparse.Namespace) -> dict:
     return {"hazard": "drought", "accuracy": 0.0, "roc_auc": 0.0}
 
 
-# ---------------------------------------------------------------------------
 # Summary report
-# ---------------------------------------------------------------------------
 
 def write_summary(results: list[dict]) -> None:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     df  = pd.DataFrame(results)
     csv = REPORT_DIR / "v2_training_summary.csv"
     df.to_csv(str(csv), index=False)
-    print(f"\nSummary → {csv}")
+    print(f"\nSummary -> {csv}")
     display_cols = [c for c in ["hazard", "accuracy", "roc_auc", "weak", "n_train", "status"] if c in df.columns]
     print(df[display_cols].to_string(index=False))
 
 
-# ---------------------------------------------------------------------------
 # Main
-# ---------------------------------------------------------------------------
 
 def run(args: argparse.Namespace) -> None:
     # Subset of hazards to train (defaults to all)
@@ -307,11 +297,11 @@ def run(args: argparse.Namespace) -> None:
 
     for hazard in targets:
         if hazard not in HAZARD_CONFIGS:
-            print(f"  Unknown hazard '{hazard}' — skipping.")
+            print(f"  Unknown hazard '{hazard}' -- skipping.")
             continue
 
         cfg   = HAZARD_CONFIGS[hazard]
-        print(f"━━━ {hazard.upper()} ━━━")
+        print(f"--- {hazard.upper()} ---")
         t0    = time.perf_counter()
 
         try:

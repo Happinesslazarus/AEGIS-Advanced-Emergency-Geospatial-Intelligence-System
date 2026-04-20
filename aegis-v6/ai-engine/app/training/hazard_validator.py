@@ -3,7 +3,7 @@ Core validation logic for all 11 hazard training pipelines.
 
 Runs before (and just after) the chronological split to decide whether a
 hazard is safe to train, should be trained with warnings, or must be skipped.
-Returning a clear ValidationResult is the contract — no silent passes and no
+Returning a clear ValidationResult is the contract -- no silent passes and no
 silent failures.
 
 Used by base_real_pipeline.py inside every pipeline's run() method so that
@@ -11,16 +11,15 @@ validation happens regardless of whether a hazard is run directly or via
 train_all.py.
 
 Validation flow
----------------
-1. validate_data()    — pre-split checks: UNSUPPORTED guard, label existence,
+1. validate_data()    -- pre-split checks: UNSUPPORTED guard, label existence,
                         class balance, leakage severity, label provenance
-2. validate_splits()  — post-split checks: degenerate folds (0 positives in
+2. validate_splits()  -- post-split checks: degenerate folds (0 positives in
                         val or test set), minimum samples per fold
 
 Any method that populates reasons also logs at ERROR level.
 Any method that populates warnings also logs at WARNING level.
 A clean TRAINABLE result is logged at SUCCESS level.
-No exceptions are raised — all problems surface via ValidationResult.
+No exceptions are raised -- all problems surface via ValidationResult.
 """
 
 from __future__ import annotations
@@ -47,12 +46,12 @@ class HazardValidator:
 
         validator = HazardValidator()
 
-        # Step 0 — before anything, block UNSUPPORTED hazards immediately
+        # Step 0 -- before anything, block UNSUPPORTED hazards immediately
         result = validator.validate_unsupported(hazard_type)
         if result is not None:
             return pipeline.failure_result(result)
 
-        # Step 1 — before the split, check data integrity
+        # Step 1 -- before the split, check data integrity
         result = validator.validate_data(
             hazard_type=cfg.hazard_type,
             task_type=cfg.task_type,
@@ -69,7 +68,7 @@ class HazardValidator:
         if result.status == HazardStatus.NOT_TRAINABLE:
             return pipeline.failure_result(result)
 
-        # Step 2 — after the split, check for degenerate folds
+        # Step 2 -- after the split, check for degenerate folds
         result = validator.validate_splits(result, y_train, y_val, y_test)
         if result.status == HazardStatus.NOT_TRAINABLE:
             return pipeline.failure_result(result)
@@ -107,7 +106,7 @@ class HazardValidator:
         result.reasons.append(annotation.get("note", ""))
 
         logger.error(
-            f"[{hazard_type.upper()} validation] UNSUPPORTED — "
+            f"[{hazard_type.upper()} validation] UNSUPPORTED -- "
             f"{result.reasons[0]}"
         )
         if result.required_dataset:
@@ -193,13 +192,13 @@ class HazardValidator:
                 f"Insufficient positive samples: {n_positive} < {min_positive} required."
             )
 
-        # Check 3: label provenance — flag if a fallback path was used
+        # Check 3: label provenance -- flag if a fallback path was used
         provenance_category = label_provenance.get("category", "")
 
         if hazard_type == "flood" and provenance_category == "precipitation_proxy":
             result.status = HazardStatus.NOT_TRAINABLE
             result.reasons.append(
-                "Flood labels are a precipitation proxy — the fallback path was "
+                "Flood labels are a precipitation proxy -- the fallback path was "
                 "triggered because SEPA/EA river data was unavailable.  Training "
                 "on this label creates a tautology (rainfall_24h simultaneously "
                 "defines the label and appears as a feature)."
@@ -214,7 +213,7 @@ class HazardValidator:
             result.label_integrity = "tautology"
             result.reasons.append(
                 "Environmental hazard labels are a weather-proxy fallback "
-                "(wind < 2 m/s AND precip < 0.1 mm/h) — OpenAQ real AQ data "
+                "(wind < 2 m/s AND precip < 0.1 mm/h) -- OpenAQ real AQ data "
                 "was unavailable.  wind_speed_10m and rainfall_1h appear in both "
                 "the label criterion and the feature set, creating a trivial "
                 "tautology.  The model would learn the threshold, not atmospheric physics."
@@ -226,12 +225,12 @@ class HazardValidator:
                 "build_openaq_label_df; build_openaq_label_df(cache=True)"
             )
 
-        # Check 4: data_validity — reject if explicitly 'invalid'
+        # Check 4: data_validity -- reject if explicitly 'invalid'
         if data_validity == "invalid":
             result.status = HazardStatus.NOT_TRAINABLE
             result.label_integrity = "tautology"
             result.reasons.append(
-                f"data_validity='{data_validity}' — labels are not independent "
+                f"data_validity='{data_validity}' -- labels are not independent "
                 f"of the feature set.  Training would produce misleading metrics."
             )
             result.recommended_fix = annotation.get("recommended_fix", "")
@@ -257,7 +256,7 @@ class HazardValidator:
             result.recommended_fix = annotation.get("recommended_fix", "")
 
         elif severity == LeakageSeverity.HIGH:
-            # For risk_scoring and nowcast, lead_hours is 0 — no temporal separation.
+            # For risk_scoring and nowcast, lead_hours is 0 -- no temporal separation.
             if task_type in ("risk_scoring", "nowcast"):
                 result.status = HazardStatus.NOT_TRAINABLE
                 result.label_integrity = "tautology"
@@ -365,7 +364,7 @@ class HazardValidator:
 
         if n_val_pos == 0:
             # A degenerate val set prevents proper hyperparameter selection but
-            # does not block training if test is OK — downgrade to PARTIAL.
+            # does not block training if test is OK -- downgrade to PARTIAL.
             if result.status == HazardStatus.TRAINABLE:
                 result.status = HazardStatus.PARTIAL
             result.warnings.append(
@@ -380,26 +379,26 @@ class HazardValidator:
         if n_test_pos == 0:
             if allow_sparse_test:
                 # Temporal clustering of labels (e.g. EM-DAT fallback with events
-                # concentrated in early years) — downgrade to PARTIAL, don't block.
+                # concentrated in early years) -- downgrade to PARTIAL, don't block.
                 # Metrics will be CV-based on training data only.
                 if result.status == HazardStatus.TRAINABLE:
                     result.status = HazardStatus.PARTIAL
                 result.warnings.append(
                     f"Degenerate test set: 0 positive samples in test fold.  "
-                    f"allow_sparse_test=True — training continues as PARTIAL.  "
+                    f"allow_sparse_test=True -- training continues as PARTIAL.  "
                     f"Reported AUC is from cross-validation on training data, "
                     f"not from a held-out test set.  This is expected when label "
                     f"events are temporally clustered (e.g. EM-DAT fallback with "
                     f"events only in 2019-2021 and test window in 2022-2023)."
                 )
             else:
-                # A degenerate test set makes evaluation meaningless — hard block.
+                # A degenerate test set makes evaluation meaningless -- hard block.
                 result.status = HazardStatus.NOT_TRAINABLE
                 result.reasons.append(
                     f"Degenerate test set: 0 positive samples in the test fold.  "
                     f"ROC-AUC is undefined, and any reported metrics would be "
                     f"misleading (a model that always predicts 0 looks perfect).  "
-                    f"This is a chronological distribution problem — the positive "
+                    f"This is a chronological distribution problem -- the positive "
                     f"class events do not occur in the most recent 15% of the "
                     f"date range.  Use a longer date range or seasonal-stratified "
                     f"splitting for this hazard."
@@ -414,21 +413,21 @@ class HazardValidator:
 
         if result.status == HazardStatus.NOT_TRAINABLE:
             for reason in result.reasons:
-                logger.error(f"{label} NOT_TRAINABLE — {reason}")
+                logger.error(f"{label} NOT_TRAINABLE -- {reason}")
             if result.recommended_fix:
                 logger.warning(f"{label} Recommended fix: {result.recommended_fix}")
 
         elif result.status == HazardStatus.PARTIAL:
             for warning in result.warnings:
-                logger.warning(f"{label} PARTIAL — {warning}")
+                logger.warning(f"{label} PARTIAL -- {warning}")
 
         elif result.status == HazardStatus.UNSUPPORTED:
             for reason in result.reasons:
-                logger.error(f"{label} UNSUPPORTED — {reason}")
+                logger.error(f"{label} UNSUPPORTED -- {reason}")
 
         else:
             logger.success(
-                f"{label} TRAINABLE — "
+                f"{label} TRAINABLE -- "
                 f"label_integrity={result.label_integrity}, "
                 f"leakage={result.leakage_severity.value}, "
                 f"region={result.region_scope}"

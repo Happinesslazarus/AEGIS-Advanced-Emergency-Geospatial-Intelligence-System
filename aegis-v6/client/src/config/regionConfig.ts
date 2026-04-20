@@ -21,7 +21,7 @@ export interface RegionConfig {
   language: string
   currency: string
 
-  // Emergency numbers
+  //Emergency numbers
   emergencyNumber: string       // Primary: 999, 911, 112, etc.
   policeNonEmergency?: string   // e.g. 101 (UK), non-emergency line
   healthHotline?: string        // e.g. NHS 111, 1-800-222-1222
@@ -29,13 +29,13 @@ export interface RegionConfig {
   powerCuts?: string            // e.g. 105
   floodHotline?: string         // e.g. 0345 988 1188
 
-  // Mental health
+  //Mental health
   mentalHealthLine: { name: string; number: string }
   crisisText?: { name: string; shortcode: string; keyword: string }
   childLine?: { name: string; number: string }
   abuseHotline?: { name: string; number: string }
 
-  // Key organizations
+  //Key organizations
   organizations: {
     redCross: { name: string; number?: string }
     disasterRelief: { name: string; number?: string }[]
@@ -46,7 +46,7 @@ export interface RegionConfig {
     victimSupport?: { name: string; number?: string }
   }
 
-  // Healthcare
+  //Healthcare
   healthcare: {
     emergencyDept: string         // "A&E", "ER", "Emergency Room"
     primaryCare: string           // "GP", "Primary Care Physician", "Doctor"
@@ -55,7 +55,7 @@ export interface RegionConfig {
     poisonControl?: string
   }
 
-  // Government & institutions
+  //Government & institutions
   government: {
     floodAuthority: string        // "Environment Agency", "FEMA", "CWC"
     weatherService: string        // "Met Office", "NWS", "IMD"
@@ -65,14 +65,14 @@ export interface RegionConfig {
     financialAssistance: string   // "Bellwin scheme", "FEMA Individual Assistance"
   }
 
-  // Insurance & financial
+  //Insurance & financial
   insurance: {
     floodScheme?: string          // "Flood Re", "NFIP"
     floodSchemeDescription?: string
     uninsuredHelp: { name: string; detail: string }[]
   }
 
-  // Infrastructure
+  //Infrastructure
   infrastructure: {
     waterUtility: string          // "local water company", "water district"
     electricUtility: string       // "energy supplier", "power company"
@@ -80,7 +80,7 @@ export interface RegionConfig {
     sandbagProvider: string       // "local council", "county emergency management"
   }
 
-  // Units & conventions
+  //Units & conventions
   units: {
     depth: 'cm' | 'inches'
     temperature: 'C' | 'F'
@@ -88,7 +88,7 @@ export interface RegionConfig {
     speed: 'km/h' | 'mph'
   }
 
-  // Source attribution
+  //Source attribution
   sourceAttribution: string       // "UK Government emergency guidelines, WHO, and FEMA"
 }
 
@@ -162,7 +162,7 @@ const REGIONS: Record<string, RegionConfig> = {
       uninsuredHelp: [
         { name: 'Local council', detail: 'hardship grants' },
         { name: 'Red Cross', detail: '0800 068 4141 (emergency support)' },
-        { name: 'Turn2us', detail: 'benefit entitlement checks — turn2us.org.uk' },
+        { name: 'Turn2us', detail: 'benefit entitlement checks -- turn2us.org.uk' },
         { name: 'National Flood Forum', detail: '01299 403 055 (advice and advocacy)' },
       ],
     },
@@ -398,7 +398,7 @@ import {
   type GlobalEmergencyEntry,
 } from './globalEmergencyDB'
 
-// Map ISO country codes to detailed REGIONS keys
+//Map ISO country codes to detailed REGIONS keys
 const CODE_TO_REGION: Record<string, string> = {
   GB: 'uk', US: 'us', IN: 'india', AE: 'uae',
 }
@@ -468,10 +468,10 @@ function detectRegionFromLocale(): string {
   const locale = navigator.language || 'en-GB'
   const code = localeToCountryCode(locale)
   if (!code) return 'uk'
-  // Check for detailed region first
+  //Check for detailed region first
   const detailed = CODE_TO_REGION[code]
   if (detailed && REGIONS[detailed]) return detailed
-  // Otherwise return lowercase code for global DB lookup
+  //Otherwise return lowercase code for global DB lookup
   return code.toLowerCase()
 }
 
@@ -481,7 +481,7 @@ function detectRegionFromLocale(): string {
  */
 export const ACTIVE_REGION: string = 'auto'
 
-// Resolved region key (auto-detected or manual)
+//Resolved region key (auto-detected or manual)
 const _resolvedRegion = ACTIVE_REGION === 'auto' || ACTIVE_REGION === ''
   ? detectRegionFromLocale()
   : ACTIVE_REGION
@@ -490,12 +490,12 @@ const _resolvedRegion = ACTIVE_REGION === 'auto' || ACTIVE_REGION === ''
 
 export function getRegion(id?: string): RegionConfig {
   const key = id || _resolvedRegion
-  // 1. Try detailed regions first
+  //1. Try detailed regions first
   if (REGIONS[key]) return REGIONS[key]
-  // 2. Try global DB by country code
+  //2. Try global DB by country code
   const entry = lookupByCode(key)
   if (entry) return buildFromGlobalDB(entry)
-  // 3. Fallback to UK
+  //3. Fallback to UK
   return REGIONS.uk
 }
 
@@ -512,13 +512,13 @@ export function getActiveCountryCode(): string {
   return _resolvedRegion.toUpperCase()
 }
 
-// Re-export global DB utilities for use in chatbotEngine etc.
+//Re-export global DB utilities for use in chatbotEngine etc.
 export { lookupByCode, emergencyCard, worldwideEmergencyTable }
 
-// Convenience: get the active region
+//Convenience: get the active region
 export const region = getRegion()
 
-// Template helper — replaces {{tokens}} in strings with region values
+//Template helper -- replaces {{tokens}} in strings with region values
 export function resolveTemplate(template: string, r?: RegionConfig): string {
   const cfg = r || region
   const map: Record<string, string> = {
@@ -563,7 +563,7 @@ export function resolveTemplate(template: string, r?: RegionConfig): string {
     '{{DISASTER_CONTACTS}}': disasterContacts(cfg),
     '{{EMERGENCY_CONTACTS_TABLE}}': emergencyContactsTable(cfg),
     '{{WORLDWIDE_EMERGENCY_TABLE}}': worldwideEmergencyTable(),
-    '{{UNINSURED_HELP}}': cfg.insurance.uninsuredHelp.map(h => `• **${h.name}:** ${h.detail || ''}`).join('\n'),
+    '{{UNINSURED_HELP}}': cfg.insurance.uninsuredHelp.map(h => `- **${h.name}:** ${h.detail || ''}`).join('\n'),
   }
 
   let result = template
@@ -573,7 +573,7 @@ export function resolveTemplate(template: string, r?: RegionConfig): string {
   return result
 }
 
-// Generate emergency contacts table for any region
+//Generate emergency contacts table for any region
 export function emergencyContactsTable(r?: RegionConfig): string {
   const cfg = r || region
   const rows: string[] = []
@@ -581,21 +581,21 @@ export function emergencyContactsTable(r?: RegionConfig): string {
   return rows.join('\n')
 }
 
-// Generate mental health contacts for any region
+//Generate mental health contacts for any region
 export function mentalHealthContacts(r?: RegionConfig): string {
   const cfg = r || region
   const lines: string[] = []
-  lines.push(`• **${cfg.mentalHealthLine.name}:** ${cfg.mentalHealthLine.number} (24/7, free)`)
-  if (cfg.crisisText) lines.push(`• **Crisis text:** Text ${cfg.crisisText.keyword} to ${cfg.crisisText.shortcode}`)
+  lines.push(`- **${cfg.mentalHealthLine.name}:** ${cfg.mentalHealthLine.number} (24/7, free)`)
+  if (cfg.crisisText) lines.push(`- **Crisis text:** Text ${cfg.crisisText.keyword} to ${cfg.crisisText.shortcode}`)
   for (const org of cfg.organizations.mentalHealthOrgs) {
-    lines.push(`• **${org.name}:**${org.number ? ' ' + org.number : ''}`)
+    lines.push(`- **${org.name}:**${org.number ? ' ' + org.number : ''}`)
   }
-  if (cfg.childLine) lines.push(`• **${cfg.childLine.name}:** ${cfg.childLine.number}`)
-  if (cfg.abuseHotline) lines.push(`• **${cfg.abuseHotline.name}:** ${cfg.abuseHotline.number}`)
+  if (cfg.childLine) lines.push(`- **${cfg.childLine.name}:** ${cfg.childLine.number}`)
+  if (cfg.abuseHotline) lines.push(`- **${cfg.abuseHotline.name}:** ${cfg.abuseHotline.number}`)
   return lines.join('\n')
 }
 
-// Generate shelter contacts for any region
+//Generate shelter contacts for any region
 export function shelterContacts(r?: RegionConfig): string {
   const cfg = r || region
   const lines: string[] = []
@@ -610,7 +610,7 @@ export function shelterContacts(r?: RegionConfig): string {
   return lines.join('\n')
 }
 
-// Generate animal welfare contacts for any region
+//Generate animal welfare contacts for any region
 export function animalContacts(r?: RegionConfig): string {
   const cfg = r || region
   return cfg.organizations.animalWelfare
@@ -618,7 +618,7 @@ export function animalContacts(r?: RegionConfig): string {
     .join('\n')
 }
 
-// Generate insurance/uninsured help for any region
+//Generate insurance/uninsured help for any region
 export function insuranceHelp(r?: RegionConfig): string {
   const cfg = r || region
   const lines: string[] = []
@@ -629,13 +629,13 @@ export function insuranceHelp(r?: RegionConfig): string {
   if (cfg.insurance.uninsuredHelp.length > 0) {
     lines.push('\n### If Uninsured')
     for (const h of cfg.insurance.uninsuredHelp) {
-      lines.push(`• **${h.name}:** ${h.detail || ''}`)
+      lines.push(`- **${h.name}:** ${h.detail || ''}`)
     }
   }
   return lines.join('\n')
 }
 
-// Generate support services table (table format — for TRAUMA, GRIEF, etc.)
+//Generate support services table (table format -- for TRAUMA, GRIEF, etc.)
 export function supportTable(r?: RegionConfig): string {
   const cfg = r || region
   const rows: string[] = []
@@ -648,7 +648,7 @@ export function supportTable(r?: RegionConfig): string {
   return rows.join('\n')
 }
 
-// Generate grief/bereavement support table
+//Generate grief/bereavement support table
 export function griefSupportTable(r?: RegionConfig): string {
   const cfg = r || region
   const rows: string[] = []
@@ -664,7 +664,7 @@ export function griefSupportTable(r?: RegionConfig): string {
   return rows.join('\n')
 }
 
-// Generate child support contacts table
+//Generate child support contacts table
 export function childSupportTable(r?: RegionConfig): string {
   const cfg = r || region
   const rows: string[] = []
@@ -675,13 +675,13 @@ export function childSupportTable(r?: RegionConfig): string {
   return rows.join('\n')
 }
 
-// Generate disaster-specific contacts for CONTACTS response
+//Generate disaster-specific contacts for CONTACTS response
 export function disasterContacts(r?: RegionConfig): string {
   const cfg = r || region
   const lines: string[] = []
-  lines.push(`• **${cfg.organizations.redCross.name}:** ${cfg.organizations.redCross.number || 'See website'}`)
+  lines.push(`- **${cfg.organizations.redCross.name}:** ${cfg.organizations.redCross.number || 'See website'}`)
   for (const org of cfg.organizations.disasterRelief) {
-    lines.push(`• **${org.name}:** ${org.number || 'See website'}`)
+    lines.push(`- **${org.name}:** ${org.number || 'See website'}`)
   }
   return lines.join('\n')
 }

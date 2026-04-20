@@ -14,7 +14,7 @@ export class PublicSafetyAlertRules {
     const results: AlertRuleResult[] = []
     const { recentReports, predictions } = context
 
-    // Rule 1: Evacuation needed (highest priority)
+    //Rule 1: Evacuation needed (highest priority)
     const evacuationReports = recentReports.filter(r => r.customFields?.evacuationNeeded === true)
     if (evacuationReports.length >= 1) {
       results.push({
@@ -25,7 +25,7 @@ export class PublicSafetyAlertRules {
       })
     }
 
-    // Rule 2: Public at risk
+    //Rule 2: Public at risk
     const publicAtRiskReports = recentReports.filter(r => r.customFields?.publicAtRisk === true)
     if (publicAtRiskReports.length >= 1) {
       results.push({
@@ -36,7 +36,7 @@ export class PublicSafetyAlertRules {
       })
     }
 
-    // Rule 3: Hazmat incidents
+    //Rule 3: Hazmat incidents
     const hazmatReports = recentReports.filter(r => 
       r.customFields?.incidentType === 'Hazmat'
     )
@@ -49,7 +49,7 @@ export class PublicSafetyAlertRules {
       })
     }
 
-    // Rule 4: Report density threshold
+    //Rule 4: Report density threshold
     if (recentReports.length >= 10) {
       results.push({
         shouldAlert: true,
@@ -73,7 +73,7 @@ export class PublicSafetyAlertRules {
       })
     }
 
-    // Rule 5: Critical severity concentration
+    //Rule 5: Critical severity concentration
     const criticalReports = recentReports.filter(r => r.severity === 'Critical')
     if (criticalReports.length >= 2) {
       results.push({
@@ -84,7 +84,7 @@ export class PublicSafetyAlertRules {
       })
     }
 
-    // Rule 6: Geographic clustering (hotspot detection)
+    //Rule 6: Geographic clustering (hotspot detection)
     const reportsWithLocation = recentReports.filter(r => r.location?.lat && r.location?.lng)
     if (reportsWithLocation.length >= 3) {
       results.push({

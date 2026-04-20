@@ -14,7 +14,7 @@ export class WildfireAlertRules {
     const results: AlertRuleResult[] = []
     const { recentReports, predictions } = context
 
-    // Rule 1: Report density threshold (wildfires are critical at lower counts)
+    //Rule 1: Report density threshold (wildfires are critical at lower counts)
     if (recentReports.length >= 7) {
       results.push({
         shouldAlert: true,
@@ -31,7 +31,7 @@ export class WildfireAlertRules {
       })
     }
 
-    // Rule 2: Evacuation orders
+    //Rule 2: Evacuation orders
     const evacuationReports = recentReports.filter(r => r.customFields?.evacuationOrdered === true)
     if (evacuationReports.length >= 1) {
       results.push({
@@ -42,7 +42,7 @@ export class WildfireAlertRules {
       })
     }
 
-    // Rule 3: Smoke visibility widespread
+    //Rule 3: Smoke visibility widespread
     const smokeReports = recentReports.filter(r => r.customFields?.smokeVisible === true)
     if (smokeReports.length >= 5) {
       results.push({
@@ -53,7 +53,7 @@ export class WildfireAlertRules {
       })
     }
 
-    // Rule 4: Large fire size
+    //Rule 4: Large fire size
     const largeFireReports = recentReports.filter(r => 
       r.customFields?.fireSize && Number(r.customFields.fireSize) >= 100
     )
@@ -66,7 +66,7 @@ export class WildfireAlertRules {
       })
     }
 
-    // Rule 5: ML prediction threshold
+    //Rule 5: ML prediction threshold
     const highRiskPredictions = predictions?.filter(p => p.probability > 0.75)
     if (highRiskPredictions && highRiskPredictions.length > 0) {
       results.push({

@@ -1,5 +1,5 @@
 ﻿/**
- * Public API data pipeline — fetches, normalises, and stores data from EA
+ * Public API data pipeline -- fetches, normalises, and stores data from EA
  * Flood Monitoring, SEPA, Open-Meteo, NASA POWER, NewsAPI, and more.
  * Includes per-source rate limiting, retry with exponential backoff, and
  * region-aware city resolution.
@@ -32,7 +32,7 @@ function getMonitoredLocations(): Array<{ name: string; lat: number; lng: number
     const cities = regionRegistry.getActiveRegion().getMonitoredCities()
     if (cities.length > 0) return cities.map(c => ({ name: c.name, lat: c.lat, lng: c.lng }))
   } catch { /* registry not yet initialized - fall back */ }
-  // Fallback: a few global cities so ingestion still works without a region
+  //Fallback: a few global cities so ingestion still works without a region
   return [
     { name: 'London', lat: 51.51, lng: -0.13 },
     { name: 'New York', lat: 40.71, lng: -74.01 },
@@ -40,7 +40,7 @@ function getMonitoredLocations(): Array<{ name: string; lat: number; lng: number
   ]
 }
 
-// Rate limiting
+//Rate limiting
 const rateLimits: Record<string, { count: number; windowStart: number; max: number }> = {}
 
 function checkRate(source: string, maxPerMin: number): boolean {
@@ -212,7 +212,7 @@ export async function ingestEAFloodData(limit = 200): Promise<IngestionStats> {
   const before = await countRows('river_gauge_readings')
 
   try {
-    // Fetch stations with level measurements
+    //Fetch stations with level measurements
     const stationsUrl = `${EA_FLOOD_API}/id/stations?parameter=level&_limit=${limit}`
     const res = await fetchWithRetry(stationsUrl)
     if (!res.ok) throw new Error(`EA stations API: ${res.status}`)
@@ -230,7 +230,7 @@ export async function ingestEAFloodData(limit = 200): Promise<IngestionStats> {
         const stationRef = station.stationReference || station['@id']?.split('/').pop()
         if (!stationRef || !station.lat || !station.long) continue
 
-        // Fetch latest readings
+        //Fetch latest readings
         const readingsUrl = `${EA_FLOOD_API}/id/stations/${stationRef}/readings?_sorted&_limit=96`
         const readRes = await fetchWithRetry(readingsUrl)
         if (!readRes.ok) continue
@@ -290,17 +290,17 @@ export async function ingestSEPAData(): Promise<IngestionStats> {
   const before = await countRows('river_gauge_readings')
 
   try {
-    // SEPA KiWIS station list
+    //SEPA KiWIS station list
     const stationsUrl = `${SEPA_LEVELS_API}?service=kiWIS&type=queryServices&request=getStationList&datasource=0&format=json`
     const res = await fetchWithRetry(stationsUrl)
     if (!res.ok) throw new Error(`SEPA KiWIS: ${res.status}`)
 
     const data = await res.json() as any
-    // KiWIS returns [header, ...rows]
+    //KiWIS returns [header, ...rows]
     const rows = Array.isArray(data) && data.length > 1 ? data.slice(1) : []
     logger.info({ stationCount: rows.length }, '[Ingestion/SEPA] Found stations')
 
-    // Fetch readings for Scottish stations
+    //Fetch readings for Scottish stations
     for (const row of rows.slice(0, 100)) {
       if (!checkRate('sepa_api', 20)) {
         await new Promise(r => setTimeout(r, 3000))
@@ -314,7 +314,7 @@ export async function ingestSEPAData(): Promise<IngestionStats> {
 
         if (!lat || !lng) continue
 
-        // Fetch time series values
+        //Fetch time series values
         const now = new Date()
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
         const tsUrl = `${SEPA_LEVELS_API}?service=kiWIS&type=queryServices&request=getTimeseriesValues&ts_id=${stationId}&from=${weekAgo.toISOString()}&to=${now.toISOString()}&format=json`
@@ -368,10 +368,10 @@ export async function ingestNASAPowerData(): Promise<IngestionStats> {
   let ingested = 0
   const before = await countRows('climate_observations')
 
-  // Use monitored cities from the active region adapter
+  //Use monitored cities from the active region adapter
   const locations = getMonitoredLocations()
 
-  // Fetch 3 years of daily data
+  //Fetch 3 years of daily data
   const endDate = new Date()
   const startDate = new Date(endDate.getTime() - 3 * 365 * 24 * 60 * 60 * 1000)
   const startStr = startDate.toISOString().slice(0, 10).replace(/-/g, '')
@@ -395,7 +395,7 @@ export async function ingestNASAPowerData(): Promise<IngestionStats> {
       const data = await res.json() as any
       const properties = data.properties?.parameter || {}
 
-      // Extract daily values
+      //Extract daily values
       const dates = Object.keys(properties.T2M || {})
       for (const dateStr of dates) {
         const tMax = properties.T2M_MAX?.[dateStr]
@@ -407,7 +407,7 @@ export async function ingestNASAPowerData(): Promise<IngestionStats> {
         const pressure = properties.PS?.[dateStr]
         const solar = properties.ALLSKY_SFC_SW_DWN?.[dateStr]
 
-        // Skip NASA fill values (-999)
+        //Skip NASA fill values (-999)
         if (tMean === -999 || precip === -999) continue
 
         const obsDate = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`
@@ -464,10 +464,10 @@ export async function ingestOpenMeteoData(): Promise<IngestionStats> {
   let ingested = 0
   const before = await countRows('climate_observations')
 
-  // Use monitored cities from the active region adapter
+  //Use monitored cities from the active region adapter
   const locations = getMonitoredLocations()
 
-  // Open-Meteo historical API - past 2 years
+  //Open-Meteo historical API - past 2 years
   const endDate = new Date()
   const startDate = new Date(endDate.getTime() - 730 * 24 * 60 * 60 * 1000) // 2 years
   const startStr = startDate.toISOString().slice(0, 10)
@@ -541,9 +541,9 @@ export async function ingestUKFloodHistory(): Promise<IngestionStats> {
   let ingested = 0
   const before = await countRows('flood_archives')
 
-  // Historical flood events from EA flood monitoring warnings/areas
+  //Historical flood events from EA flood monitoring warnings/areas
   try {
-    // EA Flood Areas API - areas with historical flooding context
+    //EA Flood Areas API - areas with historical flooding context
     const areasUrl = `${EA_FLOOD_API}/id/floodAreas?_limit=500`
     const res = await fetchWithRetry(areasUrl)
     if (!res.ok) throw new Error(`EA flood areas: ${res.status}`)
@@ -561,7 +561,7 @@ export async function ingestUKFloodHistory(): Promise<IngestionStats> {
         const lat = area.lat || null
         const lng = area.long || null
 
-        // Determine severity from area type
+        //Determine severity from area type
         let severity = 'medium'
         if (notation.startsWith('0')) severity = 'high' // Severe flood warnings
         else if (notation.startsWith('1')) severity = 'high'
@@ -584,7 +584,7 @@ export async function ingestUKFloodHistory(): Promise<IngestionStats> {
       } catch { /* skip duplicates */ }
     }
 
-    // Also fetch active flood warnings for context
+    //Also fetch active flood warnings for context
     const warningsUrl = `${EA_FLOOD_API}/id/floods?_limit=200`
     const wRes = await fetchWithRetry(warningsUrl)
     if (wRes.ok) {
@@ -614,7 +614,7 @@ export async function ingestUKFloodHistory(): Promise<IngestionStats> {
     errors.push(`EA Flood History: ${err.message}`)
   }
 
-  // Add comprehensive UK historical flood events from knowledge base
+  //Add comprehensive UK historical flood events from knowledge base
   const historicalEvents = getUKHistoricalFloodDatabase()
   for (const event of historicalEvents) {
     try {
@@ -651,7 +651,7 @@ export async function ingestUKFloodHistory(): Promise<IngestionStats> {
 /* Comprehensive UK historical flood event database from public government records */
 function getUKHistoricalFloodDatabase() {
   return [
-    // Major UK floods from public records
+    //Major UK floods from public records
     { name: 'Cumbria Floods 2015', date: '2015-12-05', endDate: '2015-12-10', region: 'Cumbria', severity: 'critical', affectedPeople: 16000, damageGbp: 500000000, description: 'Storm Desmond caused record rainfall (341.4mm in 24h at Honister Pass). 5200 homes flooded. Rivers Kent, Derwent, Eden burst banks.', lat: 54.55, lng: -2.75 },
     { name: 'Somerset Levels Floods 2013-14', date: '2013-12-01', endDate: '2014-03-15', region: 'Somerset', severity: 'high', affectedPeople: 7000, damageGbp: 147000000, description: 'Prolonged flooding of Somerset Levels and Moors. 600+ homes flooded. Muchelney village cut off for weeks.', lat: 51.05, lng: -2.80 },
     { name: 'Boscastle Flash Flood 2004', date: '2004-08-16', endDate: '2004-08-17', region: 'Cornwall', severity: 'critical', affectedPeople: 1000, damageGbp: 15000000, description: '200mm of rain in 5 hours. Valency river rose 2m in 1 hour. 50 cars swept to sea. 4 buildings destroyed.', lat: 50.69, lng: -4.69 },
@@ -803,7 +803,7 @@ export async function ingestWikipediaFloodKnowledge(): Promise<IngestionStats> {
       const results = data.query?.search || []
 
       for (const result of results) {
-        // Fetch full extract
+        //Fetch full extract
         try {
           const extractUrl = `${WIKIPEDIA_API}?action=query&pageids=${result.pageid}&prop=extracts|coordinates|categories&exintro=true&explaintext=true&format=json&origin=*`
           const exRes = await fetchWithRetry(extractUrl, {
@@ -953,21 +953,21 @@ export async function runFullIngestion(): Promise<{
 }> {
   logger.info('AEGIS DATA INGESTION PIPELINE - STARTING')
 
-  // Ensure schema
+  //Ensure schema
   await ensureIngestionSchema()
 
-  // Determine active region to gate UK-specific sources
+  //Determine active region to gate UK-specific sources
   const activeRegion = regionRegistry.getActiveRegion()
   const regionMeta = activeRegion.getMetadata()
   const isUK = ['scotland', 'england'].includes(regionMeta.regionId)
 
-  // Run all ingestion sources
+  //Run all ingestion sources
   const sources: IngestionStats[] = []
 
-  // Phase 1: Free APIs that need no key
+  //Phase 1: Free APIs that need no key
   logger.info('[Phase 1] Free APIs (no key required)...')
 
-  // UK-specific sources - only run when active region is UK
+  //UK-specific sources - only run when active region is UK
   if (isUK) {
     sources.push(await ingestEAFloodData(200))
     sources.push(await ingestUKFloodHistory())
@@ -975,26 +975,26 @@ export async function runFullIngestion(): Promise<{
     logger.info('[Phase 1] Skipping UK-specific sources (EA, UK flood history) - active region: %s', regionMeta.regionId)
   }
 
-  // Global sources - always run
+  //Global sources - always run
   sources.push(await ingestOpenMeteoData())
   sources.push(await ingestNASAPowerData())
   sources.push(await ingestWikipediaFloodKnowledge())
 
-  // Phase 2: API-key-gated sources
+  //Phase 2: API-key-gated sources
   logger.info('[Phase 2] API-key sources...')
 
-  // SEPA is Scotland-only
+  //SEPA is Scotland-only
   if (isUK) {
     sources.push(await ingestSEPAData())
   } else {
     logger.info('[Phase 2] Skipping SEPA - active region: %s', regionMeta.regionId)
   }
 
-  // Global sources
+  //Global sources
   sources.push(await ingestNewsArticles())
   sources.push(await ingestOpenWeatherData())
 
-  // Final statistics
+  //Final statistics
   const tables = [
     'reports', 'river_gauge_readings', 'climate_observations',
     'weather_observations', 'flood_archives', 'news_articles',

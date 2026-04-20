@@ -1,7 +1,7 @@
 """
 Downloads the NOAA Oceanic Niño Index (ONI) monthly time-series and saves it
 as data/processed/oni_monthly.csv.  The ONI is a 3-month running mean of
-sea-surface temperature anomaly in the Niño 3.4 region (5°N–5°S, 120°W–170°W)
+sea-surface temperature anomaly in the Niño 3.4 region (5°N-5°S, 120°W-170°W)
 and is the official US government metric for ENSO (El Niño / La Niña) strength.
 
 The enso_index feature in the AEGIS 28-feature schema uses this value.
@@ -117,11 +117,11 @@ def main() -> None:
     args = parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
 
-    print("[1/3] Downloading NOAA ONI table …")
+    print("[1/3] Downloading NOAA ONI table ...")
     df = fetch_oni_noaa(ONI_URL_PRIMARY)
 
     if df is None or df.empty:
-        print("  Primary source failed. Trying backup …")
+        print("  Primary source failed. Trying backup ...")
         df = fetch_oni_noaa(ONI_URL_BACKUP)
 
     if df is None or df.empty:
@@ -130,10 +130,10 @@ def main() -> None:
         rows = [{"year": y, "month": m, "oni": 0.0} for y in years for m in range(1, 13)]
         df = pd.DataFrame(rows)
 
-    print(f"[2/3] Filling gaps and sorting …")
+    print(f"[2/3] Filling gaps and sorting ...")
     df = fill_gaps(df)
 
-    print(f"[3/3] Saving to {args.output} ({len(df):,} rows) …")
+    print(f"[3/3] Saving to {args.output} ({len(df):,} rows) ...")
     df.to_csv(str(args.output), index=False)
     print("Done.  This file is consumed by scripts/features/build_master_dataset.py")
     print(f"  Date range: {df['year'].min()}-{df['month'].min():02d} → "

@@ -151,7 +151,7 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
       .then((data: any) => {
         const arr = Array.isArray(data) ? data : (data?.data ?? [])
         const serverReports = arr.map((report: any) => normalizeServerReport(report))
-        // Merge: preserve any optimistically-added reports not yet returned by server
+        //Merge: preserve any optimistically-added reports not yet returned by server
         // (e.g. submitted just before this fetch completed, or server cache not yet invalidated)
         setRawReports(prev => {
           const serverIds = new Set(serverReports.map((r: Report) => r.id))
@@ -161,7 +161,7 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
       })
       .catch((error: any) => {
         console.warn('[ReportsContext] Failed to fetch from server, starting with empty list:', error.message)
-        // On error, keep existing state rather than wiping to empty
+        //On error, keep existing state rather than wiping to empty
       })
       .finally(() => setLoading(false))
   }, [])
@@ -170,11 +170,11 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
     fetchReports()
   }, [fetchReports])
 
-  // Polling fallback: re-fetch every 30s when the socket is not connected.
-  // This ensures anonymous users and users whose socket hasn't yet authenticated
+  //Polling fallback: re-fetch every 30s when the socket is not connected.
+  //This ensures anonymous users and users whose socket hasn't yet authenticated
   // (latent silent-refresh) still see live counts without needing a socket event.
   useEffect(() => {
-    if (sharedSocket.connected) return   // socket is live — no need to poll
+    if (sharedSocket.connected) return   // socket is live -- no need to poll
     const id = setInterval(fetchReports, 30_000)
     return () => clearInterval(id)
   }, [sharedSocket.connected, fetchReports])
@@ -207,9 +207,9 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
       setRawReports((prev) => {
         const existingIdx = prev.findIndex((r) => r.id === newReport.id)
         if (existingIdx !== -1) {
-          // Report already exists (optimistic update or prior fetch).
-          // Merge in media data from the socket broadcast — the socket version
-          // carries the authoritative media URLs that the public API omits.
+          //Report already exists (optimistic update or prior fetch).
+          //Merge in media data from the socket broadcast -- the socket version
+          //carries the authoritative media URLs that the public API omits.
           const existing = prev[existingIdx]
           const hasNewMedia = (newReport.media?.length ?? 0) > 0 || !!newReport.mediaUrl
           const hasCachedMedia = (existing.media?.length ?? 0) > 0 || !!existing.mediaUrl
@@ -275,7 +275,7 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
 
     const created = (await apiSubmitReport(formData)) as NewReportResponse | null
 
-    // Resolve the reporter name from the citizen JWT stored in localStorage
+    //Resolve the reporter name from the citizen JWT stored in localStorage
     let reporterName = 'Anonymous Citizen'
     try {
       const raw = getCitizenToken()
@@ -283,7 +283,7 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
         const payload = JSON.parse(atob(raw.split('.')[1]))
         if (payload?.displayName) reporterName = payload.displayName
       }
-    } catch { /* ignore — malformed token */ }
+    } catch { /* ignore -- malformed token */ }
 
     const newReport: Report = {
       ...input,
@@ -298,23 +298,23 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
       locationMetadata: input.locationMetadata || null,
     } as Report
 
-    // Optimistically prepend the new report so stats update immediately in the UI,
-    // then do a background refresh to get the authoritative server-side record.
+    //Optimistically prepend the new report so stats update immediately in the UI,
+    //then do a background refresh to get the authoritative server-side record.
     setRawReports(prev => prev.some(r => r.id === newReport.id) ? prev : [newReport, ...prev])
     fetchReports()
 
     return newReport
   }, [fetchReports])
 
-  // Optimistic update helper: applies status locally, rolls back on API failure
+  //Optimistic update helper: applies status locally, rolls back on API failure
   const optimisticStatusUpdate = useCallback((id: string, newStatus: string) => {
     setRawReports((prev) => {
       const original = prev.find(r => r.id === id)
       if (!original) return prev
       const oldStatus = original.status
-      // Apply optimistic update
+      //Apply optimistic update
       const updated = prev.map((report) => (report.id === id ? { ...report, status: newStatus as Report['status'] } : report))
-      // Fire API call, rollback on failure
+      //Fire API call, rollback on failure
       apiUpdateReportStatus(id, newStatus).catch((err) => {
         console.error(`[Reports] Failed to update report ${id} to ${newStatus}:`, err.message)
         setRawReports((cur) => cur.map((report) => (report.id === id ? { ...report, status: oldStatus } : report)))
@@ -386,7 +386,7 @@ const REPORTS_DEFAULTS: ReportsContextType = {
 export function useReports(): ReportsContextType {
   const context = useContext(ReportsContext)
   if (!context) {
-    if (import.meta.env.DEV) console.warn('[Reports] Context unavailable — returning safe defaults.')
+    if (import.meta.env.DEV) console.warn('[Reports] Context unavailable -- returning safe defaults.')
     return REPORTS_DEFAULTS
   }
   return context

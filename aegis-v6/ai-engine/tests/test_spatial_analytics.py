@@ -1,9 +1,9 @@
 """
-Unit tests for the SpatialAnalyticsService — validates:
-  • Haversine distance computation
-  • Evacuation corridor generation (bearing, compass, travel time)
-  • Polygon area estimation
-  • Bearing-to-compass conversion
+Unit tests for the SpatialAnalyticsService -- validates:
+  - Haversine distance computation
+  - Evacuation corridor generation (bearing, compass, travel time)
+  - Polygon area estimation
+  - Bearing-to-compass conversion
 """
 
 import sys
@@ -17,7 +17,7 @@ if str(AI_ROOT) not in sys.path:
     sys.path.insert(0, str(AI_ROOT))
 
 
-# ── Haversine ──────────────────────────────────────────────────────────────
+# Haversine
 
 
 class TestHaversine:
@@ -28,7 +28,7 @@ class TestHaversine:
         assert _haversine_m(51.5, -0.1, 51.5, -0.1) == 0.0
 
     def test_london_to_edinburgh(self):
-        """London ↔ Edinburgh ≈ 534 km (within ±5 km)."""
+        """London <-> Edinburgh ≈ 534 km (within ±5 km)."""
         from app.services.spatial_analytics import _haversine_m
         d = _haversine_m(51.5074, -0.1278, 55.9533, -3.1883)
         assert 529_000 < d < 539_000, f"Expected ~534 km, got {d/1000:.1f} km"
@@ -46,7 +46,7 @@ class TestHaversine:
         assert 19_900_000 < d < 20_100_000
 
 
-# ── Bearing to compass ─────────────────────────────────────────────────────
+# Bearing to compass
 
 
 class TestBearingToCompass:
@@ -72,7 +72,7 @@ class TestBearingToCompass:
         assert _bearing_to_compass(315) == "NW"
 
 
-# ── Evacuation corridors ──────────────────────────────────────────────────
+# Evacuation corridors
 
 
 class TestEvacuationCorridors:
@@ -117,7 +117,7 @@ class TestEvacuationCorridors:
         assert corridors[0]["distance_m"] < corridors[1]["distance_m"]
 
     def test_travel_time_calculation(self):
-        """Travel time at 30 km/h: 3000 m → 6.0 min."""
+        """Travel time at 30 km/h: 3000 m -> 6.0 min."""
         from app.services.spatial_analytics import _compute_evacuation_corridors
         facilities = {
             "hospital": [
@@ -136,12 +136,12 @@ class TestEvacuationCorridors:
             "fire_station": [{"name": f"F{i}", "lat": 51.5 + i*0.01, "lon": -0.1, "distance_m": i*100} for i in range(5)],
             "police": [{"name": f"P{i}", "lat": 51.5 + i*0.01, "lon": -0.1, "distance_m": i*100} for i in range(5)],
         }
-        # Each type capped at 3 → 9 max, but final cap is 10
+        # Each type capped at 3 -> 9 max, but final cap is 10
         corridors = _compute_evacuation_corridors(51.5, -0.1, facilities, None)
         assert len(corridors) <= 10
 
 
-# ── Polygon area ───────────────────────────────────────────────────────────
+# Polygon area
 
 
 class TestPolygonArea:

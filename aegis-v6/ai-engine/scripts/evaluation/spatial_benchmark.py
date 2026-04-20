@@ -2,26 +2,26 @@
 Benchmarks the AEGIS spatial analytics services against ground-truth
 data from past UK flood events to validate:
 
-  1. Flood extent accuracy  — IoU (Intersection over Union) between
+  1. Flood extent accuracy  -- IoU (Intersection over Union) between
                               AEGIS satellite-derived polygon and validated
                               EA/SEPA flood extent polygons for 12 historic events
-  2. Population exposure    — % error vs. official post-event impact assessments
-  3. Isochrone accuracy     — mean absolute error (minutes) vs. actual driving
+  2. Population exposure    -- % error vs. official post-event impact assessments
+  3. Isochrone accuracy     -- mean absolute error (minutes) vs. actual driving
                               times measured from OpenStreetMap routing
-  4. Facility proximity     — recall @ 5 km for hospitals and fire stations
+  4. Facility proximity     -- recall @ 5 km for hospitals and fire stations
 
 Ground-truth data:
-  data/validation/flood_extents_validated.geojson  — 12 historic EA extents
-  data/validation/population_impact.csv             — official impact figures
-  data/validation/osm_drive_times.csv               — sample driving times
+  data/validation/flood_extents_validated.geojson  -- 12 historic EA extents
+  data/validation/population_impact.csv             -- official impact figures
+  data/validation/osm_drive_times.csv               -- sample driving times
 
 Output:
   reports/spatial_benchmark.csv
   reports/spatial_benchmark_summary.md
 
-  Uses ← app/services/satellite_flood_extent.py
-       ← app/services/spatial_analytics.py
-  Reads ← data/validation/
+  Uses <- app/services/satellite_flood_extent.py
+       <- app/services/spatial_analytics.py
+  Reads <- data/validation/
 
 Usage:
   python scripts/evaluation/spatial_benchmark.py
@@ -53,7 +53,7 @@ VAL_DIR    = _AI_ROOT / "data" / "validation"
 REPORT_DIR = _AI_ROOT / "reports"
 sys.path.insert(0, str(_AI_ROOT))
 
-# ─── Ground-truth event definitions (inline for reproducibility) ───────────
+# Ground-truth event definitions (inline for reproducibility)
 # Validated EA / SEPA flood extents from public open-data archive.
 # bbox: (lon_min, lat_min, lon_max, lat_max), area_km2: true flooded area
 
@@ -127,7 +127,7 @@ async def benchmark_flood_extents(n_events: int) -> pd.DataFrame:
         pred_area    = result.get("flood_area_km2", 0.0)
         pred_pop     = result.get("population_exposed", 0)
 
-        # IoU (synthetic polygon won't have real extent — this is a CI/CD smoke test)
+        # IoU (synthetic polygon won't have real extent -- this is a CI/CD smoke test)
         pred_geom = geojson_to_shapely(pred_geojson) if pred_geojson else None
         # Build a rough circular true extent for comparison
         import math
@@ -213,22 +213,22 @@ def write_markdown_summary(extents_df: pd.DataFrame, spatial_df: pd.DataFrame, o
         spatial_df.to_markdown(index=False),
     ]
     out.write_text("\n".join(lines))
-    print(f"  Markdown → {out}")
+    print(f"  Markdown -> {out}")
 
 
 async def main(args: argparse.Namespace) -> None:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("[1/3] Benchmarking flood extent mapping …")
+    print("[1/3] Benchmarking flood extent mapping ...")
     extents_df = await benchmark_flood_extents(args.events)
 
-    print("[2/3] Benchmarking spatial analytics …")
+    print("[2/3] Benchmarking spatial analytics ...")
     spatial_df = await benchmark_spatial_analytics()
 
-    print("[3/3] Writing outputs …")
+    print("[3/3] Writing outputs ...")
     combined = pd.concat([extents_df, spatial_df], ignore_index=True, sort=False)
     combined.to_csv(str(REPORT_DIR / "spatial_benchmark.csv"), index=False)
-    print(f"  CSV → {REPORT_DIR / 'spatial_benchmark.csv'}")
+    print(f"  CSV -> {REPORT_DIR / 'spatial_benchmark.csv'}")
     write_markdown_summary(extents_df, spatial_df, REPORT_DIR / "spatial_benchmark_summary.md")
 
     print(f"\n  Summary: mean IoU={extents_df['iou'].mean():.3f}  "

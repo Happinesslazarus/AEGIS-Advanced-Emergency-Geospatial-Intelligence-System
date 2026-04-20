@@ -19,7 +19,7 @@ import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { apiGetSpatialDensity, apiFetch } from '../../utils/api'
 
-// Type definitions.
+//Type definitions.
 interface DensityZone {
   id: string
   name: string
@@ -41,7 +41,7 @@ type ViewMode = 'list' | 'grid' | 'chart'
 type SortKey = 'density' | 'name' | 'trend' | 'risk' | 'reports'
 type FilterLevel = 'all' | 'low' | 'moderate' | 'high' | 'critical'
 
-// Display settings and risk styling.
+//Display settings and risk styling.
 const RISK_CONFIG = {
   low:      { labelKey: 'common.low', bg: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-200/60 dark:border-emerald-800/40', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500', hex: '#10b981', ring: 'ring-emerald-400/50' },
   moderate: { labelKey: 'common.moderate', bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-200/60 dark:border-amber-800/40', text: 'text-amber-700 dark:text-amber-300', dot: 'bg-amber-500', hex: '#f59e0b', ring: 'ring-amber-400/50' },
@@ -57,7 +57,7 @@ const PEAK_HOURS: Record<number, string> = {
   21: 'settling', 22: 'quiet', 23: 'quiet',
 }
 
-// Small helpers that keep the main component readable.
+//Small helpers that keep the main component readable.
 function getRiskLevel(d: number): DensityZone['riskLevel'] {
   if (d < 30) return 'low'
   if (d < 55) return 'moderate'
@@ -126,7 +126,7 @@ function clusterPoints(points: { lat: number; lng: number; intensity: number }[]
       const crowdEstimate = Math.round(density * (capacity / 100))
       const trends: DensityZone['trend'][] = ['rising', 'falling', 'stable']
 
-      // Generate realistic history based on actual density
+      //Generate realistic history based on actual density
       const history: number[] = []
       let v = Math.max(5, density - 20 + Math.round(Math.random() * 10))
       for (let j = 0; j < 8; j++) {
@@ -154,7 +154,7 @@ function clusterPoints(points: { lat: number; lng: number; intensity: number }[]
     })
 }
 
-// Small chart components used inside the cards.
+//Small chart components used inside the cards.
 function Sparkline({ data, color, width = 64, height = 22 }: { data: number[]; color: string; width?: number; height?: number }) {
   if (data.length < 2) return null
   const max = Math.max(...data, 1)
@@ -233,7 +233,7 @@ function DistributionBar({ zones, lang }: { zones: DensityZone[]; lang: string }
   )
 }
 
-// Grid view.
+//Grid view.
 function HeatmapGrid({ zones, selectedZone, onSelect, lang }: { zones: DensityZone[]; selectedZone: string | null; onSelect: (id: string | null) => void; lang: string }) {
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-4">
@@ -267,7 +267,7 @@ function HeatmapGrid({ zones, selectedZone, onSelect, lang }: { zones: DensityZo
   )
 }
 
-// Chart view.
+//Chart view.
 function ChartView({ zones, lang }: { zones: DensityZone[]; lang: string }) {
   return (
     <div className="p-4 space-y-2">
@@ -305,12 +305,12 @@ function ChartView({ zones, lang }: { zones: DensityZone[]; lang: string }) {
   )
 }
 
-// MAIN COMPONENT
+//MAIN COMPONENT
 
 export default function AdminCrowdDensity(): JSX.Element {
   const lang = useLanguage()
 
-  // State
+  //State
   const [zones, setZones] = useState<DensityZone[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -326,12 +326,12 @@ export default function AdminCrowdDensity(): JSX.Element {
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Data Fetching
+  //Data Fetching
   const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      // Try real API first
+      //Try real API first
       const result = await apiGetSpatialDensity()
       if (result.points && result.points.length > 0) {
         const clustered = clusterPoints(result.points, lang)
@@ -339,7 +339,7 @@ export default function AdminCrowdDensity(): JSX.Element {
         setDataSource('api')
         setPointCount(result.point_count)
       } else {
-        // Build fallback zones from report locations if the density endpoint is empty.
+        //Build fallback zones from report locations if the density endpoint is empty.
         const reports: any[] = await apiFetch('/api/reports?status=verified,urgent,flagged&limit=100')
         const reportArray = Array.isArray(reports) ? reports : (reports as any)?.reports || []
         if (reportArray.length > 0) {
@@ -364,7 +364,7 @@ export default function AdminCrowdDensity(): JSX.Element {
       }
       setLastRefresh(new Date())
     } catch {
-      // Keep the screen usable when the live endpoint is unavailable.
+      //Keep the screen usable when the live endpoint is unavailable.
       generateSyntheticData()
       setLastRefresh(new Date())
     }
@@ -414,14 +414,14 @@ export default function AdminCrowdDensity(): JSX.Element {
     setPointCount(0)
   }, [])
 
-  // Initial load + auto refresh
+  //Initial load + auto refresh
   useEffect(() => {
     loadData()
     autoRefreshRef.current = setInterval(loadData, 120000)
     return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current) }
   }, [loadData])
 
-  // Refresh timer display
+  //Refresh timer display
   useEffect(() => {
     if (!lastRefresh) return
     const tick = () => setRefreshAgo(formatRefreshAgo(lastRefresh, lang))
@@ -430,7 +430,7 @@ export default function AdminCrowdDensity(): JSX.Element {
     return () => { if (refreshTimerRef.current) clearInterval(refreshTimerRef.current) }
   }, [lang, lastRefresh])
 
-  // Computed
+  //Computed
   const summary = useMemo(() => {
     const critical = zones.filter(z => z.riskLevel === 'critical').length
     const high = zones.filter(z => z.riskLevel === 'high').length
@@ -478,7 +478,7 @@ export default function AdminCrowdDensity(): JSX.Element {
     URL.revokeObjectURL(url)
   }, [zones])
 
-  // Render
+  //Render
   return (
     <div className="space-y-5 animate-fade-in">
       <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 rounded-2xl shadow-2xl overflow-hidden relative">
@@ -505,13 +505,13 @@ export default function AdminCrowdDensity(): JSX.Element {
                     <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full border ${
                       dataSource === 'api' ? 'text-cyan-300 bg-cyan-500/20 border-cyan-400/30' : 'text-amber-300 bg-amber-500/20 border-amber-400/30'
                     }`}>
-                      {dataSource === 'api' ? `${t('crowd.realData', lang)} · ${pointCount} ${t('crowd.pointsShort', lang)}` : t('crowd.syntheticData', lang)}
+                      {dataSource === 'api' ? `${t('crowd.realData', lang)} - ${pointCount} ${t('crowd.pointsShort', lang)}` : t('crowd.syntheticData', lang)}
                     </span>
                   )}
                 </div>
                 <p className="text-white/50 text-xs mt-0.5">
                   {t('crowd.subtitle', lang)}
-                  {refreshAgo && <span className="text-white/30"> · {refreshAgo}</span>}
+                  {refreshAgo && <span className="text-white/30"> - {refreshAgo}</span>}
                 </p>
               </div>
             </div>

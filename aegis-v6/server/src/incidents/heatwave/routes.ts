@@ -8,7 +8,7 @@ import { Router, Request, Response } from 'express'
 import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 
 export function setupHeatwaveRoutes(router: Router): void {
-  // GET /temperature-forecast — temperature forecast
+  //GET /temperature-forecast -- temperature forecast
   router.get('/temperature-forecast', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
@@ -25,7 +25,7 @@ export function setupHeatwaveRoutes(router: Router): void {
     }
   })
 
-  // GET /cooling-centers — cooling center locations
+  //GET /cooling-centers -- cooling center locations
   router.get('/cooling-centers', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
@@ -40,7 +40,7 @@ export function setupHeatwaveRoutes(router: Router): void {
     }
   })
 
-  // GET /heat-index — current heat index
+  //GET /heat-index -- current heat index
   router.get('/heat-index', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)

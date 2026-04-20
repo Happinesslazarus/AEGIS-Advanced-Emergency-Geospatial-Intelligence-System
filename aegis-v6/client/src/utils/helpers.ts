@@ -17,16 +17,16 @@
 import type { SeverityLevel, ReportStatus } from '../types'
 import { t } from './i18n'
 
-// API_BASE — centralised API base URL
+//API_BASE -- centralised API base URL
 
 export const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || ''
 
-// TIME UTILITIES
+//TIME UTILITIES
 
-/* Relative time string — e.g. "just now", "5m ago", "3h ago", "2d ago" */
+/* Relative time string -- e.g. "just now", "5m ago", "3h ago", "2d ago" */
 export function timeAgo(dateStr: string | undefined | null): string {
   if (!dateStr) return 'Unknown'
-  // diff = milliseconds since the event; divides to minutes, hours, days.
+  //diff = milliseconds since the event; divides to minutes, hours, days.
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)    // 60 000 ms = 1 minute
   if (mins < 1) return 'just now'
@@ -37,7 +37,7 @@ export function timeAgo(dateStr: string | undefined | null): string {
   return `${days}d ago`
 }
 
-/* Compact relative time — "now", "5m", "3h", "2d" (no "ago" suffix) */
+/* Compact relative time -- "now", "5m", "3h", "2d" (no "ago" suffix) */
 export function timeAgoCompact(dateStr: string | undefined | null): string {
   if (!dateStr) return ''
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -50,10 +50,10 @@ export function timeAgoCompact(dateStr: string | undefined | null): string {
   return `${days}d`
 }
 
-// PASSWORD STRENGTH
-// Scoring rubric (1 point each — max 5):
-//   length ≥ 8, length ≥ 12, has uppercase, has digit, has special character.
-// Totals map to colour-coded strength labels used in the password-change form.
+//PASSWORD STRENGTH
+//Scoring rubric (1 point each -- max 5):
+//  length ≥ 8, length ≥ 12, has uppercase, has digit, has special character.
+//Totals map to colour-coded strength labels used in the password-change form.
 export function getPasswordStrength(pw: string, lang = 'en'): { score: number; label: string; color: string } {
   let score = 0
   if (pw.length >= 8) score++
@@ -68,7 +68,7 @@ export function getPasswordStrength(pw: string, lang = 'en'): { score: number; l
   return { score, label: t('citizen.auth.password.veryStrong', lang), color: 'bg-emerald-500' }
 }
 
-// EXISTING STYLE HELPERS
+//EXISTING STYLE HELPERS
 
 export function getSeverityClass(severity: SeverityLevel | string): string {
   const map: Record<string, string> = {
@@ -111,7 +111,7 @@ export function getConfidenceColor(confidence: number): string {
 
 export function truncate(str: string, len = 80): string {
   if (!str) return ''
-  return str.length > len ? str.slice(0, len) + '…' : str
+  return str.length > len ? str.slice(0, len) + '...' : str
 }
 
 /* Escape user-controlled strings before interpolating into HTML templates. */

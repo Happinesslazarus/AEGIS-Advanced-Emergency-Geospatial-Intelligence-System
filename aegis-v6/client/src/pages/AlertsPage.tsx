@@ -8,9 +8,9 @@
  * - Also calls GET /api/alerts directly for extended history
  * - AlertSubscribe component handles push/email notification opt-in
  *
- * - client/src/contexts/AlertsContext.tsx       — real-time alert state
- * - client/src/components/shared/AlertCard.tsx  — individual alert display card
- * - server/src/routes/dataRoutes.ts             — alerts API endpoints
+ * - client/src/contexts/AlertsContext.tsx       -- real-time alert state
+ * - client/src/components/shared/AlertCard.tsx  -- individual alert display card
+ * - server/src/routes/dataRoutes.ts             -- alerts API endpoints
  */
 
 import { useState, useEffect, useMemo, useRef } from 'react'
@@ -117,8 +117,8 @@ function getDisasterIcon(type: string): React.ElementType {
   return DISASTER_ICONS[type?.toLowerCase()] || DISASTER_ICONS.default
 }
 
-// Human-readable "X mins ago" relative timestamps.
-// Returns localised strings via the i18n t() helper.
+//Human-readable "X mins ago" relative timestamps.
+//Returns localised strings via the i18n t() helper.
 function formatTimeAgo(timestamp: string, lang: string): string {
   const now = new Date()
   const then = new Date(timestamp)
@@ -152,15 +152,15 @@ export default function AlertsPage(): JSX.Element {
     setRefreshing(false)
   }
 
-  // Re-fetch alerts whenever the user's active location changes (new area may have different active alerts).
+  //Re-fetch alerts whenever the user's active location changes (new area may have different active alerts).
   useEffect(() => { refreshAlerts() }, [activeLocation, refreshAlerts])
 
-  // Severity sort order: lower number = higher priority.
-  // Used to sort alerts by danger level rather than just recency.
+  //Severity sort order: lower number = higher priority.
+  //Used to sort alerts by danger level rather than just recency.
   const severityOrder: Record<string, number> = { critical: 0, high: 1, warning: 2, medium: 3, info: 4, low: 5 }
 
-  // Apply severity filter, text search, and sort in a single memoised pass.
-  // Only active alerts are shown; resolved/expired ones are excluded.
+  //Apply severity filter, text search, and sort in a single memoised pass.
+  //Only active alerts are shown; resolved/expired ones are excluded.
   const filteredAlerts = useMemo(() => {
     let result = alerts.filter(a => a.active)
 
@@ -185,7 +185,7 @@ export default function AlertsPage(): JSX.Element {
     return result
   }, [alerts, filterSeverity, searchQuery, sortBy])
 
-  // Count alerts per severity level for the filter tab badges.
+  //Count alerts per severity level for the filter tab badges.
   const severityCounts = useMemo(() => {
     const counts: Record<string, number> = { all: 0, critical: 0, high: 0, warning: 0, medium: 0, info: 0, low: 0 }
     alerts.filter(a => a.active).forEach(a => {
@@ -195,7 +195,7 @@ export default function AlertsPage(): JSX.Element {
     return counts
   }, [alerts])
 
-  // Header gradient shifts to red when there are critical/high alerts to convey urgency.
+  //Header gradient shifts to red when there are critical/high alerts to convey urgency.
   const criticalCount = (severityCounts.critical || 0) + (severityCounts.high || 0)
 
   return (

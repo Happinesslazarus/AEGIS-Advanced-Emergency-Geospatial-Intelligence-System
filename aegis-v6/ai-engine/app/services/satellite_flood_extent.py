@@ -7,7 +7,7 @@ Processing steps:
   1. Fetch a pre-event and post-event image pair from Copernicus Open Access Hub
      (or local cache) for the given bounding box and date range.
   2. Compute the backscatter change (SAR) or NDWI change (optical) raster.
-  3. Threshold + morphological cleanup → binary flood mask.
+ 3. Threshold + morphological cleanup -> binary flood mask.
   4. Vectorise the mask to a GeoJSON polygon via rasterio / shapely.
   5. Intersect with population grid (WorldPop 100m) to estimate exposures.
   6. Return structured result and save to uploads/.
@@ -18,7 +18,7 @@ Supports offline fallback:
   something useful.
 
 Glossary:
-  SAR          = Synthetic Aperture Radar; penetrates clouds — essential for
+  SAR          = Synthetic Aperture Radar; penetrates clouds -- essential for
                  flood mapping because floods happen during stormy/cloudy weather
   NDWI         = Normalised Difference Water Index = (Green - NIR) / (Green + NIR);
                  positive = water present; used with optical/Sentinel-2
@@ -28,11 +28,11 @@ Glossary:
   backscatter  = the amount of radar energy reflected back to the satellite;
                  water has very low backscatter (appears black in SAR images)
 
-  Called by  ← app/routers/predict.py after a flood incident is confirmed
-             ← scripts/evaluation/spatial_benchmark.py for offline benchmarking
-  Uses       ← Copernicus Hub (SENTINEL_USER / SENTINEL_PASS env vars)
-  Writes to  → uploads/flood_extents/<incident_id>.geojson
-             → uploads/flood_extents/<incident_id>_population.json
+ Called by <- app/routers/predict.py after a flood incident is confirmed
+ <- scripts/evaluation/spatial_benchmark.py for offline benchmarking
+ Uses <- Copernicus Hub (SENTINEL_USER / SENTINEL_PASS env vars)
+ Writes to -> uploads/flood_extents/<incident_id>.geojson
+ -> uploads/flood_extents/<incident_id>_population.json
 
 Usage (programmatic):
   from app.services.satellite_flood_extent import SatelliteFloodExtent
@@ -62,7 +62,7 @@ _AI_ROOT   = Path(__file__).resolve().parents[2]
 UPLOAD_DIR = _AI_ROOT.parent.parent / "uploads" / "flood_extents"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# ── Lazy imports for heavy optional dependencies ───────────────────────────
+# Lazy imports for heavy optional dependencies
 def _lazy_numpy():
     import numpy; return numpy
 
@@ -92,7 +92,6 @@ class SatelliteFloodExtent:
     Maps flood extent from SAR or optical Sentinel imagery.
 
     Attributes
-    ----------
     sentinel_user : Copernicus Open Access Hub username (env SENTINEL_USER)
     sentinel_pass : Copernicus Open Access Hub password (env SENTINEL_PASS)
     use_offline   : if no credentials or download fails, use synthetic polygon
@@ -106,7 +105,7 @@ class SatelliteFloodExtent:
         self.use_offline   = not (self.sentinel_user and self.sentinel_pass)
         if self.use_offline:
             logger.warning(
-                "SENTINEL_USER / SENTINEL_PASS not set — "
+                "SENTINEL_USER / SENTINEL_PASS not set -- "
                 "flood extent will use synthetic fallback polygons."
             )
 
@@ -132,7 +131,7 @@ class SatelliteFloodExtent:
             )
             return result
         except Exception as exc:
-            logger.warning(f"Satellite mapping failed ({exc}) — using fallback")
+            logger.warning(f"Satellite mapping failed ({exc}) -- using fallback")
             return self._synthetic_result(bbox, event_date, incident_id)
 
     def _blocking_map_extent(
@@ -161,7 +160,7 @@ class SatelliteFloodExtent:
         footprint = f"POLYGON(({bbox[0]} {bbox[1]},{bbox[2]} {bbox[1]}," \
                     f"{bbox[2]} {bbox[3]},{bbox[0]} {bbox[3]},{bbox[0]} {bbox[1]}))"
 
-        # ── Search for Sentinel-1 GRD products ────────────────────────────
+        # Search for Sentinel-1 GRD products
         pre_products  = api.query(
             area=footprint,
             date=(pre_start.strftime("%Y%m%d"), pre_end.strftime("%Y%m%d")),
@@ -175,10 +174,10 @@ class SatelliteFloodExtent:
             producttype="GRD",
         )
 
-        # ── Sentinel-2 NDWI fallback if no SAR available ─────────────────
+        # Sentinel-2 NDWI fallback if no SAR available
         use_ndwi = False
         if not pre_products or not post_products:
-            logger.info("No Sentinel-1 scenes — trying Sentinel-2 NDWI fallback")
+            logger.info("No Sentinel-1 scenes -- trying Sentinel-2 NDWI fallback")
             pre_products = api.query(
                 area=footprint,
                 date=(pre_start.strftime("%Y%m%d"), pre_end.strftime("%Y%m%d")),
@@ -197,7 +196,7 @@ class SatelliteFloodExtent:
                 raise RuntimeError("No Sentinel-1 or Sentinel-2 scenes found")
             use_ndwi = True
 
-        # Pick least-cloudy product (GRD has no clouds — pick smallest/fastest)
+        # Pick least-cloudy product (GRD has no clouds -- pick smallest/fastest)
         pre_id  = list(pre_products.keys())[0]
         post_id = list(post_products.keys())[0]
 
@@ -281,7 +280,7 @@ class SatelliteFloodExtent:
             mask = binary_opening(mask, iterations=2)
             mask = binary_closing(mask, iterations=2)
         except ImportError:
-            pass   # scipy not available — return raw mask
+            pass   # scipy not available -- return raw mask
         return mask.astype("uint8")
 
     def _mask_to_geojson(self, flood_mask, reference_tif_path: Path) -> dict:
@@ -303,7 +302,7 @@ class SatelliteFloodExtent:
                 flood_poly = s if flood_poly is None else flood_poly.union(s)
 
         if flood_poly is None:
-            # Empty extent — return point geometry as degenerate flood area
+            # Empty extent -- return point geometry as degenerate flood area
             flood_poly = shape_fn({"type": "Point", "coordinates": [0, 0]})
 
         return {
@@ -392,7 +391,7 @@ class SatelliteFloodExtent:
                 "geometry": {"type": "Polygon", "coordinates": [coords]},
                 "properties": {
                     "type":    "flood_extent_synthetic",
-                    "note":    "Synthetic fallback — no Copernicus credentials",
+                    "note":    "Synthetic fallback -- no Copernicus credentials",
                 },
             }],
         }

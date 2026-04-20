@@ -20,7 +20,7 @@ import { getLanguage, t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { API_BASE } from '../../utils/helpers'
 
-// API_BASE imported from ../../utils/helpers
+//API_BASE imported from ../../utils/helpers
 
 /* Emoji Data */
 const EMOJI_CATEGORIES = [
@@ -94,7 +94,7 @@ interface ChatMsg {
   deleted_at?: string | null
   edited_at?: string | null
   read_by?: Array<{ user_id: string; user_type: string; read_at: string }>
-  // Deletion audit fields
+  //Deletion audit fields
   deleted_by?: string | null
   deleted_by_name?: string | null
   delete_reason?: string | null
@@ -319,7 +319,7 @@ function ReportDialog({ onSubmit, onCancel }: {
   )
 }
 
-// Main exported component
+//Main exported component
 export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Socket | null } = {}): JSX.Element {
   const { user: citizenUser, token: citizenToken } = useCitizenAuth()
   const location = useLocation()
@@ -332,16 +332,16 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
   const activeToken = isAdminPage
     ? (adminToken || citizenToken || '')
     : (citizenToken || adminToken || '')
-  // Treat all non-citizen roles as staff/operator in community chat
+  //Treat all non-citizen roles as staff/operator in community chat
   const isAdmin = !!user && !['citizen', 'verified_citizen', 'community_leader'].includes(String(user?.role || '').toLowerCase())
   const userRole = user?.role || 'citizen'
 
-  // Use shared socket from existing useSocket hook (only for admin, when no parentSocket)
+  //Use shared socket from existing useSocket hook (only for admin, when no parentSocket)
   const { socket: hookSocket, connected: hookConnected, connect: hookConnect } = useSharedSocket()
   const [socket, setSocket] = useState<Socket | null>(null)
   const [connected, setConnected] = useState(false)
 
-  // State
+  //State
   const [messages, setMessages] = useState<ChatMsg[]>([])
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([])
   const [typingUsers, setTypingUsers] = useState<TypingInfo[]>([])
@@ -352,32 +352,32 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
   const [showScrollDown, setShowScrollDown] = useState(false)
   const [joined, setJoined] = useState(false)
 
-  // Image upload state
+  //Image upload state
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
 
-  // Reply state
+  //Reply state
   const [replyTo, setReplyTo] = useState<ChatMsg | null>(null)
 
-  // Emoji picker
+  //Emoji picker
   const [showEmoji, setShowEmoji] = useState(false)
 
-  // Lightbox
+  //Lightbox
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
-  // Edit state (FIX #3d)
+  //Edit state (FIX #3d)
   const [editingMsg, setEditingMsg] = useState<ChatMsg | null>(null)
   const [editContent, setEditContent] = useState('')
 
-  // Confirm delete dialog (FIX #3c) — now includes reason for admin audit
+  //Confirm delete dialog (FIX #3c) -- now includes reason for admin audit
   const [deleteTarget, setDeleteTarget] = useState<{ messageId: string; senderName: string; isOwnMessage: boolean } | null>(null)
   const [deleteReason, setDeleteReason] = useState('')
 
-  // Report dialog (FIX #9)
+  //Report dialog (FIX #9)
   const [reportTarget, setReportTarget] = useState<ChatMsg | null>(null)
 
-  // Translation state (Issue #12 — real-time translation)
+  //Translation state (Issue #12 -- real-time translation)
   const [translations, setTranslations] = useState<Record<string, string>>({})
   const [translatingId, setTranslatingId] = useState<string | null>(null)
   const [autoTranslate, setAutoTranslate] = useState(() => {
@@ -389,7 +389,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
   const currentLang = useLanguage()
   const langPickerRef = useRef<HTMLDivElement>(null)
 
-  // Profile view modal state
+  //Profile view modal state
   const [chatSearch, setChatSearch] = useState('')
   const [showChatSearch, setShowChatSearch] = useState(false)
   const [profileView, setProfileView] = useState<{
@@ -405,7 +405,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     messageCount?: number
   } | null>(null)
 
-  // Moderation state
+  //Moderation state
   const [isMuted, setIsMuted] = useState(false)
   const [muteExpiresAt, setMuteExpiresAt] = useState<string | null>(null)
   const [isBanned, setIsBanned] = useState(false)
@@ -416,7 +416,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
   const [showMuteModal, setShowMuteModal] = useState<{ userId: string; name: string } | null>(null)
   const [joiningCommunity, setJoiningCommunity] = useState(false)
 
-  // Refs
+  //Refs
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<any>(null)
@@ -430,14 +430,14 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
   const isMountedRef = useRef(true)
   const lastMessageTimeRef = useRef<string | null>(null) // Track latest message time for reconnect sync
 
-  // Helper function to mark messages as read
+  //Helper function to mark messages as read
   const markMessagesAsRead = useCallback((msgs: ChatMsg[]) => {
     if (!socket || !user?.id) return
     
-    // Filter messages that need to be marked as read:
-    // Not sent by current user
-    // Not already read by current user
-    // Not temporary/pending
+    //Filter messages that need to be marked as read:
+    //Not sent by current user
+    //Not already read by current user
+    //Not temporary/pending
     const messagesToMark = msgs.filter((msg) => {
       if (msg.sender_id === user.id) return false
       if (msg.id.startsWith('tmp-')) return false
@@ -452,7 +452,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     socket.emit('community:chat:mark_read', { messageIds })
   }, [socket, user])
 
-  // Helper: fetch and merge missed messages from REST (for reconnection sync)
+  //Helper: fetch and merge missed messages from REST (for reconnection sync)
   const fetchAndMergeMissedMessages = useCallback(async () => {
     if (!activeToken) {
       return
@@ -468,23 +468,23 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       if (!Array.isArray(freshMsgs) || freshMsgs.length === 0) return
 
       setMessages((prev: ChatMsg[]) => {
-        // Build a Set of existing real message IDs (skip tmp-)
+        //Build a Set of existing real message IDs (skip tmp-)
         const existingIds = new Set(prev.filter((m: ChatMsg) => !m.id.startsWith('tmp-')).map((m: ChatMsg) => m.id))
         const newMsgs = freshMsgs.filter((m: ChatMsg) => !existingIds.has(m.id))
         if (newMsgs.length === 0) {
           return prev
         }
-        // Merge & sort chronologically
+        //Merge & sort chronologically
         const merged = [...prev.filter((m: ChatMsg) => !m.id.startsWith('tmp-')), ...newMsgs]
         merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
         return merged
       })
     } catch {
-      // fetch failed — will retry on next reconnect
+      //fetch failed -- will retry on next reconnect
     }
   }, [activeToken])
 
-  // Keep lastMessageTimeRef in sync with latest message
+  //Keep lastMessageTimeRef in sync with latest message
   useEffect(() => {
     if (messages.length > 0) {
       const latest = messages[messages.length - 1]
@@ -494,8 +494,8 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }, [messages])
 
-  // Load messages from REST on mount (primary)
-  // Check community membership on mount (citizens only)
+  //Load messages from REST on mount (primary)
+  //Check community membership on mount (citizens only)
   useEffect(() => {
     if (isAdmin) {
       setIsMember(true) // Admins always have access
@@ -521,13 +521,13 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           }
         }
       } catch {
-        // Default to member on error for backwards compat
+        //Default to member on error for backwards compat
         setIsMember(true)
       }
     }
     checkMembership()
 
-    // If not a member, load preview messages
+    //If not a member, load preview messages
     const loadPreview = async () => {
       try {
         const res = await fetch('/api/community/chat/preview', {
@@ -543,7 +543,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     loadPreview()
   }, [activeToken, isAdmin])
 
-  // Join/Leave community handlers
+  //Join/Leave community handlers
   const handleJoinCommunity = async () => {
     if (!activeToken) return
     setJoiningCommunity(true)
@@ -559,7 +559,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       })
       if (res.ok) {
         setIsMember(true)
-        // Re-join the Socket.IO room so we receive broadcasts again
+        //Re-join the Socket.IO room so we receive broadcasts again
         if (socket?.connected) {
           hasJoinedRef.current = false
           // // console.log('[CommunityChat] After REST join, re-joining Socket.IO room')
@@ -584,7 +584,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         }
       }
     } catch {
-      // join failed
+      //join failed
     } finally {
       setJoiningCommunity(false)
     }
@@ -603,7 +603,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         }
       })
       if (res.ok) {
-        // Leave Socket.IO room first, then update UI
+        //Leave Socket.IO room first, then update UI
         socket?.emit('community:chat:leave')
         hasJoinedRef.current = false
         setJoined(false)
@@ -611,7 +611,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         setIsMember(false)
       }
     } catch {
-      // leave failed
+      //leave failed
     }
   }
 
@@ -661,36 +661,36 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }, [activeToken])
 
-  // Determine which socket to use: parentSocket (citizen) or hookSocket (admin)
+  //Determine which socket to use: parentSocket (citizen) or hookSocket (admin)
   useEffect(() => {
-    // PRIORITY 1: Use parentSocket from CitizenDashboard if available
+    //PRIORITY 1: Use parentSocket from CitizenDashboard if available
     if (parentSocket?.connected) {
       const wasDisconnected = !connected && socket === parentSocket
       // // console.log('[CommunityChat] Using PARENT socket:', parentSocket.id, wasDisconnected ? '(reconnected)' : '')
       setSocket(parentSocket)
       setConnected(true)
       setLoading(false)
-      // If the socket was previously set but disconnected, resync on reconnect
+      //If the socket was previously set but disconnected, resync on reconnect
       if (wasDisconnected) {
-        // // console.log('[CommunityChat] Parent socket reconnected — resyncing messages')
+        // // console.log('[CommunityChat] Parent socket reconnected -- resyncing messages')
         fetchAndMergeMissedMessages()
       }
       return
     }
 
-    // Track disconnect state for parent socket
+    //Track disconnect state for parent socket
     if (parentSocket && !parentSocket.connected && socket === parentSocket) {
       setConnected(false)
     }
 
-    // PRIORITY 2: No parent socket provided (admin page) — use internal hook socket
+    //PRIORITY 2: No parent socket provided (admin page) -- use internal hook socket
     if (parentSocket === undefined || parentSocket === null) {
       if (!activeToken) {
         setLoading(false)
         return
       }
 
-      // Track hookSocket disconnect → update connected state
+ //Track hookSocket disconnect -> update connected state
       if (hookSocket && !hookSocket.connected && socket === hookSocket) {
         setConnected(false)
       }
@@ -707,7 +707,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }, [parentSocket?.id, parentSocket?.connected, hookSocket?.id, hookConnected, activeToken])
 
-  // Register all socket event listeners when socket connects
+  //Register all socket event listeners when socket connects
   useEffect(() => {
     if (!socket || !connected) {
       // // console.log('[CommunityChat] Waiting for socket connection...')
@@ -719,12 +719,12 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     setLoading(false)
     setError('')
 
-    // Named handler functions for precise cleanup (avoids removing other components' handlers)
+    //Named handler functions for precise cleanup (avoids removing other components' handlers)
 
     const handleMessage = (msg: ChatMsg) => {
       console.log('[CommunityChat] Message received:', msg.sender_name, 'ID:', msg.id)
       setMessages((prev: ChatMsg[]) => {
-        // If message has tempId and sender is current user, replace optimistic message
+        //If message has tempId and sender is current user, replace optimistic message
         if (msg.sender_id === userRef.current?.id) {
           const optimisticIdx = prev.findIndex(
             (m: ChatMsg) => m.id.startsWith('tmp-') && m.sender_id === msg.sender_id
@@ -736,7 +736,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             return updated
           }
         }
-        // Skip if message already exists
+        //Skip if message already exists
         if (prev.some((m: ChatMsg) => m.id === msg.id)) {
           console.log('[CommunityChat] Duplicate message, skipping')
           return prev
@@ -744,7 +744,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         console.log('[CommunityChat] Adding new message, total:', prev.length + 1)
         return [...prev, msg]
       })
-      // Mark new messages as read if not from current user
+      //Mark new messages as read if not from current user
       if (msg.sender_id !== userRef.current?.id) {
         setTimeout(() => markMessagesAsRead([msg]), 100)
       }
@@ -779,10 +779,10 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
 
     const handleUserJoined = (u: OnlineUser) => {
       setOnlineUsers((prev: OnlineUser[]) => prev.some((p: OnlineUser) => p.userId === u.userId) ? prev : [...prev, u])
-      // System message: user joined
+      //System message: user joined
       if (u.userId !== userRef.current?.id) {
         setMessages((prev: ChatMsg[]) => {
-          // Dedup: skip if a join message for same user appeared in the last 5 seconds
+          //Dedup: skip if a join message for same user appeared in the last 5 seconds
           const recent = prev.filter(m => m.id.startsWith(`sys-join-${u.userId}`) && Date.now() - new Date(m.created_at).getTime() < 5000)
           if (recent.length > 0) return prev
           return [...prev, {
@@ -801,11 +801,11 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       setOnlineUsers((prev: OnlineUser[]) => {
         const leftUser = prev.find((p: OnlineUser) => p.userId === userId)
         const name = displayName || leftUser?.displayName || 'A user'
-        // System message: user left (outside the updater to avoid batching issues)
+        //System message: user left (outside the updater to avoid batching issues)
         if (userId !== userRef.current?.id) {
           setTimeout(() => {
             setMessages((prevMsgs: ChatMsg[]) => {
-              // Dedup: skip if a leave message for same user appeared in the last 5 seconds
+              //Dedup: skip if a leave message for same user appeared in the last 5 seconds
               const recent = prevMsgs.filter(m => m.id.startsWith(`sys-leave-${userId}`) && Date.now() - new Date(m.created_at).getTime() < 5000)
               if (recent.length > 0) return prevMsgs
               return [...prevMsgs, {
@@ -854,7 +854,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       })
     }
 
-    // Moderation: removed from chat (kick/ban)
+    //Moderation: removed from chat (kick/ban)
     const handleRemoved = (data: { reason?: string }) => {
       // // console.log('[CommunityChat] Removed from chat:', data.reason)
       setJoined(false)
@@ -879,7 +879,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       setMuteExpiresAt(null)
     }
 
-    // Register all named event listeners
+    //Register all named event listeners
     socket.off('community:chat:message', handleMessage)
     socket.off('community:chat:deleted', handleDeleted)
     socket.off('community:chat:edited', handleEdited)
@@ -906,7 +906,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     socket.on('community:chat:muted', handleMuted)
     socket.on('community:chat:unmuted', handleUnmuted)
 
-    // Join room (only once per connection)
+    //Join room (only once per connection)
     if (!hasJoinedRef.current) {
       console.log('[CommunityChat] EMITTING JOIN REQUEST, socket:', socket.id, 'connected:', socket.connected)
       socket.emit('community:chat:join', (ack: any) => {
@@ -918,7 +918,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           if (ack.users && Array.isArray(ack.users)) {
             setOnlineUsers(ack.users)
           }
-          // Fetch any messages missed during disconnect/reconnect window
+          //Fetch any messages missed during disconnect/reconnect window
           fetchAndMergeMissedMessages()
         } else if (ack?.banned) {
           setIsBanned(true)
@@ -932,8 +932,8 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
 
     }
 
-    // Handle socket reconnection — rejoin room and resync messages
-    // Handle socket disconnect — track state for admin socket
+    //Handle socket reconnection -- rejoin room and resync messages
+    //Handle socket disconnect -- track state for admin socket
     const handleDisconnect = () => {
       console.log('[CommunityChat] [WARN] Socket disconnected')
       setConnected(false)
@@ -962,17 +962,17 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     socket.off('connect', handleReconnect)
     socket.on('connect', handleReconnect)
 
-    // Periodic online user refresh + safety re-join if somehow not in room
+    //Periodic online user refresh + safety re-join if somehow not in room
     const onlineInterval = setInterval(() => {
       if (!socket.connected) return
       socket.emit('community:chat:online', (ack: any) => {
         if (ack?.success && Array.isArray(ack.users)) {
           setOnlineUsers(ack.users)
-          // Safety check: if we think we joined but we're not in the online list, rejoin
+          //Safety check: if we think we joined but we're not in the online list, rejoin
           if (hasJoinedRef.current && ack.users.length > 0) {
             const isInList = ack.users.some((u: any) => u.userId === userRef.current?.id)
             if (!isInList) {
-              console.log('[CommunityChat] [WARN] Not in online list despite joined — re-joining room')
+              console.log('[CommunityChat] [WARN] Not in online list despite joined -- re-joining room')
               hasJoinedRef.current = false
               socket.emit('community:chat:join', (joinAck: any) => {
                 if (joinAck?.success) {
@@ -988,21 +988,21 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       })
     }, 5000)
 
-    // Cleanup on unmount or reconnect
-    // Use deferred leave to avoid React StrictMode double-mount breaking room membership
+    //Cleanup on unmount or reconnect
+    //Use deferred leave to avoid React StrictMode double-mount breaking room membership
     isMountedRef.current = true
 
     return () => {
       clearInterval(onlineInterval)
       isMountedRef.current = false
-      // Deferred leave — if component re-mounts quickly (StrictMode), cancel the leave
+      //Deferred leave -- if component re-mounts quickly (StrictMode), cancel the leave
       setTimeout(() => {
         if (!isMountedRef.current) {
           socket.emit('community:chat:leave')
         }
       }, 500)
-      // Use socket.off with specific handler references — NEVER use removeListener('connect')
-      // which would remove useSocket's internal connect handler too
+      //Use socket.off with specific handler references -- NEVER use removeListener('connect')
+      //which would remove useSocket's internal connect handler too
       socket.off('community:chat:message', handleMessage)
       socket.off('community:chat:deleted', handleDeleted)
       socket.off('community:chat:edited', handleEdited)
@@ -1022,7 +1022,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }, [socket?.id, connected, fetchAndMergeMissedMessages]) // Added connected as dependency
 
-  // Mark messages as read once socket is connected and messages are loaded (ONCE)
+  //Mark messages as read once socket is connected and messages are loaded (ONCE)
   useEffect(() => {
     if (connected && socket && messages.length > 0 && !hasMarkedInitialMessagesRef.current) {
       hasMarkedInitialMessagesRef.current = true
@@ -1030,12 +1030,12 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }, [connected, messages.length]) // Only watch connection and message count, not the function itself
 
-  // Scroll to bottom on initial load — use rAF + timeout to ensure DOM is fully rendered
+  //Scroll to bottom on initial load -- use rAF + timeout to ensure DOM is fully rendered
   const hasScrolledInitialRef = useRef(false)
   useEffect(() => {
     if (!loading && messages.length > 0 && !hasScrolledInitialRef.current) {
       hasScrolledInitialRef.current = true
-      // Double rAF ensures React has committed the DOM and the browser has painted
+      //Double rAF ensures React has committed the DOM and the browser has painted
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           const el = chatContainerRef.current
@@ -1049,7 +1049,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }, [loading, messages.length])
 
-  // Track scroll position
+  //Track scroll position
   const handleScroll = useCallback(() => {
     const el = chatContainerRef.current
     if (!el) return
@@ -1119,7 +1119,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }, [activeToken])
 
-  // Image Upload
+  //Image Upload
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -1174,7 +1174,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }
 
-  // Reply
+  //Reply
   const handleReply = (msg: ChatMsg) => {
     setReplyTo(msg)
     textareaRef.current?.focus()
@@ -1182,14 +1182,14 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
 
   const clearReply = () => setReplyTo(null)
 
-  // Emoji
+  //Emoji
   const handleEmojiSelect = (emoji: string) => {
     setMsgInput((prev: string) => prev + emoji)
     setShowEmoji(false)
     textareaRef.current?.focus()
   }
 
-  // Send Message (FIX #3a — optimistic msg replaced via ack, no duplicate from broadcast)
+  //Send Message (FIX #3a -- optimistic msg replaced via ack, no duplicate from broadcast)
   const handleSend = async () => {
     const content = msgInput.trim()
     if (!content && !imageFile) return
@@ -1240,10 +1240,10 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       // // console.log('[CommunityChat] Send acknowledgment received:', ack?.success, 'has message:', !!ack?.message)
       if (ack?.success && ack?.message) {
         // // console.log('[CommunityChat] Replacing optimistic message, new id:', ack.message.id)
-        // Replace our optimistic message with the real one from the server
+        //Replace our optimistic message with the real one from the server
         setMessages((prev: ChatMsg[]) => prev.map((m: ChatMsg) => m.id === optimisticMsg.id ? ack.message : m))
       } else if (ack?.muted) {
-        // // console.log('[CommunityChat] Message rejected — muted until:', ack.expires_at)
+        // // console.log('[CommunityChat] Message rejected -- muted until:', ack.expires_at)
         setMessages((prev: ChatMsg[]) => prev.filter((m: ChatMsg) => m.id !== optimisticMsg.id))
         setIsMuted(true)
         setMuteExpiresAt(ack.expires_at || null)
@@ -1267,10 +1267,10 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }, 2000)
   }
 
-  // FIX #3c: Confirm before delete — admin gets reason field for audit
+  //FIX #3c: Confirm before delete -- admin gets reason field for audit
   const handleDeleteMessage = (messageId: string) => {
     if (messageId.startsWith('tmp-')) return
-    // Find the message to check ownership
+    //Find the message to check ownership
     const msg = messages.find(m => m.id === messageId)
     const isOwnMessage = msg?.sender_id === userId
     setDeleteTarget({ messageId, senderName: msg?.sender_name || t('common.unknown', currentLang), isOwnMessage })
@@ -1279,7 +1279,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
   const confirmDelete = () => {
     if (!socket || !deleteTarget) return
     const payload: any = { messageId: deleteTarget.messageId }
-    // Include reason for admin audit trail
+    //Include reason for admin audit trail
     if (isAdmin && !deleteTarget.isOwnMessage && deleteReason.trim()) {
       payload.reason = deleteReason.trim()
     }
@@ -1290,7 +1290,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     setDeleteReason('')
   }
 
-  // FIX #3d: Edit message
+  //FIX #3d: Edit message
   const startEdit = (msg: ChatMsg) => {
     setEditingMsg(msg)
     setEditContent(msg.content)
@@ -1306,7 +1306,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       content: editContent.trim(),
     }, (ack: any) => {
       if (ack?.success) {
-        // Update locally immediately
+        //Update locally immediately
         setMessages((prev: ChatMsg[]) => prev.map((m: ChatMsg) =>
           m.id === editingMsg.id ? { ...m, content: editContent.trim(), edited_at: new Date().toISOString() } : m
         ))
@@ -1317,9 +1317,9 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     cancelEdit()
   }
 
-  // FIX #12: Translate message via MyMemory API
+  //FIX #12: Translate message via MyMemory API
   const handleTranslate = async (msgId: string, text: string) => {
-    // Toggle off if already translated
+    //Toggle off if already translated
     if (translations[msgId]) {
       setTranslations(prev => {
         const next = { ...prev }
@@ -1334,17 +1334,17 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       if (translatedText && translatedText !== text) {
         setTranslations(prev => ({ ...prev, [msgId]: translatedText }))
       } else {
-        // Same language — show the original text (no translation needed)
-        setTranslations(prev => ({ ...prev, [msgId]: `✓ ${text}` }))
+        //Same language -- show the original text (no translation needed)
+        setTranslations(prev => ({ ...prev, [msgId]: ` ${text}` }))
       }
     } catch {
-      // silently skip
+      //silently skip
     } finally {
       setTranslatingId(null)
     }
   }
 
-  // Close lang picker on outside click
+  //Close lang picker on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (langPickerRef.current && !langPickerRef.current.contains(e.target as Node)) setShowLangPicker(false)
@@ -1353,7 +1353,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Auto-translate: when autoTranslate is on, translate all un-translated messages
+  //Auto-translate: when autoTranslate is on, translate all un-translated messages
   useEffect(() => {
     if (!autoTranslate) return
     const untranslated = [...messages, ...previewMessages].filter(
@@ -1389,7 +1389,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     return () => { cancelled = true }
   }, [autoTranslate, targetLang, messages, previewMessages, translations])
 
-  // Update autoTranslate when language changes
+  //Update autoTranslate when language changes
   useEffect(() => {
     setTargetLang(currentLang || 'en')
     setTranslations({})
@@ -1398,7 +1398,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }, [currentLang])
 
-  // FIX #9: Report message
+  //FIX #9: Report message
   const handleReport = (msg: ChatMsg) => {
     setReportTarget(msg)
   }
@@ -1420,7 +1420,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
 
   const handleRefresh = async () => {
     setLoading(true)
-    // Primary: REST API (works regardless of socket state)
+    //Primary: REST API (works regardless of socket state)
     try {
       const token = activeToken
       if (token) {
@@ -1433,7 +1433,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             setMessages(msgs)
             setError('')
             setLoading(false)
-            // Also refresh online users via socket if available
+            //Also refresh online users via socket if available
             if (socket?.connected) {
               socket.emit('community:chat:online', (ack: any) => {
                 if (ack?.success) setOnlineUsers(ack.users || [])
@@ -1446,7 +1446,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     } catch (err) {
       console.error('[CommunityChat] REST refresh failed:', err)
     }
-    // Fallback: socket-based history
+    //Fallback: socket-based history
     if (socket?.connected) {
       socket.emit('community:chat:history', { limit: 50 }, (ack: any) => {
         if (ack?.success) {
@@ -1467,7 +1467,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
   }
 
   const userId = user?.id || ''
-  // Search-filtered messages
+  //Search-filtered messages
   const filteredMessages = useMemo(() => {
     if (!chatSearch.trim()) return messages
     const q = chatSearch.toLowerCase()
@@ -1478,7 +1478,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
   }, [messages, chatSearch])
   const messageGroups = useMemo(() => groupByDate(filteredMessages), [filteredMessages])
 
-  // Not signed in
+  //Not signed in
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -1491,7 +1491,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     )
   }
 
-  // Banned state
+  //Banned state
   if (isBanned) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -1504,7 +1504,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     )
   }
 
-  // Not a member — show preview + join button
+  //Not a member -- show preview + join button
   if (isMember === false && !isAdmin) {
     return (
       <div className="max-w-5xl mx-auto">
@@ -1563,7 +1563,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     )
   }
 
-  // Still loading membership
+  //Still loading membership
   if (isMember === null && !isAdmin) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -1669,7 +1669,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           </div>
         </div>
 
-        {/* Search Bar — slides in when active */}
+        {/* Search Bar -- slides in when active */}
         {showChatSearch && (
           <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center gap-2">
             <Search className="w-4 h-4 text-gray-400 dark:text-gray-300 flex-shrink-0" />
@@ -1736,7 +1736,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                   </div>
 
                   {group.msgs.map((msg: ChatMsg, mi: number) => {
-                    // System messages (join/leave notifications)
+                    //System messages (join/leave notifications)
                     if (msg.sender_id === 'system') {
                       return (
                         <div key={msg.id} className="flex justify-center my-1">
@@ -1747,7 +1747,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                       )
                     }
 
-                    // Deleted message tombstone — shows notification instead of message content
+                    //Deleted message tombstone -- shows notification instead of message content
                     if (msg.sender_id === 'deleted' || msg.deleted_at) {
                       return (
                         <div key={msg.id} className="flex justify-center my-2">
@@ -1775,7 +1775,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                       )
                     }
 
-                    // Role-based layout: operators/staff on right, citizens on left
+                    //Role-based layout: operators/staff on right, citizens on left
                     const isOperator = msg.sender_type === 'operator'
                     const isCitizen = msg.sender_type === 'citizen'
                     const isConsecutive = mi > 0 && group.msgs[mi - 1].sender_type === msg.sender_type && group.msgs[mi - 1].sender_id === msg.sender_id
@@ -1919,7 +1919,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                   {/* Read receipt ticks (only for own messages) */}
                                   {msg.sender_id === userId && (
                                     <span className={`text-[10px] ${msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? 'text-blue-500' : 'text-gray-400 dark:text-gray-300'}`} title={msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? t('communityChat.read', currentLang) : t('common.sent', currentLang)}>
-                                      {msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? '✓✓' : '✓'}
+                                      {msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? '' : ''}
                                     </span>
                                   )}
                                 </div>
@@ -1933,7 +1933,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                       <Reply className="w-3 h-3" />
                                     </button>
                                   )}
-                                  {/* Edit button — own messages only */}
+                                  {/* Edit button -- own messages only */}
                                   {msg.sender_id === userId && !msg.id.startsWith('tmp-') && (
                                     <button
                                       onClick={() => startEdit(msg)}
@@ -1943,7 +1943,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                       <Edit2 className="w-3 h-3" />
                                     </button>
                                   )}
-                                  {/* Translate button — always visible */}
+                                  {/* Translate button -- always visible */}
                                   {msg.content && !msg.id.startsWith('tmp-') && (
                                     <button
                                       onClick={() => handleTranslate(msg.id, msg.content)}
@@ -1954,7 +1954,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                       <Languages className="w-3 h-3" />
                                     </button>
                                   )}
-                                  {/* Report button — others' messages only */}
+                                  {/* Report button -- others' messages only */}
                                   {msg.sender_id !== userId && !msg.id.startsWith('tmp-') && (
                                     <button
                                       onClick={() => handleReport(msg)}
@@ -1968,7 +1968,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                               </div>
                             )}
 
-                            {/* Delete button (FIX #3c — now uses confirm dialog) */}
+                            {/* Delete button (FIX #3c -- now uses confirm dialog) */}
                             {(msg.sender_id === userId || isAdmin) && !msg.id.startsWith('tmp-') && !isEditing && (
                               <button
                                 onClick={() => handleDeleteMessage(msg.id)}
@@ -2048,7 +2048,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           </div>
         )}
 
-        {/* Message Input — Premium */}
+        {/* Message Input -- Premium */}
         <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
           {isMuted ? (
             <div className="flex items-center gap-2.5 px-4 py-3 bg-red-50 dark:bg-red-950/20 rounded-xl border border-red-200 dark:border-red-800/30">
@@ -2142,7 +2142,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         </div>
       </div>
 
-      {/* Right Panel: Online Users — Premium Design */}
+      {/* Right Panel: Online Users -- Premium Design */}
       <div className={`w-60 bg-white dark:bg-gray-900 border border-l-0 border-gray-200 dark:border-gray-800 rounded-r-xl flex-col shadow-xl ${showOnlinePanel ? 'hidden md:flex' : 'hidden lg:flex'}`}>
         <div className="p-3 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-aegis-50 to-white dark:from-gray-900 dark:to-gray-900">
           <h3 className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 uppercase tracking-wider">
@@ -2237,7 +2237,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         </div>
       </div>
 
-      {/* Confirm Delete Dialog (FIX #3c) — Admin gets audit reason field */}
+      {/* Confirm Delete Dialog (FIX #3c) -- Admin gets audit reason field */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onClick={() => { setDeleteTarget(null); setDeleteReason('') }}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
@@ -2254,7 +2254,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                 ? `${t('communityChat.deleteMessagePrompt', currentLang)} ${deleteTarget.senderName}? ${t('communityChat.deleteMessageSuffix', currentLang)}`
                 : t('communityChat.deleteOwnMessagePrompt', currentLang)}
             </p>
-            {/* Admin reason field for audit — only shown when deleting someone else's message */}
+            {/* Admin reason field for audit -- only shown when deleting someone else's message */}
             {isAdmin && !deleteTarget.isOwnMessage && (
               <div className="mb-4">
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1.5">{t('communityChat.reasonForDeletionAudit', currentLang)}</label>
@@ -2302,7 +2302,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       {/* Image Lightbox */}
       {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
 
-      {/* User Profile Modal — Premium */}
+      {/* User Profile Modal -- Premium */}
       {profileView && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]" onClick={() => setProfileView(null)}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 max-w-md w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>

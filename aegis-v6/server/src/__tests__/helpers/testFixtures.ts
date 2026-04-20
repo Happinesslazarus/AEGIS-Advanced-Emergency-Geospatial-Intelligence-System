@@ -11,7 +11,7 @@
 import { getTestPool } from './testDb'
 import { TEST_CITIZEN, TEST_OPERATOR, TEST_ADMIN, type TestUser } from './testAuth'
 
-// User fixtures
+//User fixtures
 
 /* Insert a citizen into the `citizens` table. Returns the full row. */
 export async function insertCitizen(overrides: Partial<Record<string, unknown>> = {}) {
@@ -57,7 +57,7 @@ export async function insertOperator(overrides: Partial<Record<string, unknown>>
   return rows[0]
 }
 
-// Distress fixtures
+//Distress fixtures
 
 export interface DistressFixture {
   citizenId: string
@@ -77,7 +77,7 @@ export const DEFAULT_DISTRESS: DistressFixture = {
   contactNumber: '+447700900000',
 }
 
-// Report fixtures
+//Report fixtures
 
 export interface ReportFixture {
   incident_category: string
@@ -134,7 +134,7 @@ export async function insertReport(overrides: Partial<Record<string, unknown>> =
   return rows[0]
 }
 
-// Alert fixtures
+//Alert fixtures
 
 export interface AlertFixture {
   title: string
@@ -145,7 +145,7 @@ export interface AlertFixture {
 }
 
 export const CRITICAL_ALERT: AlertFixture = {
-  title: 'FLOOD WARNING — Immediate Action Required',
+  title: 'FLOOD WARNING -- Immediate Action Required',
   message: 'River levels have breached flood defences. Evacuate low-lying areas immediately.',
   severity: 'critical',
   alert_type: 'flood',
@@ -171,7 +171,7 @@ export async function insertAlert(overrides: Partial<Record<string, unknown>> = 
   return rows[0]
 }
 
-// Alert subscription fixtures
+//Alert subscription fixtures
 
 export async function insertSubscription(overrides: Partial<Record<string, unknown>> = {}) {
   const pool = getTestPool()
@@ -194,7 +194,7 @@ export async function insertSubscription(overrides: Partial<Record<string, unkno
   return rows[0]
 }
 
-// Community fixtures
+//Community fixtures
 
 /* Insert a community post. */
 export async function insertPost(authorId: string, content = 'Test community post') {
@@ -206,29 +206,29 @@ export async function insertPost(authorId: string, content = 'Test community pos
   return rows[0]
 }
 
-// GDPR fixtures
+//GDPR fixtures
 
 /* Seed a citizen with data across many tables for GDPR export/erasure tests. */
 export async function seedCitizenData(citizenId: string) {
   const pool = getTestPool()
-  // safety check-in
+  //safety check-in
   await pool.query(
     `INSERT INTO safety_check_ins (citizen_id, status, message) VALUES ($1,'safe','All good')`,
     [citizenId],
   )
-  // emergency contact
+  //emergency contact
   await pool.query(
     `INSERT INTO emergency_contacts (citizen_id, name, phone, relationship, is_primary)
      VALUES ($1,'Jane Doe','+447700900099','partner',true)`,
     [citizenId],
   )
-  // preferences
+  //preferences
   await pool.query(
     `INSERT INTO citizen_preferences (citizen_id, theme, language)
      VALUES ($1,'dark','en') ON CONFLICT DO NOTHING`,
     [citizenId],
   )
-  // message thread + message
+  //message thread + message
   const thread = await pool.query(
     `INSERT INTO message_threads (citizen_id, subject) VALUES ($1,'Help needed') RETURNING id`,
     [citizenId],
@@ -237,20 +237,20 @@ export async function seedCitizenData(citizenId: string) {
     `INSERT INTO messages (thread_id, content, sender_type) VALUES ($1,'Please help','citizen')`,
     [thread.rows[0].id],
   )
-  // report linked to citizen
+  //report linked to citizen
   await pool.query(
     `INSERT INTO reports (citizen_id, description, severity, reporter_name, reporter_contact)
      VALUES ($1,'Flood in my area','high','Test User','test@aegis.local')`,
     [citizenId],
   )
-  // community post
+  //community post
   await pool.query(
     `INSERT INTO community_posts (author_id, content) VALUES ($1,'Community update from test citizen')`,
     [citizenId],
   )
 }
 
-// Flood prediction fixtures
+//Flood prediction fixtures
 
 export async function insertFloodPrediction(overrides: Partial<Record<string, unknown>> = {}) {
   const pool = getTestPool()

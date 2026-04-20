@@ -1,6 +1,6 @@
 ﻿/**
  * Operator field-resource management console. Manages deployment zones with
- * a 5-stage pipeline (Requested → Staging → Transit → On-Site → De-Mob),
+ * a 5-stage pipeline (Requested -> Staging -> Transit -> On-Site -> De-Mob),
  * AI-generated resource recommendations per hazard type, mutual-aid partner
  * tracking, and ops log entries. Includes an inline DisasterMap for
  * geographic context.
@@ -43,8 +43,8 @@ interface Props {
   askConfirm: (title: string, message: string, type: string, action: () => void) => void
 }
 
-// 5-stage deployment pipeline. Zones move through these states as resources are mobilised.
-// Returned as a function so labels can be translated per the active locale.
+//5-stage deployment pipeline. Zones move through these states as resources are mobilised.
+//Returned as a function so labels can be translated per the active locale.
 function getPipeline(lang: string) {
   return [
     { key: 'requested', label: t('resource.request', lang), icon: Radio },
@@ -55,7 +55,7 @@ function getPipeline(lang: string) {
   ] as const
 }
 
-// Sort order helpers for priority columns in the deployment table.
+//Sort order helpers for priority columns in the deployment table.
 const P_ORDER: Record<string, number> = { Critical: 4, High: 3, Medium: 2, Low: 1 }
 const P_DOT: Record<string, string> = { Critical: 'bg-red-500', High: 'bg-amber-500', Medium: 'bg-blue-500', Low: 'bg-slate-400' }
 const P_PILL: Record<string, string> = {
@@ -65,8 +65,8 @@ const P_PILL: Record<string, string> = {
   Low: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 ring-slate-500/20',
 }
 
-// Per-hazard display metadata for the AI recommendation UI.
-// Icon + gradient shown on the recommendation card, color used for the hazard label.
+//Per-hazard display metadata for the AI recommendation UI.
+//Icon + gradient shown on the recommendation card, color used for the hazard label.
 /* Client-side Resource Recommendation Engine*/
 const HAZARD_CATEGORIES: Record<string, { label: string; icon: LucideIcon; color: string; gradient: string }> = {
   flood: { label: 'Flood', icon: Droplets, color: 'text-blue-600', gradient: 'from-blue-500/20 to-cyan-500/20' },
@@ -110,10 +110,10 @@ const HAZARD_GROUPS = [
   { group: 'Other', keys: ['general'] },
 ]
 
-// Client-side AI resource recommendation engine.
-// Returns suggested ambulance/fire engine/boat counts + threat level for a
-// given hazard type and priority. Counts scale by mult: Critical=2x, High=1.5x, other=1x.
-// This mirrors the server-side logic in reportRoutes.ts POST handler (kept in sync).
+//Client-side AI resource recommendation engine.
+//Returns suggested ambulance/fire engine/boat counts + threat level for a
+//given hazard type and priority. Counts scale by mult: Critical=2x, High=1.5x, other=1x.
+//This mirrors the server-side logic in reportRoutes.ts POST handler (kept in sync).
 function getSmartResourceSuggestion(hazardType: string, priority: string): { ambulances: number; fire_engines: number; rescue_boats: number; reasoning: string; threatLevel: number } {
   const isCrit = priority === 'Critical'
   const isHigh = priority === 'High'
@@ -122,36 +122,36 @@ function getSmartResourceSuggestion(hazardType: string, priority: string): { amb
 
   switch (hazardType) {
     case 'flood': case 'tsunami':
-      return { ambulances: Math.ceil(3 * mult), fire_engines: Math.ceil(1 * mult), rescue_boats: Math.ceil(4 * mult), reasoning: `Water rescue priority — ${Math.ceil(4 * mult)} boats + swift-water teams. Medical standby for hypothermia.`, threatLevel: isCrit ? 5 : isHigh ? 4 : 3 }
+      return { ambulances: Math.ceil(3 * mult), fire_engines: Math.ceil(1 * mult), rescue_boats: Math.ceil(4 * mult), reasoning: `Water rescue priority -- ${Math.ceil(4 * mult)} boats + swift-water teams. Medical standby for hypothermia.`, threatLevel: isCrit ? 5 : isHigh ? 4 : 3 }
     case 'wildfire':
-      return { ambulances: Math.ceil(2 * mult), fire_engines: Math.ceil(6 * mult), rescue_boats: 0, reasoning: `Fire suppression priority — ${Math.ceil(6 * mult)} engines needed for containment perimeter. Aerial support recommended if > 50 hectares.`, threatLevel: isCrit ? 5 : 4 }
+      return { ambulances: Math.ceil(2 * mult), fire_engines: Math.ceil(6 * mult), rescue_boats: 0, reasoning: `Fire suppression priority -- ${Math.ceil(6 * mult)} engines needed for containment perimeter. Aerial support recommended if > 50 hectares.`, threatLevel: isCrit ? 5 : 4 }
     case 'earthquake': case 'building_collapse': case 'landslide': case 'avalanche': case 'sinkhole':
-      return { ambulances: Math.ceil(4 * mult), fire_engines: Math.ceil(2 * mult), rescue_boats: 0, reasoning: `Urban SAR priority — Structural collapse teams. ${Math.ceil(4 * mult)} ambulances for crush injuries. K9 units recommended.`, threatLevel: isCrit ? 5 : isHigh ? 4 : 3 }
+      return { ambulances: Math.ceil(4 * mult), fire_engines: Math.ceil(2 * mult), rescue_boats: 0, reasoning: `Urban SAR priority -- Structural collapse teams. ${Math.ceil(4 * mult)} ambulances for crush injuries. K9 units recommended.`, threatLevel: isCrit ? 5 : isHigh ? 4 : 3 }
     case 'volcanic':
-      return { ambulances: Math.ceil(3 * mult), fire_engines: Math.ceil(2 * mult), rescue_boats: 1, reasoning: 'Multi-hazard volcanic response — Ashfall, lava, lahars. Evacuate within exclusion zone. Respirator equipment required.', threatLevel: 5 }
+      return { ambulances: Math.ceil(3 * mult), fire_engines: Math.ceil(2 * mult), rescue_boats: 1, reasoning: 'Multi-hazard volcanic response -- Ashfall, lava, lahars. Evacuate within exclusion zone. Respirator equipment required.', threatLevel: 5 }
     case 'mass_casualty':
-      return { ambulances: Math.ceil(8 * mult), fire_engines: Math.ceil(2 * mult), rescue_boats: 0, reasoning: `MCI protocol — Triage START. ${Math.ceil(8 * mult)} ambulances for casualty distribution. Field hospital if >50 patients.`, threatLevel: isCrit ? 5 : 4 }
+      return { ambulances: Math.ceil(8 * mult), fire_engines: Math.ceil(2 * mult), rescue_boats: 0, reasoning: `MCI protocol -- Triage START. ${Math.ceil(8 * mult)} ambulances for casualty distribution. Field hospital if >50 patients.`, threatLevel: isCrit ? 5 : 4 }
     case 'chemical': case 'gas_leak': case 'pollution': case 'contamination': case 'environmental_hazard':
-      return { ambulances: Math.ceil(2 * mult), fire_engines: Math.ceil(3 * mult), rescue_boats: 0, reasoning: `HazMat response — Decon teams required. Hot/warm/cold zone established. ${Math.ceil(3 * mult)} engines with SCBA.`, threatLevel: isCrit ? 5 : isHigh ? 4 : 3 }
+      return { ambulances: Math.ceil(2 * mult), fire_engines: Math.ceil(3 * mult), rescue_boats: 0, reasoning: `HazMat response -- Decon teams required. Hot/warm/cold zone established. ${Math.ceil(3 * mult)} engines with SCBA.`, threatLevel: isCrit ? 5 : isHigh ? 4 : 3 }
     case 'tornado': case 'severe_storm':
-      return { ambulances: Math.ceil(3 * mult), fire_engines: Math.ceil(2 * mult), rescue_boats: Math.ceil(1 * mult), reasoning: `Storm damage response — Downed power lines, structural debris. Ensure electrical isolation before SAR.`, threatLevel: isCrit ? 5 : 3 }
+      return { ambulances: Math.ceil(3 * mult), fire_engines: Math.ceil(2 * mult), rescue_boats: Math.ceil(1 * mult), reasoning: `Storm damage response -- Downed power lines, structural debris. Ensure electrical isolation before SAR.`, threatLevel: isCrit ? 5 : 3 }
     case 'heatwave': case 'drought':
-      return { ambulances: Math.ceil(4 * mult), fire_engines: 0, rescue_boats: 0, reasoning: `Heat emergency response — Cooling stations + rapid IV fluid resupply. ${Math.ceil(4 * mult)} ambulances for heat stroke cases.`, threatLevel: isCrit ? 4 : 2 }
+      return { ambulances: Math.ceil(4 * mult), fire_engines: 0, rescue_boats: 0, reasoning: `Heat emergency response -- Cooling stations + rapid IV fluid resupply. ${Math.ceil(4 * mult)} ambulances for heat stroke cases.`, threatLevel: isCrit ? 4 : 2 }
     case 'person_trapped':
-      return { ambulances: Math.ceil(2 * mult), fire_engines: Math.ceil(2 * mult), rescue_boats: 0, reasoning: `Technical rescue — Extrication tools (Jaws of Life). ${Math.ceil(2 * mult)} ambulances on standby for immediate transport.`, threatLevel: isCrit ? 5 : 3 }
+      return { ambulances: Math.ceil(2 * mult), fire_engines: Math.ceil(2 * mult), rescue_boats: 0, reasoning: `Technical rescue -- Extrication tools (Jaws of Life). ${Math.ceil(2 * mult)} ambulances on standby for immediate transport.`, threatLevel: isCrit ? 5 : 3 }
     case 'evacuation':
-      return { ambulances: Math.ceil(2 * mult), fire_engines: Math.ceil(1 * mult), rescue_boats: Math.ceil(1 * mult), reasoning: 'Evacuation logistics — Transport staging + marshalling points. Track head counts at reception centres.', threatLevel: isCrit ? 4 : 3 }
+      return { ambulances: Math.ceil(2 * mult), fire_engines: Math.ceil(1 * mult), rescue_boats: Math.ceil(1 * mult), reasoning: 'Evacuation logistics -- Transport staging + marshalling points. Track head counts at reception centres.', threatLevel: isCrit ? 4 : 3 }
     case 'power_line': case 'road_damage': case 'bridge_damage': case 'debris': case 'structural': case 'water_main':
-      return { ambulances: Math.ceil(1 * mult), fire_engines: Math.ceil(2 * mult), rescue_boats: 0, reasoning: `Infrastructure response — Isolation perimeter. Public works coordination. ${Math.ceil(2 * mult)} engines for scene safety.`, threatLevel: isCrit ? 3 : 2 }
+      return { ambulances: Math.ceil(1 * mult), fire_engines: Math.ceil(2 * mult), rescue_boats: 0, reasoning: `Infrastructure response -- Isolation perimeter. Public works coordination. ${Math.ceil(2 * mult)} engines for scene safety.`, threatLevel: isCrit ? 3 : 2 }
     case 'missing_person':
-      return { ambulances: 1, fire_engines: 0, rescue_boats: isCrit ? 1 : 0, reasoning: 'Search operation — Grid search teams + K9. Drone aerial survey if available. Medical standby.', threatLevel: isCrit ? 3 : 2 }
+      return { ambulances: 1, fire_engines: 0, rescue_boats: isCrit ? 1 : 0, reasoning: 'Search operation -- Grid search teams + K9. Drone aerial survey if available. Medical standby.', threatLevel: isCrit ? 3 : 2 }
     default:
-      return { ambulances: Math.ceil(2 * mult), fire_engines: Math.ceil(1 * mult), rescue_boats: 0, reasoning: 'Standard multi-agency response — Assess on arrival and scale as needed.', threatLevel: isCrit ? 3 : 2 }
+      return { ambulances: Math.ceil(2 * mult), fire_engines: Math.ceil(1 * mult), rescue_boats: 0, reasoning: 'Standard multi-agency response -- Assess on arrival and scale as needed.', threatLevel: isCrit ? 3 : 2 }
   }
 }
 
-// UK threat level scale (1-5): used to show coloured threat pill on zone cards.
-// Maps to standard UK JTAC threat levels: Low/Moderate/Substantial/Severe/Critical.
+//UK threat level scale (1-5): used to show coloured threat pill on zone cards.
+//Maps to standard UK JTAC threat levels: Low/Moderate/Substantial/Severe/Critical.
 function getThreatLevelInfo(level: number): { label: string; color: string; bgColor: string; ringColor: string } {
   switch (level) {
     case 5: return { label: 'EXTREME', color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-500/15', ringColor: 'ring-red-500/30' }
@@ -164,7 +164,7 @@ function getThreatLevelInfo(level: number): { label: string; color: string; bgCo
 
 /* Extract leading number from strings like "23 people needing help".
  * Zone records can store estimated_affected as either a pure number or
- * a free-text field — this normalises both into a safe integer. */
+ * a free-text field -- this normalises both into a safe integer. */
 function parseAffected(val: any): number {
   if (typeof val === 'number') return val
   if (typeof val === 'string') {
@@ -218,31 +218,31 @@ export default function ResourceDeploymentConsole({
   const [creating, setCreating] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
-  // Asset tracking state (Module 3)
+  //Asset tracking state (Module 3)
   const [assetsByZone, setAssetsByZone] = useState<Record<string, any[]>>({})
   const [loadingAssetsFor, setLoadingAssetsFor] = useState<string | null>(null)
   const [showAddAsset, setShowAddAsset] = useState<string | null>(null)
   const [assetForm, setAssetForm] = useState({ asset_type: 'ambulance', call_sign: '', status: 'staging', crew_count: '1', notes: '' })
 
-  // Operational state
+  //Operational state
   const [opsNoteByZone, setOpsNoteByZone] = useState<Record<string, string>>({})
   const [savingOpsNote, setSavingOpsNote] = useState<string | null>(null)
   const [togglingMutualAid, setTogglingMutualAid] = useState<string | null>(null)
   const [acknowledging, setAcknowledging] = useState<string | null>(null)
 
-  // Inline editing state
+  //Inline editing state
   const [editingZone, setEditingZone] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Record<string, any>>({})
   const [savingEdit, setSavingEdit] = useState(false)
 
-  // Smart create modal state
+  //Smart create modal state
   const [createStep, setCreateStep] = useState(0) // 0=identity, 1=resources, 2=review
   const smartSuggestion = useMemo(() => getSmartResourceSuggestion(createForm.hazard_type, createForm.priority), [createForm.hazard_type, createForm.priority])
   const hazardInfo = HAZARD_CATEGORIES[createForm.hazard_type] || HAZARD_CATEGORIES.general
   const threatInfo = getThreatLevelInfo(smartSuggestion.threatLevel)
 
-  // Watches hazard_type and priority changes to auto-fill resource fields
-  // with the AI suggestion, unless the operator has manually overridden them.
+  //Watches hazard_type and priority changes to auto-fill resource fields
+  //with the AI suggestion, unless the operator has manually overridden them.
   const prevHazardRef = useRef(createForm.hazard_type)
   const prevPriorityRef = useRef(createForm.priority)
   useEffect(() => {
@@ -342,7 +342,7 @@ export default function ResourceDeploymentConsole({
     auditLog.filter(a => a.action_type === 'deploy' || a.action_type === 'recall').slice(0, 10),
     [auditLog])
 
-  // Unacknowledged AI draft zones (need operator review)
+  //Unacknowledged AI draft zones (need operator review)
   const unacknowledgedDrafts = useMemo(() =>
     deployments.filter((d: any) => d.is_ai_draft && !d.ai_draft_acknowledged_at),
     [deployments])
@@ -389,7 +389,7 @@ export default function ResourceDeploymentConsole({
   }, [askConfirm, deployReasonRef, lang, pushNotification, setAuditLog, setDeployReason, setDeployments, user])
 
   const handleCreate = useCallback(async () => {
-    // Comprehensive validation
+    //Comprehensive validation
     const errors: Record<string, string> = {}
     const zoneName = createForm.zone.trim()
     if (!zoneName) errors.zone = 'Zone name is required'
@@ -418,7 +418,7 @@ export default function ResourceDeploymentConsole({
     if (createForm.incident_commander.length > 80) errors.incident_commander = 'Must be under 80 characters'
     if (createForm.radio_channel.length > 30) errors.radio_channel = 'Must be under 30 characters'
     if (createForm.access_routes.length > 300) errors.access_routes = 'Must be under 300 characters'
-    if (Object.keys(errors).length > 0) { setFormErrors(errors); pushNotification(`${Object.keys(errors).length} validation error(s) — please correct before submitting`, 'error'); return }
+    if (Object.keys(errors).length > 0) { setFormErrors(errors); pushNotification(`${Object.keys(errors).length} validation error(s) -- please correct before submitting`, 'error'); return }
     setFormErrors({})
     setCreating(true)
     try {
@@ -451,7 +451,7 @@ export default function ResourceDeploymentConsole({
     }
   }, [createForm, pushNotification, setDeployments])
 
-  // Asset tracking helpers
+  //Asset tracking helpers
   const loadAssets = useCallback(async (zoneId: string) => {
     if (assetsByZone[zoneId] !== undefined) return // already loaded
     setLoadingAssetsFor(zoneId)
@@ -497,7 +497,7 @@ export default function ResourceDeploymentConsole({
     } catch { pushNotification('Failed to remove asset', 'error') }
   }, [pushNotification])
 
-  // Operations handlers
+  //Operations handlers
   const handleAcknowledge = useCallback(async (zoneId: string) => {
     setAcknowledging(zoneId)
     try {
@@ -527,12 +527,12 @@ export default function ResourceDeploymentConsole({
     try {
       await apiToggleMutualAid(zone.id, newVal)
       setDeployments(d => d.map((x: any) => x.id === zone.id ? { ...x, needs_mutual_aid: newVal } : x))
-      pushNotification(newVal ? 'Mutual aid requested — neighbouring agencies notified' : 'Mutual aid request cleared', newVal ? 'warning' : 'success')
+      pushNotification(newVal ? 'Mutual aid requested -- neighbouring agencies notified' : 'Mutual aid request cleared', newVal ? 'warning' : 'success')
     } catch { pushNotification('Failed to update mutual aid flag', 'error') }
     finally { setTogglingMutualAid(null) }
   }, [pushNotification, setDeployments])
 
-  // Inline edit handlers
+  //Inline edit handlers
   const startEdit = useCallback((zone: any) => {
     setEditingZone(zone.id)
     setEditForm({ priority: zone.priority || 'Medium', active_reports: String(zone.active_reports || 0), estimated_affected: zone.estimated_affected || '', ambulances: String(zone.ambulances || 0), fire_engines: String(zone.fire_engines || 0), rescue_boats: String(zone.rescue_boats || 0), hazard_type: zone.hazard_type || 'general', incident_commander: zone.incident_commander || '' })
@@ -560,7 +560,7 @@ export default function ResourceDeploymentConsole({
     finally { setSavingEdit(false) }
   }, [editForm, pushNotification, setDeployments])
 
-  // Smart auto-apply suggestion
+  //Smart auto-apply suggestion
   const applySmartSuggestion = useCallback(() => {
     setCreateForm(f => ({
       ...f,
@@ -747,7 +747,7 @@ export default function ResourceDeploymentConsole({
         </div>
       </div>
 
-      {/* AI DRAFT REVIEW PANEL — shown only when unacknowledged AI-generated zones exist */}
+      {/* AI DRAFT REVIEW PANEL -- shown only when unacknowledged AI-generated zones exist */}
       {unacknowledgedDrafts.length > 0 && (
         <div className={`rounded-2xl border shadow-sm overflow-hidden ${unacknowledgedDrafts.some((d: any) => d.priority?.toLowerCase() === 'critical') ? 'border-violet-400 dark:border-violet-600 bg-violet-50/60 dark:bg-violet-900/10' : 'border-violet-200 dark:border-violet-800 bg-violet-50/30 dark:bg-violet-900/5'}`}>
           <div className="px-5 py-3 border-b border-violet-200 dark:border-violet-800 flex items-center justify-between">
@@ -767,7 +767,7 @@ export default function ResourceDeploymentConsole({
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <p className="text-sm font-bold text-gray-900 dark:text-white">{zone.zone}</p>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-300 mt-0.5">{zone.hazard_type || 'General'} • {zone.estimated_affected || 'unknown'} {t('admin.resource.affected', lang)}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-300 mt-0.5">{zone.hazard_type || 'General'} - {zone.estimated_affected || 'unknown'} {t('admin.resource.affected', lang)}</p>
                     </div>
                     <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold ring-1 ${P_PILL[priority] || P_PILL.Low}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${P_DOT[priority] || P_DOT.Low}`} />{priority}
@@ -940,18 +940,18 @@ export default function ResourceDeploymentConsole({
                         )}
                       </td>
                       <td className="px-3 py-3.5 text-right font-bold tabular-nums text-gray-900 dark:text-white">{zone.active_reports}</td>
-                      <td className="px-3 py-3.5 text-right font-bold tabular-nums text-rose-600 dark:text-rose-400">{affected > 0 ? affected.toLocaleString() : '—'}</td>
+                      <td className="px-3 py-3.5 text-right font-bold tabular-nums text-rose-600 dark:text-rose-400">{affected > 0 ? affected.toLocaleString() : '--'}</td>
                       <td className="px-3 py-3.5">
                         <div className="flex items-center gap-2">
                           {Number(zone.ambulances) > 0 && <span className="flex items-center gap-0.5 text-[10px] text-gray-600 dark:text-gray-300"><Truck className="w-3 h-3 text-red-500" />{zone.ambulances}</span>}
                           {Number(zone.fire_engines) > 0 && <span className="flex items-center gap-0.5 text-[10px] text-gray-600 dark:text-gray-300"><Flame className="w-3 h-3 text-orange-500" />{zone.fire_engines}</span>}
                           {Number(zone.rescue_boats) > 0 && <span className="flex items-center gap-0.5 text-[10px] text-gray-600 dark:text-gray-300"><Anchor className="w-3 h-3 text-blue-500" />{zone.rescue_boats}</span>}
-                          {!Number(zone.ambulances) && !Number(zone.fire_engines) && !Number(zone.rescue_boats) && <span className="text-[10px] text-gray-400 dark:text-gray-300">—</span>}
+                          {!Number(zone.ambulances) && !Number(zone.fire_engines) && !Number(zone.rescue_boats) && <span className="text-[10px] text-gray-400 dark:text-gray-300">--</span>}
                         </div>
                       </td>
                       <td className="px-3 py-3.5 max-w-[260px]">
                         <p className="text-[11px] text-blue-600 dark:text-blue-400 truncate" title={zone.ai_recommendation}>
-                          <Brain className="w-3 h-3 inline mr-1 opacity-50" />{zone.ai_recommendation || '—'}
+                          <Brain className="w-3 h-3 inline mr-1 opacity-50" />{zone.ai_recommendation || '--'}
                         </p>
                       </td>
                       <td className="px-5 py-3.5 text-right">
@@ -1047,9 +1047,9 @@ export default function ResourceDeploymentConsole({
                             </div>
                           ) : (
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs mb-3">
-                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.zoneId', lang)}</span><p className="font-mono font-bold text-gray-700 dark:text-gray-300 mt-0.5">{zone.id || '—'}</p></div>
+                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.zoneId', lang)}</span><p className="font-mono font-bold text-gray-700 dark:text-gray-300 mt-0.5">{zone.id || '--'}</p></div>
                               <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.priorityScore', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 mt-0.5">{P_ORDER[priority] || 0}/4</p></div>
-                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.estimatedAffected', lang)}</span><p className="font-bold text-rose-600 dark:text-rose-400 mt-0.5">{zone.estimated_affected || '—'}</p></div>
+                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.estimatedAffected', lang)}</span><p className="font-bold text-rose-600 dark:text-rose-400 mt-0.5">{zone.estimated_affected || '--'}</p></div>
                               <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.deploymentStatus', lang)}</span><p className={`font-bold mt-0.5 ${zone.deployed ? 'text-emerald-600' : 'text-gray-500 dark:text-gray-300'}`}>{zone.deployed ? t('resource.resourcesDeployed', lang) : t('resource.awaitingDeployment', lang)}</p></div>
                             </div>
                           )}
@@ -1230,7 +1230,7 @@ export default function ResourceDeploymentConsole({
           {zones.length === 0 && (
             <div className="text-center py-12">
               <Layers className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-400 dark:text-gray-300">{deployments.length === 0 ? 'No deployment zones yet — create one to get started.' : t('resource.noZonesMatch', lang)}</p>
+              <p className="text-sm text-gray-400 dark:text-gray-300">{deployments.length === 0 ? 'No deployment zones yet -- create one to get started.' : t('resource.noZonesMatch', lang)}</p>
               {deployments.length === 0 && (
                 <button onClick={() => { const init = getSmartResourceSuggestion('general', 'Medium'); setCreateForm({ zone: '', priority: 'Medium', active_reports: '0', estimated_affected: '', ai_recommendation: init.reasoning, commander_notes: '', ambulances: String(init.ambulances), fire_engines: String(init.fire_engines), rescue_boats: String(init.rescue_boats), lat: '', lng: '', report_id: '', hazard_type: 'general', incident_commander: '', radio_channel: '', weather_conditions: 'clear', evacuation_status: 'none', access_routes: '' }); setCreateStep(0); setShowCreateModal(true) }} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/30 ring-1 ring-violet-500/20 transition-colors"><Plus className="w-3.5 h-3.5" /> Create First Zone</button>
               )}
@@ -1298,7 +1298,7 @@ export default function ResourceDeploymentConsole({
                           </div>
                           <div className="bg-gray-50 dark:bg-gray-800/40 rounded-lg p-2">
                             <p className="text-[9px] text-gray-400 dark:text-gray-300 font-medium uppercase">{t('resource.affected', lang)}</p>
-                            <p className="text-sm font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">{affected > 0 ? affected.toLocaleString() : '—'}</p>
+                            <p className="text-sm font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">{affected > 0 ? affected.toLocaleString() : '--'}</p>
                           </div>
                           <div className="bg-gray-50 dark:bg-gray-800/40 rounded-lg p-2">
                             <p className="text-[9px] text-gray-400 dark:text-gray-300 font-medium uppercase">{t('resource.assets', lang)}</p>
@@ -1391,9 +1391,9 @@ export default function ResourceDeploymentConsole({
                             </div>
                           ) : (
                             <div className="grid grid-cols-2 gap-3 text-xs mb-3">
-                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.zoneId', lang)}</span><p className="font-mono font-bold text-gray-700 dark:text-gray-300 mt-0.5">{zone.id || '—'}</p></div>
+                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.zoneId', lang)}</span><p className="font-mono font-bold text-gray-700 dark:text-gray-300 mt-0.5">{zone.id || '--'}</p></div>
                               <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.priorityScore', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 mt-0.5">{P_ORDER[priority] || 0}/4</p></div>
-                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.estimatedAffected', lang)}</span><p className="font-bold text-rose-600 dark:text-rose-400 mt-0.5">{zone.estimated_affected || '—'}</p></div>
+                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.estimatedAffected', lang)}</span><p className="font-bold text-rose-600 dark:text-rose-400 mt-0.5">{zone.estimated_affected || '--'}</p></div>
                               <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('common.status', lang)}</span><p className={`font-bold mt-0.5 ${zone.deployed ? 'text-emerald-600' : 'text-gray-500 dark:text-gray-300'}`}>{zone.deployed ? t('resource.resourcesDeployed', lang) : t('resource.awaitingDeployment', lang)}</p></div>
                             </div>
                           )}
@@ -1480,7 +1480,7 @@ export default function ResourceDeploymentConsole({
                             <div className="flex gap-1.5">
                               <input
                                 type="text"
-                                placeholder="Log entry…"
+                                placeholder="Log entry..."
                                 value={opsNoteByZone[zone.id] || ''}
                                 onChange={e => setOpsNoteByZone(prev => ({ ...prev, [zone.id]: e.target.value }))}
                                 onKeyDown={e => e.key === 'Enter' && handleAddOpsLog(zone.id)}
@@ -1504,7 +1504,7 @@ export default function ResourceDeploymentConsole({
             ) : (
               <div className="text-center py-12">
                 <Layers className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-400 dark:text-gray-300">{deployments.length === 0 ? 'No deployment zones yet — create one to get started.' : t('resource.noZonesMatch', lang)}</p>
+                <p className="text-sm text-gray-400 dark:text-gray-300">{deployments.length === 0 ? 'No deployment zones yet -- create one to get started.' : t('resource.noZonesMatch', lang)}</p>
                 {deployments.length === 0 && (
                   <button onClick={() => { const init = getSmartResourceSuggestion('general', 'Medium'); setCreateForm({ zone: '', priority: 'Medium', active_reports: '0', estimated_affected: '', ai_recommendation: init.reasoning, commander_notes: '', ambulances: String(init.ambulances), fire_engines: String(init.fire_engines), rescue_boats: String(init.rescue_boats), lat: '', lng: '', report_id: '', hazard_type: 'general', incident_commander: '', radio_channel: '', weather_conditions: 'clear', evacuation_status: 'none', access_routes: '' }); setCreateStep(0); setShowCreateModal(true) }} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/30 ring-1 ring-violet-500/20 transition-colors"><Plus className="w-3.5 h-3.5" /> Create First Zone</button>
                 )}
@@ -1559,7 +1559,7 @@ export default function ResourceDeploymentConsole({
       </div>
     </div>
 
-    {/* CREATE ZONE MODAL — multi-step with AI resource engine */}
+    {/* CREATE ZONE MODAL -- multi-step with AI resource engine */}
     {showCreateModal && (
       <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => { setShowCreateModal(false); setCreateStep(0); setFormErrors({}) }}>
         <div className="w-full max-w-2xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -1578,7 +1578,7 @@ export default function ResourceDeploymentConsole({
                       THREAT: {threatInfo.label}
                     </span>
                   </h3>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{hazardInfo.label} incident • AI-assisted resource staging</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{hazardInfo.label} incident - AI-assisted resource staging</p>
                 </div>
               </div>
               <button onClick={() => { setShowCreateModal(false); setCreateStep(0); setFormErrors({}) }} className="p-2 rounded-xl text-gray-400 hover:bg-white/60 dark:hover:bg-gray-800/60 hover:text-gray-600 dark:hover:text-gray-300 transition-all"><X className="w-4 h-4" /></button>
@@ -1601,7 +1601,7 @@ export default function ResourceDeploymentConsole({
             <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Zone Name <span className="text-red-500">*</span></label>
-                <input type="text" maxLength={120} value={createForm.zone} onChange={e => { setCreateForm(f => ({ ...f, zone: e.target.value })); setFormErrors(p => { const n = { ...p }; delete n.zone; return n }) }} placeholder="e.g. Aberdeen City Centre — North Sector" className={`w-full px-4 py-2.5 text-sm bg-white dark:bg-gray-800 border rounded-xl focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500 transition-all placeholder:text-gray-400 dark:text-white font-medium ${formErrors.zone ? 'border-red-400 dark:border-red-600 ring-1 ring-red-400/30' : 'border-gray-200 dark:border-gray-700'}`} autoFocus />
+                <input type="text" maxLength={120} value={createForm.zone} onChange={e => { setCreateForm(f => ({ ...f, zone: e.target.value })); setFormErrors(p => { const n = { ...p }; delete n.zone; return n }) }} placeholder="e.g. Aberdeen City Centre -- North Sector" className={`w-full px-4 py-2.5 text-sm bg-white dark:bg-gray-800 border rounded-xl focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500 transition-all placeholder:text-gray-400 dark:text-white font-medium ${formErrors.zone ? 'border-red-400 dark:border-red-600 ring-1 ring-red-400/30' : 'border-gray-200 dark:border-gray-700'}`} autoFocus />
                 {formErrors.zone && <p className="mt-1 text-[10px] text-red-500 font-semibold flex items-center gap-1"><AlertCircle className="w-3 h-3" />{formErrors.zone}</p>}
                 <p className="mt-1 text-[10px] text-gray-400 text-right tabular-nums">{createForm.zone.length}/120</p>
               </div>
@@ -1616,7 +1616,7 @@ export default function ResourceDeploymentConsole({
                       className={`w-full px-4 py-2.5 text-sm font-bold bg-white dark:bg-gray-800 border rounded-xl appearance-none cursor-pointer transition-all focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500 dark:text-white ${P_PILL[createForm.priority]?.split(' ').filter(c => c.startsWith('text-')).join(' ') || ''} ${createForm.priority === 'Critical' ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/20' : createForm.priority === 'High' ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20' : createForm.priority === 'Medium' ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/20' : 'border-gray-200 dark:border-gray-700'}`}
                     >
                       {['Critical', 'High', 'Medium', 'Low'].map(p => (
-                        <option key={p} value={p}>{p === 'Critical' ? 'Critical — Immediate life threat' : p === 'High' ? 'High — Significant danger' : p === 'Medium' ? 'Medium — Moderate risk' : 'Low — Monitoring'}</option>
+                        <option key={p} value={p}>{p === 'Critical' ? 'Critical -- Immediate life threat' : p === 'High' ? 'High -- Significant danger' : p === 'Medium' ? 'Medium -- Moderate risk' : 'Low -- Monitoring'}</option>
                       ))}
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -1654,15 +1654,15 @@ export default function ResourceDeploymentConsole({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-bold text-gray-700 dark:text-gray-200">
-                    {createForm.priority} — {HAZARD_CATEGORIES[createForm.hazard_type]?.label || 'General'}
+                    {createForm.priority} -- {HAZARD_CATEGORIES[createForm.hazard_type]?.label || 'General'}
                     <span className="mx-1.5 text-gray-300 dark:text-gray-400">|</span>
                     <span className={`font-extrabold ${threatInfo.color}`}>Threat: {threatInfo.label}</span>
                   </p>
                   <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
-                    {createForm.priority === 'Critical' && 'Multi-channel alert — All command staff notified immediately. Resources auto-deployed.'}
-                    {createForm.priority === 'High' && 'Priority dispatch — Senior operators alerted. Expedited resource staging.'}
-                    {createForm.priority === 'Medium' && 'Standard response — Normal dispatch queue. Resources allocated per availability.'}
-                    {createForm.priority === 'Low' && 'Monitoring only — Logged for situational awareness. No immediate dispatch.'}
+                    {createForm.priority === 'Critical' && 'Multi-channel alert -- All command staff notified immediately. Resources auto-deployed.'}
+                    {createForm.priority === 'High' && 'Priority dispatch -- Senior operators alerted. Expedited resource staging.'}
+                    {createForm.priority === 'Medium' && 'Standard response -- Normal dispatch queue. Resources allocated per availability.'}
+                    {createForm.priority === 'Low' && 'Monitoring only -- Logged for situational awareness. No immediate dispatch.'}
                   </p>
                 </div>
               </div>
@@ -1731,9 +1731,9 @@ export default function ResourceDeploymentConsole({
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1"><Link2 className="w-3 h-3 text-sky-500" /> Link to Incident Report <span className="text-gray-400 font-normal">(optional)</span></label>
                 <select value={createForm.report_id} onChange={e => setCreateForm(f => ({ ...f, report_id: e.target.value }))} className="w-full px-4 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl dark:text-white">
-                  <option value="">— None —</option>
+                  <option value="">-- None --</option>
                   {reports.filter((r: any) => ['unverified','verified','urgent','flagged'].includes((r.status || '').toLowerCase())).slice(0, 50).map((r: any) => (
-                    <option key={r.id} value={r.id}>{r.reportNumber || `RPT-${r.id?.slice(0, 6).toUpperCase()}`} — {r.description?.slice(0, 60) || r.status}</option>
+                    <option key={r.id} value={r.id}>{r.reportNumber || `RPT-${r.id?.slice(0, 6).toUpperCase()}`} -- {r.description?.slice(0, 60) || r.status}</option>
                   ))}
                 </select>
               </div>
@@ -1838,7 +1838,7 @@ export default function ResourceDeploymentConsole({
 
               {/* Additional Commander Notes (optional) */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1"><Edit3 className="w-3 h-3 text-gray-400" /> Commander Notes <span className="text-gray-400 font-normal">(optional — terrain, access routes, hazard specifics)</span></label>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1"><Edit3 className="w-3 h-3 text-gray-400" /> Commander Notes <span className="text-gray-400 font-normal">(optional -- terrain, access routes, hazard specifics)</span></label>
                 <textarea rows={2} maxLength={500} value={createForm.commander_notes} onChange={e => { setCreateForm(f => ({ ...f, commander_notes: e.target.value })); setFormErrors(p => { const n = { ...p }; delete n.commander_notes; return n }) }} placeholder="Add operational notes visible to all responders..." className={`w-full px-4 py-2.5 text-sm bg-white dark:bg-gray-800 border rounded-xl resize-none placeholder:text-gray-400 dark:text-white leading-relaxed ${formErrors.commander_notes ? 'border-red-400 dark:border-red-600' : 'border-gray-200 dark:border-gray-700'}`} />
                 {formErrors.commander_notes && <p className="mt-1 text-[10px] text-red-500 font-semibold flex items-center gap-1"><AlertCircle className="w-3 h-3" />{formErrors.commander_notes}</p>}
                 <p className="mt-1 text-[10px] text-gray-400 text-right tabular-nums">{createForm.commander_notes.length}/500</p>
@@ -1875,7 +1875,7 @@ export default function ResourceDeploymentConsole({
                       <p className="text-[9px] text-gray-500 uppercase font-bold">Reports</p>
                     </div>
                     <div className="text-center p-2 rounded-lg bg-gray-50 dark:bg-gray-800/40">
-                      <p className="text-lg font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">{createForm.estimated_affected || '—'}</p>
+                      <p className="text-lg font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">{createForm.estimated_affected || '--'}</p>
                       <p className="text-[9px] text-gray-500 uppercase font-bold">Affected</p>
                     </div>
                     <div className="text-center p-2 rounded-lg bg-gray-50 dark:bg-gray-800/40">
@@ -1883,7 +1883,7 @@ export default function ResourceDeploymentConsole({
                       <p className="text-[9px] text-gray-500 uppercase font-bold">Total Assets</p>
                     </div>
                     <div className="text-center p-2 rounded-lg bg-gray-50 dark:bg-gray-800/40">
-                      <p className="text-lg font-extrabold text-gray-900 dark:text-white tabular-nums">{createForm.lat && createForm.lng ? <MapPin className="w-5 h-5 text-teal-500 mx-auto" /> : '—'}</p>
+                      <p className="text-lg font-extrabold text-gray-900 dark:text-white tabular-nums">{createForm.lat && createForm.lng ? <MapPin className="w-5 h-5 text-teal-500 mx-auto" /> : '--'}</p>
                       <p className="text-[9px] text-gray-500 uppercase font-bold">Geo-Pin</p>
                     </div>
                   </div>
@@ -1951,7 +1951,7 @@ export default function ResourceDeploymentConsole({
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800">
                   <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
                   <div className="text-[11px] text-red-700 dark:text-red-300 leading-relaxed">
-                    <span className="font-bold">CRITICAL PRIORITY</span> — Creating this zone will trigger immediate multi-channel notifications to all active command staff and operators.
+                    <span className="font-bold">CRITICAL PRIORITY</span> -- Creating this zone will trigger immediate multi-channel notifications to all active command staff and operators.
                   </div>
                 </div>
               )}
@@ -2002,7 +2002,7 @@ export default function ResourceDeploymentConsole({
             <div>
               {createStep > 0 && (
                 <button onClick={() => setCreateStep(s => s - 1)} className="px-4 py-2 text-xs font-semibold rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                  ← Back
+ <- Back
                 </button>
               )}
             </div>
@@ -2028,7 +2028,7 @@ export default function ResourceDeploymentConsole({
                   }}
                   className="px-5 py-2.5 text-xs font-bold rounded-xl bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-all shadow-sm hover:shadow-md"
                 >
-                  Next →
+ Next ->
                 </button>
               ) : (
                 <button

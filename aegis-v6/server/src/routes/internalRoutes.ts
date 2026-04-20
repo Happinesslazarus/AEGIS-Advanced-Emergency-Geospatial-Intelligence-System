@@ -26,8 +26,8 @@ import { logger } from '../services/logger.js'
 const router = Router()
 const activeRegion = getActiveCityRegion()
 
-// Rate limiter specifically for the unauthenticated error-logging endpoint.
-// Without this any external party can flood the frontend_errors table.
+//Rate limiter specifically for the unauthenticated error-logging endpoint.
+//Without this any external party can flood the frontend_errors table.
 const frontendErrorLimiter = rateLimit({
   windowMs: 60 * 1000,  // 1 minute
   max: 20,              // 20 error submissions per minute per IP
@@ -37,26 +37,26 @@ const frontendErrorLimiter = rateLimit({
   skipSuccessfulRequests: false,
 })
 
-// Apply internal authentication to all routes in this router
-// Frontend error logging is public (no auth) - see individual route
+//Apply internal authentication to all routes in this router
+//Frontend error logging is public (no auth) - see individual route
 router.use((req, res, next) => {
-  // Allow error logging without auth (needed for frontend error boundaries)
+  //Allow error logging without auth (needed for frontend error boundaries)
   if (req.path === '/errors/frontend' && req.method === 'POST') {
     return next()
   }
-  // System health is accessed by logged-in operators via the admin dashboard;
-  // it uses staff JWT auth at the route level instead of the internal API key.
+  //System health is accessed by logged-in operators via the admin dashboard;
+  //it uses staff JWT auth at the route level instead of the internal API key.
   if (req.path === '/health/system' && req.method === 'GET') {
     return next()
   }
-  // All other internal endpoints require authentication
+  //All other internal endpoints require authentication
   internalAuth(req, res, next)
 })
 
 //
-// n8n workflows call POST /api/internal/ws-broadcast with:
+//n8n workflows call POST /api/internal/ws-broadcast with:
 //   { event: "gauge:update", payload: { ... } }
-// and we relay it via Socket.IO to all connected clients.
+//and we relay it via Socket.IO to all connected clients.
 
 router.post('/ws-broadcast', (req: Request, res: Response) => {
   const { event, payload } = req.body
@@ -109,7 +109,7 @@ router.post('/errors/frontend', frontendErrorLimiter, async (req: Request, res: 
     res.json({ ok: true })
   } catch (err: any) {
     logger.error({ err }, '[ErrorLog] Failed to store frontend error')
-    // Still 200 ? we don't want error logging failures to cascade
+    //Still 200 ? we don't want error logging failures to cascade
     res.json({ ok: false, reason: 'storage_failed' })
   }
 })
@@ -118,7 +118,7 @@ router.post('/errors/frontend', frontendErrorLimiter, async (req: Request, res: 
 
 router.get('/health/system', authMiddleware, operatorOnly, async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    // Database
+    //Database
     let dbOk = false
     let dbLatency = 0
     try {
@@ -128,7 +128,7 @@ router.get('/health/system', authMiddleware, operatorOnly, async (_req: Request,
       dbOk = true
     } catch { /* db down */ }
 
-    // AI Engine
+    //AI Engine
     let aiOk = false
     let aiLatency = 0
     const aiUrl = process.env.AI_ENGINE_URL || 'http://localhost:8000'
@@ -139,16 +139,16 @@ router.get('/health/system', authMiddleware, operatorOnly, async (_req: Request,
       aiOk = r.ok
     } catch { /* ai engine down */ }
 
-    // n8n health
+    //n8n health
     const n8nHealth = getN8nHealthState()
 
-    // External API circuit breakers
+    //External API circuit breakers
     const circuitBreakers = getCircuitBreakerStates()
 
-    // Cron fallback mode
+    //Cron fallback mode
     const cronFallback = isFallbackActive()
 
-    // Recent errors (last hour)
+    //Recent errors (last hour)
     let recentErrors = { frontend: 0, system: 0, external: 0 }
     try {
       const { rows } = await pool.query(`
@@ -160,7 +160,7 @@ router.get('/health/system', authMiddleware, operatorOnly, async (_req: Request,
       recentErrors = rows[0] || recentErrors
     } catch { /* tables might not exist yet */ }
 
-    // Recent cron jobs
+    //Recent cron jobs
     let recentJobs: any[] = []
     try {
       const { rows } = await pool.query(`
@@ -205,7 +205,7 @@ router.get('/health/system', authMiddleware, operatorOnly, async (_req: Request,
 
 // ?4  n8n Webhook Callbacks
 //
-// These endpoints are called by n8n workflows to push data back into AEGIS.
+//These endpoints are called by n8n workflows to push data back into AEGIS.
 
 /**
  * POST /api/internal/n8n-webhook/weather
@@ -216,7 +216,7 @@ router.post('/n8n-webhook/weather', async (req: Request, res: Response, next: Ne
     const data = req.body
     const io = req.app.get('io')
 
-    // Try to ingest the weather data into the database
+    //Try to ingest the weather data into the database
     try {
       const { ingestOpenMeteoData } = await import('../services/dataIngestionService.js')
       const result = await ingestOpenMeteoData()
@@ -225,7 +225,7 @@ router.post('/n8n-webhook/weather', async (req: Request, res: Response, next: Ne
       logger.warn({ err }, '[n8n-webhook/weather] Ingestion error')
     }
 
-    // Broadcast to connected clients
+    //Broadcast to connected clients
     if (io) {
       io.emit('weather:update', { source: 'n8n', timestamp: new Date().toISOString(), ...data })
     }
@@ -246,7 +246,7 @@ router.post('/n8n-webhook/alerts', async (req: Request, res: Response, next: Nex
     const io = req.app.get('io')
     let alertCount = 0
 
-    // Process EA flood data
+    //Process EA flood data
     if (ea_data?.items && Array.isArray(ea_data.items)) {
       for (const item of ea_data.items.slice(0, 50)) {
         try {
@@ -266,7 +266,7 @@ router.post('/n8n-webhook/alerts', async (req: Request, res: Response, next: Nex
       }
     }
 
-    // Process SEPA warnings data
+    //Process SEPA warnings data
     if (sepa_data && Array.isArray(sepa_data)) {
       for (const item of sepa_data.slice(0, 50)) {
         try {
@@ -286,7 +286,7 @@ router.post('/n8n-webhook/alerts', async (req: Request, res: Response, next: Nex
       }
     }
 
-    // Broadcast alert update
+    //Broadcast alert update
     if (io) {
       io.emit('alerts:update', { source: source || 'n8n_wf3', count: alertCount, timestamp: new Date().toISOString() })
     }
@@ -330,7 +330,7 @@ router.post('/n8n-webhook/multi-hazard', async (req: Request, res: Response, nex
       throw AppError.badRequest('Missing hazard_type or severity')
     }
 
-    // Insert alert into database
+    //Insert alert into database
     await pool.query(
       `INSERT INTO alerts (alert_type, severity::alert_severity, title, message, location_text, is_active, created_at)
        VALUES ($1, $2, $3, $4, $5, true, NOW())`,
@@ -338,7 +338,7 @@ router.post('/n8n-webhook/multi-hazard', async (req: Request, res: Response, nex
        region || activeRegion.name]
     )
 
-    // Broadcast via Socket.IO
+    //Broadcast via Socket.IO
     const io = req.app.get('io')
     if (io) {
       io.emit('incident:alert', { type: hazard_type, severity, description, region, data, source: 'n8n_wf4' })
@@ -415,8 +415,8 @@ router.post('/n8n-webhook/escalation', async (req: Request, res: Response, next:
 })
 
 //
-// All new per-incident n8n workflows post to this single endpoint.
-// Body: { incidentType, severity, probability, message, source, metadata }
+//All new per-incident n8n workflows post to this single endpoint.
+//Body: { incidentType, severity, probability, message, source, metadata }
 
 router.post('/incident-alert', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -426,7 +426,7 @@ router.post('/incident-alert', async (req: Request, res: Response, next: NextFun
       throw AppError.badRequest('Missing incidentType or severity')
     }
 
-    // Normalise severity to DB enum values
+    //Normalise severity to DB enum values
     const severityMap: Record<string, string> = {
       critical: 'Critical',
       high: 'High',
@@ -439,7 +439,7 @@ router.post('/incident-alert', async (req: Request, res: Response, next: NextFun
     }
     const normSeverity = severityMap[severity] || 'Medium'
 
-    // Deduplicate: skip if identical alert was inserted in last 15 minutes
+    //Deduplicate: skip if identical alert was inserted in last 15 minutes
     let inserted = false
     try {
       const { rowCount } = await pool.query(
@@ -460,7 +460,7 @@ router.post('/incident-alert', async (req: Request, res: Response, next: NextFun
             incidentType,
             normSeverity,
             `${incidentType.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())} Alert`,
-            message || `${incidentType} alert — ${normSeverity} severity`,
+            message || `${incidentType} alert -- ${normSeverity} severity`,
             activeRegion.name,
             source || 'n8n',
             JSON.stringify(metadata || {}),
@@ -469,11 +469,11 @@ router.post('/incident-alert', async (req: Request, res: Response, next: NextFun
         inserted = true
       }
     } catch (dbErr: any) {
-      // Alert table might have different schema — fall through to socket broadcast
+      //Alert table might have different schema -- fall through to socket broadcast
       logger.warn({ err: dbErr }, '[incident-alert] DB insert warning')
     }
 
-    // Always broadcast via Socket.IO regardless of DB outcome
+    //Always broadcast via Socket.IO regardless of DB outcome
     const io = req.app.get('io')
     if (io) {
       io.emit('incident:alert', {
@@ -487,7 +487,7 @@ router.post('/incident-alert', async (req: Request, res: Response, next: NextFun
       })
     }
 
-    devLog(`[incident-alert] ${incidentType} (${normSeverity}) from ${source || 'n8n'} — inserted:${inserted}`)
+    devLog(`[incident-alert] ${incidentType} (${normSeverity}) from ${source || 'n8n'} -- inserted:${inserted}`)
     res.json({ ok: true, incidentType, severity: normSeverity, inserted, source: source || 'n8n' })
   } catch (err) {
     next(err)

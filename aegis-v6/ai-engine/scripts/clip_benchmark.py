@@ -22,7 +22,7 @@ CATEGORIES = [
     "drought", "structural_damage", "heatwave", "safe"
 ]
 
-# CLIP text prompts — engineered for disaster classification
+# CLIP text prompts -- engineered for disaster classification
 # Multiple prompts per category improve accuracy via prompt ensembling
 PROMPT_TEMPLATES = {
     "wildfire": [
@@ -90,7 +90,7 @@ PROMPT_TEMPLATES = {
     ],
 }
 
-# Cross-category aliases for evaluation (earthquake ↔ structural_damage, etc.)
+# Cross-category aliases for evaluation (earthquake <-> structural_damage, etc.)
 TYPE_ALIASES = {
     "wildfire": {"wildfire", "fire", "bushfire", "forest_fire"},
     "flood": {"flood", "flooding", "flash_flood", "inundation"},
@@ -135,7 +135,7 @@ def load_clip_model(model_name="ViT-B-32", device=None):
 def build_text_embeddings(model, tokenizer, device):
     """
     Pre-compute averaged text embeddings for each disaster category.
-    Uses prompt ensembling: multiple descriptions per category → averaged embedding.
+    Uses prompt ensembling: multiple descriptions per category -> averaged embedding.
     """
     category_embeddings = {}
     with torch.no_grad():
@@ -215,7 +215,7 @@ def run_benchmark(model_name="ViT-B-32"):
     category_embeddings = build_text_embeddings(model, tokenizer, device)
 
     print(f"\n{'='*60}")
-    print(f"  AEGIS CLIP Zero-Shot Benchmark — {total} images")
+    print(f"  AEGIS CLIP Zero-Shot Benchmark -- {total} images")
     print(f"  Model: {model_name} | Device: {device}")
     print(f"  Started: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*60}\n")

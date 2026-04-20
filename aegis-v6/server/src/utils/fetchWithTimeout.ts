@@ -79,7 +79,7 @@ export async function fetchWithTimeout(
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-  // If the caller already provided a signal, chain them
+  //If the caller already provided a signal, chain them
   if (fetchOptions.signal) {
     const externalSignal = fetchOptions.signal
     externalSignal.addEventListener('abort', () => controller.abort())

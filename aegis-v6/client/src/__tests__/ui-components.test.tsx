@@ -1,8 +1,8 @@
 /**
  * Tests for the shared low-level UI primitives used everywhere in the AEGIS client:
- *   - Button / CloseButton  — accessible buttons with variant, size, icon, and loading support
- *   - Modal                 — accessible dialog with focus management and keyboard handling
- *   - Toast / ToastProvider — transient notification messages with success/error/warning/info types
+ *   - Button / CloseButton  -- accessible buttons with variant, size, icon, and loading support
+ *   - Modal                 -- accessible dialog with focus management and keyboard handling
+ *   - Toast / ToastProvider -- transient notification messages with success/error/warning/info types
  *
  * Glossary:
  *   describe()              = groups related tests under a labelled block
@@ -33,7 +33,7 @@
  *   onClose prop            = callback fired when the user closes the modal
  *   title prop              = heading text; used as aria-label when hideTitle=true
  *   hideTitle prop          = visually hides the title but keeps it as an accessible name
- *   showCloseButton prop    = controls whether the ✕ close button is rendered (default true)
+ *   showCloseButton prop    = controls whether the x close button is rendered (default true)
  *   closeOnEscape prop      = closes the modal when the user presses Escape
  *   size prop (Modal)       = max-width preset: sm, md (default), lg, xl, full
  *   role="dialog"           = ARIA role that tells screen readers this is a dialog window
@@ -57,11 +57,9 @@ import { render, screen, fireEvent, waitFor, within, act } from '@testing-librar
 import '@testing-library/jest-dom'
 import React, { useState } from 'react'
 
-// ---------------------------------------------------------------------------
-// Module-level mocks — must be declared before imports of the components
-// ---------------------------------------------------------------------------
+//Module-level mocks -- must be declared before imports of the components
 
-// useReducedMotion — return animations-enabled so tests run without accessibility overrides
+//useReducedMotion -- return animations-enabled so tests run without accessibility overrides
 vi.mock('../hooks/useReducedMotion', () => ({
   useReducedMotion: () => ({
     prefersReduced: false,
@@ -70,60 +68,54 @@ vi.mock('../hooks/useReducedMotion', () => ({
   }),
 }))
 
-// useFocusTrap — return a plain React ref; real version would lock keyboard focus inside modal
+//useFocusTrap -- return a plain React ref; real version would lock keyboard focus inside modal
 vi.mock('../hooks/useFocusTrap', () => ({
   useFocusTrap: () => React.createRef(),
 }))
 
-// accessibility utils — stub out functions that require real browser focus management
+//accessibility utils -- stub out functions that require real browser focus management
 vi.mock('../utils/accessibility', () => ({
   visuallyHiddenStyles: {}, // empty object; no real CSS needed in tests
   createFocusTrap: () => ({ activate: () => {}, deactivate: () => {} }),
   focusFirstElement: () => {}, // no-op; jsdom doesn't implement :focus-visible
 }))
 
-// Import components AFTER mocks so the stubs are in place at module initialisation time
+//Import components AFTER mocks so the stubs are in place at module initialisation time
 import { Button, CloseButton } from '../components/ui/Button'
 import { Modal } from '../components/ui/Modal'
 import { ToastProvider, useToast } from '../components/ui/Toast'
 
-// ---------------------------------------------------------------------------
-// Button component
-// ---------------------------------------------------------------------------
+//Button component
 describe('Button', () => {
 
-  // ---------------------------------------------------------------------------
-  // Rendering basics
-  // ---------------------------------------------------------------------------
+  //Rendering basics
   describe('rendering', () => {
     test('renders with children', () => {
       render(<Button>Click me</Button>)
-      // The button text must be present in the rendered DOM
+      //The button text must be present in the rendered DOM
       expect(screen.getByRole('button')).toHaveTextContent('Click me')
     })
 
     test('renders as button by default', () => {
       render(<Button>Click me</Button>)
-      // tagName confirms the underlying element is a <button>, not a <div> or <a>
+      //tagName confirms the underlying element is a <button>, not a <div> or <a>
       expect(screen.getByRole('button').tagName).toBe('BUTTON')
     })
 
     test('renders with type="button" by default', () => {
       render(<Button>Click me</Button>)
-      // Explicit type="button" prevents accidental form submission when Button is inside a <form>
+      //Explicit type="button" prevents accidental form submission when Button is inside a <form>
       expect(screen.getByRole('button')).toHaveAttribute('type', 'button')
     })
 
     test('renders with custom type', () => {
       render(<Button type="submit">Submit</Button>)
-      // type="submit" deliberately triggers form submission
+      //type="submit" deliberately triggers form submission
       expect(screen.getByRole('button')).toHaveAttribute('type', 'submit')
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Variant styling — each variant maps to a distinct Tailwind CSS colour scheme
-  // ---------------------------------------------------------------------------
+  //Variant styling -- each variant maps to a distinct Tailwind CSS colour scheme
   describe('variants', () => {
     test('renders primary variant correctly', () => {
       render(<Button variant="primary">Primary</Button>)
@@ -162,24 +154,20 @@ describe('Button', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Size variants — control padding and font size
-  // ---------------------------------------------------------------------------
+  //Size variants -- control padding and font size
   describe('sizes', () => {
     const sizes = ['xs', 'sm', 'md', 'lg', 'xl'] as const
 
     sizes.forEach(size => {
       test(`renders ${size} size correctly`, () => {
         render(<Button size={size}>{size}</Button>)
-        // Each size must be accepted without throwing; exact class checked in integration
+        //Each size must be accepted without throwing; exact class checked in integration
         expect(screen.getByRole('button')).toBeInTheDocument()
       })
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Interactive states — click, disabled, loading
-  // ---------------------------------------------------------------------------
+  //Interactive states -- click, disabled, loading
   describe('states', () => {
     test('handles click events', () => {
       const handleClick = vi.fn()
@@ -190,7 +178,7 @@ describe('Button', () => {
     })
 
     test('does not call onClick when disabled', () => {
-      // Disabled buttons must not trigger click handlers — prevents accidental submissions
+      //Disabled buttons must not trigger click handlers -- prevents accidental submissions
       const handleClick = vi.fn()
       render(<Button onClick={handleClick} disabled>Click me</Button>)
 
@@ -199,14 +187,14 @@ describe('Button', () => {
     })
 
     test('shows loading state', () => {
-      // isLoading=true disables the button AND shows a loading indicator
+      //isLoading=true disables the button AND shows a loading indicator
       render(<Button isLoading>Loading</Button>)
       const btn = screen.getByRole('button')
       expect(btn).toBeDisabled() // prevents double-submission
     })
 
     test('shows loading text when provided', () => {
-      // Replace child text with a progress message while request is in flight
+      //Replace child text with a progress message while request is in flight
       render(<Button isLoading loadingText="Please wait...">Submit</Button>)
       expect(screen.getByRole('button')).toHaveTextContent('Please wait...')
     })
@@ -220,35 +208,31 @@ describe('Button', () => {
 
     test('fullWidth applies correct class', () => {
       render(<Button fullWidth>Full Width</Button>)
-      // w-full = width: 100%; fills the parent container
+      //w-full = width: 100%; fills the parent container
       expect(screen.getByRole('button').className).toContain('w-full')
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Icon slots — elements inserted before/after the button text
-  // ---------------------------------------------------------------------------
+  //Icon slots -- elements inserted before/after the button text
   describe('icons', () => {
     test('renders with left icon', () => {
-      const Icon = () => <span data-testid="left-icon">←</span>
+ const Icon = () => <span data-testid="left-icon"><-</span>
       render(<Button leftIcon={<Icon />}>With Icon</Button>)
       expect(screen.getByTestId('left-icon')).toBeInTheDocument()
     })
 
     test('renders with right icon', () => {
-      const Icon = () => <span data-testid="right-icon">→</span>
+ const Icon = () => <span data-testid="right-icon">-></span>
       render(<Button rightIcon={<Icon />}>With Icon</Button>)
       expect(screen.getByTestId('right-icon')).toBeInTheDocument()
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Accessibility
-  // ---------------------------------------------------------------------------
+  //Accessibility
   describe('accessibility', () => {
     test('accepts aria-label', () => {
       render(<Button aria-label="Close dialog">×</Button>)
-      // getByLabelText uses aria-label to find the element for screen-reader users
+      //getByLabelText uses aria-label to find the element for screen-reader users
       expect(screen.getByLabelText('Close dialog')).toBeInTheDocument()
     })
 
@@ -260,16 +244,14 @@ describe('Button', () => {
     })
 
     test('disabled button is not focusable with tab', () => {
-      // Disabled button must not appear in the tab order
+      //Disabled button must not appear in the tab order
       render(<Button disabled>Not focusable</Button>)
       expect(screen.getByRole('button')).toBeDisabled()
     })
   })
 })
 
-// ---------------------------------------------------------------------------
-// CloseButton component — specialised close/dismiss button
-// ---------------------------------------------------------------------------
+//CloseButton component -- specialised close/dismiss button
 describe('CloseButton', () => {
   test('renders correctly', () => {
     render(<CloseButton onClick={() => {}} />)
@@ -278,7 +260,7 @@ describe('CloseButton', () => {
 
   test('has Close aria-label by default', () => {
     render(<CloseButton onClick={() => {}} />)
-    // Default accessible name so screen readers announce "Close, button"
+    //Default accessible name so screen readers announce "Close, button"
     expect(screen.getByRole('button')).toHaveAttribute('aria-label', 'Close')
   })
 
@@ -292,16 +274,14 @@ describe('CloseButton', () => {
 
   test('accepts custom aria-label', () => {
     render(<CloseButton onClick={() => {}} aria-label="Dismiss notification" />)
-    // Custom label overrides the default "Close" for context-specific announcements
+    //Custom label overrides the default "Close" for context-specific announcements
     expect(screen.getByLabelText('Dismiss notification')).toBeInTheDocument()
   })
 })
 
-// ---------------------------------------------------------------------------
-// Modal component — accessible dialog
-// ---------------------------------------------------------------------------
+//Modal component -- accessible dialog
 describe('Modal', () => {
-  // ModalWrapper wraps Modal in a parent that controls isOpen state
+  //ModalWrapper wraps Modal in a parent that controls isOpen state
   const ModalWrapper = ({ initialOpen = false }: { initialOpen?: boolean }) => {
     const [isOpen, setIsOpen] = useState(initialOpen)
     return (
@@ -318,13 +298,11 @@ describe('Modal', () => {
     )
   }
 
-  // ---------------------------------------------------------------------------
-  // Rendering
-  // ---------------------------------------------------------------------------
+  //Rendering
   describe('rendering', () => {
     test('does not render when closed', () => {
       render(<ModalWrapper initialOpen={false} />)
-      // Content is unmounted (not just hidden) when isOpen=false
+      //Content is unmounted (not just hidden) when isOpen=false
       expect(screen.queryByText('Modal content')).not.toBeInTheDocument()
     })
 
@@ -353,7 +331,7 @@ describe('Modal', () => {
         </Modal>
       )
       await waitFor(() => {
-        // Visually hidden — not rendered as text — but the dialog has aria-label for screen readers
+        //Visually hidden -- not rendered as text -- but the dialog has aria-label for screen readers
         expect(screen.queryByText('Hidden Title')).not.toBeInTheDocument()
         const dialog = screen.getByRole('dialog')
         expect(dialog).toHaveAttribute('aria-label', 'Hidden Title')
@@ -361,9 +339,7 @@ describe('Modal', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Size variants
-  // ---------------------------------------------------------------------------
+  //Size variants
   describe('sizes', () => {
     const sizes = ['sm', 'md', 'lg', 'xl', 'full'] as const
 
@@ -381,9 +357,7 @@ describe('Modal', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Interactions — close button and keyboard
-  // ---------------------------------------------------------------------------
+  //Interactions -- close button and keyboard
   describe('interactions', () => {
     test('calls onClose when close button clicked', async () => {
       const onClose = vi.fn()
@@ -415,7 +389,7 @@ describe('Modal', () => {
       })
 
       fireEvent.keyDown(document, { key: 'Escape' }) // Escape key = universal close gesture
-      // Note: may not fire if focus trap (mocked here) intercepts the event first
+      //Note: may not fire if focus trap (mocked here) intercepts the event first
     })
 
     test('does not show close button when showCloseButton is false', async () => {
@@ -429,14 +403,12 @@ describe('Modal', () => {
         expect(screen.getByText('Content')).toBeInTheDocument()
       })
 
-      // No close button for modals that require an explicit in-content action to dismiss
+      //No close button for modals that require an explicit in-content action to dismiss
       expect(screen.queryByLabelText('Close')).not.toBeInTheDocument()
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Accessibility — ARIA attributes
-  // ---------------------------------------------------------------------------
+  //Accessibility -- ARIA attributes
   describe('accessibility', () => {
     test('has role="dialog"', async () => {
       render(
@@ -460,7 +432,7 @@ describe('Modal', () => {
 
       await waitFor(() => {
         const dialog = screen.getByRole('dialog')
-        // aria-modal="true" tells screen readers to treat content outside as inert
+        //aria-modal="true" tells screen readers to treat content outside as inert
         expect(dialog).toHaveAttribute('aria-modal', 'true')
       })
     })
@@ -474,18 +446,16 @@ describe('Modal', () => {
 
       await waitFor(() => {
         const dialog = screen.getByRole('dialog')
-        // aria-labelledby references the title element's id so screen readers announce it
+        //aria-labelledby references the title element's id so screen readers announce it
         expect(dialog).toHaveAttribute('aria-labelledby')
       })
     })
   })
 })
 
-// ---------------------------------------------------------------------------
-// Toast component — transient notification messages
-// ---------------------------------------------------------------------------
+//Toast component -- transient notification messages
 describe('Toast', () => {
-  // ToastTester renders buttons that fire each toast variant via the useToast() hook
+  //ToastTester renders buttons that fire each toast variant via the useToast() hook
   const ToastTester = () => {
     const { toast, toastSuccess, toastError, toastWarning, toastInfo, dismiss, clearAll } = useToast()
 
@@ -501,7 +471,7 @@ describe('Toast', () => {
     )
   }
 
-  // ToastProvider must wrap any component using useToast() — it manages the toast list state
+  //ToastProvider must wrap any component using useToast() -- it manages the toast list state
   const renderWithProvider = () => {
     return render(
       <ToastProvider>
@@ -525,7 +495,7 @@ describe('Toast', () => {
 
     fireEvent.click(screen.getByText('Success'))
 
-    // toastSuccess fires the toast with a green icon and 'success' style
+    //toastSuccess fires the toast with a green icon and 'success' style
     await waitFor(() => {
       expect(screen.getByText('Success!')).toBeInTheDocument()
     })
@@ -536,7 +506,7 @@ describe('Toast', () => {
 
     fireEvent.click(screen.getByText('Error'))
 
-    // toastError fires with a red icon; used for API failures and validation errors
+    //toastError fires with a red icon; used for API failures and validation errors
     await waitFor(() => {
       expect(screen.getByText('Error!')).toBeInTheDocument()
     })
@@ -547,7 +517,7 @@ describe('Toast', () => {
 
     fireEvent.click(screen.getByText('Warning'))
 
-    // toastWarning fires with an amber icon; used for near-limit or caution states
+    //toastWarning fires with an amber icon; used for near-limit or caution states
     await waitFor(() => {
       expect(screen.getByText('Warning!')).toBeInTheDocument()
     })
@@ -558,7 +528,7 @@ describe('Toast', () => {
 
     fireEvent.click(screen.getByText('Info'))
 
-    // toastInfo fires with a blue icon; neutral informational messages
+    //toastInfo fires with a blue icon; neutral informational messages
     await waitFor(() => {
       expect(screen.getByText('Info!')).toBeInTheDocument()
     })
@@ -567,7 +537,7 @@ describe('Toast', () => {
   test('clears all toasts', async () => {
     renderWithProvider()
 
-    // Spawn two toasts
+    //Spawn two toasts
     fireEvent.click(screen.getByText('Success'))
     fireEvent.click(screen.getByText('Error'))
 
@@ -578,7 +548,7 @@ describe('Toast', () => {
 
     fireEvent.click(screen.getByText('Clear All')) // dismiss all at once
 
-    // Both toasts must be removed from the DOM after clearAll()
+    //Both toasts must be removed from the DOM after clearAll()
     await waitFor(() => {
       expect(screen.queryByText('Success!')).not.toBeInTheDocument()
       expect(screen.queryByText('Error!')).not.toBeInTheDocument()
@@ -586,5 +556,5 @@ describe('Toast', () => {
   })
 })
 
-// Button Component Tests
+//Button Component Tests
 

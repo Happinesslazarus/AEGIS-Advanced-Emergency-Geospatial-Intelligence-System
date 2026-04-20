@@ -2,7 +2,7 @@
  * Module: ai-pipeline-e2e.spec.ts
  *
  * End-to-end test suite verifying the full AEGIS incident pipeline:
- *   Citizen report submission → AI classification → Admin alert visibility
+ * Citizen report submission -> AI classification -> Admin alert visibility
  *
  * Covers:
  *  1. Report submission via the citizen form
@@ -23,7 +23,7 @@ import { test, expect } from '@playwright/test'
 declare const process: { env: Record<string, string | undefined> }
 const API_BASE = process.env.E2E_API_URL || 'http://localhost:3001/api'
 
-// ─── Helper: submit a report via API ───────────────────────────────────────
+//Helper: submit a report via API
 
 async function submitReport(request: any) {
   const report = {
@@ -42,33 +42,33 @@ async function submitReport(request: any) {
   return { res, report }
 }
 
-// ─── 1. Landing page smoke test ────────────────────────────────────────────
+//1. Landing page smoke test
 
 test.describe('Landing & Navigation', () => {
   test('landing page loads with core navigation', async ({ page }) => {
     await page.goto('/')
     await expect(page).toHaveTitle(/aegis/i)
-    // Should have at least one main heading
+    //Should have at least one main heading
     const heading = page.locator('h1').first()
     await expect(heading).toBeVisible({ timeout: 10_000 })
   })
 
   test('citizen dashboard is accessible', async ({ page }) => {
     await page.goto('/citizen')
-    // Should show some citizen-oriented content or redirect to auth
+    //Should show some citizen-oriented content or redirect to auth
     await expect(page.locator('body')).not.toBeEmpty()
   })
 })
 
-// ─── 2. Report submission flow ─────────────────────────────────────────────
+//2. Report submission flow
 
 test.describe('Report Submission Pipeline', () => {
   test('citizen can submit a flood report via API', async ({ request }) => {
     const { res } = await submitReport(request)
-    // Accept 201 (created) or 200 (some APIs return 200)
+    //Accept 201 (created) or 200 (some APIs return 200)
     expect([200, 201]).toContain(res.status())
     const body = await res.json()
-    // Should return a report ID
+    //Should return a report ID
     expect(body.id || body.reportId || body.data?.id).toBeTruthy()
   })
 
@@ -77,17 +77,17 @@ test.describe('Report Submission Pipeline', () => {
     if (res.status() === 201 || res.status() === 200) {
       const body = await res.json()
       const report = body.data || body
-      // AI should have classified or queued classification
-      // At minimum, the response should include the incident category we sent
+      //AI should have classified or queued classification
+      //At minimum, the response should include the incident category we sent
       expect(report.incidentCategory || report.incident_category || report.type).toBeTruthy()
     }
   })
 
   test('report appears in the reports list', async ({ request }) => {
-    // First submit
+    //First submit
     await submitReport(request)
 
-    // Then fetch reports
+    //Then fetch reports
     const listRes = await request.get(`${API_BASE}/reports?limit=5`)
     expect(listRes.ok()).toBeTruthy()
     const body = await listRes.json()
@@ -97,7 +97,7 @@ test.describe('Report Submission Pipeline', () => {
   })
 })
 
-// ─── 3. Flood data endpoints (wired to adapters) ──────────────────────────
+//3. Flood data endpoints (wired to adapters)
 
 test.describe('Flood Data Endpoints', () => {
   test('GET /flood-warnings returns adapter data', async ({ request }) => {
@@ -106,10 +106,10 @@ test.describe('Flood Data Endpoints', () => {
     const body = await res.json()
     expect(body.incidentType).toBe('flood')
     expect(body.region).toBeTruthy()
-    // Should return an array (possibly empty if no active warnings)
+    //Should return an array (possibly empty if no active warnings)
     expect(Array.isArray(body.warnings)).toBeTruthy()
     expect(body.count).toBeDefined()
-    // Should NOT contain the old stub message
+    //Should NOT contain the old stub message
     expect(body.message).toBeUndefined()
   })
 
@@ -141,7 +141,7 @@ test.describe('Flood Data Endpoints', () => {
   })
 })
 
-// ─── 4. AI health endpoints ───────────────────────────────────────────────
+//4. AI health endpoints
 
 test.describe('AI & Governance Endpoints', () => {
   test('health endpoint returns OK', async ({ request }) => {
@@ -151,19 +151,19 @@ test.describe('AI & Governance Endpoints', () => {
 
   test('AI classifier health is reachable', async ({ request }) => {
     const res = await request.get(`${API_BASE}/ai/classifier/health`)
-    // May require auth — 200 or 401 both indicate the endpoint exists
+    //May require auth -- 200 or 401 both indicate the endpoint exists
     expect([200, 401, 403]).toContain(res.status())
   })
 })
 
-// ─── 5. Chat interface ────────────────────────────────────────────────────
+//5. Chat interface
 
 test.describe('Chat Interface', () => {
   test('chat endpoint accepts a message', async ({ request }) => {
     const res = await request.post(`${API_BASE}/chat`, {
       data: { message: 'What should I do during a flood?' },
     })
-    // Should get a response (200) or require auth (401)
+    //Should get a response (200) or require auth (401)
     expect([200, 201, 401]).toContain(res.status())
     if (res.status() === 200) {
       const body = await res.json()
@@ -172,7 +172,7 @@ test.describe('Chat Interface', () => {
   })
 })
 
-// ─── 6. OpenAPI docs accessible ───────────────────────────────────────────
+//6. OpenAPI docs accessible
 
 test.describe('API Documentation', () => {
   test('OpenAPI JSON spec is served', async ({ request }) => {
@@ -186,7 +186,7 @@ test.describe('API Documentation', () => {
 
   test('Swagger UI page loads', async ({ page }) => {
     await page.goto(`${API_BASE.replace('/api', '')}/api/docs`)
-    // Swagger UI renders a div#swagger-ui
+    //Swagger UI renders a div#swagger-ui
     await expect(page.locator('#swagger-ui')).toBeVisible({ timeout: 15_000 })
   })
 })

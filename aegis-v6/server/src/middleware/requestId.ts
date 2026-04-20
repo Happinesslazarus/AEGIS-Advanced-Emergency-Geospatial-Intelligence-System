@@ -24,8 +24,8 @@ declare global {
 export function requestIdMiddleware(req: Request, res: Response, next: NextFunction): void {
   const incomingId = req.headers['x-request-id']
 
-  // Accept forwarded IDs only if they look like a UUID or safe alphanumeric string (max 128 chars).
-  // This prevents header injection via crafted X-Request-ID values.
+  //Accept forwarded IDs only if they look like a UUID or safe alphanumeric string (max 128 chars).
+  //This prevents header injection via crafted X-Request-ID values.
   const isSafe = typeof incomingId === 'string'
     && incomingId.length > 0
     && incomingId.length <= 128

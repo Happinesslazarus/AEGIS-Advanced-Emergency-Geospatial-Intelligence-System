@@ -22,18 +22,18 @@ export const useWebPush = () => {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Check browser support and get the VAPID public key.
-  // VAPID (Voluntary Application Server Identification for Web Push) = a standard
-  // that lets the browser verify the push message genuinely came from THIS app's
-  // server and not an impersonator.  The server generates a VAPID key pair;
-  // we send the public half to the browser when subscribing.
+  //Check browser support and get the VAPID public key.
+  //VAPID (Voluntary Application Server Identification for Web Push) = a standard
+  //that lets the browser verify the push message genuinely came from THIS app's
+  //server and not an impersonator.  The server generates a VAPID key pair;
+  //we send the public half to the browser when subscribing.
   useEffect(() => {
     const checkSupport = async () => {
       try {
-        // Web Push requires three browser features:
-        // serviceWorker: to receive push messages in the background when the tab is closed
-        // PushManager:   the API that manages push subscriptions
-        // Notification:  the permission+display API for showing alerts
+        //Web Push requires three browser features:
+        //serviceWorker: to receive push messages in the background when the tab is closed
+        //PushManager:   the API that manages push subscriptions
+        //Notification:  the permission+display API for showing alerts
         const isSupported =
           'serviceWorker' in navigator &&
           'PushManager' in window &&
@@ -46,8 +46,8 @@ export const useWebPush = () => {
           return
         }
 
-        // Fetch the VAPID public key from our server. Keep it in a local variable
-        // so we can use it for silent auto-renewal later in this same function.
+        //Fetch the VAPID public key from our server. Keep it in a local variable
+        //so we can use it for silent auto-renewal later in this same function.
         let pubKey: string | undefined
         try {
           const response = await fetch('/api/notifications/status')
@@ -62,14 +62,14 @@ export const useWebPush = () => {
           console.warn('Could not fetch notification status from server')
         }
 
-        // Check if the user already has an active push subscription from a
-        // previous session.  pushManager.getSubscription() returns null if not.
-        // Also verify server-side that the endpoint is still active — FCM can
-        // silently invalidate endpoints while the browser still holds a stale
-        // PushSubscription object, causing broadcasts to find 0 active subs.
+        //Check if the user already has an active push subscription from a
+        //previous session.  pushManager.getSubscription() returns null if not.
+        //Also verify server-side that the endpoint is still active -- FCM can
+        //silently invalidate endpoints while the browser still holds a stale
+        //PushSubscription object, causing broadcasts to find 0 active subs.
         try {
-          // navigator.serviceWorker.ready waits until the service worker is
-          // installed and activated (may be immediate if called after registration).
+          //navigator.serviceWorker.ready waits until the service worker is
+          //installed and activated (may be immediate if called after registration).
           const reg = await navigator.serviceWorker.ready
           const subscription = await reg.pushManager.getSubscription()
           if (subscription) {
@@ -80,12 +80,12 @@ export const useWebPush = () => {
               const verifyData = await verifyResp.json()
 
               if (verifyData.active === true) {
-                // Subscription is healthy — nothing to do.
+                //Subscription is healthy -- nothing to do.
                 setStatus(prev => ({ ...prev, subscribed: true }))
               } else if (Notification.permission === 'granted' && pubKey) {
-                // Subscription is stale (FCM expired it) AND user already granted
-                // notification permission → silently re-register in the background
-                // without requiring any user interaction.
+                //Subscription is stale (FCM expired it) AND user already granted
+ //notification permission -> silently re-register in the background
+                //without requiring any user interaction.
                 try {
                   await subscription.unsubscribe()
                   const newSub = await reg.pushManager.subscribe({
@@ -97,25 +97,25 @@ export const useWebPush = () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ subscription: newSub.toJSON(), email: null, user_id: null }),
                   })
-                  // Mark subscribed regardless of server response — new endpoint is live
+                  //Mark subscribed regardless of server response -- new endpoint is live
                   setStatus(prev => ({ ...prev, subscribed: renewResp.ok }))
                 } catch {
-                  // Silent renewal failed — show Subscribe button so user can retry
+                  //Silent renewal failed -- show Subscribe button so user can retry
                   setStatus(prev => ({ ...prev, subscribed: false }))
                 }
               } else {
-                // No permission or no VAPID key — can't auto-renew, show Subscribe button
+                //No permission or no VAPID key -- can't auto-renew, show Subscribe button
                 setStatus(prev => ({ ...prev, subscribed: false }))
               }
             } catch {
-              // Network error verifying — optimistically trust the browser subscription
+              //Network error verifying -- optimistically trust the browser subscription
               setStatus(prev => ({ ...prev, subscribed: true }))
             }
           } else {
             setStatus(prev => ({ ...prev, subscribed: false }))
           }
         } catch {
-          // Service worker not ready yet, that's okay
+          //Service worker not ready yet, that's okay
         }
       } catch (err) {
         console.error('Error checking Web Push support:', err)
@@ -130,12 +130,12 @@ export const useWebPush = () => {
     setError(null)
 
     try {
-      // Check browser support
+      //Check browser support
       if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
         throw new Error('Your browser does not support Web Push notifications')
       }
 
-      // Request notification permission
+      //Request notification permission
       if (Notification.permission === 'default') {
         const permission = await Notification.requestPermission()
         if (permission !== 'granted') {
@@ -145,13 +145,13 @@ export const useWebPush = () => {
         throw new Error('Notifications are blocked. Please enable them in your browser settings')
       }
 
-      // Register service worker and wait for it to be active
+      //Register service worker and wait for it to be active
       let registration = await navigator.serviceWorker.getRegistration('/')
       if (!registration) {
         registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
       }
 
-      // Wait for active service worker
+      //Wait for active service worker
       if (registration.installing || registration.waiting) {
         await new Promise<void>((resolve) => {
           const worker = registration!.installing || registration!.waiting
@@ -159,13 +159,13 @@ export const useWebPush = () => {
           worker.addEventListener('statechange', () => {
             if (worker.state === 'activated') resolve()
           })
-          // Also resolve if already active
+          //Also resolve if already active
           if (registration!.active) resolve()
         })
       }
       // // console.log('[OK] Service Worker ready')
 
-      // Always fetch fresh public key from server to avoid stale state
+      //Always fetch fresh public key from server to avoid stale state
       let publicKey = status.publicKey
       if (!publicKey) {
         const resp = await fetch('/api/notifications/status')
@@ -180,8 +180,8 @@ export const useWebPush = () => {
         throw new Error('Web Push is not configured on the server. Please contact support.')
       }
 
-      // Always create a fresh subscription to ensure it matches the current server VAPID key.
-      // Stale subscriptions (created with old/ephemeral keys) cause silent delivery failures.
+      //Always create a fresh subscription to ensure it matches the current server VAPID key.
+      //Stale subscriptions (created with old/ephemeral keys) cause silent delivery failures.
       const existingSub = await registration.pushManager.getSubscription()
       if (existingSub) {
         await existingSub.unsubscribe()
@@ -195,7 +195,7 @@ export const useWebPush = () => {
         throw new Error('Failed to create push subscription. Try reloading the page.')
       }
 
-      // Send subscription to backend
+      //Send subscription to backend
       const response = await fetch('/api/notifications/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -233,7 +233,7 @@ export const useWebPush = () => {
         const subscription = await registration.pushManager.getSubscription()
 
         if (subscription) {
-          // Notify backend
+          //Notify backend
           await fetch('/api/notifications/unsubscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -242,7 +242,7 @@ export const useWebPush = () => {
             }),
           })
 
-          // Unsubscribe locally
+          //Unsubscribe locally
           await subscription.unsubscribe()
           // // console.log('[OK] Push subscription removed')
           setStatus(prev => ({ ...prev, subscribed: false }))
@@ -267,7 +267,7 @@ export const useWebPush = () => {
   }
 }
 
-// Helper function to convert VAPID key from base64 to Uint8Array
+//Helper function to convert VAPID key from base64 to Uint8Array
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding)

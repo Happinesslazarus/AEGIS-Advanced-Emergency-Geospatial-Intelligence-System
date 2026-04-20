@@ -19,7 +19,7 @@ import { AppError } from '../utils/AppError.js'
 
 const router = express.Router()
 
-// 20 uploads per user per 15 minutes
+//20 uploads per user per 15 minutes
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -29,16 +29,16 @@ const uploadLimiter = rateLimit({
   legacyHeaders: false,
 })
 
-// Upload Directory Setup
+//Upload Directory Setup
 const uploadsDir = path.join(process.cwd(), 'uploads')
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true })
 }
 
-// Multer Configuration
+//Multer Configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Organize files by type
+    //Organize files by type
     const uploadType = (req as any).uploadType || 'general'
     const typeDir = path.join(uploadsDir, uploadType)
     if (!fs.existsSync(typeDir)) {
@@ -47,7 +47,7 @@ const storage = multer.diskStorage({
     cb(null, typeDir)
   },
   filename: (req, file, cb) => {
-    // Create unique filename: timestamp-random.ext
+    //Create unique filename: timestamp-random.ext
     const timestamp = Date.now()
     const random = crypto.randomUUID().replace(/-/g, '').substring(0, 8)
     const ext = path.extname(file.originalname)
@@ -56,7 +56,7 @@ const storage = multer.diskStorage({
 })
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
-  // Only allow images
+  //Only allow images
   const allowedMimes = [
     'image/jpeg',
     'image/png',
@@ -68,7 +68,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
     return cb(new Error('Only image files are allowed (JPEG, PNG, GIF, WebP, SVG)'), false)
   }
 
-  // Check file size (10MB max)
+  //Check file size (10MB max)
   if ((file as any).size > 10 * 1024 * 1024) {
     return cb(new Error('File size must be less than 10MB'), false)
   }
@@ -82,14 +82,14 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 })
 
-// POST /upload — Generic upload endpoint
-// Requires auth (citizen or operator)
-// Expects: file in `file` field
+//POST /upload -- Generic upload endpoint
+//Requires auth (citizen or operator)
+//Expects: file in `file` field
 router.post('/upload',
   authMiddleware,
   uploadLimiter,
   (req: any, res: any, next: any) => {
-    // Determine upload type
+    //Determine upload type
     const auth = req.headers.authorization || ''
     req.uploadType = 'general'
     next()
@@ -118,7 +118,7 @@ router.post('/upload',
   }
 )
 
-// POST /upload/avatar — Avatar upload
+//POST /upload/avatar -- Avatar upload
 router.post('/upload/avatar',
   authMiddleware,
   uploadLimiter,
@@ -146,7 +146,7 @@ router.post('/upload/avatar',
   }
 )
 
-// POST /upload/community — Community post images
+//POST /upload/community -- Community post images
 router.post('/upload/community',
   authMiddleware,
   uploadLimiter,

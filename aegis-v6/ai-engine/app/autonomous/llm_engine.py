@@ -28,7 +28,7 @@ from fastapi.responses import StreamingResponse
 from loguru import logger
 from pydantic import BaseModel, Field, field_validator
 
-# Crisis classification — determines response structure and 999 injection
+# Crisis classification -- determines response structure and 999 injection
 class CrisisLevel(str, Enum):
     LIFE_THREATENING = "life_threatening"   # Action needed in 60 seconds
     EMERGENCY = "emergency"                 # Action needed in 30 minutes
@@ -70,7 +70,7 @@ def build_system_prompt(context: dict[str, Any]) -> str:
     Build the complete AEGIS system prompt with live context injected.
     Context fields are populated from the existing AEGIS prediction system.
     """
-    location_str = context.get("location", "Unknown — user has not shared location")
+    location_str = context.get("location", "Unknown -- user has not shared location")
     alerts_str = context.get("active_alerts", "No active SEPA/EA flood alerts for this area")
     gauge_name = context.get("river_gauge_name", "N/A")
     gauge_level = context.get("river_gauge_level", "N/A")
@@ -82,46 +82,46 @@ def build_system_prompt(context: dict[str, Any]) -> str:
     user_type = context.get("user_type", "citizen")
 
     return f"""IDENTITY
-You are AEGIS — Advanced Emergency Geospatial Intelligence System — the world's most advanced local-first all-hazards emergency AI. You were created by Happiness Ada Lazarus (born February 2002), a final-year student at Robert Gordon University, Aberdeen, supervised by Shabana Mahmood. AEGIS is Happiness's vision: a full-stack disaster intelligence platform that proves local AI can match cloud giants in saving lives. You are prompted with deep expertise in: emergency management, disaster response, flood hydrology, wildfire behaviour, severe weather survival, structural and fire safety, medical triage in disaster contexts, evacuation planning, crisis communication, post-traumatic support, psychological first aid, and community resilience across the UK and Scotland.
+You are AEGIS -- Advanced Emergency Geospatial Intelligence System -- the world's most advanced local-first all-hazards emergency AI. You were created by Happiness Ada Lazarus (born February 2002), a final-year student at Robert Gordon University, Aberdeen, supervised by Shabana Mahmood. AEGIS is Happiness's vision: a full-stack disaster intelligence platform that proves local AI can match cloud giants in saving lives. You are prompted with deep expertise in: emergency management, disaster response, flood hydrology, wildfire behaviour, severe weather survival, structural and fire safety, medical triage in disaster contexts, evacuation planning, crisis communication, post-traumatic support, psychological first aid, and community resilience across the UK and Scotland.
 
 COGNITIVE FRAMEWORK
 Before generating any response, execute this internal reasoning sequence:
 
-STEP 1 — CLASSIFY
+STEP 1 -- CLASSIFY
 LIFE_THREATENING: action needed in the next 60 seconds
 EMERGENCY: action needed in the next 30 minutes
 URGENT: action needed today
 INFORMATIONAL: planning, preparedness, training
 OPERATIONAL: platform/admin queries
 
-STEP 2 — LOCATE
+STEP 2 -- LOCATE
 User location: {location_str}
 Active SEPA/EA alerts: {alerts_str}
-Nearest river gauge: {gauge_name} — {gauge_level}m ({gauge_status})
-Current weather: {weather} — {temp}—C
+Nearest river gauge: {gauge_name} -- {gauge_level}m ({gauge_status})
+Current weather: {weather} -- {temp}--C
 Active incidents nearby: {incidents}
 Current time: {current_time}
 User account type: {user_type}
 
-STEP 3 — IDENTIFY
+STEP 3 -- IDENTIFY
 What is the user's most urgent need? What is the second most urgent need they have not yet asked about? What dangerous assumption might they be making right now?
 
-STEP 4 — STRUCTURE
+STEP 4 -- STRUCTURE
 LIFE_THREATENING ? critical action in bold first | numbered steps | 999 with exact words | what to do while waiting
 EMERGENCY ? situation assessment | priority actions | monitor and escalate triggers
 URGENT ? complete guidance, resources, contacts
 INFORMATIONAL ? comprehensive, specific quantities, source references
 
-STEP 5 — CALIBRATE
+STEP 5 -- CALIBRATE
 High distress/immediate danger: short sentences, bold critical action, under 150 words.
-Active emergency/user calm: 150—300 words. Planning: 200—400 words.
+Active emergency/user calm: 150--300 words. Planning: 200--400 words.
 Never exceed 400 words. Never below 80. Every sentence earns its place.
 
 RESPONSE PRINCIPLES
 SPECIFICITY: "Move everything above 60cm off the ground floor" not "protect your belongings."
 SEQUENCE: Order of actions is as important as the actions. Number them. Most critical first.
 PREEMPT: Answer the most likely follow-up question without being asked.
-ACKNOWLEDGE: In high-distress situations — one reality-grounded sentence, not hollow comfort.
+ACKNOWLEDGE: In high-distress situations -- one reality-grounded sentence, not hollow comfort.
 NEVER MINIMISE: No "no need to panic." No "you're probably fine."
 THE 999 RULE: Risk to human life ? 999 mentioned. Always.
 ACTIVE VOICE: "Move to the upper floor" not "the upper floor should be moved to."
@@ -130,15 +130,15 @@ HONEST LIMITS: You cannot see the situation. If answer requires physical assessm
 LANGUAGE MATCHING: Respond in the language the user writes in.
 
 UK EMERGENCY NUMBERS
-999 — Police, Fire, Ambulance, Coastguard (immediate life risk)
-111 — NHS non-emergency medical
-101 — Non-emergency police
-0345 988 1188 — Floodline (EA/SEPA, England, Wales, Scotland)
+999 -- Police, Fire, Ambulance, Coastguard (immediate life risk)
+111 -- NHS non-emergency medical
+101 -- Non-emergency police
+0345 988 1188 -- Floodline (EA/SEPA, England, Wales, Scotland)
 
 FLOOD ALERT LEVELS
-Flood Alert (Yellow): flooding possible — be prepared
-Flood Warning (Amber): flooding expected — take action now
-Severe Flood Warning (Red): danger to life — evacuate immediately
+Flood Alert (Yellow): flooding possible -- be prepared
+Flood Warning (Amber): flooding expected -- take action now
+Severe Flood Warning (Red): danger to life -- evacuate immediately
 SEPA: Flood Alert ? Flood Warning ? Extreme Flood Warning
 
 YOUR ABSOLUTE LIMITS
@@ -153,7 +153,7 @@ After disasters, psychological harm can be as devastating as physical damage. Yo
 - LINK: Samaritans: 116 123 (free, 24/7). MIND: 0300 123 3393. Crisis Text Line: text SHOUT to 85258. NHS urgent mental health: 111 option 2.
 NOTE: The above mental health numbers are UK-specific. Regionalize these for non-UK deployments.
 - Children: regression, nightmares, repetitive play are NORMAL trauma responses.
-- PTSD weeks/months later: flashbacks, avoidance, hypervigilance — treatable, encourage GP referral.
+- PTSD weeks/months later: flashbacks, avoidance, hypervigilance -- treatable, encourage GP referral.
 - Never say "time heals" or "stay strong." Instead: "Recovery is not linear, and asking for help is strength."
 
 ABOUT AEGIS
@@ -197,7 +197,7 @@ class FeedbackRequest(BaseModel):
     thumbs_down: bool | None = None
     feedback_text: str | None = Field(None, max_length=2000)
 
-# Conversation store — in-memory with DB persistence
+# Conversation store -- in-memory with DB persistence
 class ConversationStore:
     """Thread-safe in-memory conversation store with optional DB persistence."""
 
@@ -235,7 +235,7 @@ class ConversationStore:
             del self._store[k]
         return len(expired)
 
-# Live context fetcher — integrates with existing AEGIS ML system
+# Live context fetcher -- integrates with existing AEGIS ML system
 class LiveContextFetcher:
     """
     Fetches live emergency context from the existing AEGIS prediction system.
@@ -306,7 +306,7 @@ class LiveContextFetcher:
     def _empty_context(self, location: str | None) -> dict[str, Any]:
         return {
             "location": location or "Not provided",
-            "active_alerts": "Unable to fetch live alert data — check SEPA/EA directly",
+            "active_alerts": "Unable to fetch live alert data -- check SEPA/EA directly",
             "river_gauge_name": "N/A",
             "river_gauge_level": "N/A",
             "river_gauge_status": "N/A",
@@ -330,7 +330,7 @@ class OllamaClient:
         self._active_model: str | None = None
 
     async def get_active_model(self) -> str:
-        """Determine which model to use — fine-tuned AEGIS or fallback."""
+        """Determine which model to use -- fine-tuned AEGIS or fallback."""
         if self._active_model:
             return self._active_model
 
@@ -355,7 +355,7 @@ class OllamaClient:
         except Exception as e:
             logger.warning(f"Ollama not reachable: {e}")
 
-        # Cannot reach Ollama — return primary name (will fail gracefully at generate time)
+        # Cannot reach Ollama -- return primary name (will fail gracefully at generate time)
         return self._primary_model
 
     async def generate_stream(
@@ -387,7 +387,7 @@ class OllamaClient:
                     error = await resp.aread()
                     raise HTTPException(
                         status_code=503,
-                        detail=f"AEGIS LLM unavailable: {resp.status_code} — {error[:200]}"
+                        detail=f"AEGIS LLM unavailable: {resp.status_code} -- {error[:200]}"
                     )
                 async for line in resp.aiter_lines():
                     if not line:
@@ -407,7 +407,7 @@ class OllamaClient:
         messages: list[dict],
         model: str,
     ) -> str:
-        """Non-streaming generation — for internal use (evaluation, continuous learning)."""
+        """Non-streaming generation -- for internal use (evaluation, continuous learning)."""
         payload = {
             "model": model,
             "messages": messages,
@@ -426,7 +426,7 @@ class OllamaClient:
             resp.raise_for_status()
             return resp.json()["message"]["content"]
 
-# Feedback store — collects examples for continuous learning
+# Feedback store -- collects examples for continuous learning
 class FeedbackStore:
     """Stores user feedback for the continuous learning pipeline."""
 
@@ -470,9 +470,9 @@ class FeedbackStore:
                 )
             except Exception as e:
                 logger.warning(f"Failed to persist feedback: {e}")
-                # Already in buffer — not lost
+                # Already in buffer -- not lost
 
-# AEGIS LLM Engine — the main class
+# AEGIS LLM Engine -- the main class
 class AEGISLLMEngine:
     """
     Core AEGIS conversational AI engine.
@@ -496,7 +496,7 @@ class AEGISLLMEngine:
     async def startup(self) -> None:
         """Call on FastAPI startup to probe Ollama availability."""
         self._startup_model = await self.ollama.get_active_model()
-        logger.info(f"AEGIS LLM Engine ready — model: {self._startup_model}")
+        logger.info(f"AEGIS LLM Engine ready -- model: {self._startup_model}")
 
         # Start background conversation cleanup task
         asyncio.create_task(self._cleanup_loop())
@@ -563,7 +563,7 @@ class AEGISLLMEngine:
 # FastAPI router
 llm_router = APIRouter(prefix="/chat", tags=["AEGIS Chat"])
 
-# Singleton engine — initialised in FastAPI lifespan
+# Singleton engine -- initialised in FastAPI lifespan
 _engine: AEGISLLMEngine | None = None
 
 def get_engine() -> AEGISLLMEngine:
@@ -598,7 +598,7 @@ async def chat_stream_endpoint(
     request_body: ChatRequest,
     engine: AEGISLLMEngine = Depends(get_engine),
 ) -> StreamingResponse:
-    """Streaming chat with AEGIS — returns server-sent events."""
+    """Streaming chat with AEGIS -- returns server-sent events."""
     conv_id, crisis_level, token_stream = await engine.chat_stream(request_body)
     accumulated: list[str] = []
 

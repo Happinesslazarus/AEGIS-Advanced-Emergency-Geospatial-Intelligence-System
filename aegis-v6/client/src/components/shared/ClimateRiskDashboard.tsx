@@ -15,7 +15,7 @@ import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { apiFetch } from '../../utils/api'
 
-// Types
+//Types
 
 interface Prediction {
   area: string
@@ -55,11 +55,11 @@ interface Props {
   className?: string
 }
 
-// Risk Score Computation
+//Risk Score Computation
 
  /*
  * Compute an overall risk score (0-100) from live data inputs.
- * This is a transparent, deterministic algorithm — not a black box.
+ * This is a transparent, deterministic algorithm -- not a black box.
  * Weights:
  * Flood predictions: 40% (highest probability × 100)
  * Active alerts: 25% (scaled by severity)
@@ -72,20 +72,20 @@ function computeRiskScore(
   weather: WeatherData | null,
   reports: ReportSummary,
 ): { score: number; trend: 'rising' | 'falling' | 'stable'; breakdown: Record<string, number> } {
-  // Prediction component (0-100, weight 40%)
+  //Prediction component (0-100, weight 40%)
   const maxProb = predictions.reduce((max, p) => {
     const prob = typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability
     return Math.max(max, prob || 0)
   }, 0)
   const predictionScore = maxProb * 100
 
-  // Alert component (0-100, weight 25%)
+  //Alert component (0-100, weight 25%)
   const alertWeights: Record<string, number> = { critical: 100, extreme: 100, high: 75, medium: 50, low: 25 }
   const alertScore = alerts.length > 0
     ? Math.min(100, alerts.reduce((sum, a) => sum + (alertWeights[a.severity] || 25), 0) / alerts.length)
     : 0
 
-  // Weather component (0-100, weight 20%)
+  //Weather component (0-100, weight 20%)
   let weatherScore = 0
   if (weather) {
     const rainFactor = Math.min(50, (weather.rain || 0) * 10)
@@ -94,7 +94,7 @@ function computeRiskScore(
     weatherScore = rainFactor + windFactor + humidityFactor
   }
 
-  // Report component (0-100, weight 15%)
+  //Report component (0-100, weight 15%)
   const reportScore = Math.min(100, reports.last24h * 10 + reports.high * 15)
 
   const score = Math.round(
@@ -104,7 +104,7 @@ function computeRiskScore(
     reportScore * 0.15
   )
 
-  // Trend determination (based on whether we have high predictions + alerts)
+  //Trend determination (based on whether we have high predictions + alerts)
   const trend =
     predictionScore > 60 && alertScore > 50 ? 'rising' :
     predictionScore < 30 && alertScore < 30 ? 'falling' : 'stable'
@@ -128,7 +128,7 @@ function riskLevel(score: number): { label: string; color: string; bg: string } 
   return { label: 'dashboard.riskLow', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-500' }
 }
 
-// Component
+//Component
 
 export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Element {
   const lang = useLanguage()
@@ -151,7 +151,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
     if (results[0].status === 'fulfilled') {
       const data = results[0].value
       const raw: Prediction[] = Array.isArray(data) ? data : []
-      // Deduplicate predictions by area - keep the one with highest probability
+      //Deduplicate predictions by area - keep the one with highest probability
       const byArea = new Map<string, Prediction>()
       for (const p of raw) {
         const key = p.area
@@ -207,7 +207,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
 
   const level = riskLevel(risk.score)
 
-  // Extract all contributing factors from predictions
+  //Extract all contributing factors from predictions
   const allFactors = useMemo(() => {
     const map = new Map<string, { totalImportance: number; count: number; avgValue: number; unit?: string }>()
     for (const p of predictions) {
@@ -374,7 +374,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
               const sevColor = p.severity === 'high' || p.severity === 'critical' ? { ring: 'stroke-red-500', text: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/15', border: 'border-red-200 dark:border-red-800/40', dot: 'bg-red-500', badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' }
                 : p.severity === 'medium' ? { ring: 'stroke-amber-500', text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/15', border: 'border-amber-200 dark:border-amber-800/40', dot: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' }
                 : { ring: 'stroke-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/15', border: 'border-emerald-200 dark:border-emerald-800/40', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' }
-              // Format area name: "River Dee (aberdeen_scotland_uk)" → "River Dee" with region as subtitle
+ //Format area name: "River Dee (aberdeen_scotland_uk)" -> "River Dee" with region as subtitle
               const areaRaw = p.area || t('dashboard.unknownArea', lang)
               const areaMatch = areaRaw.match(/^(.+?)\s*\((.+)\)$/)
               const areaName = areaMatch ? areaMatch[1].trim() : areaRaw
@@ -480,10 +480,10 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
                 <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{f.factor}</p>
                 <div className="flex items-end justify-between mt-1">
                   <span className="text-lg font-bold text-gray-700 dark:text-gray-300">
-                    {isNaN(f.value) ? '—' : f.value.toFixed(1)}{f.unit ? ` ${f.unit}` : ''}
+                    {isNaN(f.value) ? '--' : f.value.toFixed(1)}{f.unit ? ` ${f.unit}` : ''}
                   </span>
                   <span className="text-[10px] text-gray-500 dark:text-gray-300">
-                    {t('dashboard.importance', lang)}: {isNaN(f.importance) ? '—' : (f.importance * 100).toFixed(0)}%
+                    {t('dashboard.importance', lang)}: {isNaN(f.importance) ? '--' : (f.importance * 100).toFixed(0)}%
                   </span>
                 </div>
                 <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full mt-1.5 overflow-hidden">
@@ -506,7 +506,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
   )
 }
 
-//  StatCard
+// StatCard
 
 function StatCard({ label, value, icon: Icon, color, sub }: {
   label: string; value: string | number; icon: React.ElementType; color: string; sub: string

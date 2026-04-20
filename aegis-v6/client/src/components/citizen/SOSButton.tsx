@@ -9,7 +9,7 @@ import { useDistress } from '../../hooks/useDistress'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
-// Audio/haptic feedback helpers (#60)
+//Audio/haptic feedback helpers (#60)
 function vibrate(pattern: number | number[]): void {
   try { navigator.vibrate?.(pattern) } catch { /* not supported */ }
 }
@@ -41,7 +41,7 @@ export default function SOSButton({ socket, citizenId, citizenName, className = 
   const [showPanel, setShowPanel] = useState(false)
   const resolveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Clean up resolve timer on unmount
+  //Clean up resolve timer on unmount
   useEffect(() => () => {
     if (resolveTimerRef.current) clearTimeout(resolveTimerRef.current)
   }, [])
@@ -67,17 +67,17 @@ export default function SOSButton({ socket, citizenId, citizenName, className = 
     citizenName,
     onActivated: () => {
       setShowPanel(true)
-      // Strong haptic + alarm tone when SOS goes active
+      //Strong haptic + alarm tone when SOS goes active
       vibrate([300, 100, 300, 100, 500])
       playTone(880, 500, 'square')
     },
     onAcknowledged: () => {
-      // Double pulse — help is on the way
+      //Double pulse -- help is on the way
       vibrate([200, 100, 200])
       playTone(660, 300)
     },
     onResolved: () => {
-      // Gentle confirmation
+      //Gentle confirmation
       vibrate(100)
       playTone(523, 200)
       setTimeout(() => playTone(659, 200), 250)
@@ -85,7 +85,7 @@ export default function SOSButton({ socket, citizenId, citizenName, className = 
     },
   })
 
-  // Use a proper union type for safe template comparisons without losing type safety
+  //Use a proper union type for safe template comparisons without losing type safety
   type SOSStatus = 'idle' | 'countdown' | 'activating' | 'active' | 'acknowledged' | 'resolved' | 'cancelled' | 'error'
   const status: SOSStatus = rawStatus as SOSStatus
 
@@ -99,7 +99,7 @@ export default function SOSButton({ socket, citizenId, citizenName, className = 
       cancelCountdown()
       setShowPanel(false)
     } else if (isEmergencyActive) {
-      // Toggle panel visibility instead of disabling the button
+      //Toggle panel visibility instead of disabling the button
       setShowPanel(!showPanel)
     }
   }
@@ -186,7 +186,7 @@ export default function SOSButton({ socket, citizenId, citizenName, className = 
                 <div>
                   <p className="text-xs font-mono text-white">{latitude.toFixed(6)}, {longitude.toFixed(6)}</p>
                   {accuracy != null && (
-                    <p className="text-[9px] text-gray-400 dark:text-gray-300">—{Math.round(accuracy)}m {t('sos.accuracy', lang)}</p>
+                    <p className="text-[9px] text-gray-400 dark:text-gray-300">--{Math.round(accuracy)}m {t('sos.accuracy', lang)}</p>
                   )}
                 </div>
               </div>

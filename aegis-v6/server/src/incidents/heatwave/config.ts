@@ -24,7 +24,7 @@ export const heatwaveConfig: IncidentRegistryEntry = {
   enabledRegions: 'all',
   operationalStatus: 'fully_operational',
   fieldSchema: [
-    { key: 'temperature', label: 'Temperature (—C)', type: 'number', required: false },
+    { key: 'temperature', label: 'Temperature (--C)', type: 'number', required: false },
     { key: 'humidity', label: 'Humidity (%)', type: 'number', required: false },
     { key: 'heatIndex', label: 'Heat Index', type: 'number', required: false },
     { key: 'vulnerablePopulation', label: 'Vulnerable Population Affected', type: 'boolean', required: false },
@@ -35,7 +35,7 @@ export const heatwaveConfig: IncidentRegistryEntry = {
 }
 
 export const HEATWAVE_TEMPERATURE_THRESHOLDS = {
-  critical: 38, // —C
+  critical: 38, // --C
   high: 35,
   medium: 32,
   low: 28

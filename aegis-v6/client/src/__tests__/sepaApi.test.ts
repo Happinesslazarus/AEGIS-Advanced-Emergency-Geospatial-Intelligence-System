@@ -11,7 +11,7 @@
  *   lat/lng coordinates and queries the appropriate SEPA API endpoint.
  *
  * Glossary:
- *   SEPA                  = Scottish Environment Protection Agency — monitors rivers/floods
+ *   SEPA                  = Scottish Environment Protection Agency -- monitors rivers/floods
  *   gauge                 = a measuring station on a river that records water level in metres
  *   level                 = current water depth at the gauge in metres
  *   levelTrend            = direction the level is moving: 'rising' | 'falling' | 'steady'
@@ -39,15 +39,13 @@
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// ---------------------------------------------------------------------------
-// Mock setup — global.fetch replaced before sepaApi is imported
-// ---------------------------------------------------------------------------
+//Mock setup -- global.fetch replaced before sepaApi is imported
 
-// Replace browser fetch with a mock so no real SEPA API calls are made in tests
+//Replace browser fetch with a mock so no real SEPA API calls are made in tests
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
-// Import after mocking fetch so the module picks up the mock at init time
+//Import after mocking fetch so the module picks up the mock at init time
 import {
   fetchRiverLevels,
   getGaugeColor,
@@ -56,9 +54,7 @@ import {
   type RiverHistory,
 } from '../utils/sepaApi'
 
-// ---------------------------------------------------------------------------
-// sepaApi function tests
-// ---------------------------------------------------------------------------
+//sepaApi function tests
 describe('sepaApi', () => {
   beforeEach(() => {
     vi.clearAllMocks() // reset mock call counts
@@ -69,19 +65,17 @@ describe('sepaApi', () => {
     vi.restoreAllMocks() // undo any spy wrappers
   })
 
-  // ---------------------------------------------------------------------------
-  // fetchRiverLevels — resolves a location name to coordinates, calls SEPA, parses gauges
-  // ---------------------------------------------------------------------------
+  //fetchRiverLevels -- resolves a location name to coordinates, calls SEPA, parses gauges
   describe('fetchRiverLevels', () => {
     test('throws error for unknown location without coordinates', async () => {
-      // Location not in the built-in lookup table and no lat/lng supplied → reject
+ //Location not in the built-in lookup table and no lat/lng supplied -> reject
       await expect(fetchRiverLevels('unknowncity')).rejects.toThrow(
         'No river monitoring data available for "unknowncity"'
       )
     })
 
     test('throws when no gauge data available for known location', async () => {
-      // Server responds with an empty features array (no gauges near the location)
+      //Server responds with an empty features array (no gauges near the location)
       mockFetch.mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(''),
@@ -94,51 +88,47 @@ describe('sepaApi', () => {
     })
 
     test('properly calls fetch for coordinate-based lookup', async () => {
-      // lat > 55.3 = Scotland; function should call the SEPA endpoint at least once
+      //lat > 55.3 = Scotland; function should call the SEPA endpoint at least once
       mockFetch.mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(''),
-        json: () => Promise.resolve({ features: [] }), // no data → will throw, but fetch was called
+ json: () => Promise.resolve({ features: [] }), // no data -> will throw, but fetch was called
       })
       
-      // Coordinates for Aberdeen — still throws (no data) but confirms fetch was invoked
+      //Coordinates for Aberdeen -- still throws (no data) but confirms fetch was invoked
       await expect(fetchRiverLevels('custom', 57.15, -2.09)).rejects.toThrow()
       
       expect(mockFetch).toHaveBeenCalled() // confirms HTTP call was attempted
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // getGaugeColor — returns a Tailwind text-color class for each status
-  // ---------------------------------------------------------------------------
+  //getGaugeColor -- returns a Tailwind text-color class for each status
   describe('getGaugeColor', () => {
     test('returns green class for normal status', () => {
-      // Normal = safe water level; green conveys "all good"
+      //Normal = safe water level; green conveys "all good"
       expect(getGaugeColor('normal')).toContain('green')
     })
 
     test('returns orange class for rising status', () => {
-      // Rising trend = potential concern; orange = "watch closely"
+      //Rising trend = potential concern; orange = "watch closely"
       expect(getGaugeColor('rising')).toContain('orange') // text-orange-500
     })
 
     test('returns amber class for warning status', () => {
-      // Warning = above the warning threshold; amber = "take action"
+      //Warning = above the warning threshold; amber = "take action"
       expect(getGaugeColor('warning')).toContain('amber') // text-amber-600
     })
 
     test('returns red class for alert status', () => {
-      // Alert = above the danger threshold; red = "emergency"
+      //Alert = above the danger threshold; red = "emergency"
       expect(getGaugeColor('alert')).toContain('red')
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // getGaugeBg — returns a Tailwind bg-color class for card/badge backgrounds
-  // ---------------------------------------------------------------------------
+  //getGaugeBg -- returns a Tailwind bg-color class for card/badge backgrounds
   describe('getGaugeBg', () => {
     test('returns appropriate backgrounds for each status', () => {
-      // Just check each call returns a string (exact class is implementation-specific)
+      //Just check each call returns a string (exact class is implementation-specific)
       expect(typeof getGaugeBg('normal')).toBe('string')
       expect(typeof getGaugeBg('rising')).toBe('string')
       expect(typeof getGaugeBg('warning')).toBe('string')
@@ -147,12 +137,10 @@ describe('sepaApi', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// TypeScript interface shape validation — ensures type definitions are correct
-// ---------------------------------------------------------------------------
+//TypeScript interface shape validation -- ensures type definitions are correct
 describe('RiverGauge interface', () => {
   test('validates RiverGauge structure', () => {
-    // Assigning to the typed variable ensures TypeScript validates every field
+    //Assigning to the typed variable ensures TypeScript validates every field
     const gauge: RiverGauge = {
       id: '12345',
       name: 'Test Station',
@@ -175,7 +163,7 @@ describe('RiverGauge interface', () => {
   })
 
   test('validates level trend values', () => {
-    // All three valid levelTrend strings must be accepted by the type
+    //All three valid levelTrend strings must be accepted by the type
     const trends: Array<'rising' | 'falling' | 'steady'> = ['rising', 'falling', 'steady']
     
     trends.forEach(trend => {
@@ -190,7 +178,7 @@ describe('RiverGauge interface', () => {
   })
 
   test('validates status values', () => {
-    // All four valid status strings must be accepted by the type
+    //All four valid status strings must be accepted by the type
     const statuses: Array<'normal' | 'rising' | 'warning' | 'alert'> = 
       ['normal', 'rising', 'warning', 'alert']
     

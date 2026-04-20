@@ -3,9 +3,9 @@
  * BaseIncidentModule routes for the flood incident type.
  *
  * Currently registered routes:
- *   GET /gauges        — river gauge readings (stub — see TODO below)
- *   GET /flood-warnings — active EA/SEPA flood warnings (stub — see TODO below)
- *   GET /river-levels  — current river level readings (stub — see TODO below)
+ *   GET /gauges        -- river gauge readings (stub -- see TODO below)
+ *   GET /flood-warnings -- active EA/SEPA flood warnings (stub -- see TODO below)
+ *   GET /river-levels  -- current river level readings (stub -- see TODO below)
  *
  * NOTE: All three endpoints are implemented and call the active region adapter
  * (ScotlandAdapter / EnglandAdapter) via regionRegistry.getActiveRegion() to
@@ -22,7 +22,7 @@ import { Router, Request, Response } from 'express'
 import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 
 export function setupFloodRoutes(router: Router): void {
-  // GET /gauges — river gauge readings from active region adapter
+  //GET /gauges -- river gauge readings from active region adapter
   router.get('/gauges', async (req: Request, res: Response) => {
     try {
       const regionId = String(req.query.region || process.env.REGION_ID || '')
@@ -37,7 +37,7 @@ export function setupFloodRoutes(router: Router): void {
     }
   })
 
-  // GET /flood-warnings — active flood warnings from EA/SEPA via region adapter
+  //GET /flood-warnings -- active flood warnings from EA/SEPA via region adapter
   router.get('/flood-warnings', async (req: Request, res: Response) => {
     try {
       const regionId = String(req.query.region || process.env.REGION_ID || '')
@@ -52,7 +52,7 @@ export function setupFloodRoutes(router: Router): void {
     }
   })
 
-  // GET /river-levels — current river level readings from region adapter
+  //GET /river-levels -- current river level readings from region adapter
   router.get('/river-levels', async (req: Request, res: Response) => {
     try {
       const regionId = String(req.query.region || process.env.REGION_ID || '')

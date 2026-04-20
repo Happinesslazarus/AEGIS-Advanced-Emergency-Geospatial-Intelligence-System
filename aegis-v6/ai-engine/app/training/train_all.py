@@ -3,7 +3,7 @@ Convenience script that runs all 11 hazard training pipelines in sequence.
 Useful for a clean re-training pass after new data arrives or model drift
 is detected.  All 11 hazards are now TRAINABLE with scientifically independent
 label sources (LeakageSeverity.NONE for 10/11; LOW for landslide).
-UNSUPPORTED_HAZARDS = frozenset() — no hazards are blocked.
+UNSUPPORTED_HAZARDS = frozenset() -- no hazards are blocked.
 
 - Imports and calls each train_*_real.py pipeline class
 - Can be invoked directly: python app/training/train_all.py
@@ -78,7 +78,7 @@ TRAINING_PIPELINES = [
     ("wildfire", "app.training.train_wildfire_real", "WildfireRealPipeline"),
     ("landslide", "app.training.train_landslide_real", "LandslideRealPipeline"),
     # All 4 previously UNSUPPORTED hazards are now enabled with independent
-    # label sources — UK/EIA outages, GRDC discharge, EM-DAT, Stats19/FARS.
+    # label sources -- UK/EIA outages, GRDC discharge, EM-DAT, Stats19/FARS.
     ("power_outage",            "app.training.train_power_outage_real",            "PowerOutageRealPipeline"),
     ("water_supply_disruption", "app.training.train_water_supply_disruption_real", "WaterSupplyDisruptionRealPipeline"),
     ("infrastructure_damage",   "app.training.train_infrastructure_damage_real",   "InfrastructureDamageRealPipeline"),
@@ -141,13 +141,13 @@ async def train_one_hazard(
         if result["status"] == "success":
             logger.success(f"  {hazard}: SUCCESS (version={result['version']})")
         else:
-            logger.warning(f"  {hazard}: {result['status']} — {pipeline_result.get('error', '')}")
+            logger.warning(f"  {hazard}: {result['status']} -- {pipeline_result.get('error', '')}")
             result["error"] = pipeline_result.get("error")
 
     except Exception as exc:
         result["status"] = "error"
         result["error"] = str(exc)
-        logger.error(f"  {hazard}: EXCEPTION — {exc}")
+        logger.error(f"  {hazard}: EXCEPTION -- {exc}")
         traceback.print_exc()
 
     return result
@@ -173,7 +173,7 @@ def run_e2e_verification(region: str) -> dict:
 
 async def async_main(args: argparse.Namespace) -> None:
     started = datetime.utcnow()
-    logger.info("AEGIS Hazard ML Platform — Train All (Real Data)")
+    logger.info("AEGIS Hazard ML Platform -- Train All (Real Data)")
     logger.info(f"Region: {args.region} | Dates: {args.start_date} to {args.end_date}")
     logger.info(f"Refresh cache: {args.refresh}")
     logger.info(f"GPU: {'enabled (5GB cap)' if os.environ.get('CUDA_VISIBLE_DEVICES') != '-1' else 'disabled'}")
@@ -195,7 +195,7 @@ async def async_main(args: argparse.Namespace) -> None:
     results: list[dict] = []
     total = len(TRAINING_PIPELINES)
 
-    # --resume: skip hazards that already have a model_registry entry whose
+    # resume: skip hazards that already have a model_registry entry whose
     # version tag matches the requested date range (format: vYYYY.MM.DD.HHMMSS).
     # Determines "already done this run" by checking for any directory under
     # model_registry/{hazard}_{region}_v* that was created today or later.
@@ -222,7 +222,7 @@ async def async_main(args: argparse.Namespace) -> None:
                 meta = _json.loads(meta_path.read_text())
                 tr = meta.get("temporal_range", {})
                 if tr.get("start") == args.start_date and tr.get("end") == args.end_date:
-                    logger.info(f"  RESUME: {hazard} already succeeded ({c.name}) — skipping")
+                    logger.info(f"  RESUME: {hazard} already succeeded ({c.name}) -- skipping")
                     return c.name.split("_v", 1)[1]
             except Exception:
                 continue
@@ -249,7 +249,7 @@ async def async_main(args: argparse.Namespace) -> None:
             session_report.add_result(results[-1])
             continue
 
-        # Inter-hazard cooldown — Open-Meteo free tier rate-limits to ~10 req/min.
+        # Inter-hazard cooldown -- Open-Meteo free tier rate-limits to ~10 req/min.
         # Each hazard fetches weather for 20-28 global locations in 2-3 API calls.
         # A 5-minute pause between hazards allows the rate-limit window to reset
         # fully before the next batch of requests begins.
@@ -266,7 +266,7 @@ async def async_main(args: argparse.Namespace) -> None:
         )
         cooldown_needed = True
         results.append(r)
-        # Register with session report regardless of outcome — every hazard
+        # Register with session report regardless of outcome -- every hazard
         # must appear in the final table with a clear status and reason.
         session_report.add_result(r)
 
@@ -286,7 +286,7 @@ async def async_main(args: argparse.Namespace) -> None:
     successes = [r for r in results if r["status"] == "success"]
     failures = [r for r in results if r["status"] != "success"]
     logger.info(
-        f"Completed in {elapsed:.0f}s — "
+        f"Completed in {elapsed:.0f}s -- "
         f"{len(successes)} trained / {len(failures)} skipped or failed | "
         f"E2E: {'PASS' if e2e.get('passed') else 'FAIL'}"
     )
@@ -324,7 +324,7 @@ def main():
     parser.add_argument("--refresh", action="store_true", help="Bypass cache")
     parser.add_argument("--fast", action="store_true", help="Short date window")
     parser.add_argument("--resume", action="store_true",
-                        help="Skip hazards already trained today — safe crash recovery")
+                        help="Skip hazards already trained today -- safe crash recovery")
     args = parser.parse_args()
 
     if args.fast:

@@ -3,37 +3,35 @@ IBTrACS (International Best Track Archive for Climate Stewardship) global
 storm track data provider.
 
 WHY IBTRACS
------------
 The previous severe_storm pipeline used a static list of 60+ UK named storms
-(Met Office / Met Éireann, 2015–2025).  This is UK-centric and incomplete.
+(Met Office / Met Éireann, 2015-2025).  This is UK-centric and incomplete.
 
 IBTrACS is the WMO authoritative global tropical and subtropical cyclone
-track archive.  It contains every named storm globally since 1840 — including
+track archive.  It contains every named storm globally since 1840 -- including
 Atlantic hurricanes, Pacific typhoons, Bay of Bengal cyclones, SW Indian Ocean
 cyclones, and Southern Hemisphere storms.
 
 As of IBTrACS v04r00: ~14,000+ named storms, 6-hourly track positions.
 
 DATA SOURCE
------------
 Knapp, K.R., Kruk, M.C., Levinson, D.H., Diamond, H.J., & Neumann, C.J.
   (2010). "The International Best Track Archive for Climate Stewardship
   (IBTrACS): Unifying Tropical Cyclone Data." Bull. Amer. Meteor. Soc.,
-  91, 363–376. https://doi.org/10.1175/2009BAMS2755.1
+  91, 363-376. https://doi.org/10.1175/2009BAMS2755.1
 
 Data access: https://www.ncei.noaa.gov/products/international-best-track-archive
 
 Two access methods are provided:
-  1. Static CSV files (recommended — more reliable, no API quota)
-     Downloads per-basin files (~5–30 MB each):
-       ibtracs.NA.list.v04r00.csv  — North Atlantic + Gulf of Mexico
-       ibtracs.WP.list.v04r00.csv  — Western North Pacific
-       ibtracs.EP.list.v04r00.csv  — Eastern North Pacific
-       ibtracs.NI.list.v04r00.csv  — North Indian (Bay of Bengal + Arabian Sea)
-       ibtracs.SI.list.v04r00.csv  — South Indian
-       ibtracs.SP.list.v04r00.csv  — South Pacific + Australia
+  1. Static CSV files (recommended -- more reliable, no API quota)
+     Downloads per-basin files (~5-30 MB each):
+       ibtracs.NA.list.v04r00.csv  -- North Atlantic + Gulf of Mexico
+       ibtracs.WP.list.v04r00.csv  -- Western North Pacific
+       ibtracs.EP.list.v04r00.csv  -- Eastern North Pacific
+       ibtracs.NI.list.v04r00.csv  -- North Indian (Bay of Bengal + Arabian Sea)
+       ibtracs.SI.list.v04r00.csv  -- South Indian
+       ibtracs.SP.list.v04r00.csv  -- South Pacific + Australia
 
-  2. REST API (for targeted queries) — rate-limited, use sparingly.
+  2. REST API (for targeted queries) -- rate-limited, use sparingly.
 
 SETUP
 -----
@@ -85,7 +83,7 @@ _BASIN_URLS: dict[str, str] = {
     "ALL": "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r00/access/csv/ibtracs.ALL.list.v04r00.csv",
 }
 
-# Basins for each geographic region — fetch only what's needed
+# Basins for each geographic region -- fetch only what's needed
 _REGION_BASINS: dict[str, list[str]] = {
     "atlantic":       ["NA"],
     "pacific":        ["WP", "EP"],
@@ -104,9 +102,7 @@ _BASIN_COL      = "BASIN"
 _STATUS_COL     = "NATURE"       # TS, TY, HU, TD, EX, SS, etc.
 
 
-# ---------------------------------------------------------------------------
 # Download helpers
-# ---------------------------------------------------------------------------
 
 def download_ibtracs_basin(
     basin: str = "NA",
@@ -115,12 +111,11 @@ def download_ibtracs_basin(
     """Download IBTrACS CSV for a specific basin.
 
     Parameters
-    ----------
     basin : "NA" | "WP" | "EP" | "NI" | "SI" | "SP" | "ALL"
     force : re-download even if file already exists
 
     Returns
-    -------
+
     Path to the downloaded CSV, or None on failure.
     """
     _IBTRACKS_DIR.mkdir(parents=True, exist_ok=True)
@@ -137,7 +132,7 @@ def download_ibtracs_basin(
         logger.info(f"IBTrACS {basin} already present ({size_mb} MB): {dest}")
         return dest
 
-    logger.info(f"Downloading IBTrACS {basin} from NCEI (~5–30 MB) ...")
+    logger.info(f"Downloading IBTrACS {basin} from NCEI (~5-30 MB) ...")
     try:
         def _hook(b, bs, total):
             if total > 0 and b % 200 == 0:
@@ -156,7 +151,7 @@ def ensure_basins_for_locations(station_locations: list[dict]) -> list[str]:
     """Determine which IBTrACS basins are needed for the given locations and
     download any that are missing.  Returns list of available local CSV paths.
     """
-    # Use ALL basins for global training — download individually to save space
+    # Use ALL basins for global training -- download individually to save space
     all_needed = ["NA", "WP", "EP", "NI", "SI", "SP"]
     available: list[str] = []
     for basin in all_needed:
@@ -170,14 +165,12 @@ def ensure_basins_for_locations(station_locations: list[dict]) -> list[str]:
     return available
 
 
-# ---------------------------------------------------------------------------
 # Data loading
-# ---------------------------------------------------------------------------
 
 def load_ibtracs_csv(csv_path: Path) -> pd.DataFrame:
     """Load and normalise a single IBTrACS basin CSV file.
 
-    IBTrACS CSVs have two header rows — row 0 is column names, row 1 is units.
+    IBTrACS CSVs have two header rows -- row 0 is column names, row 1 is units.
     We skip row 1 (units) by reading with header=0 and skiprows=[1].
     """
     df = pd.read_csv(
@@ -210,13 +203,12 @@ def load_all_ibtracs(
     """Load all available IBTrACS basin CSVs and filter by date + wind threshold.
 
     Parameters
-    ----------
     start_date    : "YYYY-MM-DD"
     end_date      : "YYYY-MM-DD"
     min_wind_knots: minimum WMO sustained wind (34 kts = tropical storm force)
 
     Returns
-    -------
+
     pd.DataFrame with columns: ISO_TIME, LAT, LON, WMO_WIND, NAME, BASIN
     """
     dt_start = datetime.strptime(start_date, "%Y-%m-%d")
@@ -253,14 +245,12 @@ def load_all_ibtracs(
     logger.info(
         f"  IBTrACS: {len(combined):,} track points loaded "
         f"({combined[_NAME_COL].nunique()} unique storms, "
-        f"{start_date}–{end_date}, wind >= {min_wind_knots} kts)"
+        f"{start_date}-{end_date}, wind >= {min_wind_knots} kts)"
     )
     return combined
 
 
-# ---------------------------------------------------------------------------
 # Spatial matching
-# ---------------------------------------------------------------------------
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     r = 6371.0
@@ -290,7 +280,6 @@ def build_ibtracs_label_df(
     within radius within the past `lead_window_hours` hours (storm approach).
 
     Parameters
-    ----------
     station_locations : list of {"id", "lat", "lon"} dicts
     start_date        : "YYYY-MM-DD"
     end_date          : "YYYY-MM-DD"
@@ -299,7 +288,7 @@ def build_ibtracs_label_df(
     lead_window_hours : extend label window ahead of closest approach (hours)
 
     Returns
-    -------
+
     pd.DataFrame with columns: timestamp (hourly), station_id, label (0/1)
     Empty DataFrame if no IBTrACS data is available.
     """
@@ -308,7 +297,7 @@ def build_ibtracs_label_df(
 
     tracks = load_all_ibtracs(start_date, end_date, min_wind_knots)
     if tracks.empty:
-        logger.warning("IBTrACS: no tracks loaded — storm labels will be all-zero")
+        logger.warning("IBTrACS: no tracks loaded -- storm labels will be all-zero")
         return pd.DataFrame(columns=["timestamp", "station_id", "label"])
 
     # Build a set of (station_id, date) pairs that are positive

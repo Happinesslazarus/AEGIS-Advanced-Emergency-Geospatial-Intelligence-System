@@ -8,7 +8,7 @@ import { Router, Request, Response } from 'express'
 import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 
 export function setupWaterSupplyRoutes(router: Router): void {
-  // GET /disruption-map — water supply disruption coverage map
+  //GET /disruption-map -- water supply disruption coverage map
   router.get('/disruption-map', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
@@ -23,7 +23,7 @@ export function setupWaterSupplyRoutes(router: Router): void {
     }
   })
 
-  // GET /affected-count — estimated affected households
+  //GET /affected-count -- estimated affected households
   router.get('/affected-count', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
@@ -38,7 +38,7 @@ export function setupWaterSupplyRoutes(router: Router): void {
     }
   })
 
-  // GET /water-quality — water quality alerts
+  //GET /water-quality -- water quality alerts
   router.get('/water-quality', async (req: Request, res: Response) => {
     try {
       const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)

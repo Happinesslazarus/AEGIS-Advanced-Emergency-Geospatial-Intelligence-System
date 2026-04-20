@@ -1,18 +1,14 @@
 /**
- * Index React component.
- *
- * How it connects:
- * - Re-exports from ./ui, ./layout, and root-level components
- * Simple explanation:
- * Central export hub for all UI components. */
+ * Top-level barrel — re-exports from ./ui, ./layout, and root-level components.
+ */
 
-// UI Components
+//UI Components
 export * from './ui'
 
-// Layout Components  
+//Layout Components
 export * from './layout'
 
-// Root-level Components
+//Root-level Components
 export { default as RiskAssessment } from './RiskAssessment'
 export { default as SocketDebugBar } from './SocketDebugBar'
 export { default as FloatingChatWidget } from './FloatingChatWidget'

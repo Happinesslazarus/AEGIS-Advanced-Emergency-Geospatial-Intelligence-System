@@ -9,8 +9,8 @@
 
 import { t, getLanguage } from '../../utils/i18n'
 
-// Shared shimmer class — gradient sweep for premium feel
-// Uses a custom shimmer keyframe + reduced-motion fallback
+//Shared shimmer class -- gradient sweep for premium feel
+//Uses a custom shimmer keyframe + reduced-motion fallback
 const SHIMMER = 'skeleton-shimmer motion-reduce:animate-none motion-reduce:opacity-70'
 
 interface SkeletonProps {

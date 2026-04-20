@@ -1,5 +1,5 @@
 ﻿/**
- * River gauge monitoring service — fetches real-time readings using provider
+ * River gauge monitoring service -- fetches real-time readings using provider
  * adapters with fallback support, caches them in memory (5-min TTL), calculates
  * flood status and trends, and broadcasts updates via Socket.IO.
  *
@@ -16,7 +16,7 @@ import type { RiverStation, FloodStatus } from '../config/regions/types.js'
 import type { Server as IOServer } from 'socket.io'
 import { logger } from './logger.js'
 
-// Types
+//Types
 
 export interface RiverLevelReading {
   stationId: string
@@ -34,7 +34,7 @@ export interface RiverLevelReading {
   coordinates?: { lat: number; lng: number }
 }
 
-// In-Memory Cache (5 minute TTL)
+//In-Memory Cache (5 minute TTL)
 
 const CACHE_TTL_MS = 5 * 60 * 1000
 
@@ -49,7 +49,7 @@ function isCacheValid(): boolean {
   return levelCache !== null && Date.now() - levelCache.fetchedAt < CACHE_TTL_MS
 }
 
-// Core Functions
+//Core Functions
 
  /*
  * Fetch current levels for all rivers in the active region.
@@ -72,7 +72,7 @@ export async function getCurrentLevels(forceRefresh = false): Promise<RiverLevel
     }
   }
 
-  // Update cache
+  //Update cache
   levelCache = { data: readings, fetchedAt: Date.now() }
 
   return readings
@@ -86,7 +86,7 @@ async function fetchSingleRiverLevel(
   station: RiverStation,
   regionId: string,
 ): Promise<RiverLevelReading | null> {
-  // Fetch from provider with automatic fallback
+  //Fetch from provider with automatic fallback
   const reading = await fetchWithFallback(
     station.dataProvider,
     station.stationId,
@@ -97,10 +97,10 @@ async function fetchSingleRiverLevel(
 
   if (!reading || reading.levelMetres == null) return null
 
-  // Get previous reading for trend calculation
+  //Get previous reading for trend calculation
   const previousLevel = await getPreviousLevel(station.stationId)
 
-  // Calculate dynamic flood status
+  //Calculate dynamic flood status
   const statusResult = calculateFloodStatus(reading.levelMetres, station)
   const trend = calculateTrend(reading.levelMetres, previousLevel)
 
@@ -120,7 +120,7 @@ async function fetchSingleRiverLevel(
     coordinates: station.coordinates,
   }
 
-  // Store in database (non-blocking)
+  //Store in database (non-blocking)
   storeReading(result, regionId).catch(err => {
     logger.error({ err, stationId: station.stationId }, '[RiverService] DB store failed')
   })
@@ -183,7 +183,7 @@ export async function getStationWithHistory(
   const levels = await getCurrentLevels()
   const current = levels.find(l => l.stationId === stationId) || null
 
-  // Try to get history from the database first (real stored readings)
+  //Try to get history from the database first (real stored readings)
   const { rows } = await pool.query(
     `SELECT level_metres, timestamp FROM river_levels
      WHERE station_id = $1 AND timestamp > NOW() - INTERVAL '${hours} hours'
@@ -201,7 +201,7 @@ export async function getStationWithHistory(
     }
   }
 
-  // If no DB history, try to fetch from the provider
+  //If no DB history, try to fetch from the provider
   const region = getActiveCityRegion()
   const station = region.rivers.find(r => r.stationId === stationId)
   if (station) {
@@ -245,7 +245,7 @@ export async function getStationHistory(
   }))
 }
 
-// Cron Integration - called every 5 minutes
+//Cron Integration - called every 5 minutes
 
 let ioInstance: IOServer | null = null
 
@@ -259,7 +259,7 @@ export function setIOInstance(io: IOServer): void {
 export async function fetchAndBroadcastLevels(): Promise<number> {
   const levels = await getCurrentLevels(true)
 
-  // Broadcast to all connected clients
+  //Broadcast to all connected clients
   if (ioInstance && levels.length > 0) {
     ioInstance.emit('river:levels_updated', {
       levels,

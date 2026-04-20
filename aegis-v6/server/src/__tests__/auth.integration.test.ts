@@ -16,44 +16,44 @@ import express from 'express'
 import cookieParser from 'cookie-parser'
 import jwt from 'jsonwebtoken'
 
-// Mock environment
+//Mock environment
 process.env.JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-at-least-32-chars'
 process.env.INTERNAL_API_KEY = 'test-internal-api-key-long-enough'
 process.env.N8N_WEBHOOK_SECRET = 'test-webhook-secret-long-enough'
 process.env.NODE_ENV = 'test'
 
-// Import after setting env
+//Import after setting env
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { internalAuth, requireAdmin, requireOperator } from '../middleware/internalAuth'
 
-// Test app setup
+//Test app setup
 function createTestApp() {
   const app = express()
   app.use(express.json())
   app.use(cookieParser())
   
-  // Public route
+  //Public route
   app.get('/public', (req, res) => {
     res.json({ message: 'public' })
   })
   
-  // Protected route
+  //Protected route
   app.get('/protected', authMiddleware, (req: AuthRequest, res) => {
     res.json({ user: req.user })
   })
   
-  // Admin route
+  //Admin route
   app.get('/admin', ...requireAdmin, (req: AuthRequest, res) => {
     res.json({ role: req.user?.role })
   })
   
-  // Operator route
+  //Operator route
   app.get('/operator', ...requireOperator, (req: AuthRequest, res) => {
     res.json({ role: req.user?.role })
   })
   
-  // Internal route
+  //Internal route
   app.post('/internal', internalAuth, (req, res) => {
     res.json({ internal: true })
   })
@@ -62,7 +62,7 @@ function createTestApp() {
 }
 
 function generateToken(payload: object, secret = process.env.JWT_SECRET!, expiresIn: string | number = '1h') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
   return jwt.sign(payload, secret, { expiresIn: expiresIn as any })
 }
 
@@ -167,7 +167,7 @@ describe('Authentication Middleware', () => {
         .post('/internal')
         .set('X-Internal-API-Key', 'wrong-key')
         .send({})
-        // Dev/test mode bypasses key check for internal IPs (supertest uses localhost)
+        //Dev/test mode bypasses key check for internal IPs (supertest uses localhost)
         expect([200, 403]).toContain(res.status)
     })
 
@@ -175,8 +175,8 @@ describe('Authentication Middleware', () => {
       const res = await request(app)
         .post('/internal')
         .send({})
-      // In test mode, internal IPs are bypassed, so this might pass
-      // But without a valid key from an external IP, it should fail
+      //In test mode, internal IPs are bypassed, so this might pass
+      //But without a valid key from an external IP, it should fail
       expect([200, 401]).toContain(res.status)
     })
   })
@@ -216,10 +216,10 @@ describe('Token Security', () => {
 })
 
 describe('Password Reset Security', () => {
-  // These tests verify the security requirements for password reset
+  //These tests verify the security requirements for password reset
   
   it('should generate cryptographically secure reset tokens', () => {
-    // Reset tokens should be random and unpredictable
+    //Reset tokens should be random and unpredictable
     const crypto = require('crypto')
     const token1 = crypto.randomBytes(32).toString('hex')
     const token2 = crypto.randomBytes(32).toString('hex')
@@ -233,26 +233,26 @@ describe('Password Reset Security', () => {
     const rawToken = crypto.randomBytes(32).toString('hex')
     const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex')
     
-    // Hashed token should be different from raw
+    //Hashed token should be different from raw
     expect(hashedToken).not.toBe(rawToken)
-    // Should be consistent
+    //Should be consistent
     const hashedAgain = crypto.createHash('sha256').update(rawToken).digest('hex')
     expect(hashedAgain).toBe(hashedToken)
   })
 })
 
 describe('Chat Session Ownership', () => {
-  // These tests verify chat session access control
+  //These tests verify chat session access control
   
   it('should require session ID for chat history access', async () => {
-    // Session ID should be validated
+    //Session ID should be validated
     const validSessionId = 'uuid-format-session-id'
     expect(typeof validSessionId).toBe('string')
     expect(validSessionId.length).toBeGreaterThan(0)
   })
 
   it('should validate user owns the session before returning history', () => {
-    // Mock verification function
+    //Mock verification function
     const verifyOwnership = (sessionId: string, userId: string, sessionCreatorId: string) => {
       return userId === sessionCreatorId
     }

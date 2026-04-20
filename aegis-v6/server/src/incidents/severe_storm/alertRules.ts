@@ -14,7 +14,7 @@ export class SevereStormAlertRules {
     const results: AlertRuleResult[] = []
     const { recentReports, weatherData, predictions } = context
 
-    // Rule 1: Report density threshold
+    //Rule 1: Report density threshold
     if (recentReports.length >= 15) {
       results.push({
         shouldAlert: true,
@@ -31,7 +31,7 @@ export class SevereStormAlertRules {
       })
     }
 
-    // Rule 2: Wind speed threshold (if weather data available)
+    //Rule 2: Wind speed threshold (if weather data available)
     if (weatherData?.windSpeed && Number(weatherData.windSpeed) >= 100) {
       results.push({
         shouldAlert: true,
@@ -48,7 +48,7 @@ export class SevereStormAlertRules {
       })
     }
 
-    // Rule 3: Damage reports
+    //Rule 3: Damage reports
     const damageReports = recentReports.filter(r => 
       r.customFields?.damageType && Array.isArray(r.customFields.damageType) && r.customFields.damageType.length > 0
     )
@@ -61,7 +61,7 @@ export class SevereStormAlertRules {
       })
     }
 
-    // Rule 4: Statistical prediction threshold
+    //Rule 4: Statistical prediction threshold
     const highRiskPredictions = predictions?.filter(p => p.probability > 0.7)
     if (highRiskPredictions && highRiskPredictions.length > 0) {
       results.push({

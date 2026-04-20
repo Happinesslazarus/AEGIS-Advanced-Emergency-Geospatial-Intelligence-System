@@ -5,14 +5,14 @@
  * Initialises i18next with react-i18next and the browser language detector.
  *
  * Language loading strategy:
- * - English:  statically bundled at build time — it is the fallback language
+ * - English:  statically bundled at build time -- it is the fallback language
  *             and must always be available with zero latency.
- * - Arabic:   statically bundled — RTL layout requires dedicated CSS direction
+ * - Arabic:   statically bundled -- RTL layout requires dedicated CSS direction
  *             handling (document dir, flex mirroring, text alignment) that was
  *             manually tested and verified against the static bundle.
  * - All other languages: resolved dynamically via the AEGIS translation
  *             microservice (POST /api/translate/batch).  The service cascades
- *             through Azure Cognitive Translator → DeepL → LibreTranslate,
+ * through Azure Cognitive Translator -> DeepL -> LibreTranslate,
  *             caches results in PostgreSQL for 30 days, and the client adds a
  *             second cache layer in localStorage (7-day TTL) so subsequent
  *             language switches are served instantly without a network round-trip.
@@ -29,7 +29,7 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { translateNamespace } from './dynamicLocaleLoader'
 
-// English — statically bundled, always available, zero load delay
+//English -- statically bundled, always available, zero load delay
 import enCommon from './locales/en/common.json'
 import enIncidents from './locales/en/incidents.json'
 import enDashboard from './locales/en/dashboard.json'
@@ -39,7 +39,7 @@ import enAdmin from './locales/en/admin.json'
 import enCitizen from './locales/en/citizen.json'
 import enLanding from './locales/en/landing.json'
 
-// Arabic — statically bundled for RTL layout correctness
+//Arabic -- statically bundled for RTL layout correctness
 import arCommon from './locales/ar/common.json'
 import arIncidents from './locales/ar/incidents.json'
 import arDashboard from './locales/ar/dashboard.json'
@@ -51,13 +51,13 @@ import arLanding from './locales/ar/landing.json'
 
 const NAMESPACES = ['common', 'incidents', 'dashboard', 'alerts', 'map', 'admin', 'citizen', 'landing'] as const
 
-/** English namespace bundles keyed by namespace name — used as the translation source. */
+/** English namespace bundles keyed by namespace name -- used as the translation source. */
 const EN_BUNDLES: Record<string, Record<string, unknown>> = {
   common: enCommon, incidents: enIncidents, dashboard: enDashboard,
   alerts: enAlerts, map: enMap, admin: enAdmin, citizen: enCitizen, landing: enLanding,
 }
 
-/** Arabic namespace bundles — statically available. */
+/** Arabic namespace bundles -- statically available. */
 const AR_BUNDLES: Record<string, Record<string, unknown>> = {
   common: arCommon, incidents: arIncidents, dashboard: arDashboard,
   alerts: arAlerts, map: arMap, admin: arAdmin, citizen: arCitizen, landing: arLanding,
@@ -80,8 +80,8 @@ const loadedLanguages = new Set<string>(['en', 'ar'])
 export async function loadLanguage(lng: string): Promise<void> {
   if (loadedLanguages.has(lng)) return
 
-  // Dynamically translate all namespaces via the AEGIS translation microservice.
-  // translateNamespace handles batching, the provider cascade, and localStorage caching.
+  //Dynamically translate all namespaces via the AEGIS translation microservice.
+  //translateNamespace handles batching, the provider cascade, and localStorage caching.
   const translated = await Promise.all(
     NAMESPACES.map(ns => translateNamespace(EN_BUNDLES[ns], lng, ns))
   )
@@ -113,8 +113,8 @@ i18n
     },
   })
 
-// Pre-load detected language on startup (non-blocking).
-// Arabic is already in resources; other languages trigger the translation pipeline.
+//Pre-load detected language on startup (non-blocking).
+//Arabic is already in resources; other languages trigger the translation pipeline.
 const detected = i18n.language?.split('-')[0]
 if (detected && detected !== 'en' && detected !== 'ar') {
   loadLanguage(detected).then(() => i18n.changeLanguage(detected))

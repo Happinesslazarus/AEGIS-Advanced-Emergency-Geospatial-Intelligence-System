@@ -3,19 +3,19 @@ Trains the power outage risk-prediction model using independent outage
 event records from two sources:
 
   1. UK Named Storm Outage Records (embedded, always available):
-     ~27 major UK/Ireland storms 2015–2025 with affected customer counts,
+     ~27 major UK/Ireland storms 2015-2025 with affected customer counts,
      start/end datetimes, and region centroids.  Sourced from Ofgem
      disturbance notifications, SSEN/WPD/ENW/UKPN/NIE press releases.
 
   2. EIA Form OE-417 (US, optional):
-     US Electric Emergency Incidents and Disturbances — all weather-caused
+     US Electric Emergency Incidents and Disturbances -- all weather-caused
      outage events reported to FERC/NERC under federal reporting requirements.
      Free from: https://www.eia.gov/electricity/disturbances/
 
 Label independence:
   Labels are OBSERVED outage records (utility telemetry + regulatory reports).
   Features are ERA5 meteorological variables from Open-Meteo.
-  There is no shared data source → LeakageSeverity.NONE.
+ There is no shared data source -> LeakageSeverity.NONE.
 
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Labels from data_fetch_outages.py (UK storm records + EIA OE-417)
@@ -48,9 +48,9 @@ class PowerOutageRealPipeline(BaseRealPipeline):
         region_scope="UK+US",
         label_source=(
             "UK Named Storm Outage Records (Ofgem / SSEN / WPD / ENW / NIE Networks, "
-            "2015–2025): 27 major storm events with customer counts, start/end times, "
+            "2015-2025): 27 major storm events with customer counts, start/end times, "
             "and region centroids. "
-            "EIA Form OE-417 (US federal NERC reporting, 2015–2024): all weather-caused "
+            "EIA Form OE-417 (US federal NERC reporting, 2015-2024): all weather-caused "
             "electric disturbance events with state, cause, and customer counts. "
             "Both sources are independent OBSERVED utility records, not weather thresholds."
         ),
@@ -73,7 +73,7 @@ class PowerOutageRealPipeline(BaseRealPipeline):
                 "(wind, ice, snow, thunderstorm, flood, hurricane, tornado)."
             ),
             "limitations": (
-                "UK records are curated static events — minor storms not reaching "
+                "UK records are curated static events -- minor storms not reaching "
                 "named-storm threshold are absent.  EIA OE-417 coverage begins ~2015 "
                 "for this module; earlier data available but not yet loaded.  "
                 "Outage duration ('end time') is sometimes estimated when not reported."
@@ -86,12 +86,12 @@ class PowerOutageRealPipeline(BaseRealPipeline):
             "expected_high_auc_rationale": (
                 "Power outage AUC ≥ 0.95 is physically expected and does not indicate "
                 "label leakage.  The causal chain is mechanistically direct: "
-                "high wind speed / wind gusts → tree strikes on overhead lines → "
-                "network fault → customer outages reported to Ofgem/NERC. "
+ "high wind speed / wind gusts -> tree strikes on overhead lines -> "
+ "network fault -> customer outages reported to Ofgem/NERC. "
                 "Storm-force winds (feature: wind_speed_10m, wind_gust, max_wind_gust) "
                 "are the single dominant predictor for overhead-line faults. "
                 "Labels are observed utility outage records (Ofgem disturbance "
-                "notifications, EIA OE-417) — fully independent of ERA5 features. "
+                "notifications, EIA OE-417) -- fully independent of ERA5 features. "
                 "For wind-dominated hazards, AUC is fundamentally bounded by the "
                 "predictability of wind itself from NWP models (~0.95 at 6h lead). "
                 "Reference: Wanik D. et al. (2015) 'Using weather and asset data to "
@@ -121,7 +121,7 @@ class PowerOutageRealPipeline(BaseRealPipeline):
         A more aggressive 0.60 recall target forces the threshold low enough to capture
         the dominant wind-driven outage signal even under distribution shift.
 
-        Scientific basis: Wanik et al. (2015) IJPE 73:35-43 — outage prediction at high
+        Scientific basis: Wanik et al. (2015) IJPE 73:35-43 -- outage prediction at high
         recall is operationally required because false negatives (missed storm warnings)
         expose the network to avoidable outages that could have been pre-empted.
         """
@@ -141,7 +141,7 @@ class PowerOutageRealPipeline(BaseRealPipeline):
         """Build outage labels from UK named storm records + EIA OE-417."""
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build power outage labels")
+            raise RuntimeError("No weather data -- cannot build power outage labels")
 
         # UK records are always present; EIA OE-417 adds US coverage if downloaded
         outages_available()  # logs availability status
@@ -157,7 +157,7 @@ class PowerOutageRealPipeline(BaseRealPipeline):
             raise RuntimeError(
                 "Outage label builder returned empty result.  "
                 "Check that start_date/end_date overlaps with UK storm records "
-                "(2015–2025).  For US coverage, download EIA OE-417 data: "
+                "(2015-2025).  For US coverage, download EIA OE-417 data: "
                 "from app.training.data_fetch_outages import download_eia_oe417; "
                 "download_eia_oe417()"
             )
@@ -174,13 +174,13 @@ class PowerOutageRealPipeline(BaseRealPipeline):
         """Build per-station meteorological features."""
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build features")
+            raise RuntimeError("No weather data -- cannot build features")
         return build_per_station_features(weather, self.feature_engineer)
 
     def hazard_feature_columns(self) -> list[str]:
         """Feature columns for power outage 6h-ahead forecasting.
 
-        Labels come from observed utility outage records — all ERA5 meteorological
+        Labels come from observed utility outage records -- all ERA5 meteorological
         features are legitimate (none are label constructors).  Wind speed and gusts
         are the primary physical drivers of overhead line damage.  Icing (temp +
         humidity combination), flooding, and ice-storm conditions are secondary paths.
@@ -189,7 +189,7 @@ class PowerOutageRealPipeline(BaseRealPipeline):
             # Primary: wind damage to overhead lines
             "wind_speed_10m",
             "wind_gusts_10m",
-            # Pressure tendency — precursor to high-wind events
+            # Pressure tendency -- precursor to high-wind events
             "pressure_msl",
             "pressure_change_3h",
             "pressure_change_6h",

@@ -86,7 +86,7 @@ export class WildfireService {
       }
       const apiKey = process.env.NASA_FIRMS_API_KEY
       if (!apiKey) {
-        logger.warn('[WildfireService] NASA FIRMS API key not configured — cannot analyze hotspots')
+        logger.warn('[WildfireService] NASA FIRMS API key not configured -- cannot analyze hotspots')
         return { hotspotCount: 0, totalFRP: 0, nearUrban: 0 }
       }
       const source = 'VIIRS_NOAA20_NRT'

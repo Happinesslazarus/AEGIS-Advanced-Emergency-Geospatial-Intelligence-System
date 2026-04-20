@@ -14,7 +14,7 @@ export class LandslideAlertRules {
     const results: AlertRuleResult[] = []
     const { recentReports, weatherData, predictions } = context
 
-    // Rule 1: Report density threshold
+    //Rule 1: Report density threshold
     if (recentReports.length >= 7) {
       results.push({
         shouldAlert: true,
@@ -31,7 +31,7 @@ export class LandslideAlertRules {
       })
     }
 
-    // Rule 2: Heavy rainfall threshold (if weather data available)
+    //Rule 2: Heavy rainfall threshold (if weather data available)
     if (weatherData?.rainfall24h && Number(weatherData.rainfall24h) >= 100) {
       results.push({
         shouldAlert: true,
@@ -48,7 +48,7 @@ export class LandslideAlertRules {
       })
     }
 
-    // Rule 3: Road blockages
+    //Rule 3: Road blockages
     const roadBlockedReports = recentReports.filter(r => r.customFields?.roadBlocked === true)
     if (roadBlockedReports.length >= 3) {
       results.push({
@@ -59,7 +59,7 @@ export class LandslideAlertRules {
       })
     }
 
-    // Rule 4: Structural damage
+    //Rule 4: Structural damage
     const structureDamageReports = recentReports.filter(r => r.customFields?.structuresDamaged === true)
     if (structureDamageReports.length >= 2) {
       results.push({
@@ -70,7 +70,7 @@ export class LandslideAlertRules {
       })
     }
 
-    // Rule 5: Statistical prediction threshold
+    //Rule 5: Statistical prediction threshold
     const highRiskPredictions = predictions?.filter(p => p.probability > 0.7)
     if (highRiskPredictions && highRiskPredictions.length > 0) {
       results.push({

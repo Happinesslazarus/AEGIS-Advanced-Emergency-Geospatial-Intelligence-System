@@ -34,7 +34,7 @@ class WaterSupplyModule extends BaseIncidentModule {
   async evaluateAlertRules(context: AlertRuleContext): Promise<AlertRuleResult[]> {
     const results = await super.evaluateAlertRules(context)
 
-    // Contamination reports = immediate critical alert
+    //Contamination reports = immediate critical alert
     const contaminationReports = context.recentReports.filter(
       r => r.customFields?.contaminationSuspected === true
     )

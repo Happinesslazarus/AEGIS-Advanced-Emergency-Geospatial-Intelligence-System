@@ -10,11 +10,11 @@
  *   expect()                = starts an assertion chain
  *   beforeEach / afterEach  = run before/after every test inside the describe block
  *   vi.fn()                 = creates a mock (fake) function whose calls are tracked
- *   i18n                    = "internationalisation" — the practice of making software
+ *   i18n                    = "internationalisation" -- the practice of making software
  *                             support multiple languages; the 18 stands for the 18
  *                             letters between 'i' and 'n'
  *   normalizeLanguageCode() = converts any locale string to the 2-letter ISO 639-1 code
- *                             the app understands (e.g. 'EN-US' → 'en', 'english' → 'en')
+ * the app understands (e.g. 'EN-US' -> 'en', 'english' -> 'en')
  *   ISO 639-1               = the international 2-letter language code standard
  *                             (en=English, es=Spanish, ar=Arabic, zh=Chinese, etc.)
  *   IETF language tag       = format 'language-REGION' used by browsers (e.g. 'en-US',
@@ -32,7 +32,7 @@
  *   aegis_lang / aegis-language = localStorage keys where the language choice is saved
  *                                 (both written for backwards compatibility)
  *   getChatLanguageName()   = returns the full English name of the current language
- *                             (e.g. 'es' → 'Spanish') for display in the chatbot UI
+ * (e.g. 'es' -> 'Spanish') for display in the chatbot UI
  *   getMissingTranslationKeys() = compares a language's dictionary against English and
  *                             returns keys that have not been translated yet
  *   Object.defineProperty() = injects a fake localStorage into the test environment
@@ -54,22 +54,20 @@ import {
   getMissingTranslationKeys,
 } from '../utils/i18n'
 
-// ---------------------------------------------------------------------------
-// normalizeLanguageCode — converts any locale string to a 2-letter code
-// ---------------------------------------------------------------------------
+//normalizeLanguageCode -- converts any locale string to a 2-letter code
 describe('normalizeLanguageCode', () => {
   test('returns en for undefined', () => {
-    // Undefined input defaults to English (the app's base language)
+    //Undefined input defaults to English (the app's base language)
     expect(normalizeLanguageCode(undefined)).toBe('en')
   })
   
   test('returns en for empty string', () => {
-    // Empty string is treated as "no preference" → English
+ //Empty string is treated as "no preference" -> English
     expect(normalizeLanguageCode('')).toBe('en')
   })
   
   test('handles supported codes directly', () => {
-    // All 2-letter codes the app supports should pass through as-is
+    //All 2-letter codes the app supports should pass through as-is
     expect(normalizeLanguageCode('en')).toBe('en')
     expect(normalizeLanguageCode('es')).toBe('es')
     expect(normalizeLanguageCode('fr')).toBe('fr')
@@ -78,13 +76,13 @@ describe('normalizeLanguageCode', () => {
   })
   
   test('normalizes case', () => {
-    // Browsers sometimes supply uppercase codes; must be lowercased
+    //Browsers sometimes supply uppercase codes; must be lowercased
     expect(normalizeLanguageCode('EN')).toBe('en')
     expect(normalizeLanguageCode('Es')).toBe('es')
   })
   
   test('handles language with region', () => {
-    // IETF tags like 'en-US' or 'fr-CA': strip the region suffix, keep the base language
+    //IETF tags like 'en-US' or 'fr-CA': strip the region suffix, keep the base language
     expect(normalizeLanguageCode('en-US')).toBe('en')
     expect(normalizeLanguageCode('en-GB')).toBe('en')
     expect(normalizeLanguageCode('es-MX')).toBe('es')
@@ -92,19 +90,19 @@ describe('normalizeLanguageCode', () => {
   })
   
   test('converts underscore to hyphen', () => {
-    // Some systems use underscore separators ('en_US') instead of hyphens
+    //Some systems use underscore separators ('en_US') instead of hyphens
     expect(normalizeLanguageCode('en_US')).toBe('en')
     expect(normalizeLanguageCode('zh_CN')).toBe('zh')
   })
   
   test('trims whitespace', () => {
-    // User-facing inputs may have stray spaces; ensure they are stripped
+    //User-facing inputs may have stray spaces; ensure they are stripped
     expect(normalizeLanguageCode('  en  ')).toBe('en')
     expect(normalizeLanguageCode(' es ')).toBe('es')
   })
   
   test('handles language aliases', () => {
-    // Full English language names (from chatbot input or user settings) should map correctly
+    //Full English language names (from chatbot input or user settings) should map correctly
     expect(normalizeLanguageCode('english')).toBe('en')
     expect(normalizeLanguageCode('spanish')).toBe('es')
     expect(normalizeLanguageCode('french')).toBe('fr')
@@ -117,37 +115,35 @@ describe('normalizeLanguageCode', () => {
   })
   
   test('returns en for unknown language', () => {
-    // Unknown codes fall back to English — safe default for unrecognised input
+    //Unknown codes fall back to English -- safe default for unrecognised input
     expect(normalizeLanguageCode('xyz')).toBe('en')
     expect(normalizeLanguageCode('unknown')).toBe('en')
   })
 })
 
-// ---------------------------------------------------------------------------
-// t() — translation lookup function
-// ---------------------------------------------------------------------------
+//t() -- translation lookup function
 describe('t() translation function', () => {
   test('translates known keys in English', () => {
-    // Basic sanity check: well-known English translations must return their strings
+    //Basic sanity check: well-known English translations must return their strings
     expect(t('app.title', 'en')).toBe('AEGIS')
     expect(t('nav.reportEmergency', 'en')).toBe('Report Emergency')
   })
   
   test('uses English as default language', () => {
-    // When no language is passed, t() should default to 'en'
+    //When no language is passed, t() should default to 'en'
     expect(t('app.title')).toBe('AEGIS')
   })
   
   test('returns key if translation not found', () => {
-    // If the key doesn't exist in any language, return the key itself
-    // so the UI shows something identifiable rather than an empty string
+    //If the key doesn't exist in any language, return the key itself
+    //so the UI shows something identifiable rather than an empty string
     expect(t('nonexistent.key', 'en')).toBe('nonexistent.key')
   })
   
   test('translates to Spanish', () => {
-    // AEGIS is a proper noun; it stays the same across all languages
+    //AEGIS is a proper noun; it stays the same across all languages
     expect(t('app.title', 'es')).toBe('AEGIS')
-    // But UI strings should be in Spanish
+    //But UI strings should be in Spanish
     expect(t('nav.reportEmergency', 'es')).toBe('Reportar Emergencia')
   })
   
@@ -156,40 +152,38 @@ describe('t() translation function', () => {
   })
   
   test('translates to Arabic', () => {
-    // Arabic is RTL; characters appear right-to-left but the string value is normal
+    //Arabic is RTL; characters appear right-to-left but the string value is normal
     expect(t('nav.reportEmergency', 'ar')).toBe('الإبلاغ عن حالة طوارئ')
   })
   
   test('translates common UI strings', () => {
-    // Form navigation strings used on every step of the incident report form
+    //Form navigation strings used on every step of the incident report form
     expect(t('form.submit', 'en')).toBe('Submit Emergency Report')
     expect(t('form.back', 'en')).toBe('Back')
     expect(t('form.next', 'en')).toBe('Next')
   })
   
   test('handles normalizing language codes', () => {
-    // t() should normalise codes internally so callers don't have to pre-normalise
+    //t() should normalise codes internally so callers don't have to pre-normalise
     expect(t('app.title', 'EN')).toBe('AEGIS')
     expect(t('app.title', 'en-US')).toBe('AEGIS')
   })
   
   test('falls back to English for missing translations', () => {
-    // Unknown language code → normalises to 'en' → returns English string
+ //Unknown language code -> normalises to 'en' -> returns English string
     expect(t('app.title', 'xyz')).toBe('AEGIS')
   })
 })
 
-// ---------------------------------------------------------------------------
-// isRtl — right-to-left text direction detection
-// ---------------------------------------------------------------------------
+//isRtl -- right-to-left text direction detection
 describe('isRtl', () => {
   test('returns true for Arabic', () => {
-    // Arabic (ar) is RTL — text flows right to left; layout must mirror accordingly
+    //Arabic (ar) is RTL -- text flows right to left; layout must mirror accordingly
     expect(isRtl('ar')).toBe(true)
   })
   
   test('returns true for Urdu', () => {
-    // Urdu (ur) is also RTL; spoken mainly in Pakistan
+    //Urdu (ur) is also RTL; spoken mainly in Pakistan
     expect(isRtl('ur')).toBe(true)
   })
   
@@ -198,7 +192,7 @@ describe('isRtl', () => {
   })
   
   test('returns false for other LTR languages', () => {
-    // All other supported languages are left-to-right
+    //All other supported languages are left-to-right
     expect(isRtl('es')).toBe(false)
     expect(isRtl('fr')).toBe(false)
     expect(isRtl('zh')).toBe(false)
@@ -208,9 +202,7 @@ describe('isRtl', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Language state management — getLanguage, setLanguage, onLanguageChange
-// ---------------------------------------------------------------------------
+//Language state management -- getLanguage, setLanguage, onLanguageChange
 describe('language state', () => {
   let originalLocalStorage: Storage      // save real localStorage so we can restore it
   let localStorageMock: Record<string, string>
@@ -218,7 +210,7 @@ describe('language state', () => {
   beforeEach(() => {
     localStorageMock = {}
     originalLocalStorage = window.localStorage
-    // Swap the real localStorage for an in-memory mock
+    //Swap the real localStorage for an in-memory mock
     Object.defineProperty(window, 'localStorage', {
       value: {
         getItem: (key: string) => localStorageMock[key] ?? null,
@@ -231,7 +223,7 @@ describe('language state', () => {
   })
   
   afterEach(() => {
-    // Restore the real localStorage to avoid polluting other test suites
+    //Restore the real localStorage to avoid polluting other test suites
     Object.defineProperty(window, 'localStorage', {
       value: originalLocalStorage,
       configurable: true,
@@ -239,14 +231,14 @@ describe('language state', () => {
   })
   
   test('getLanguage returns current language', () => {
-    // Must return a non-empty string (the active language code)
+    //Must return a non-empty string (the active language code)
     const lang = getLanguage()
     expect(typeof lang).toBe('string')
     expect(lang.length).toBeGreaterThan(0)
   })
   
   test('setLanguage changes current language', () => {
-    // setLanguage should immediately update the value returned by getLanguage()
+    //setLanguage should immediately update the value returned by getLanguage()
     setLanguage('es')
     expect(getLanguage()).toBe('es')
     
@@ -257,7 +249,7 @@ describe('language state', () => {
   })
   
   test('setLanguage normalizes language code', () => {
-    // setLanguage should normalise before storing, so 'ES' is stored as 'es'
+    //setLanguage should normalise before storing, so 'ES' is stored as 'es'
     setLanguage('ES')
     expect(getLanguage()).toBe('es')
     
@@ -268,8 +260,8 @@ describe('language state', () => {
   })
   
   test('setLanguage persists to localStorage', () => {
-    // After setLanguage('fr') the choice must survive a page refresh;
-    // both keys are written for backwards compatibility with older app versions
+    //After setLanguage('fr') the choice must survive a page refresh;
+    //both keys are written for backwards compatibility with older app versions
     setLanguage('fr')
     expect(localStorageMock['aegis_lang']).toBe('fr')       // new key
     expect(localStorageMock['aegis-language']).toBe('fr')   // legacy key (hyphen)
@@ -278,7 +270,7 @@ describe('language state', () => {
   })
   
   test('onLanguageChange notifies listeners', () => {
-    // Subscriber (fn) is called every time setLanguage() is called
+    //Subscriber (fn) is called every time setLanguage() is called
     const listener = vi.fn()
     const unsubscribe = onLanguageChange(listener) // register the listener
     
@@ -290,12 +282,12 @@ describe('language state', () => {
     
     unsubscribe()       // remove the listener
     setLanguage('en')
-    // After unsubscribe, listener must NOT be called — still at 2 calls total
+    //After unsubscribe, listener must NOT be called -- still at 2 calls total
     expect(listener).toHaveBeenCalledTimes(2)
   })
   
   test('unsubscribe removes listener', () => {
-    // Register then immediately unsubscribe — no calls should occur
+    //Register then immediately unsubscribe -- no calls should occur
     const listener = vi.fn()
     const unsubscribe = onLanguageChange(listener)
     
@@ -308,9 +300,7 @@ describe('language state', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// getChatLanguageName — human-readable name for the chatbot language selector
-// ---------------------------------------------------------------------------
+//getChatLanguageName -- human-readable name for the chatbot language selector
 describe('getChatLanguageName', () => {
   afterEach(() => {
     setLanguage('en') // always reset to English after each test
@@ -362,21 +352,19 @@ describe('getChatLanguageName', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// getMissingTranslationKeys — translation-completeness checker
-// Compares a language's dictionary against the English master to find gaps
-// ---------------------------------------------------------------------------
+//getMissingTranslationKeys -- translation-completeness checker
+//Compares a language's dictionary against the English master to find gaps
 describe('getMissingTranslationKeys', () => {
   test('returns empty array for English', () => {
-    // English is the master dictionary; nothing can be missing from it
+    //English is the master dictionary; nothing can be missing from it
     expect(getMissingTranslationKeys('en')).toEqual([])
   })
   
   test('returns array of missing keys for other languages', () => {
-    // Spain translations should be an array (ideally empty if complete)
+    //Spain translations should be an array (ideally empty if complete)
     const missing = getMissingTranslationKeys('es')
     expect(Array.isArray(missing)).toBe(true)
-    // Missing count should be zero or very low if translations are up to date
+    //Missing count should be zero or very low if translations are up to date
   })
   
   test('normalizes language code', () => {
@@ -387,7 +375,7 @@ describe('getMissingTranslationKeys', () => {
   })
   
   test('handles unknown language gracefully', () => {
-    // Unknown code normalises to 'en', which has no missing keys
+    //Unknown code normalises to 'en', which has no missing keys
     const missing = getMissingTranslationKeys('xyz')
     expect(missing).toEqual([])
   })

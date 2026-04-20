@@ -25,7 +25,7 @@ import type { Kafka, Producer, Consumer, Admin } from 'kafkajs'
 import pool from '../models/db.js'
 import { logger } from './logger.js'
 
-// TYPE DEFINITIONS
+//TYPE DEFINITIONS
 
 export interface StreamEvent<T = any> {
   id: string
@@ -90,42 +90,42 @@ interface DeadLetterEntry {
   nextRetry?: Date
 }
 
-// TOPICS / ROUTING KEYS
+//TOPICS / ROUTING KEYS
 
 export const Topics = {
-  // Report lifecycle
+  //Report lifecycle
   REPORT_CREATED: 'aegis.reports.created',
   REPORT_UPDATED: 'aegis.reports.updated',
   REPORT_ASSIGNED: 'aegis.reports.assigned',
   REPORT_RESOLVED: 'aegis.reports.resolved',
   REPORT_ESCALATED: 'aegis.reports.escalated',
   
-  // Alert lifecycle
+  //Alert lifecycle
   ALERT_CREATED: 'aegis.alerts.created',
   ALERT_BROADCAST: 'aegis.alerts.broadcast',
   ALERT_ACKNOWLEDGED: 'aegis.alerts.acknowledged',
   ALERT_EXPIRED: 'aegis.alerts.expired',
   
-  // User events
+  //User events
   USER_REGISTERED: 'aegis.users.registered',
   USER_LOGIN: 'aegis.users.login',
   USER_LOCATION_UPDATE: 'aegis.users.location',
   
-  // AI/ML events
+  //AI/ML events
   AI_CLASSIFICATION_COMPLETED: 'aegis.ai.classification.completed',
   AI_THREAT_LEVEL_CHANGED: 'aegis.ai.threat.changed',
   AI_PREDICTION_GENERATED: 'aegis.ai.prediction.generated',
   
-  // System events
+  //System events
   SYSTEM_HEALTH_CHECK: 'aegis.system.health',
   SYSTEM_METRIC_COLLECTED: 'aegis.system.metrics',
   SYSTEM_AUDIT_LOG: 'aegis.system.audit',
   
-  // Dead letter
+  //Dead letter
   DEAD_LETTER: 'aegis.dlq',
 } as const
 
-// SCHEMA REGISTRY
+//SCHEMA REGISTRY
 
 const schemaRegistry = new Map<string, EventSchema[]>()
 
@@ -150,7 +150,7 @@ export function getSchema(name: string, version?: string): EventSchema | undefin
     return versions.find(s => s.version === version)
   }
   
-  // Return latest version
+  //Return latest version
   return versions[versions.length - 1]
 }
 
@@ -161,7 +161,7 @@ function validateEvent(event: StreamEvent, schema: EventSchema): { valid: boolea
   const errors: string[] = []
   const value = event.value
   
-  // Check required fields
+  //Check required fields
   if (schema.required) {
     for (const field of schema.required) {
       if (value[field] === undefined || value[field] === null) {
@@ -170,7 +170,7 @@ function validateEvent(event: StreamEvent, schema: EventSchema): { valid: boolea
     }
   }
   
-  // Type check fields
+  //Type check fields
   for (const field of schema.fields) {
     const fieldValue = value[field.name]
     if (fieldValue === undefined) continue
@@ -184,7 +184,7 @@ function validateEvent(event: StreamEvent, schema: EventSchema): { valid: boolea
   return { valid: errors.length === 0, errors }
 }
 
-// Register built-in schemas
+//Register built-in schemas
 registerSchema({
   name: 'ReportCreated',
   version: '1.0.0',
@@ -213,7 +213,7 @@ registerSchema({
   required: ['alertId', 'title', 'severity'],
 })
 
-// IN-MEMORY BACKEND (Development/Testing)
+//IN-MEMORY BACKEND (Development/Testing)
 
 class MemoryStreamBackend {
   private static MAX_EVENTS_PER_TOPIC = 10_000
@@ -227,13 +227,13 @@ class MemoryStreamBackend {
     event.offset = events.length
     event.partition = 0
     events.push(event)
-    // Evict oldest events when topic exceeds retention limit
+    //Evict oldest events when topic exceeds retention limit
     if (events.length > MemoryStreamBackend.MAX_EVENTS_PER_TOPIC) {
       events.splice(0, events.length - MemoryStreamBackend.MAX_EVENTS_PER_TOPIC)
     }
     this.topics.set(event.topic, events)
     
-    // Notify consumers
+    //Notify consumers
     this.emitter.emit(event.topic, event)
     
     return event.id
@@ -244,12 +244,12 @@ class MemoryStreamBackend {
     handlers.add(handler)
     this.consumers.set(topic, handlers)
     
-    // Set up listener
+    //Set up listener
     const listener = async (event: StreamEvent) => {
       try {
         await handler(event)
         
-        // Update offset for consumer group
+        //Update offset for consumer group
         if (groupId) {
           const group = this.consumerGroups.get(groupId) || new Map()
           group.set(topic, (event.offset || 0) + 1)
@@ -302,7 +302,7 @@ class MemoryStreamBackend {
   }
 }
 
-// KAFKA BACKEND ADAPTER
+//KAFKA BACKEND ADAPTER
 
 class KafkaStreamBackend {
   private config: ProducerConfig
@@ -412,7 +412,7 @@ class KafkaStreamBackend {
       await Promise.all([admin.connect(), consumer.connect()])
 
       const topicOffsets = await admin.fetchTopicOffsets(topic)
-      // Only partition 0 is addressed for simplicity (single-partition topics)
+      //Only partition 0 is addressed for simplicity (single-partition topics)
       const highWatermark = Number(topicOffsets.find(p => p.partition === 0)?.high ?? fromOffset)
       if (highWatermark <= fromOffset) return
 
@@ -463,7 +463,7 @@ class KafkaStreamBackend {
   }
 }
 
-// RABBITMQ BACKEND ADAPTER
+//RABBITMQ BACKEND ADAPTER
 
 class RabbitMQStreamBackend {
   private config: ProducerConfig
@@ -483,13 +483,13 @@ class RabbitMQStreamBackend {
     }
     
     try {
-      // External RabbitMQ broker is intentionally not connected here.
-      // To activate: install amqplib, set RABBITMQ_URL, then uncomment:
-      // const amqp = await import('amqplib')
-      // this.connection = await amqp.connect(amqpUrl)
-      // this.channel = await this.connection.createChannel()
-      // Until then, fall through to the in-memory fallback below.
-      logger.info('[EventStreaming] RABBITMQ_URL set but amqplib not installed — using in-memory fallback')
+      //External RabbitMQ broker is intentionally not connected here.
+      //To activate: install amqplib, set RABBITMQ_URL, then uncomment:
+      //const amqp = await import('amqplib')
+      //this.connection = await amqp.connect(amqpUrl)
+      //this.channel = await this.connection.createChannel()
+      //Until then, fall through to the in-memory fallback below.
+      logger.info('[EventStreaming] RABBITMQ_URL set but amqplib not installed -- using in-memory fallback')
     } catch (err) {
       logger.error({ err }, '[EventStreaming] RabbitMQ connection failed, using fallback')
     }
@@ -500,11 +500,11 @@ class RabbitMQStreamBackend {
       return this.memoryFallback.produce(event)
     }
     
-    // Production RabbitMQ publish:
-    // this.channel.publish(
+    //Production RabbitMQ publish:
+    //this.channel.publish(
     //   'aegis.events',
-    //   event.topic,
-    //   Buffer.from(JSON.stringify(event.value)),
+    //  event.topic,
+    //  Buffer.from(JSON.stringify(event.value)),
     //   { headers: event.headers, persistent: true }
     // )
     
@@ -528,7 +528,7 @@ class RabbitMQStreamBackend {
   }
 }
 
-// REDIS STREAMS BACKEND ADAPTER
+//REDIS STREAMS BACKEND ADAPTER
 
 class RedisStreamBackend {
   private config: ProducerConfig
@@ -548,12 +548,12 @@ class RedisStreamBackend {
     }
     
     try {
-      // External Redis Streams backend is intentionally not connected here.
-      // To activate: install ioredis, set REDIS_URL, then uncomment:
-      // const Redis = await import('ioredis')
-      // this.redis = new Redis.default(redisUrl)
-      // Until then, fall through to the in-memory fallback below.
-      logger.info('[EventStreaming] REDIS_URL set but ioredis not installed for streams — using in-memory fallback')
+      //External Redis Streams backend is intentionally not connected here.
+      //To activate: install ioredis, set REDIS_URL, then uncomment:
+      //const Redis = await import('ioredis')
+      //this.redis = new Redis.default(redisUrl)
+      //Until then, fall through to the in-memory fallback below.
+      logger.info('[EventStreaming] REDIS_URL set but ioredis not installed for streams -- using in-memory fallback')
     } catch (err) {
       logger.error({ err }, '[EventStreaming] Redis connection failed, using fallback')
     }
@@ -564,9 +564,9 @@ class RedisStreamBackend {
       return this.memoryFallback.produce(event)
     }
     
-    // Production Redis XADD:
-    // const streamId = await this.redis.xadd(
-    //   event.topic,
+    //Production Redis XADD:
+    //const streamId = await this.redis.xadd(
+    //  event.topic,
     //   '*',
     //   'data', JSON.stringify(event.value),
     //   'headers', JSON.stringify(event.headers)
@@ -592,7 +592,7 @@ class RedisStreamBackend {
   }
 }
 
-// DEAD LETTER QUEUE
+//DEAD LETTER QUEUE
 
 const deadLetterQueue: DeadLetterEntry[] = []
 const MAX_RETRIES = 5
@@ -604,7 +604,7 @@ async function handleDeadLetter(
   retryCount: number
 ): Promise<void> {
   if (retryCount >= MAX_RETRIES) {
-    // Move to dead letter queue
+    //Move to dead letter queue
     deadLetterQueue.push({
       originalEvent: event,
       error: error.message,
@@ -612,7 +612,7 @@ async function handleDeadLetter(
       lastAttempt: new Date(),
     })
     
-    // Persist to database for durability
+    //Persist to database for durability
     try {
       await pool.query(
         `INSERT INTO dead_letter_queue (event_id, topic, payload, error, retry_count)
@@ -627,12 +627,12 @@ async function handleDeadLetter(
     return
   }
   
-  // Schedule retry with exponential backoff
+  //Schedule retry with exponential backoff
   const delay = RETRY_DELAYS[retryCount] || RETRY_DELAYS[RETRY_DELAYS.length - 1]
   logger.warn(`[EventStreaming] Scheduling retry ${retryCount + 1} for event ${event.id} in ${delay}ms`)
   
   setTimeout(() => {
-    // Re-publish with retry header
+    //Re-publish with retry header
     publish(event.topic, event.value, {
       ...event.headers,
       'x-retry-count': String(retryCount + 1),
@@ -660,7 +660,7 @@ export async function replayDeadLetterEvent(eventId: string): Promise<boolean> {
   return true
 }
 
-// TRANSACTIONAL OUTBOX PATTERN
+//TRANSACTIONAL OUTBOX PATTERN
 
 interface OutboxEntry {
   id: string
@@ -725,7 +725,7 @@ export async function processOutbox(): Promise<number> {
   return published
 }
 
-// MAIN EVENT STREAMING SERVICE
+//MAIN EVENT STREAMING SERVICE
 
 let backend: KafkaStreamBackend | RabbitMQStreamBackend | RedisStreamBackend | MemoryStreamBackend
 let initialized = false
@@ -770,10 +770,10 @@ export async function initEventStreaming(config?: {
     await backend.connect()
   }
   
-  // Ensure outbox/DLQ tables exist before polling
+  //Ensure outbox/DLQ tables exist before polling
   await createEventStreamingTables()
 
-  // Start outbox processor
+  //Start outbox processor
   setInterval(processOutbox, 5000)
 
   initialized = true
@@ -807,7 +807,7 @@ export async function publish<T = any>(
     timestamp: new Date(),
   }
   
-  // Schema validation if available
+  //Schema validation if available
   const schemaName = headers['x-schema-name']
   if (schemaName) {
     const schema = getSchema(schemaName)
@@ -822,7 +822,7 @@ export async function publish<T = any>(
   
   const eventId = await backend.produce(event)
   
-  // Emit metrics
+  //Emit metrics
   eventMetrics.published++
   eventMetrics.byTopic.set(topic, (eventMetrics.byTopic.get(topic) || 0) + 1)
   
@@ -853,7 +853,7 @@ export function subscribe<T = any>(
     }
   }
   
-  // Track subscription
+  //Track subscription
   if (!subscriptionHandlers.has(topic)) {
     subscriptionHandlers.set(topic, new Map())
   }
@@ -883,7 +883,7 @@ export async function replay(
   await backend.replay(topic, fromOffset, handler)
 }
 
-// CONVENIENCE PUBLISHERS FOR AEGIS EVENTS
+//CONVENIENCE PUBLISHERS FOR AEGIS EVENTS
 
 export const EventPublishers = {
   reportCreated: (report: any) => publish(Topics.REPORT_CREATED, {
@@ -943,7 +943,7 @@ export const EventPublishers = {
   }),
 }
 
-// METRICS & MONITORING
+//METRICS & MONITORING
 
 const eventMetrics = {
   published: 0,
@@ -977,7 +977,7 @@ export function getEventStreamingStats(): {
   }
 }
 
-// DATABASE MIGRATIONS FOR OUTBOX & DLQ
+//DATABASE MIGRATIONS FOR OUTBOX & DLQ
 
 export async function createEventStreamingTables(): Promise<void> {
   await pool.query(`

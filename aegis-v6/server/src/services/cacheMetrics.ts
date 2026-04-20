@@ -1,5 +1,5 @@
 ﻿/**
- * Prometheus metric definitions for the caching layer — counters for hits,
+ * Prometheus metric definitions for the caching layer -- counters for hits,
  * misses, sets, invalidations, errors, and stale serves, plus a histogram
  * for operation duration. Pure definitions, no business logic.
  *
@@ -10,7 +10,7 @@
 
 import client from 'prom-client'
 
-// Counters
+//Counters
 
 export const cacheHitsTotal = new client.Counter({
   name: 'aegis_cache_hits_total',
@@ -46,7 +46,7 @@ export const cacheStaleServedTotal = new client.Counter({
   labelNames: ['namespace', 'provider'] as const,
 })
 
-// Namespace-level counters
+//Namespace-level counters
 
 export const cacheNamespaceHitsTotal = new client.Counter({
   name: 'aegis_cache_namespace_hits_total',
@@ -60,7 +60,7 @@ export const cacheNamespaceMissesTotal = new client.Counter({
   labelNames: ['namespace'] as const,
 })
 
-// Histograms
+//Histograms
 
 export const cacheOperationDuration = new client.Histogram({
   name: 'aegis_cache_operation_duration_ms',

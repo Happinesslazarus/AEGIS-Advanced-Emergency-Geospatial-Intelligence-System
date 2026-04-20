@@ -1,5 +1,5 @@
 /**
- * emergencyQRAuthRoutes.ts — Emergency Quick-Auth via QR Code
+ * emergencyQRAuthRoutes.ts -- Emergency Quick-Auth via QR Code
  *
  * Unique to AEGIS: During disasters, citizens can scan a QR code
  * displayed on emergency screens/posters to instantly authenticate
@@ -7,15 +7,15 @@
  *
  * Flow:
  *   1. Kiosk/screen shows QR with a session token
- *   2. Citizen scans QR → opens AEGIS with session token
+ * 2. Citizen scans QR -> opens AEGIS with session token
  *   3. If already logged in on phone, approves the session
  *   4. Kiosk picks up the approval via polling/WebSocket
  *
  * Endpoints:
- *   POST /api/auth/qr/generate    — Generate QR session (for kiosks/screens)
- *   GET  /api/auth/qr/status/:id  — Poll session status
- *   POST /api/auth/qr/approve     — Citizen approves from phone (requires auth)
- *   POST /api/auth/qr/scan        — Citizen scans & gets session info
+ *   POST /api/auth/qr/generate    -- Generate QR session (for kiosks/screens)
+ *   GET  /api/auth/qr/status/:id  -- Poll session status
+ *   POST /api/auth/qr/approve     -- Citizen approves from phone (requires auth)
+ *   POST /api/auth/qr/scan        -- Citizen scans & gets session info
  */
 
 import { Router, Request, Response } from 'express'
@@ -51,7 +51,7 @@ function getClientBaseUrl(): string {
 
 /**
  * Get the LAN IP for the Express server (port 3001).
- * QR codes point here so phones hit the API directly — no React bundle needed.
+ * QR codes point here so phones hit the API directly -- no React bundle needed.
  */
 function getServerBaseUrl(): string {
   if (process.env.SERVER_URL && !process.env.SERVER_URL.includes('localhost')) {
@@ -79,20 +79,20 @@ interface QRSession {
 
 const qrSessions = new Map<string, QRSession>()
 
-// Clean expired sessions every 30s
+//Clean expired sessions every 30s
 setInterval(() => {
   const now = Date.now()
   for (const [id, session] of qrSessions) {
     if (now > session.expiresAt) {
       session.status = 'expired'
-      // Keep expired sessions for 30s so pollers can see the final state
+      //Keep expired sessions for 30s so pollers can see the final state
       if (now > session.expiresAt + 30_000) qrSessions.delete(id)
     }
   }
 }, 30_000)
 
 /**
- * POST /api/auth/qr/generate — Generate a new QR session
+ * POST /api/auth/qr/generate -- Generate a new QR session
  * Returns a QR code image (base64) and session ID for polling
  */
 router.post('/generate', async (_req: Request, res: Response) => {
@@ -105,9 +105,9 @@ router.post('/generate', async (_req: Request, res: Response) => {
   }
   qrSessions.set(sessionId, session)
 
-  // QR code now points to the React app's QR approve page — this allows the
-  // phone user to sign in with ANY method (Google, email, passkey) via the
-  // full React app rather than the limited server-side mini HTML page.
+  //QR code now points to the React app's QR approve page -- this allows the
+  //phone user to sign in with ANY method (Google, email, passkey) via the
+  //full React app rather than the limited server-side mini HTML page.
   const clientBase = getClientBaseUrl()
   const serverBase = getServerBaseUrl()
   const scanUrl = `${clientBase}/citizen/qr-auth?session=${sessionId}`
@@ -133,7 +133,7 @@ router.post('/generate', async (_req: Request, res: Response) => {
 })
 
 /**
- * GET /api/auth/qr/status/:id — Poll session status
+ * GET /api/auth/qr/status/:id -- Poll session status
  * Used by the kiosk/screen to check if someone scanned & approved
  */
 router.get('/status/:id', (req: Request, res: Response) => {
@@ -151,11 +151,11 @@ router.get('/status/:id', (req: Request, res: Response) => {
     },
   }
 
-  // If approved, include the token
+  //If approved, include the token
   if (session.status === 'approved' && session.token) {
     response.data.token = session.token
     response.data.user = session.approvedBy
-    // Clean up after delivering
+    //Clean up after delivering
     qrSessions.delete(req.params.id)
   }
 
@@ -163,8 +163,8 @@ router.get('/status/:id', (req: Request, res: Response) => {
 })
 
 /**
- * POST /api/auth/qr/scan — Get session info when citizen scans QR
- * No auth required — just returns basic session info
+ * POST /api/auth/qr/scan -- Get session info when citizen scans QR
+ * No auth required -- just returns basic session info
  */
 router.post('/scan', (req: Request, res: Response) => {
   const { sessionId } = req.body
@@ -189,7 +189,7 @@ router.post('/scan', (req: Request, res: Response) => {
 })
 
 /**
- * POST /api/auth/qr/approve — Citizen approves the QR session
+ * POST /api/auth/qr/approve -- Citizen approves the QR session
  * Requires authentication (citizen must be logged in on phone)
  */
 router.post('/approve', authMiddleware, (req: Request, res: Response) => {
@@ -202,7 +202,7 @@ router.post('/approve', authMiddleware, (req: Request, res: Response) => {
     return
   }
 
-  // Generate tokens for the kiosk session
+  //Generate tokens for the kiosk session
   const token = generateToken({
     id: authReq.user!.id,
     email: authReq.user!.email,
@@ -230,9 +230,7 @@ router.post('/approve', authMiddleware, (req: Request, res: Response) => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// TOTP (Authenticator App) Mode
-// ---------------------------------------------------------------------------
+//TOTP (Authenticator App) Mode
 
 interface TOTPSession {
   id: string
@@ -246,7 +244,7 @@ interface TOTPSession {
 
 const totpSessions = new Map<string, TOTPSession>()
 
-// Clean expired TOTP sessions every 60s
+//Clean expired TOTP sessions every 60s
 setInterval(() => {
   const now = Date.now()
   for (const [id, s] of totpSessions) {
@@ -287,7 +285,7 @@ router.post('/totp/generate', async (req: Request, res: Response) => {
   let isNewSetup = false
 
   if (user.two_factor_enabled && user.two_factor_secret) {
-    // Existing 2FA — decrypt the stored secret
+    //Existing 2FA -- decrypt the stored secret
     try {
       secretBase32 = decrypt2FASecret(user.two_factor_secret)
     } catch {
@@ -295,13 +293,13 @@ router.post('/totp/generate', async (req: Request, res: Response) => {
       return
     }
   } else {
-    // No 2FA yet — auto-provision a secret so the user can authenticate via TOTP
-    // without needing to go through Settings first.
+    //No 2FA yet -- auto-provision a secret so the user can authenticate via TOTP
+    //without needing to go through Settings first.
     const generated = speakeasy.generateSecret({ length: 20, name: `AEGIS:${user.email}`, issuer: 'AEGIS' })
     secretBase32 = generated.base32
     isNewSetup = true
 
-    // Save encrypted secret and enable 2FA on the account
+    //Save encrypted secret and enable 2FA on the account
     const encryptedSecret = encrypt2FASecret(secretBase32)
     await pool.query(
       `UPDATE citizens SET two_factor_secret = $1, two_factor_enabled = true, two_factor_enabled_at = NOW() WHERE id = $2`,
@@ -353,7 +351,7 @@ router.post('/totp/generate', async (req: Request, res: Response) => {
 /**
  * POST /api/auth/qr/totp/verify
  * Verifies { sessionId, email, code } and returns a JWT if valid.
- * No password required — the TOTP code proves possession of the registered device.
+ * No password required -- the TOTP code proves possession of the registered device.
  */
 router.post('/totp/verify', async (req: Request, res: Response) => {
   const { sessionId, email, code } = req.body
@@ -365,7 +363,7 @@ router.post('/totp/verify', async (req: Request, res: Response) => {
 
   const session = totpSessions.get(sessionId)
   if (!session || Date.now() > session.expiresAt) {
-    res.status(400).json({ success: false, error: 'Session expired — generate a new QR code' })
+    res.status(400).json({ success: false, error: 'Session expired -- generate a new QR code' })
     return
   }
 
@@ -377,7 +375,7 @@ router.post('/totp/verify', async (req: Request, res: Response) => {
   })
 
   if (!valid) {
-    res.status(401).json({ success: false, error: 'Invalid or expired code — wait for the next code and try again' })
+    res.status(401).json({ success: false, error: 'Invalid or expired code -- wait for the next code and try again' })
     return
   }
 
@@ -386,7 +384,7 @@ router.post('/totp/verify', async (req: Request, res: Response) => {
     return
   }
 
-  // Look up user by bound session identity
+  //Look up user by bound session identity
   const result = await pool.query(
     `SELECT id, email, role, display_name FROM citizens
      WHERE id = $1 AND deleted_at IS NULL LIMIT 1`,
@@ -407,7 +405,7 @@ router.post('/totp/verify', async (req: Request, res: Response) => {
   })
   const refreshToken = generateRefreshToken({ id: user.id, role: user.role || 'citizen' })
 
-  // Store session in DB so refresh tokens can be validated
+  //Store session in DB so refresh tokens can be validated
   await createSession({
     userId: user.id,
     userType: 'citizen',
@@ -427,7 +425,7 @@ router.post('/totp/verify', async (req: Request, res: Response) => {
 
   totpSessions.delete(sessionId) // One-time use
 
-  logger.info({ userId: user.id, sessionId }, '[QR Auth] TOTP verified — user signed in')
+  logger.info({ userId: user.id, sessionId }, '[QR Auth] TOTP verified -- user signed in')
 
   res.json({
     success: true,
@@ -447,15 +445,15 @@ router.post('/totp/verify', async (req: Request, res: Response) => {
  * GET /api/auth/qr/mobile?session=xxx
  *
  * The URL encoded in the QR code. The phone opens this in its browser.
- * Returns a self-contained HTML page — no React, no heavy JS bundle.
+ * Returns a self-contained HTML page -- no React, no heavy JS bundle.
  * The page checks if the citizen is already authenticated (JWT in localStorage)
  * and either approves directly or shows a mini login form.
  */
 router.get('/mobile', async (req: Request, res: Response) => {
   const sessionId = req.query.session as string
 
-  // The mobile page is a self-contained HTML page with inline JS — override
-  // Helmet's strict CSP so the browser doesn't silently block the script block.
+  //The mobile page is a self-contained HTML page with inline JS -- override
+  //Helmet's strict CSP so the browser doesn't silently block the script block.
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src *; base-uri 'none'; form-action 'none'"
@@ -498,7 +496,7 @@ function mobilePage(opts: {
 
   const bodyContent = error
     ? `<div class="card error">
-        <div class="icon">⚠️</div>
+ <div class="icon">!️</div>
         <h2>QR Code Expired</h2>
         <p>${error}</p>
         <p style="margin-top:1rem;font-size:0.85rem;color:#94a3b8">Return to the AEGIS screen and generate a new QR code.</p>
@@ -561,9 +559,9 @@ function mobilePage(opts: {
           const pass  = document.getElementById('passInput').value
           if (!email || !pass) { showMsg('Please enter your email and password.', true); return }
           const btn = document.getElementById('approveBtn')
-          btn.disabled = true; btn.textContent = 'Signing in…'
+          btn.disabled = true; btn.textContent = 'Signing in...'
           try {
-            // Step 1: authenticate on the server
+            //Step 1: authenticate on the server
             const loginRes = await fetch(SERVER + '/api/citizen-auth/login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -572,7 +570,7 @@ function mobilePage(opts: {
             const loginData = await loginRes.json()
             if (!loginData.token) throw new Error(loginData.message || loginData.error || 'Login failed')
             const { token } = loginData
-            // Step 2: approve the QR session with the fresh token
+            //Step 2: approve the QR session with the fresh token
             const approveRes = await fetch(SERVER + '/api/auth/qr/approve', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
@@ -602,7 +600,7 @@ function mobilePage(opts: {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AEGIS — Authorize Sign-In</title>
+  <title>AEGIS -- Authorize Sign-In</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {

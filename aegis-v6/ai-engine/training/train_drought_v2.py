@@ -9,7 +9,7 @@ the target is > 85% accuracy / 0.90+ ROC-AUC.
 
 Why LightGBM wins for drought:
   - Drought features (rainfall_30d, soil_moisture, NDVI) have many near-zero
-    values with a long right tail — LightGBM leaf-wise growth handles this
+    values with a long right tail -- LightGBM leaf-wise growth handles this
     better than XGBoost's level-wise approach
   - Faster than XGBoost on this feature distribution
   - SHAP values work identically
@@ -19,12 +19,12 @@ Glossary:
                       highest loss reduction (vs XGBoost's level-wise which
                       grows all leaves at the same depth simultaneously)
   5-fold time-series CV = TimeSeriesSplit with 5 folds, each fold's training
-                      window ending before its validation window — prevents
+                      window ending before its validation window -- prevents
                       temporal data leakage while still using all the data
 
-  Input  ← data/processed/master_features_uk_2000_2024.parquet
-  Input  ← data/labels/drought_labels.parquet
-  Output → model_registry/drought/drought_uk_v2_spei_era5.pkl
+  Input  <- data/processed/master_features_uk_2000_2024.parquet
+  Input  <- data/labels/drought_labels.parquet
+  Output -> model_registry/drought/drought_uk_v2_spei_era5.pkl
 """
 
 from __future__ import annotations
@@ -196,7 +196,7 @@ def compute_shap(model: LGBMClassifier, X_test: pd.DataFrame, report_dir: Path) 
         np.abs(vals).mean(axis=0), index=X_test.columns
     ).sort_values(ascending=False)
     importance.to_csv(str(report_dir / "drought_v2_shap_importance.csv"))
-    print(f"  SHAP importance → {report_dir / 'drought_v2_shap_importance.csv'}")
+    print(f"  SHAP importance -> {report_dir / 'drought_v2_shap_importance.csv'}")
 
 
 def save_to_registry(model: LGBMClassifier, feature_cols: list[str], metrics: dict) -> None:
@@ -212,7 +212,7 @@ def save_to_registry(model: LGBMClassifier, feature_cols: list[str], metrics: di
     meta_path = REGISTRY_DIR / "drought_uk_v2_spei_era5.json"
     joblib.dump(artifact, str(out_path), compress=3)
     meta_path.write_text(json.dumps({**metrics, "feature_count": len(feature_cols)}, indent=2))
-    print(f"\n  Model saved → {out_path}")
+    print(f"\n  Model saved -> {out_path}")
 
 
 def run(args: argparse.Namespace) -> None:
@@ -222,7 +222,7 @@ def run(args: argparse.Namespace) -> None:
     except Exception:
         wb_run = None
 
-    print("[1/5] Loading data …")
+    print("[1/5] Loading data ...")
     df = load_data()
     train = df[df["date"] < "2021-01-01"]
     val   = df[(df["date"] >= "2021-01-01") & (df["date"] < "2023-01-01")]
@@ -231,10 +231,10 @@ def run(args: argparse.Namespace) -> None:
     X_val,   y_val   = get_xy(val)
     X_test,  y_test  = get_xy(test)
 
-    print("[2/5] Tuning LightGBM with Optuna …")
+    print("[2/5] Tuning LightGBM with Optuna ...")
     model = run_optuna_lgbm(X_train, y_train, X_val, y_val, args.trials)
 
-    print("[3/5] Calibrating …")
+    print("[3/5] Calibrating ...")
     # sklearn 1.6+ removed cv='prefit'; calibrate manually with isotonic regression
     from sklearn.isotonic import IsotonicRegression as _Iso
     _iso = _Iso(out_of_bounds="clip")
@@ -242,7 +242,7 @@ def run(args: argparse.Namespace) -> None:
     _iso.fit(_val_proba, y_val)
     calibrated = CalibratedModel(model, _iso)
 
-    print("[4/5] Evaluating on test set …")
+    print("[4/5] Evaluating on test set ...")
     metrics = evaluate(calibrated, X_test, y_test)
     compute_shap(model, X_test, REPORT_DIR)
 
@@ -253,7 +253,7 @@ def run(args: argparse.Namespace) -> None:
         except Exception:
             pass
 
-    print("[5/5] Saving to registry …")
+    print("[5/5] Saving to registry ...")
     save_to_registry(calibrated, list(X_train.columns), metrics)
     print("\nDone. Use POST /registry/promote with version=drought_uk_v2_spei_era5 to deploy.")
 

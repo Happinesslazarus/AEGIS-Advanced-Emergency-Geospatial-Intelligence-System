@@ -9,7 +9,7 @@ and falls back to a heuristic score when the trained model file is absent.
 """
 
 """
- AEGIS AI ENGINE — Environmental Hazard Prediction Module
+ AEGIS AI ENGINE -- Environmental Hazard Prediction Module
  Air quality degradation and hazmat release risk assessment using
  atmospheric stability, wind dispersion, and pollutant source proximity.
 """
@@ -29,7 +29,7 @@ from app.hazards.shap_explainer import explain_prediction
 
 class EnvironmentalHazardPredictor:
     """
-    Environmental hazard risk — air quality, chemical releases, pollution.
+    Environmental hazard risk -- air quality, chemical releases, pollution.
     Uses atmospheric dispersion proxies: wind speed (dilution vs transport),
     humidity (particulate trapping), temperature inversion risk (low wind +
     cold = pollutant concentration), and NDVI (vegetation buffer).

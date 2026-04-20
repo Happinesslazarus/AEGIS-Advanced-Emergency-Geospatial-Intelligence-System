@@ -19,10 +19,10 @@ export class LandslideAIClient {
       const soilMoisture = Number(environmentalData.soilMoisture || 50)
       const slopeAngle = Number(environmentalData.slopeAngle || 15)
       
-      // Statistical scoring based on geological parameters
+      //Statistical scoring based on geological parameters
       let riskScore = 0
       
-      // Rainfall contribution
+      //Rainfall contribution
       if (rainfall24h >= 100) riskScore += 0.3
       else if (rainfall24h >= 75) riskScore += 0.2
       else if (rainfall24h >= 50) riskScore += 0.1
@@ -31,12 +31,12 @@ export class LandslideAIClient {
       else if (rainfall72h >= 150) riskScore += 0.2
       else if (rainfall72h >= 100) riskScore += 0.1
       
-      // Soil moisture contribution
+      //Soil moisture contribution
       if (soilMoisture >= 80) riskScore += 0.2
       else if (soilMoisture >= 70) riskScore += 0.15
       else if (soilMoisture >= 60) riskScore += 0.1
       
-      // Slope angle contribution
+      //Slope angle contribution
       if (slopeAngle >= 35) riskScore += 0.2
       else if (slopeAngle >= 25) riskScore += 0.15
       else if (slopeAngle >= 20) riskScore += 0.1
@@ -54,7 +54,7 @@ export class LandslideAIClient {
         confidence: 0.5,
         confidenceSource: 'statistical',
         region,
-        description: `Landslide risk based on rainfall (${rainfall24h}mm/24h), soil moisture (${soilMoisture}%), slope (${slopeAngle}—)`,
+        description: `Landslide risk based on rainfall (${rainfall24h}mm/24h), soil moisture (${soilMoisture}%), slope (${slopeAngle}--)`,
         advisoryText: this.getLandslideAdvisory(severity),
         generatedAt: new Date().toISOString(),
         dataSourcesUsed: ['rainfall_statistical_model', 'geological_data']

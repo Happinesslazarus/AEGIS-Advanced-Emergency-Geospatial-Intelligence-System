@@ -1,5 +1,5 @@
 ﻿/**
- * IP blocklist/allowlist middleware — maintains in-memory lists synced from
+ * IP blocklist/allowlist middleware -- maintains in-memory lists synced from
  * PostgreSQL (ip_blocklist, ip_allowlist, geo_restrictions) and auto-blocks
  * IPs after 20 failed attempts.
  *
@@ -35,13 +35,13 @@ export interface GeoRestriction {
   scope: 'admin' | 'api' | 'all'
 }
 
-// In-memory caches for performance (synced with DB periodically)
+//In-memory caches for performance (synced with DB periodically)
 const blocklist = new Map<string, IPBlockEntry>()
 const allowlist = new Map<string, IPAllowEntry>()
 const geoRestrictions = new Map<string, GeoRestriction>()
 const tempBlocks = new Map<string, { expiresAt: number; reason: string }>()
 
-// Configuration
+//Configuration
 const config = {
   enableGeoBlocking: process.env.ENABLE_GEO_BLOCKING === 'true',
   enableIPBlocking: process.env.ENABLE_IP_BLOCKING !== 'false', // Default enabled
@@ -51,7 +51,7 @@ const config = {
   syncIntervalMs: 60 * 1000, // Sync with DB every minute
 }
 
-// Suspicious activity tracking
+//Suspicious activity tracking
 const suspiciousActivity = new Map<string, { count: number; firstSeen: number }>()
 
 /**
@@ -59,7 +59,7 @@ const suspiciousActivity = new Map<string, { count: number; firstSeen: number }>
  */
 export async function initIPSecurity(): Promise<void> {
   try {
-    // Create tables if they don't exist
+    //Create tables if they don't exist
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ip_blocklist (
         ip VARCHAR(45) PRIMARY KEY,
@@ -88,13 +88,13 @@ export async function initIPSecurity(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_ip_blocklist_expires ON ip_blocklist(expires_at);
     `)
     
-    // Load initial data
+    //Load initial data
     await syncFromDatabase()
     
-    // Start periodic sync
+    //Start periodic sync
     setInterval(syncFromDatabase, config.syncIntervalMs)
     
-    // Clean expired blocks periodically
+    //Clean expired blocks periodically
     setInterval(cleanExpiredBlocks, 60 * 1000)
     
     console.log('[IPSecurity] Service initialized')
@@ -108,7 +108,7 @@ export async function initIPSecurity(): Promise<void> {
  */
 async function syncFromDatabase(): Promise<void> {
   try {
-    // Sync blocklist
+    //Sync blocklist
     const blockResult = await pool.query(`
       SELECT ip, reason, blocked_at, expires_at, blocked_by, auto_blocked
       FROM ip_blocklist
@@ -126,7 +126,7 @@ async function syncFromDatabase(): Promise<void> {
       })
     }
     
-    // Sync allowlist
+    //Sync allowlist
     const allowResult = await pool.query(`
       SELECT ip, description, added_at, added_by, scope
       FROM ip_allowlist
@@ -142,7 +142,7 @@ async function syncFromDatabase(): Promise<void> {
       })
     }
     
-    // Sync geo restrictions
+    //Sync geo restrictions
     const geoResult = await pool.query(`
       SELECT country_code, action, scope
       FROM geo_restrictions
@@ -171,7 +171,7 @@ function cleanExpiredBlocks(): void {
     }
   }
   
-  // Clean old suspicious activity entries
+  //Clean old suspicious activity entries
   const cutoff = now - 5 * 60 * 1000 // 5 minutes
   for (const [ip, activity] of suspiciousActivity) {
     if (activity.firstSeen < cutoff) {
@@ -188,13 +188,13 @@ export function isIPBlocked(ip: string): { blocked: boolean; reason?: string } {
     return { blocked: false }
   }
   
-  // Check temporary blocks first
+  //Check temporary blocks first
   const tempBlock = tempBlocks.get(ip)
   if (tempBlock && tempBlock.expiresAt > Date.now()) {
     return { blocked: true, reason: tempBlock.reason }
   }
   
-  // Check permanent/timed blocklist
+  //Check permanent/timed blocklist
   const entry = blocklist.get(ip)
   if (entry) {
     if (!entry.expiresAt || entry.expiresAt > new Date()) {
@@ -202,11 +202,11 @@ export function isIPBlocked(ip: string): { blocked: boolean; reason?: string } {
     }
   }
   
-  // Check CIDR ranges (simplified - exact match for now)
-  // Production would use proper CIDR matching
+  //Check CIDR ranges (simplified - exact match for now)
+  //Production would use proper CIDR matching
   for (const [blockedIP, blockEntry] of blocklist) {
     if (blockedIP.includes('/')) {
-      // Basic CIDR support
+      //Basic CIDR support
       const [network] = blockedIP.split('/')
       if (ip.startsWith(network.split('.').slice(0, 3).join('.'))) {
         return { blocked: true, reason: blockEntry.reason }
@@ -227,7 +227,7 @@ export function isIPAllowed(ip: string, scope: 'admin' | 'api' | 'all'): boolean
   
   const entry = allowlist.get(ip)
   if (!entry) {
-    // Check if localhost/private always allowed
+    //Check if localhost/private always allowed
     if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
       return true
     }
@@ -247,7 +247,7 @@ export async function recordSuspiciousActivity(
   const now = Date.now()
   const existing = suspiciousActivity.get(ip) || { count: 0, firstSeen: now }
   
-  // Reset if window expired
+  //Reset if window expired
   if (now - existing.firstSeen > 5 * 60 * 1000) {
     existing.count = 0
     existing.firstSeen = now
@@ -256,7 +256,7 @@ export async function recordSuspiciousActivity(
   existing.count++
   suspiciousActivity.set(ip, existing)
   
-  // Auto-block if threshold exceeded
+  //Auto-block if threshold exceeded
   if (existing.count >= config.autoBlockThreshold) {
     await blockIP(ip, `Auto-blocked: ${existing.count} ${activity} in 5 minutes`, {
       durationMs: config.autoBlockDurationMs,
@@ -284,15 +284,15 @@ export async function blockIP(
     ? new Date(Date.now() + options.durationMs)
     : null
   
-  // Add to memory cache immediately
+  //Add to memory cache immediately
   if (options.durationMs && options.durationMs < 24 * 60 * 60 * 1000) {
-    // Temporary block - use in-memory only for short durations
+    //Temporary block - use in-memory only for short durations
     tempBlocks.set(ip, {
       expiresAt: Date.now() + options.durationMs,
       reason,
     })
   } else {
-    // Persist to database
+    //Persist to database
     await pool.query(`
       INSERT INTO ip_blocklist (ip, reason, expires_at, blocked_by, auto_blocked)
       VALUES ($1, $2, $3, $4, $5)

@@ -1,15 +1,12 @@
 /**
- * useResponsive custom React hook (responsive logic).
- *
- * How it connects:
- * - Breakpoints match Tailwind CSS defaults
- * - Used by Navigation, layout components, and anywhere that adapts to screen size
- * Simple explanation:
- * Hook that tells components what screen size and device type they are on. */
+ * Hook that tells components what screen size and device type they are on.
+ * Breakpoints match Tailwind CSS defaults so hook logic stays in sync with
+ * responsive CSS classes.
+ */
 import { useState, useEffect, useCallback, useMemo } from 'react'
 
-// Tailwind CSS breakpoints (pixels) — these match the defaults in tailwind.config.js
-// so responsive logic in hooks stays in sync with responsive CSS classes like `md:px-4`.
+//Tailwind CSS breakpoints (pixels) -- these match the defaults in tailwind.config.js
+//so responsive logic in hooks stays in sync with responsive CSS classes like `md:px-4`.
 export const BREAKPOINTS = {
   xs: 0,
   sm: 640,
@@ -62,11 +59,11 @@ function getBreakpoint(width: number): Breakpoint {
   return 'xs'
 }
 
-// getSafeAreaInsets: reads CSS custom properties set by the viewport-fit=cover
-// meta tag for devices with notches (iPhone X+, Android with punch-hole cameras).
-// --sat / --sar / --sab / --sal = safe-area-inset-top/right/bottom/left.
-// These properties are injected by a <style> in index.html using the
-// env(safe-area-inset-*) CSS environment variables.
+//getSafeAreaInsets: reads CSS custom properties set by the viewport-fit=cover
+//meta tag for devices with notches (iPhone X+, Android with punch-hole cameras).
+//sat / --sar / --sab / --sal = safe-area-inset-top/right/bottom/left.
+//These properties are injected by a <style> in index.html using the
+//env(safe-area-inset-*) CSS environment variables.
 function getSafeAreaInsets(): ResponsiveState['safeArea'] {
   if (typeof window === 'undefined' || !window.CSS?.supports) {
     return { top: 0, right: 0, bottom: 0, left: 0 }
@@ -81,10 +78,10 @@ function getSafeAreaInsets(): ResponsiveState['safeArea'] {
   }
 }
 
-// detectTouch: checks for touch capability using two signals:
-// - `ontouchstart` property present on window (older API)
-// - `maxTouchPoints > 0` (modern W3C standard)
-// Neither is 100% reliable alone, but combined they catch all major devices.
+//detectTouch: checks for touch capability using two signals:
+// `ontouchstart` property present on window (older API)
+// `maxTouchPoints > 0` (modern W3C standard)
+//Neither is 100% reliable alone, but combined they catch all major devices.
 function detectTouch(): boolean {
   if (typeof window === 'undefined') return false
   return 'ontouchstart' in window || navigator.maxTouchPoints > 0
@@ -109,10 +106,10 @@ export function useResponsive(): ResponsiveState {
     let rafId: number
     
     const handleResize = () => {
-      // cancelAnimationFrame + requestAnimationFrame: throttle resize events so
-      // React only re-renders once per animation frame (~16ms/60fps) even when
-      // the browser fires dozens of resize events per second while the user
-      // drags the window edge.
+      //cancelAnimationFrame + requestAnimationFrame: throttle resize events so
+      //React only re-renders once per animation frame (~16ms/60fps) even when
+      //the browser fires dozens of resize events per second while the user
+      //drags the window edge.
       cancelAnimationFrame(rafId)
       rafId = requestAnimationFrame(() => {
         setState(prev => ({
@@ -126,7 +123,7 @@ export function useResponsive(): ResponsiveState {
     
     // `passive: true` tells the browser this listener will never call
     // `preventDefault()`, allowing it to run scroll and resize handlers
-    // in a separate thread for better scroll performance.
+    //in a separate thread for better scroll performance.
     window.addEventListener('resize', handleResize, { passive: true })
     window.addEventListener('orientationchange', handleResize)
     
@@ -173,7 +170,7 @@ export function useResponsive(): ResponsiveState {
 }
 
 /**
- * useMediaQuery — Low-level media query hook
+ * useMediaQuery -- Low-level media query hook
  */
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() => {
@@ -197,7 +194,7 @@ export function useMediaQuery(query: string): boolean {
 }
 
 /**
- * useBreakpointValue — Get value based on current breakpoint
+ * useBreakpointValue -- Get value based on current breakpoint
  */
 export function useBreakpointValue<T>(values: Partial<Record<Breakpoint, T>>): T | undefined {
   const { breakpoint } = useResponsive()
@@ -205,7 +202,7 @@ export function useBreakpointValue<T>(values: Partial<Record<Breakpoint, T>>): T
   const sortedBreakpoints: Breakpoint[] = ['2xl', 'xl', 'lg', 'md', 'sm', 'xs']
   const currentIndex = sortedBreakpoints.indexOf(breakpoint)
   
-  // Find the first value that's at or below current breakpoint
+  //Find the first value that's at or below current breakpoint
   for (let i = currentIndex; i < sortedBreakpoints.length; i++) {
     const bp = sortedBreakpoints[i]
     if (values[bp] !== undefined) {

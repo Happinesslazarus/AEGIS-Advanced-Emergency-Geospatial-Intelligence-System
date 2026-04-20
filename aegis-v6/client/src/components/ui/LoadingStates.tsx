@@ -8,7 +8,7 @@ import React, { memo } from 'react'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { visuallyHiddenStyles } from '../../utils/accessibility'
 
-// SPINNER
+//SPINNER
 
 interface SpinnerProps {
   /** Size variant */
@@ -66,7 +66,7 @@ export const Spinner = memo<SpinnerProps>(({
 
 Spinner.displayName = 'Spinner'
 
-// SKELETON
+//SKELETON
 
 interface SkeletonProps {
   /** Width (Tailwind class or CSS value) */
@@ -123,7 +123,7 @@ export const Skeleton = memo<SkeletonProps>(({
 
 Skeleton.displayName = 'Skeleton'
 
-// SKELETON TEXT
+//SKELETON TEXT
 
 interface SkeletonTextProps {
   /** Number of lines */
@@ -168,7 +168,7 @@ export const SkeletonText = memo<SkeletonTextProps>(({
 
 SkeletonText.displayName = 'SkeletonText'
 
-// SKELETON CARD
+//SKELETON CARD
 
 interface SkeletonCardProps {
   /** Show image placeholder */
@@ -217,7 +217,7 @@ export const SkeletonCard = memo<SkeletonCardProps>(({
 
 SkeletonCard.displayName = 'SkeletonCard'
 
-// SKELETON TABLE
+//SKELETON TABLE
 
 interface SkeletonTableProps {
   /** Number of rows */
@@ -275,7 +275,7 @@ export const SkeletonTable = memo<SkeletonTableProps>(({
 
 SkeletonTable.displayName = 'SkeletonTable'
 
-// PROGRESS BAR
+//PROGRESS BAR
 
 interface ProgressBarProps {
   /** Progress value (0-100) */
@@ -355,7 +355,7 @@ export const ProgressBar = memo<ProgressBarProps>(({
 
 ProgressBar.displayName = 'ProgressBar'
 
-// LOADING OVERLAY
+//LOADING OVERLAY
 
 interface LoadingOverlayProps {
   /** Is loading */
@@ -412,7 +412,7 @@ export const LoadingOverlay = memo<LoadingOverlayProps>(({
 
 LoadingOverlay.displayName = 'LoadingOverlay'
 
-// SUSPENSE FALLBACK
+//SUSPENSE FALLBACK
 
 interface SuspenseFallbackProps {
   /** Message to display */
@@ -446,7 +446,7 @@ export const SuspenseFallback = memo<SuspenseFallbackProps>(({
 
 SuspenseFallback.displayName = 'SuspenseFallback'
 
-// LOADING DOTS
+//LOADING DOTS
 
 interface LoadingDotsProps {
   /** Size of dots */
@@ -495,7 +495,7 @@ export const LoadingDots = memo<LoadingDotsProps>(({
 
 LoadingDots.displayName = 'LoadingDots'
 
-// EXPORTS
+//EXPORTS
 
 export default {
   Spinner,

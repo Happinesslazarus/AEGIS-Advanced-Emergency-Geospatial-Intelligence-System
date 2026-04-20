@@ -28,13 +28,13 @@ export function useOfflineQueue(): OfflineQueueState {
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [queue, setQueue] = useState<QueuedRequest[]>([])
 
-  // Track online/offline status
+  //Track online/offline status
   useEffect(() => {
-  // When connectivity returns, immediately tell the service worker to trim
-  // any stale caches (removes old precached assets that may have expired).
+  //When connectivity returns, immediately tell the service worker to trim
+  //any stale caches (removes old precached assets that may have expired).
   const goOnline = () => {
       setIsOnline(true)
-      // Trigger sync on reconnect
+      //Trigger sync on reconnect
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({ type: 'TRIM_CACHES' })
       }
@@ -49,9 +49,9 @@ export function useOfflineQueue(): OfflineQueueState {
     }
   }, [])
 
-  // Listen for messages coming FROM the service worker back to this page.
-  // SYNC_SUCCESS = the SW successfully replayed a queued request, remove it from our local list.
-  // QUEUE_STATUS = the SW reports its full queue (e.g. on page load so our state stays in sync).
+  //Listen for messages coming FROM the service worker back to this page.
+  //SYNC_SUCCESS = the SW successfully replayed a queued request, remove it from our local list.
+  //QUEUE_STATUS = the SW reports its full queue (e.g. on page load so our state stays in sync).
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
 
@@ -68,7 +68,7 @@ export function useOfflineQueue(): OfflineQueueState {
     return () => navigator.serviceWorker.removeEventListener('message', handler)
   }, [])
 
-  // Request queue status on mount
+  //Request queue status on mount
   useEffect(() => {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({ type: 'GET_QUEUE_STATUS' })
@@ -94,9 +94,9 @@ export function useOfflineQueue(): OfflineQueueState {
     setQueue(prev => [...prev, entry])
   }, [])
 
-  // replayAll: manually retry every queued request in order.
-  // This is the fallback path when Background Sync is not available —
-  // we just fire the requests directly from the browser tab.
+  //replayAll: manually retry every queued request in order.
+  //This is the fallback path when Background Sync is not available
+  //we just fire the requests directly from the browser tab.
   const replayAll = useCallback(async (): Promise<{ success: number; failed: number }> => {
     let success = 0
     let failed = 0
@@ -119,7 +119,7 @@ export function useOfflineQueue(): OfflineQueueState {
     }
 
     if (success > 0) {
-      // Clear successfully replayed items
+      //Clear successfully replayed items
       setQueue(prev => prev.slice(success))
     }
 

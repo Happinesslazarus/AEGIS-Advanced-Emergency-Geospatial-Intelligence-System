@@ -13,9 +13,9 @@
 import crypto from 'crypto'
 import { checkPasswordBreached, validatePasswordNotBreached } from '../services/hibpService.js'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// -
+//Helpers
+// -
 
 /** Capture fetch calls for assertion */
 const mockFetch = jest.fn()
@@ -29,7 +29,7 @@ function sha1Parts(password: string): { prefix: string; suffix: string; full: st
 
 /** Build a mock HIBP range response that includes the given suffix with count */
 function makePwnedResponse(suffix: string, count: number): Response {
-  // HIBP returns "SUFFIX:COUNT\r\nSUFFIX2:COUNT2\r\n…"
+  //HIBP returns "SUFFIX:COUNT\r\nSUFFIX2:COUNT2\r\n..."
   const body = `${suffix}:${count}\r\nDDDDD:0\r\n`
   return {
     ok: true,
@@ -42,19 +42,19 @@ function makeNotFoundResponse(): Response {
   return { ok: false, status: 404, text: async () => '' } as unknown as Response
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Tests
-// Each test uses a DIFFERENT password to avoid module-level cache interference.
-// The pwnedCache Map persists for the lifetime of the test module; passwords
-// used in one test would be served from cache in a later test if reused.
-// ─────────────────────────────────────────────────────────────────────────────
+// -
+//Tests
+//Each test uses a DIFFERENT password to avoid module-level cache interference.
+//The pwnedCache Map persists for the lifetime of the test module; passwords
+//used in one test would be served from cache in a later test if reused.
+// -
 
 beforeEach(() => {
   mockFetch.mockReset()
 })
 
 describe('checkPasswordBreached', () => {
-  it('sends only the 5-char SHA-1 prefix — never the full hash or plaintext', async () => {
+  it('sends only the 5-char SHA-1 prefix -- never the full hash or plaintext', async () => {
     const pw = 'test-kanonymity-pw-1'
     const { prefix, suffix, full } = sha1Parts(pw)
     mockFetch.mockResolvedValueOnce(makePwnedResponse(suffix, 1))
@@ -63,11 +63,11 @@ describe('checkPasswordBreached', () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1)
     const calledUrl: string = mockFetch.mock.calls[0][0] as string
-    // URL must end with the 5-char prefix only
+    //URL must end with the 5-char prefix only
     expect(calledUrl).toMatch(new RegExp(`\/${prefix}$`))
-    // Full hash must NOT appear in the URL
+    //Full hash must NOT appear in the URL
     expect(calledUrl).not.toContain(full)
-    // Plaintext password must NOT appear anywhere
+    //Plaintext password must NOT appear anywhere
     expect(calledUrl.toLowerCase()).not.toContain(pw.toLowerCase())
   })
 
@@ -83,7 +83,7 @@ describe('checkPasswordBreached', () => {
   })
 
   it('returns isPwned=false when the suffix is not in the HIBP response', async () => {
-    // Mock response that will never contain any real suffix
+    //Mock response that will never contain any real suffix
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -96,19 +96,19 @@ describe('checkPasswordBreached', () => {
     expect(result.count).toBe(0)
   })
 
-  it('serves the second call from cache — no second fetch', async () => {
+  it('serves the second call from cache -- no second fetch', async () => {
     const pw = 'test-cache-pw-4'
     const { suffix } = sha1Parts(pw)
     mockFetch.mockResolvedValue(makePwnedResponse(suffix, 1))
 
-    await checkPasswordBreached(pw)   // first call → hits network
-    await checkPasswordBreached(pw)   // second call → hits cache
+ await checkPasswordBreached(pw) // first call -> hits network
+ await checkPasswordBreached(pw) // second call -> hits cache
 
-    // fetch must only have been called once
+    //fetch must only have been called once
     expect(mockFetch).toHaveBeenCalledTimes(1)
   })
 
-  it('gracefully degrades — returns isPwned=false when HIBP API is unavailable (404)', async () => {
+  it('gracefully degrades -- returns isPwned=false when HIBP API is unavailable (404)', async () => {
     mockFetch.mockResolvedValueOnce(makeNotFoundResponse())
 
     const result = await checkPasswordBreached('test-404-pw-5')
@@ -117,7 +117,7 @@ describe('checkPasswordBreached', () => {
     expect(result.message).toContain('unavailable')
   })
 
-  it('gracefully degrades — returns isPwned=false on network error', async () => {
+  it('gracefully degrades -- returns isPwned=false on network error', async () => {
     mockFetch.mockRejectedValueOnce(new Error('Network failure'))
 
     const result = await checkPasswordBreached('test-networkerr-pw-6')
@@ -143,7 +143,7 @@ describe('validatePasswordNotBreached', () => {
   it('warns (but does not block) when count is between warnThreshold and blockThreshold', async () => {
     const pw = 'test-warn-pw-8'
     const { suffix } = sha1Parts(pw)
-    // count=5 — above warnThreshold=0 but below blockThreshold=10
+    //count=5 -- above warnThreshold=0 but below blockThreshold=10
     mockFetch.mockResolvedValueOnce(makePwnedResponse(suffix, 5))
 
     const result = await validatePasswordNotBreached(pw, {

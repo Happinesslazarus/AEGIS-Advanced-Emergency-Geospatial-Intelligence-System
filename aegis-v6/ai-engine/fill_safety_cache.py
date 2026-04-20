@@ -4,7 +4,7 @@ Extract ERA5 data for atlanta + minneapolis from NSF NCAR S3,
 then assemble the complete public_safety weather cache.
 
 Uses the same ERA5 extraction pipeline as extract_era5_ec2.py but
-runs locally — fetches only the 2 missing safety locations.
+runs locally -- fetches only the 2 missing safety locations.
 """
 from __future__ import annotations
 import sys, hashlib, time
@@ -22,7 +22,6 @@ warnings.filterwarnings("ignore")
 
 from app.training.multi_location_weather import GLOBAL_SAFETY_LOCATIONS, EXTENDED_HOURLY_VARS
 
-# ---------------------------------------------------------------------------
 ERA5_BUCKET = "nsf-ncar-era5"
 CACHE_DIR   = Path("data/cache/multi_location_weather")
 TARGET_FILE = CACHE_DIR / "weather_edf9ce826bc8.csv"
@@ -223,7 +222,7 @@ def extract_month_for_locs(year: int, month: int,
     elif "precip_conv" in result:
         result["precipitation"] = result.pop("precip_conv")
 
-    # Combine wind u/v → speed + direction
+ # Combine wind u/v -> speed + direction
     if "_wind_u" in result and "_wind_v" in result:
         u = result.pop("_wind_u")
         v = result.pop("_wind_v")
@@ -313,7 +312,7 @@ def main():
     print(f"Extracting {total} months for atlanta+minneapolis in parallel (8 workers)...", flush=True)
 
     results_map = {}
-    # 8 parallel workers — S3 byte-range reads are I/O bound so threads work well
+    # 8 parallel workers -- S3 byte-range reads are I/O bound so threads work well
     with ThreadPoolExecutor(max_workers=8) as pool:
         futures = {pool.submit(_extract_ym, item): item for item in work_items}
         for fut in as_completed(futures):

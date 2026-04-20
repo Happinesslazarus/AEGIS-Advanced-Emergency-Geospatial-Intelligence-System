@@ -6,7 +6,7 @@
   *
   * How it connects:
   * - Tests server/src/config/incidentTypes.ts
-  * - Pure unit test — no DB or network calls
+  * - Pure unit test -- no DB or network calls
   * - Run via: npm test -- incidentRegistry
  */
 
@@ -56,6 +56,6 @@ describe('Incident Registry', () => {
     const newType = upsertIncidentType('test_hazard', { name: 'Test Hazard' })
     expect(newType.id).toBe('test_hazard')
     expect(newType.name).toBe('Test Hazard')
-    // Clean up - this stays in memory only for this test run
+    //Clean up - this stays in memory only for this test run
   })
 })

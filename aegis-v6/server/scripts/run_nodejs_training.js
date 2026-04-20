@@ -1,7 +1,7 @@
-// Call Node.js training pipeline via HTTP
+//Call Node.js training pipeline via HTTP
 const http = require('http');
 
-// First login as admin to get JWT
+//First login as admin to get JWT
 function post(path, body) {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body);
@@ -70,7 +70,7 @@ async function main() {
   
   if (loginRes.status !== 200 || !loginRes.body.token) {
     console.log('Login failed:', loginRes.status, JSON.stringify(loginRes.body).substring(0, 200));
-    // Try to register admin first
+    //Try to register admin first
     console.log('Trying to register admin...');
     const regRes = await post('/api/auth/register', {
       email: 'admin@aegis.com',
@@ -80,7 +80,7 @@ async function main() {
     });
     console.log('Registration:', regRes.status, JSON.stringify(regRes.body).substring(0, 200));
     
-    // Try login again
+    //Try login again
     const loginRes2 = await post('/api/auth/login', {
       email: 'admin@aegis.com',
       password: 'adminpassword'

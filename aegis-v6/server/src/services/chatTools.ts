@@ -90,7 +90,7 @@ export const AVAILABLE_TOOLS: LLMTool[] = [
     type: 'function',
     function: {
       name: 'get_flood_alerts',
-      description: `Get live flood warning alerts for ${regionMeta.name} — current flood warnings and watch areas from ${llmCtx.floodAuthority}`,
+      description: `Get live flood warning alerts for ${regionMeta.name} -- current flood warnings and watch areas from ${llmCtx.floodAuthority}`,
       parameters: { type: 'object', properties: {}, required: [] },
     },
   },
@@ -98,7 +98,7 @@ export const AVAILABLE_TOOLS: LLMTool[] = [
     type: 'function',
     function: {
       name: 'get_weather_warnings',
-      description: `Get current ${llmCtx.weatherAuthority} weather warnings (wind, rain, snow, fog, thunderstorm) — use when asked about weather warnings or forecasts`,
+      description: `Get current ${llmCtx.weatherAuthority} weather warnings (wind, rain, snow, fog, thunderstorm) -- use when asked about weather warnings or forecasts`,
       parameters: { type: 'object', properties: {}, required: [] },
     },
   },
@@ -181,7 +181,7 @@ export const AVAILABLE_TOOLS: LLMTool[] = [
     type: 'function',
     function: {
       name: 'check_infrastructure_status',
-      description: 'Check status of local infrastructure — roads, bridges, power grid, water supply in an area.',
+      description: 'Check status of local infrastructure -- roads, bridges, power grid, water supply in an area.',
       parameters: {
         type: 'object',
         properties: {
@@ -226,7 +226,7 @@ export const AVAILABLE_TOOLS: LLMTool[] = [
     type: 'function',
     function: {
       name: 'analyze_image',
-      description: 'Analyze an uploaded image using AI vision. Citizens can upload photos of ANY disaster situation — flooding, structural damage, wildfire smoke, storm damage, injuries, road conditions, water contamination, landslides, fallen trees, chemical spills, or any safety concern. The AI will describe what it sees and provide relevant safety guidance.',
+      description: 'Analyze an uploaded image using AI vision. Citizens can upload photos of ANY disaster situation -- flooding, structural damage, wildfire smoke, storm damage, injuries, road conditions, water contamination, landslides, fallen trees, chemical spills, or any safety concern. The AI will describe what it sees and provide relevant safety guidance.',
       parameters: {
         type: 'object',
         properties: {
@@ -242,7 +242,7 @@ export const AVAILABLE_TOOLS: LLMTool[] = [
 
 export const ADMIN_SYSTEM_ADDENDUM = `
 
-## OPERATOR MODE — Advanced Command & Control Intelligence
+## OPERATOR MODE -- Advanced Command & Control Intelligence
 
 You are now operating in **ADMIN/OPERATOR MODE**. The user is an authenticated emergency management operator with elevated privileges. Adjust your behaviour:
 
@@ -262,25 +262,25 @@ You are now operating in **ADMIN/OPERATOR MODE**. The user is an authenticated e
 /**
 * *RESPONSE CALIBRATION FOR OPERATORS:
 - Use professional emergency management terminology (ICS/NIMS where applicable)
-- Be more technical and data-driven — operators can handle raw statistics
+- Be more technical and data-driven -- operators can handle raw statistics
 - Include decision support: "Based on X incidents in Y hours, consider Z"
 - Reference specific report IDs, alert IDs, and coordinate data when available
 - When multiple incidents are active, provide prioritisation recommendations using METHANE format
 - Proactively suggest resource reallocation when patterns indicate shifting risk
 - Include confidence levels on predictions: "High confidence (>80%): surge expected in 6h"
 - When presenting options, use structured decision matrices with pros/cons/risk scores
-- Provide early warning indicators: "Watch for: X, Y, Z — these preceded the 2024 incident"
+- Provide early warning indicators: "Watch for: X, Y, Z -- these preceded the 2024 incident"
 
 /**
 * *OPERATIONAL INTELLIGENCE FRAMEWORK:
 For every operational question, provide:
-1. **Current State** — What is happening right now (data-driven, with specific numbers)
-2. **Trend Analysis** — Is the situation improving (?), stable (?), or worsening (?)? Rate of change?
-3. **Prediction** — What will happen in 2h, 6h, 12h based on current trajectory
-4. **Recommendation** — Specific actionable recommendation with rationale and alternatives
-5. **Risk Assessment** — What could go wrong if no action is taken. Cascading risks.
-6. **Resource Calculus** — What resources are needed vs available. Gap analysis.
-7. **Precedent** — Has this situation occurred before? What worked/failed?
+1. **Current State** -- What is happening right now (data-driven, with specific numbers)
+2. **Trend Analysis** -- Is the situation improving (?), stable (?), or worsening (?)? Rate of change?
+3. **Prediction** -- What will happen in 2h, 6h, 12h based on current trajectory
+4. **Recommendation** -- Specific actionable recommendation with rationale and alternatives
+5. **Risk Assessment** -- What could go wrong if no action is taken. Cascading risks.
+6. **Resource Calculus** -- What resources are needed vs available. Gap analysis.
+7. **Precedent** -- Has this situation occurred before? What worked/failed?
 
 /**
 * *MULTI-INCIDENT CORRELATION:
@@ -314,7 +314,7 @@ You have access to additional tools for incident management:
 
 /**
 * *PROACTIVE OPERATOR SUPPORT:
-Don't just answer — anticipate what the operator needs next:
+Don't just answer -- anticipate what the operator needs next:
 - After a SITREP request ? offer resource reallocation analysis
 - After viewing incidents ? suggest correlation patterns
 - After resource check ? flag upcoming capacity issues
@@ -342,7 +342,7 @@ export const ADMIN_TOOLS: LLMTool[] = [
     type: 'function',
     function: {
       name: 'get_resource_status',
-      description: 'Get current resource deployment status — personnel, vehicles, shelters, and supply levels',
+      description: 'Get current resource deployment status -- personnel, vehicles, shelters, and supply levels',
       parameters: {
         type: 'object',
         properties: {
@@ -401,7 +401,7 @@ export const ADMIN_TOOLS: LLMTool[] = [
     type: 'function',
     function: {
       name: 'get_performance_metrics',
-      description: 'System performance and health metrics — response times, active users, model performance, error rates',
+      description: 'System performance and health metrics -- response times, active users, model performance, error rates',
       parameters: {
         type: 'object',
         properties: {
@@ -446,14 +446,14 @@ export async function executeToolCall(name: string, args: Record<string, unknown
         const { rows } = await pool.query(query, params)
         if (rows.length === 0) return 'No active alerts at this time.'
         return rows.map((r: any) =>
-          `[${r.severity.toUpperCase()}] ${r.title} — ${r.location_text || 'Area-wide'} (${new Date(r.created_at).toLocaleDateString('en-GB')})`
+          `[${r.severity.toUpperCase()}] ${r.title} -- ${r.location_text || 'Area-wide'} (${new Date(r.created_at).toLocaleDateString('en-GB')})`
         ).join('\n')
       }
 
       case 'get_weather': {
         const loc = args.location as string || regionMeta.name
         const apiKey = process.env.OPENWEATHER_API_KEY
-        if (!apiKey) return 'Weather service unavailable — API key not configured.'
+        if (!apiKey) return 'Weather service unavailable -- API key not configured.'
 
         const countryParam = regionMeta.countryCode ? `,${regionMeta.countryCode}` : ''
         const res = await fetchWithTimeout(
@@ -462,7 +462,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
         )
         if (!res.ok) return `Weather data unavailable for ${loc}.`
         const data = await res.json() as any
-        return `Weather in ${loc}: ${data.weather?.[0]?.description || 'Unknown'}, ${Math.round(data.main?.temp)}—C, Wind: ${data.wind?.speed} m/s, Humidity: ${data.main?.humidity}%`
+        return `Weather in ${loc}: ${data.weather?.[0]?.description || 'Unknown'}, ${Math.round(data.main?.temp)}--C, Wind: ${data.wind?.speed} m/s, Humidity: ${data.main?.humidity}%`
       }
 
       case 'find_shelters': {
@@ -493,7 +493,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
 
         let result = ''
 
-        // 1. Check flood_zones (spatial containment)
+        //1. Check flood_zones (spatial containment)
         try {
           const { rows } = await pool.query(
             `SELECT zone_name, flood_type, probability
@@ -505,12 +505,12 @@ export async function executeToolCall(name: string, args: Record<string, unknown
           if (rows.length > 0) {
             result += 'Flood Zones at this location:\n'
             for (const r of rows) {
-              result += `— ${r.zone_name || 'Unnamed zone'} — Type: ${r.flood_type}, Probability: ${r.probability}\n`
+              result += `-- ${r.zone_name || 'Unnamed zone'} -- Type: ${r.flood_type}, Probability: ${r.probability}\n`
             }
           }
         } catch { /* flood_zones table may not exist */ }
 
-        // 2. Check active flood predictions
+        //2. Check active flood predictions
         try {
           const predictions = await pool.query(`
             SELECT area, probability, time_to_flood, severity, confidence, data_sources
@@ -522,12 +522,12 @@ export async function executeToolCall(name: string, args: Record<string, unknown
           if (predictions.rows.length > 0) {
             result += '\nActive Flood Predictions:\n'
             for (const p of predictions.rows) {
-              result += `— ${p.area}: ${(p.probability * 100).toFixed(0)}% probability, severity: ${p.severity}${p.time_to_flood ? ', time: ' + p.time_to_flood : ''}, confidence: ${p.confidence}%\n`
+              result += `-- ${p.area}: ${(p.probability * 100).toFixed(0)}% probability, severity: ${p.severity}${p.time_to_flood ? ', time: ' + p.time_to_flood : ''}, confidence: ${p.confidence}%\n`
             }
           }
         } catch { /* flood_predictions table may not exist */ }
 
-        // 3. Check zone risk scores
+        //3. Check zone risk scores
         try {
           const zones = await pool.query(`
             SELECT zone_name, hazard_type, risk_score, confidence, contributing_factors
@@ -539,7 +539,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
           if (zones.rows.length > 0) {
             result += '\nZone Risk Levels:\n'
             for (const z of zones.rows) {
-              result += `— ${z.zone_name}: risk score ${z.risk_score}/100 (${z.hazard_type})${z.contributing_factors ? ' — factors: ' + z.contributing_factors : ''}\n`
+              result += `-- ${z.zone_name}: risk score ${z.risk_score}/100 (${z.hazard_type})${z.contributing_factors ? ' -- factors: ' + z.contributing_factors : ''}\n`
             }
           }
         } catch { /* zone_risk_scores table may not exist */ }
@@ -558,7 +558,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
         })
 
         if (res.status === 404) {
-          // Try search API fallback
+          //Try search API fallback
           const searchRes = await fetchWithTimeout(
             `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json`,
             { timeout: 15_000, headers: { 'User-Agent': 'AEGIS-DisasterResponse/1.0' } },
@@ -582,8 +582,8 @@ export async function executeToolCall(name: string, args: Record<string, unknown
 
       case 'get_flood_alerts':
       case 'get_sepa_flood_alerts': {
-        // Use the region adapter to fetch flood warnings.
-        // Falls back to RSS if the adapter returns nothing.
+        //Use the region adapter to fetch flood warnings.
+        //Falls back to RSS if the adapter returns nothing.
         const floodAuthority = llmCtx.floodAuthority
         const floodAuthorityWebsite = llmCtx.floodAuthorityUrl
 
@@ -591,13 +591,13 @@ export async function executeToolCall(name: string, args: Record<string, unknown
           const adapterWarnings = await regionAdapter.getFloodWarnings()
           if (adapterWarnings.length > 0) {
             const lines = adapterWarnings.slice(0, 5).map(w =>
-              `?? [${w.severity.toUpperCase()}] ${w.title}${w.area ? ` — ${w.area}` : ''}`
+              `?? [${w.severity.toUpperCase()}] ${w.title}${w.area ? ` -- ${w.area}` : ''}`
             )
             return `**Live Flood Warnings from ${floodAuthority}** (${new Date().toLocaleDateString()}):\n\n${lines.join('\n')}\n\n_Source: ${floodAuthority}_`
           }
         } catch { /* fall through to RSS fallback */ }
 
-        // RSS fallback via env vars
+        //RSS fallback via env vars
         const floodRssUrl = process.env.AEGIS_FLOOD_RSS_URL || regionAdapter.getIngestionEndpoints().flood_rss || ''
         if (!floodRssUrl) return `No current flood warnings from ${floodAuthority}. ${floodAuthorityWebsite ? `Check ${floodAuthorityWebsite} for updates.` : ''}`
 
@@ -614,7 +614,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
         const warnings = items.slice(0, 5).map(m => {
           const title = (m[1].match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || m[1].match(/<title>(.*?)<\/title>/))?.[1] || 'Unknown'
           const desc = (m[1].match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/) || m[1].match(/<description>(.*?)<\/description>/))?.[1] || ''
-          return `?? ${title.replace(/<[^>]+>/g, '').trim()}${desc ? ` — ${desc.replace(/<[^>]+>/g, '').slice(0, 100).trim()}` : ''}`
+          return `?? ${title.replace(/<[^>]+>/g, '').trim()}${desc ? ` -- ${desc.replace(/<[^>]+>/g, '').slice(0, 100).trim()}` : ''}`
         })
 
         return `**Live Flood Warnings from ${floodAuthority}** (${new Date().toLocaleDateString()}):\n\n${warnings.join('\n')}\n\n_Source: ${floodAuthority}_`
@@ -622,14 +622,14 @@ export async function executeToolCall(name: string, args: Record<string, unknown
 
       case 'get_weather_warnings':
       case 'get_met_office_warnings': {
-        // Weather warnings from the region adapter's configured authority.
+        //Weather warnings from the region adapter's configured authority.
         const weatherAuthority = llmCtx.weatherAuthority
         const endpoints = regionAdapter.getIngestionEndpoints()
         const weatherWarningsUrl = process.env.AEGIS_WEATHER_WARNINGS_URL || endpoints.weather_warnings_rss || ''
         const weatherWarningsApi = endpoints.weather_warnings_api || ''
         const metOfficeApiKey = process.env.MET_OFFICE_API_KEY || ''
 
-        // If a custom weather warnings URL is configured use it directly as RSS
+        //If a custom weather warnings URL is configured use it directly as RSS
         if (weatherWarningsUrl) {
           const rssRes = await fetchWithTimeout(weatherWarningsUrl, {
             timeout: 15_000,
@@ -646,7 +646,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
           return `**${weatherAuthority} Warnings:**\n\n${warnings.join('\n')}\n\n_Source: ${weatherAuthority}_`
         }
 
-        // API endpoint from region config
+        //API endpoint from region config
         if (!weatherWarningsApi) return `${weatherAuthority} weather warnings are not configured for this region.`
         const moRes = await fetchWithTimeout(
           weatherWarningsApi,
@@ -684,7 +684,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
 
         const warnings = features.slice(0, 5).map((f: any) => {
           const props = f.properties || f
-          return `?? ${props.type || 'Warning'} — ${props.description || props.headline || 'Check your local meteorological authority for details'}`
+          return `?? ${props.type || 'Warning'} -- ${props.description || props.headline || 'Check your local meteorological authority for details'}`
         })
         return `**Weather Warnings:**\n\n${warnings.join('\n')}\n\n_Source: ${weatherAuthority}_`
       }
@@ -717,7 +717,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
         const lng = args.lng as number
         const hazardType = args.hazard_type as string || 'general'
 
-        // Query evacuation routes from the DB if available
+        //Query evacuation routes from the DB if available
         try {
           const { rows } = await pool.query(
             `SELECT route_name, description, distance_km, estimated_time_min,
@@ -741,7 +741,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
           }
         } catch { /* evacuation_routes table may not exist */ }
 
-        // Find nearest shelters and compute real driving routes via OSRM
+        //Find nearest shelters and compute real driving routes via OSRM
         try {
           const { rows: shelters } = await pool.query(
             `SELECT name, address,
@@ -755,7 +755,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
             [lng, lat],
           )
           if (shelters.length > 0) {
-            // Query OSRM for real driving routes to each shelter
+            //Query OSRM for real driving routes to each shelter
             const routeResults: string[] = []
             for (const shelter of shelters) {
               try {
@@ -769,7 +769,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
                   if (route) {
                     const distKm = (route.distance / 1000).toFixed(1)
                     const durationMin = Math.ceil(route.duration / 60)
-                    // Extract key turn-by-turn instructions
+                    //Extract key turn-by-turn instructions
                     const steps = route.legs?.[0]?.steps || []
                     const keySteps = steps
                       .filter((s: any) => s.maneuver?.type !== 'depart' && s.maneuver?.type !== 'arrive' && s.distance > 200)
@@ -784,10 +784,10 @@ export async function executeToolCall(name: string, args: Record<string, unknown
                     continue
                   }
                 }
-              } catch { /* OSRM failed for this shelter — use fallback below */ }
-              // Fallback for this shelter if OSRM fails
+              } catch { /* OSRM failed for this shelter -- use fallback below */ }
+              //Fallback for this shelter if OSRM fails
               routeResults.push(
-                `?? **${shelter.name}** — ${shelter.address} (${shelter.distance_km.toFixed(1)} km straight-line)`
+                `?? **${shelter.name}** -- ${shelter.address} (${shelter.distance_km.toFixed(1)} km straight-line)`
               )
             }
             return `**Evacuation Routes from your location** (${hazardType}):\n\n` +
@@ -804,7 +804,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
         const lng = args.lng as number
         const radiusM = ((args.radius_km as number) || 30) * 1000
 
-        // Try DB first
+        //Try DB first
         try {
           const { rows } = await pool.query(
             `SELECT name, address, phone, facility_type, emergency_dept,
@@ -823,7 +823,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
           }
         } catch { /* medical_facilities table may not exist */ }
 
-        // Fallback to Nominatim/OSM search
+        //Fallback to Nominatim/OSM search
         try {
           const osmRes = await fetchWithTimeout(
             `https://nominatim.openstreetmap.org/search?q=hospital&format=json&limit=3&viewbox=${lng - 0.3},${lat + 0.3},${lng + 0.3},${lat - 0.3}&bounded=1`,
@@ -864,7 +864,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
           const { rows } = await pool.query(query, params)
           if (rows.length === 0) return `No active incident clusters in the last ${hours} hours.`
 
-          // Group by type
+          //Group by type
           const grouped: Record<string, any[]> = {}
           for (const r of rows) {
             const type = r.incident_type || 'unknown'
@@ -876,7 +876,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
           for (const [type, incidents] of Object.entries(grouped)) {
             lines.push(`**${type.toUpperCase()}** (${incidents.length} incidents):`)
             for (const inc of incidents.slice(0, 5)) {
-              lines.push(`  — [${inc.severity || 'Unknown'}] ${inc.location_text || 'Location unknown'} — ${inc.status} (${new Date(inc.created_at).toLocaleTimeString('en-GB')})`)
+              lines.push(`  -- [${inc.severity || 'Unknown'}] ${inc.location_text || 'Location unknown'} -- ${inc.status} (${new Date(inc.created_at).toLocaleTimeString('en-GB')})`)
             }
           }
           return lines.join('\n')
@@ -901,7 +901,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
           )
           if (rows.length === 0) return `No report found matching "${reportId}". The citizen may need to check their report ID.`
           const r = rows[0]
-          return `?? **Report #${r.id}** — ${r.title || 'Untitled'}\n` +
+          return `?? **Report #${r.id}** -- ${r.title || 'Untitled'}\n` +
             `Status: **${r.status}** | Severity: ${r.severity} | Type: ${r.incident_type}\n` +
             `Location: ${r.location_text || 'Not specified'}\n` +
             `Submitted: ${new Date(r.created_at).toLocaleDateString('en-GB')}\n` +
@@ -939,9 +939,9 @@ export async function executeToolCall(name: string, args: Record<string, unknown
 
           const { rows } = await pool.query(query, params)
           if (rows.length === 0) return `No reported infrastructure issues in ${area}. This area appears clear.`
-          return `**Infrastructure Status — ${area}:**\n\n` +
+          return `**Infrastructure Status -- ${area}:**\n\n` +
             rows.map((r: any) =>
-              `?? [${r.severity}] ${r.title} — ${r.status} (${new Date(r.created_at).toLocaleDateString('en-GB')})`
+              `?? [${r.severity}] ${r.title} -- ${r.status} (${new Date(r.created_at).toLocaleDateString('en-GB')})`
             ).join('\n')
         } catch {
           return `Infrastructure status data unavailable for ${area}.`
@@ -966,7 +966,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
             return `No historical ${hazardType} events found in the database for comparison. The system may not have data older than a few months.`
           }
 
-          // Get current active count
+          //Get current active count
           const { rows: currentRows } = await pool.query(
             `SELECT COUNT(*) AS active_count FROM incidents
              WHERE incident_type ILIKE $1 AND status != 'resolved'
@@ -976,20 +976,20 @@ export async function executeToolCall(name: string, args: Record<string, unknown
           const activeCount = parseInt(currentRows[0]?.active_count) || 0
           const historicalAvg = rows.length > 0 ? Math.ceil(parseInt(rows[0].total_historical) / 24) : 0
 
-          return `**Historical ${hazardType} Comparison — ${location}:**\n\n` +
+          return `**Historical ${hazardType} Comparison -- ${location}:**\n\n` +
             `Currently active: ${activeCount} ${hazardType} incidents\n` +
             `Historical average: ~${historicalAvg} incidents per month (past 2 years)\n` +
             `${activeCount > historicalAvg * 2 ? '?? Current activity is SIGNIFICANTLY ABOVE average' : activeCount > historicalAvg ? '? Current activity is above average' : '? Current activity is within normal range'}\n\n` +
             `Recent historical events:\n` +
             rows.slice(0, 5).map((r: any) =>
-              `— ${new Date(r.created_at).toLocaleDateString('en-GB')} — [${r.severity}] ${r.title} (${r.location_text || 'Area-wide'})`
+              `-- ${new Date(r.created_at).toLocaleDateString('en-GB')} -- [${r.severity}] ${r.title} (${r.location_text || 'Area-wide'})`
             ).join('\n')
         } catch {
           return `Historical comparison data unavailable.`
         }
       }
 
-      // ADMIN TOOLS
+      //ADMIN TOOLS
 
       case 'get_incident_summary': {
         const hours = args.hours as number || 24
@@ -1092,7 +1092,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
           const pos = parseInt(r.positive) || 0
           const neg = parseInt(r.negative) || 0
 
-          // Get top concerns from recent incident descriptions
+          //Get top concerns from recent incident descriptions
           const { rows: concerns } = await pool.query(
             `SELECT incident_type, COUNT(*) AS cnt
              FROM incidents WHERE created_at > NOW() - INTERVAL '${Math.min(hours, 168)} hours'
@@ -1115,7 +1115,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
         const parts: string[] = []
 
         try {
-          // Active incidents
+          //Active incidents
           const { rows: incidents } = await pool.query(
             `SELECT incident_type, severity, COUNT(*) AS cnt
              FROM incidents WHERE status != 'resolved'
@@ -1123,13 +1123,13 @@ export async function executeToolCall(name: string, args: Record<string, unknown
              GROUP BY incident_type, severity ORDER BY cnt DESC`,
           )
 
-          // Active alerts
+          //Active alerts
           const { rows: alerts } = await pool.query(
             `SELECT severity, COUNT(*) AS cnt FROM alerts
              WHERE is_active = true AND deleted_at IS NULL GROUP BY severity`,
           )
 
-          // Shelter capacity
+          //Shelter capacity
           const { rows: shelters } = await pool.query(
             `SELECT COUNT(*) AS total, SUM(capacity) AS cap, SUM(current_occupancy) AS occ
              FROM shelters WHERE is_active = true`,
@@ -1143,7 +1143,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
               `Top incident type: ${incidents[0]?.incident_type || 'None'}.`
           }
 
-          parts.push(`# SITUATION REPORT — ${new Date().toLocaleString('en-GB')}`)
+          parts.push(`# SITUATION REPORT -- ${new Date().toLocaleString('en-GB')}`)
           parts.push(`**Reporting Period:** Last ${periodHours} hours\n`)
 
           parts.push(`## Active Incidents`)
@@ -1171,17 +1171,17 @@ export async function executeToolCall(name: string, args: Record<string, unknown
 
           return parts.join('\n')
         } catch {
-          return 'Unable to generate SITREP — data sources unavailable.'
+          return 'Unable to generate SITREP -- data sources unavailable.'
         }
       }
 
-      // NEW ADMIN TOOLS (Advanced Intelligence)
+      //NEW ADMIN TOOLS (Advanced Intelligence)
 
       case 'get_ai_predictions': {
         const hours = args.hours as number || 24
         const hazardType = args.hazard_type as string || 'all'
         try {
-          // Get recent AI predictions from the prediction pipeline
+          //Get recent AI predictions from the prediction pipeline
           let query = `SELECT hazard_type, predicted_severity, confidence, region_id, predicted_at, description
                        FROM ai_predictions
                        WHERE predicted_at > NOW() - INTERVAL '${Math.min(hours, 168)} hours'`
@@ -1194,7 +1194,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
 
           const { rows } = await pool.query(query, params)
           if (rows.length === 0) {
-            // Fallback: derive predictions from incident trends
+            //Fallback: derive predictions from incident trends
             const { rows: trends } = await pool.query(
               `SELECT incident_type, severity, COUNT(*) AS cnt,
                       MAX(created_at) AS latest
@@ -1206,16 +1206,16 @@ export async function executeToolCall(name: string, args: Record<string, unknown
             if (trends.length === 0) return `No AI predictions or detectable trends in the last ${hours} hours.`
 
             const trendLines = trends.map((t: any) =>
-              `— **${t.incident_type}** [${t.severity}]: ${t.cnt} incidents trending — latest: ${new Date(t.latest).toLocaleString('en-GB')}`
+              `-- **${t.incident_type}** [${t.severity}]: ${t.cnt} incidents trending -- latest: ${new Date(t.latest).toLocaleString('en-GB')}`
             )
             return `**AI Trend Analysis (last ${hours}h):**\n\n` +
               `No ML predictions available. Trend-based analysis:\n\n` +
               trendLines.join('\n') +
-              `\n\n_Recommendation: Monitor ${trends[0]?.incident_type} closely — highest frequency._`
+              `\n\n_Recommendation: Monitor ${trends[0]?.incident_type} closely -- highest frequency._`
           }
 
           const predLines = rows.map((r: any) =>
-            `— **${r.hazard_type}** [${r.predicted_severity}] — Region: ${r.region_id || 'N/A'} | ` +
+            `-- **${r.hazard_type}** [${r.predicted_severity}] -- Region: ${r.region_id || 'N/A'} | ` +
             `Confidence: ${(r.confidence * 100).toFixed(0)}% | ` +
             `${r.description || 'No description'}`
           )
@@ -1236,7 +1236,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
 
       case 'get_performance_metrics': {
         try {
-          // Gather system performance metrics
+          //Gather system performance metrics
           const [incidentResp, chatMetrics, systemHealth] = await Promise.all([
             pool.query(
               `SELECT
@@ -1269,18 +1269,18 @@ export async function executeToolCall(name: string, args: Record<string, unknown
 
           return `**System Performance Metrics (24h):**\n\n` +
             `## Incident Response\n` +
-            `— Total incidents: ${inc.total_24h}\n` +
-            `— Avg response time: ${avgRespMin} minutes\n` +
-            `— Resolution rate: ${resolutionRate}%\n` +
-            `— Critical unresolved: ${inc.critical_open}\n\n` +
+            `-- Total incidents: ${inc.total_24h}\n` +
+            `-- Avg response time: ${avgRespMin} minutes\n` +
+            `-- Resolution rate: ${resolutionRate}%\n` +
+            `-- Critical unresolved: ${inc.critical_open}\n\n` +
             `## AI Chat System\n` +
-            `— Chat sessions: ${chat.total_sessions}\n` +
-            `— Unique citizens: ${chat.unique_citizens}\n` +
-            `— Unique operators: ${chat.unique_operators}\n` +
-            `— Avg tokens per session: ${chat.avg_tokens ? parseInt(chat.avg_tokens) : 'N/A'}\n\n` +
+            `-- Chat sessions: ${chat.total_sessions}\n` +
+            `-- Unique citizens: ${chat.unique_citizens}\n` +
+            `-- Unique operators: ${chat.unique_operators}\n` +
+            `-- Avg tokens per session: ${chat.avg_tokens ? parseInt(chat.avg_tokens) : 'N/A'}\n\n` +
             `## System Health\n` +
-            `— Active alerts: ${health.active_alerts}\n` +
-            `— Status: ${parseInt(inc.critical_open) > 5 ? '?? HIGH LOAD' : parseInt(inc.critical_open) > 0 ? '?? ELEVATED' : '?? NORMAL'}`
+            `-- Active alerts: ${health.active_alerts}\n` +
+            `-- Status: ${parseInt(inc.critical_open) > 5 ? '?? HIGH LOAD' : parseInt(inc.critical_open) > 0 ? '?? ELEVATED' : '?? NORMAL'}`
         } catch {
           return 'Performance metrics unavailable.'
         }
@@ -1306,7 +1306,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
 
           if (sessions.length === 0) return `No operator activity in the last ${shiftHours} hours.`
 
-          // Aggregate by operator
+          //Aggregate by operator
           const byOperator = new Map<string, { sessions: number; tokens: number; lastActive: Date; summaries: string[] }>()
           for (const s of sessions) {
             const opId = s.operator_id
@@ -1321,7 +1321,7 @@ export async function executeToolCall(name: string, args: Record<string, unknown
           const lines = [...byOperator.entries()].map(([opId, data]) => {
             const lastActiveStr = data.lastActive.toLocaleString('en-GB')
             const summary = data.summaries.length > 0 ? `\n    Last topic: ${data.summaries[0].slice(0, 100)}` : ''
-            return `— Operator ${opId.slice(0, 8)}... — ${data.sessions} sessions | ${data.tokens} tokens | Last active: ${lastActiveStr}${summary}`
+            return `-- Operator ${opId.slice(0, 8)}... -- ${data.sessions} sessions | ${data.tokens} tokens | Last active: ${lastActiveStr}${summary}`
           })
 
           return `**Operator Activity (last ${shiftHours}h):**\n\n` +
@@ -1356,11 +1356,11 @@ export async function executeToolCall(name: string, args: Record<string, unknown
   }
 }
 
-// Web Search Implementation
+//Web Search Implementation
 export async function executeWebSearch(query: string, numResults = 5): Promise<string> {
   const maxResults = Math.min(numResults, 10)
 
-  // Strategy 1: DuckDuckGo Instant Answer API (no key required)
+  //Strategy 1: DuckDuckGo Instant Answer API (no key required)
   try {
     const encoded = encodeURIComponent(query)
     const ddgRes = await fetchWithTimeout(
@@ -1389,7 +1389,7 @@ export async function executeWebSearch(query: string, numResults = 5): Promise<s
     devLog(`[WebSearch] DuckDuckGo failed: ${err.message}`)
   }
 
-  // Strategy 2: Wikipedia search as reliable fallback
+  //Strategy 2: Wikipedia search as reliable fallback
   try {
     const wikiEncoded = encodeURIComponent(query)
     const wikiRes = await fetchWithTimeout(
@@ -1403,10 +1403,10 @@ export async function executeWebSearch(query: string, numResults = 5): Promise<s
       }
     }
   } catch {
-    // continue
+    //continue
   }
 
-  // Strategy 3: Brave Search API (if key available)
+  //Strategy 3: Brave Search API (if key available)
   const braveKey = process.env.BRAVE_SEARCH_API_KEY
   if (braveKey) {
     try {
@@ -1437,7 +1437,7 @@ export async function executeWebSearch(query: string, numResults = 5): Promise<s
   return `Web search for "${query}" returned no results. Try rephrasing the query or use the search_wikipedia tool for factual information.`
 }
 
-// Structured Vision Output Interface
+//Structured Vision Output Interface
 export interface VisionStructuredOutput {
   disaster_type: string
   severity: 'critical' | 'high' | 'moderate' | 'low' | 'none'
@@ -1452,7 +1452,7 @@ export interface VisionStructuredOutput {
   processing_time_ms: number
 }
 
-// Parse the structured JSON suffix from vision responses
+//Parse the structured JSON suffix from vision responses
 export function parseVisionStructuredOutput(rawText: string, modelUsed: string, elapsedMs: number): VisionStructuredOutput {
   const defaults: VisionStructuredOutput = {
     disaster_type: 'unknown',
@@ -1468,7 +1468,7 @@ export function parseVisionStructuredOutput(rawText: string, modelUsed: string, 
     processing_time_ms: elapsedMs,
   }
 
-  // Try to extract JSON block from response
+  //Try to extract JSON block from response
   const jsonMatch = rawText.match(/```json\s*([\s\S]*?)```/) || rawText.match(/\{[\s\S]*"disaster_type"[\s\S]*\}/)
   if (jsonMatch) {
     try {
@@ -1492,7 +1492,7 @@ export function parseVisionStructuredOutput(rawText: string, modelUsed: string, 
     }
   }
 
-  // Fallback: heuristic extraction from unstructured text — covers all 13 AEGIS types
+  //Fallback: heuristic extraction from unstructured text -- covers all 13 AEGIS types
   const lowerText = rawText.toLowerCase()
   const disasterKeywords: Record<string, string[]> = {
     flood: ['flood', 'flooding', 'submerged', 'water level', 'inundation', 'waterlogged', 'flash flood', 'storm surge', 'pluvial', 'fluvial', 'rising water'],
@@ -1529,21 +1529,21 @@ export function parseVisionStructuredOutput(rawText: string, modelUsed: string, 
     if (keywords.some(k => lowerText.includes(k))) { severityGuess = sev as VisionStructuredOutput['severity']; break }
   }
 
-  // Extract confidence from text mentions like "90% confidence" or "high confidence"
+  //Extract confidence from text mentions like "90% confidence" or "high confidence"
   const confMatch = rawText.match(/(\d{1,3})%?\s*confidence/i)
   const confidence = confMatch ? Math.min(100, parseInt(confMatch[1], 10)) : (bestScore > 2 ? 75 : 50)
 
   return { ...defaults, disaster_type: bestType, severity: severityGuess, confidence, model_used: modelUsed, processing_time_ms: elapsedMs }
 }
 
-// In-session image memory for temporal comparison
+//In-session image memory for temporal comparison
 export const sessionImageMemory = new Map<string, Array<{ timestamp: number; imageUrl: string; analysis: VisionStructuredOutput }>>()
 
 export function storeImageAnalysis(sessionId: string, imageUrl: string, analysis: VisionStructuredOutput) {
   if (!sessionImageMemory.has(sessionId)) sessionImageMemory.set(sessionId, [])
   const history = sessionImageMemory.get(sessionId)!
   history.push({ timestamp: Date.now(), imageUrl, analysis })
-  // Keep last 10 images per session
+  //Keep last 10 images per session
   if (history.length > 10) history.shift()
 }
 
@@ -1577,10 +1577,10 @@ export function buildImageMemoryContext(sessionId: string, currentAnalysis: Visi
     }
   }
 
-  return `\n\n[IMAGE COMPARISON — TEMPORAL CONTEXT]\nPrevious image analyses in this session:\n${comparisons.join('\n')}${trendNote}\n\nUse this temporal context to inform your response — note any changes or escalation.`
+  return `\n\n[IMAGE COMPARISON -- TEMPORAL CONTEXT]\nPrevious image analyses in this session:\n${comparisons.join('\n')}${trendNote}\n\nUse this temporal context to inform your response -- note any changes or escalation.`
 }
 
-// Image Analysis (Vision) Implementation
+//Image Analysis (Vision) Implementation
 export async function executeImageAnalysis(imageUrl: string, context?: string, sessionId?: string): Promise<string> {
   const startTime = Date.now()
   const contextNote = context ? `\n\nADDITIONAL CONTEXT FROM CITIZEN: "${context}"` : ''
@@ -1588,19 +1588,19 @@ export async function executeImageAnalysis(imageUrl: string, context?: string, s
 
 ## CHAIN-OF-THOUGHT PROCESS (follow each step BEFORE concluding)
 
-**Step 1 — OBSERVE:** List EVERY visible element: terrain, structures, vegetation, sky, water, people, vehicles, smoke, debris, utility infrastructure, road surfaces, weather conditions. Note colors, textures, lighting, time of day.
-**Step 2 — MEASURE:** Using reference objects (door — 2m, car — 4.5m long, person — 1.7m, curb — 15cm, fire hydrant — 60cm, mailbox — 100cm, traffic light — 250cm), estimate distances, depths, areas, visibility ranges.
-**Step 3 — CLASSIFY:** Based on observations, identify the PRIMARY disaster type from AEGIS categories:
+**Step 1 -- OBSERVE:** List EVERY visible element: terrain, structures, vegetation, sky, water, people, vehicles, smoke, debris, utility infrastructure, road surfaces, weather conditions. Note colors, textures, lighting, time of day.
+**Step 2 -- MEASURE:** Using reference objects (door -- 2m, car -- 4.5m long, person -- 1.7m, curb -- 15cm, fire hydrant -- 60cm, mailbox -- 100cm, traffic light -- 250cm), estimate distances, depths, areas, visibility ranges.
+**Step 3 -- CLASSIFY:** Based on observations, identify the PRIMARY disaster type from AEGIS categories:
   flood | severe_storm | heatwave | wildfire | landslide | drought | power_outage | water_supply_disruption | infrastructure_damage | public_safety_incident | environmental_hazard | earthquake | volcanic | safe
-**Step 4 — REASON:** Explain WHY you classified it this way. What evidence supports your conclusion? What alternative interpretations did you consider and reject?
-**Step 5 — ASSESS:** Rate severity and immediate risks based on evidence, not assumption.
+**Step 4 -- REASON:** Explain WHY you classified it this way. What evidence supports your conclusion? What alternative interpretations did you consider and reject?
+**Step 5 -- ASSESS:** Rate severity and immediate risks based on evidence, not assumption.
 
-## DOMAIN REFERENCE — Use these expert scales for precise assessment
+## DOMAIN REFERENCE -- Use these expert scales for precise assessment
 
 ### FLOOD (type: "flood")
 - Water color ? contamination: clear = rain runoff, brown = soil/sewage, black = chemical/oil, green = algae/stagnant
-- Depth by reference: ankle <15cm, knee 30-45cm, waist 75-100cm, chest >100cm — fast flow + knee-deep = lethal
-- Submerged landmarks: fire hydrant — 60cm, mailbox — 100cm, traffic light pole — 250cm
+- Depth by reference: ankle <15cm, knee 30-45cm, waist 75-100cm, chest >100cm -- fast flow + knee-deep = lethal
+- Submerged landmarks: fire hydrant -- 60cm, mailbox -- 100cm, traffic light pole -- 250cm
 - Subtypes: fluvial (river banks breached), pluvial (drains overwhelmed, urban), coastal (storm surge, salt residue), flash (narrow channel, rapid rise), groundwater (no visible source, seepage)
 - Severity: low = puddles/minor ponding, moderate = ankle-knee, high = knee-waist with flow, critical = chest+ or fast-moving
 
@@ -1608,7 +1608,7 @@ export async function executeImageAnalysis(imageUrl: string, context?: string, s
 - Wind clues: swaying trees = 40-60 km/h, horizontal rain = 80+, structural damage = 120+ km/h
 - Saffir-Simpson: Cat 1-2 = branches/signs down; Cat 3 = trees uprooted, roof decking exposed; Cat 4-5 = total roof loss, wall collapse
 - Tornado indicators: narrow damage path, twisted metal, vehicles displaced, debris lofted, funnel cloud
-- Hail markers: pockmarked vehicles/roofs, leaf stripping, dent diameter — hailstone size
+- Hail markers: pockmarked vehicles/roofs, leaf stripping, dent diameter -- hailstone size
 - Lightning damage: spiral bark stripping on trees, scorch marks, electrical fire origin
 
 ### HEATWAVE (type: "heatwave")
@@ -1616,7 +1616,7 @@ export async function executeImageAnalysis(imageUrl: string, context?: string, s
 - Infrastructure stress: rail deformation (sun kink), sagging power lines, road surface melting/bleeding tar
 - Urban heat island: black rooftops, concrete surfaces, no green canopy, parked car density
 - Human indicators: people seeking shade, overcrowded cooling stations, outdoor workers resting
-- Severity: moderate = 35-39—C indicators, high = 40-44—C, critical = 45—C+ or prolonged multi-day
+- Severity: moderate = 35-39--C indicators, high = 40-44--C, critical = 45--C+ or prolonged multi-day
 
 ### WILDFIRE (type: "wildfire")
 - NWCG fire type ladder: ground fire (duff/roots, smoldering) = low; surface fire (grass/shrubs, <1.2m flame) = moderate; crown fire (canopy-to-canopy, ember shower) = critical; spot fire (embers ahead of front)
@@ -1663,7 +1663,7 @@ export async function executeImageAnalysis(imageUrl: string, context?: string, s
 - Scene indicators: emergency vehicle presence (police, ambulance), cordon tape, crowds running/dispersing
 - Aftermath: broken glass, debris field, abandoned personal belongings, overturned objects
 - Response: armed response vehicles, helicopter overhead, locked-down buildings, triage areas
-- NOTE: Do NOT identify individuals, weapons, or specific threats — focus on scene-level assessment only
+- NOTE: Do NOT identify individuals, weapons, or specific threats -- focus on scene-level assessment only
 
 ### ENVIRONMENTAL HAZARD (type: "environmental_hazard")
 - Chemical spill: discolored liquid on ground/water, hazmat placards, dead vegetation in spill path, foam/bubbles
@@ -1686,7 +1686,7 @@ export async function executeImageAnalysis(imageUrl: string, context?: string, s
 - Gas hazard: blue haze (SO2), dead vegetation in gas path, steaming vents/fumaroles
 - Post-eruption: barren grey terrain, ghost forests (standing dead trees), crater lake
 
-### ADVERSARIAL AWARENESS — DO NOT misclassify these
+### ADVERSARIAL AWARENESS -- DO NOT misclassify these
 - Sunset/sunrise ? wildfire (check for actual flames, smoke source, fuel)
 - Construction/demolition ? earthquake (check for machinery, orderly process, workers)
 - Swimming pool/fountain ? flood (check for containment, normal infrastructure)
@@ -1696,21 +1696,21 @@ export async function executeImageAnalysis(imageUrl: string, context?: string, s
 
 ## FEW-SHOT EXAMPLES (calibrate your analysis to these)
 
-**Example A — Wildfire:** Orange/red flames consuming hillside vegetation, thick dark smoke rising, ember shower visible, dry brown landscape. ? disaster_type: "wildfire", severity: "critical", confidence: 95, reasoning: "Active crown fire with ember generation, black smoke indicates structural fuel involvement"
+**Example A -- Wildfire:** Orange/red flames consuming hillside vegetation, thick dark smoke rising, ember shower visible, dry brown landscape. ? disaster_type: "wildfire", severity: "critical", confidence: 95, reasoning: "Active crown fire with ember generation, black smoke indicates structural fuel involvement"
 
-**Example B — Urban Flooding:** Brown water covering street to car-door height, debris floating, buildings partially submerged to first floor. ? disaster_type: "flood", severity: "high", confidence: 90, reasoning: "Water depth 60-80cm (car reference), brown color indicates soil/sewage contamination, active flow from debris movement"
+**Example B -- Urban Flooding:** Brown water covering street to car-door height, debris floating, buildings partially submerged to first floor. ? disaster_type: "flood", severity: "high", confidence: 90, reasoning: "Water depth 60-80cm (car reference), brown color indicates soil/sewage contamination, active flow from debris movement"
 
-**Example C — Earthquake Damage:** Collapsed concrete building, rubble pile, diagonal cracks in standing walls, dust cloud, tilted utility poles. ? disaster_type: "earthquake", severity: "critical", confidence: 85, reasoning: "Diagonal shear cracks in remaining walls = seismic failure pattern, no fire or water present to explain collapse"
+**Example C -- Earthquake Damage:** Collapsed concrete building, rubble pile, diagonal cracks in standing walls, dust cloud, tilted utility poles. ? disaster_type: "earthquake", severity: "critical", confidence: 85, reasoning: "Diagonal shear cracks in remaining walls = seismic failure pattern, no fire or water present to explain collapse"
 
-**Example D — Safe Scene:** Clear sky, intact buildings, normal traffic, green vegetation, no visible damage or hazard. ? disaster_type: "safe", severity: "none", confidence: 90, reasoning: "No indicators of any disaster type across all 13 AEGIS categories"
+**Example D -- Safe Scene:** Clear sky, intact buildings, normal traffic, green vegetation, no visible damage or hazard. ? disaster_type: "safe", severity: "none", confidence: 90, reasoning: "No indicators of any disaster type across all 13 AEGIS categories"
 
-**Example E — Power Outage:** Snapped utility poles, downed power lines across road, darkened traffic signals, fallen tree on transformer. ? disaster_type: "power_outage", severity: "high", confidence: 88, reasoning: "Downed lines with visible damage to transformer, multiple poles affected suggesting widespread outage"
+**Example E -- Power Outage:** Snapped utility poles, downed power lines across road, darkened traffic signals, fallen tree on transformer. ? disaster_type: "power_outage", severity: "high", confidence: 88, reasoning: "Downed lines with visible damage to transformer, multiple poles affected suggesting widespread outage"
 
-**Example F — Environmental Hazard:** Iridescent oil sheen on river surface, dead fish visible on bank, industrial facility in background, hazmat vehicle present. ? disaster_type: "environmental_hazard", severity: "high", confidence: 87, reasoning: "Oil sheen pattern + fish kill indicates active contamination, industrial source identified"
+**Example F -- Environmental Hazard:** Iridescent oil sheen on river surface, dead fish visible on bank, industrial facility in background, hazmat vehicle present. ? disaster_type: "environmental_hazard", severity: "high", confidence: 87, reasoning: "Oil sheen pattern + fish kill indicates active contamination, industrial source identified"
 
-**Example G — Severe Storm:** Uprooted trees across road, roof sections torn off houses, horizontal rain, dark sky with rotation. ? disaster_type: "severe_storm", severity: "critical", confidence: 92, reasoning: "Uprooted mature trees indicate wind >120 km/h, roof decking exposed = Cat 3+ wind damage"
+**Example G -- Severe Storm:** Uprooted trees across road, roof sections torn off houses, horizontal rain, dark sky with rotation. ? disaster_type: "severe_storm", severity: "critical", confidence: 92, reasoning: "Uprooted mature trees indicate wind >120 km/h, roof decking exposed = Cat 3+ wind damage"
 
-**Example H — Drought:** Polygonal cracked mud flat where lake should be, dead brown vegetation, exposed boat dock on dry land. ? disaster_type: "drought", severity: "high", confidence: 85, reasoning: "Desiccation cracks + exposed infrastructure normally submerged indicates severe water deficit"${contextNote}
+**Example H -- Drought:** Polygonal cracked mud flat where lake should be, dead brown vegetation, exposed boat dock on dry land. ? disaster_type: "drought", severity: "high", confidence: 85, reasoning: "Desiccation cracks + exposed infrastructure normally submerged indicates severe water deficit"${contextNote}
 
 ## YOUR ANALYSIS
 
@@ -1733,16 +1733,16 @@ Finally, output a structured JSON block at the END of your response:
 }
 \`\`\`
 
-CRITICAL: Be SPECIFIC to what you see. If the image is unclear, lower your confidence. If NO hazard is visible, say so — never manufacture danger. Use the ADVERSARIAL AWARENESS section to avoid common misclassifications.`
+CRITICAL: Be SPECIFIC to what you see. If the image is unclear, lower your confidence. If NO hazard is visible, say so -- never manufacture danger. Use the ADVERSARIAL AWARENESS section to avoid common misclassifications.`
 
-  // Strategy 0: CLIP zero-shot classification via AI Engine (fastest, ~37ms GPU)
-  // Returns structured classification without needing an LLM vision model
+  //Strategy 0: CLIP zero-shot classification via AI Engine (fastest, ~37ms GPU)
+  //Returns structured classification without needing an LLM vision model
   let clipResult: { disaster_type?: string; confidence?: number; severity?: string; probabilities?: Record<string, number> } | null = null
   try {
     const { aiClient } = await import('./aiClient.js')
     const aiAvailable = await aiClient.isAvailable().catch(() => false)
     if (aiAvailable) {
-      // Read image file for CLIP classification
+      //Read image file for CLIP classification
       const fs = await import('fs')
       const path = await import('path')
       let imageBuffer: Buffer | null = null
@@ -1775,11 +1775,11 @@ CRITICAL: Be SPECIFIC to what you see. If the image is unclear, lower your confi
     devLog(`[Vision] CLIP classification skipped: ${err.message}`)
   }
 
-  // Strategy 1: Gemini Vision (free tier, supports images natively)
+  //Strategy 1: Gemini Vision (free tier, supports images natively)
   const geminiKey = process.env.GEMINI_API_KEY
   if (geminiKey) {
     try {
-      // If it's a local file path, read and base64-encode it
+      //If it's a local file path, read and base64-encode it
       let imageData: { inlineData?: { mimeType: string; data: string }; fileUri?: string } | undefined
       if (imageUrl.startsWith('/uploads/') || imageUrl.startsWith('uploads/')) {
         const fs = await import('fs')
@@ -1793,7 +1793,7 @@ CRITICAL: Be SPECIFIC to what you see. If the image is unclear, lower your confi
           imageData = { inlineData: { mimeType: mimeMap[ext] || 'image/jpeg', data: base64 } }
         }
       } else if (imageUrl.startsWith('http')) {
-        // Fetch remote image and convert to base64
+        //Fetch remote image and convert to base64
         const imgRes = await fetchWithTimeout(imageUrl, { timeout: 10000 })
         const arrayBuf = await imgRes.arrayBuffer()
         const base64 = Buffer.from(arrayBuf).toString('base64')
@@ -1823,7 +1823,7 @@ CRITICAL: Be SPECIFIC to what you see. If the image is unclear, lower your confi
         )
         const geminiData = await geminiRes.json() as any
         if (!geminiRes.ok) {
-          devLog(`[Vision] Gemini API error: ${geminiRes.status} — ${JSON.stringify(geminiData?.error?.message || geminiData).slice(0, 300)}`)
+          devLog(`[Vision] Gemini API error: ${geminiRes.status} -- ${JSON.stringify(geminiData?.error?.message || geminiData).slice(0, 300)}`)
         } else {
           const analysis = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
           if (analysis && analysis.length > 50) {
@@ -1832,7 +1832,7 @@ CRITICAL: Be SPECIFIC to what you see. If the image is unclear, lower your confi
             const structured = parseVisionStructuredOutput(analysis, 'Gemini Vision AI', elapsedMs)
             if (sessionId) storeImageAnalysis(sessionId, imageUrl, structured)
             const confidenceBadge = structured.confidence >= 80 ? '??' : structured.confidence >= 50 ? '??' : '??'
-            return `?? **Image Analysis** (Gemini Vision AI) — ${confidenceBadge} ${structured.confidence}% confidence\n**Detected:** ${structured.disaster_type.toUpperCase()} | **Severity:** ${structured.severity.toUpperCase()}\n\n${analysis}`
+            return `?? **Image Analysis** (Gemini Vision AI) -- ${confidenceBadge} ${structured.confidence}% confidence\n**Detected:** ${structured.disaster_type.toUpperCase()} | **Severity:** ${structured.severity.toUpperCase()}\n\n${analysis}`
           } else {
             devLog(`[Vision] Gemini returned empty/short analysis: ${JSON.stringify(geminiData?.candidates?.[0]).slice(0, 200)}`)
           }
@@ -1845,13 +1845,13 @@ CRITICAL: Be SPECIFIC to what you see. If the image is unclear, lower your confi
     }
   }
 
-  // Strategy 2: Ollama with a vision-capable model (llava, bakllava, etc.)
+  //Strategy 2: Ollama with a vision-capable model (llava, bakllava, etc.)
   const ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
   const visionModelHint = process.env.OLLAMA_VISION_MODEL || 'llava'
   const triageModelHint = process.env.OLLAMA_VISION_TRIAGE_MODEL || ''
   try {
     devLog(`[Vision] Checking Ollama at ${ollamaUrl} for vision model matching '${visionModelHint}'`)
-    // Check if model exists — use the actual model name from tags (e.g. 'llava:7b' not just 'llava')
+    //Check if model exists -- use the actual model name from tags (e.g. 'llava:7b' not just 'llava')
     const tagRes = await fetchWithTimeout(`${ollamaUrl}/api/tags`, { timeout: 5000 })
     const tags = await tagRes.json() as any
     const foundModel = tags?.models?.find((m: any) => m.name.includes(visionModelHint))
@@ -1879,9 +1879,9 @@ CRITICAL: Be SPECIFIC to what you see. If the image is unclear, lower your confi
         }
       }
       if (base64) {
-        // Consolidated 7-category taxonomy — single pass, temp 0.2
-        // earthquake merged into structural_damage, heatwave merged into drought
-        // gemma3:4b peaks at 40.5% with minimal prompt — less is more for 4B models
+        //Consolidated 7-category taxonomy -- single pass, temp 0.2
+        //earthquake merged into structural_damage, heatwave merged into drought
+        //gemma3:4b peaks at 40.5% with minimal prompt -- less is more for 4B models
         const ollamaPrompt = `Classify this image into exactly ONE category. Choose from: wildfire, flood, storm, landslide, drought, structural_damage, safe.
 
 Reply with a JSON block only:
@@ -1927,7 +1927,7 @@ Reply with a JSON block only:
         let finalResponse: string | null = null
         let finalModelUsed = visionModel
 
-        // Single-pass classification
+        //Single-pass classification
         finalResponse = await callOllamaVision(visionModel, ollamaPrompt, 'primary')
 
         if (finalResponse) {
@@ -1936,7 +1936,7 @@ Reply with a JSON block only:
           const structured = parseVisionStructuredOutput(finalResponse, `Ollama ${finalModelUsed}`, elapsedMs)
           if (sessionId) storeImageAnalysis(sessionId, imageUrl, structured)
           const confidenceBadge = structured.confidence >= 80 ? '??' : structured.confidence >= 50 ? '??' : '??'
-          return `?? **Image Analysis** (${finalModelUsed}) — ${confidenceBadge} ${structured.confidence}% confidence\n**Detected:** ${structured.disaster_type.toUpperCase()} | **Severity:** ${structured.severity.toUpperCase()}\n\n${finalResponse}`
+          return `?? **Image Analysis** (${finalModelUsed}) -- ${confidenceBadge} ${structured.confidence}% confidence\n**Detected:** ${structured.disaster_type.toUpperCase()} | **Severity:** ${structured.severity.toUpperCase()}\n\n${finalResponse}`
         }
       }
     }
@@ -1944,7 +1944,7 @@ Reply with a JSON block only:
     devLog(`[Vision] Ollama vision failed: ${err.message}`)
   }
 
-  // Strategy 3: OpenRouter Vision — PARALLEL race across free models for speed
+  //Strategy 3: OpenRouter Vision -- PARALLEL race across free models for speed
   const openrouterKey = process.env.OPENROUTER_API_KEY
   if (openrouterKey) {
     const visionModels = [
@@ -1955,7 +1955,7 @@ Reply with a JSON block only:
       'google/gemma-3-4b-it:free',
     ]
 
-    // Prepare base64 image data once (shared across all parallel calls)
+    //Prepare base64 image data once (shared across all parallel calls)
     let base64Data = ''
     let mimeType = 'image/jpeg'
     if (imageUrl.startsWith('/uploads/') || imageUrl.startsWith('uploads/')) {
@@ -1982,7 +1982,7 @@ Reply with a JSON block only:
     }
 
     if (base64Data) {
-      // Fire ALL models in parallel, take the first valid response
+      //Fire ALL models in parallel, take the first valid response
       devLog(`[Vision] Racing ${visionModels.length} OpenRouter models in parallel`)
       const racePromises = visionModels.map(async (orModel) => {
         try {
@@ -2033,7 +2033,7 @@ Reply with a JSON block only:
         if (sessionId) storeImageAnalysis(sessionId, imageUrl, structured)
 
         const confidenceBadge = structured.confidence >= 80 ? '??' : structured.confidence >= 50 ? '??' : '??'
-        return `?? **Image Analysis** (${modelLabel}) — ${confidenceBadge} ${structured.confidence}% confidence\n**Detected:** ${structured.disaster_type.toUpperCase()} | **Severity:** ${structured.severity.toUpperCase()}\n\n${winner.analysis}`
+        return `?? **Image Analysis** (${modelLabel}) -- ${confidenceBadge} ${structured.confidence}% confidence\n**Detected:** ${structured.disaster_type.toUpperCase()} | **Severity:** ${structured.severity.toUpperCase()}\n\n${winner.analysis}`
       } catch {
         devLog(`[Vision] All ${visionModels.length} OpenRouter models failed`)
       }
@@ -2045,7 +2045,7 @@ Reply with a JSON block only:
 }
 
  /*
- * Execute composite tool calls — multiple tools in a single turn.
+ * Execute composite tool calls -- multiple tools in a single turn.
  * Accepts a list of tool call descriptors and runs them concurrently,
  * returning a combined summary of all results.
   */
@@ -2059,11 +2059,11 @@ export async function executeCompositeToolCalls(
     }),
   )
 
-  // Build a condensed summary for each result
+  //Build a condensed summary for each result
   const summaryParts = results.map(({ tool, result }) => {
-    // Summarize verbose results to keep context window manageable
+    //Summarize verbose results to keep context window manageable
     const condensed = result.length > 500
-      ? result.slice(0, 480) + '... [truncated — full data retrieved]'
+      ? result.slice(0, 480) + '... [truncated -- full data retrieved]'
       : result
     return `[${tool}]: ${condensed}`
   })

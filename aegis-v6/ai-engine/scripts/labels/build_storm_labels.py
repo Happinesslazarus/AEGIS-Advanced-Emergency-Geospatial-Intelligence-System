@@ -1,11 +1,11 @@
 """
 Labels each master-dataset row as severe-storm-positive using two methods:
 
-  Method 1 — ERA5 wind threshold:
+  Method 1 -- ERA5 wind threshold:
     storm_label = 1 if daily maximum wind gust ≥ 17.5 m/s (Beaufort Force 8
     gale force) for the point's location on that date.
 
-  Method 2 — Named storm dates (UK storms from Met Office / Wikipedia records):
+  Method 2 -- Named storm dates (UK storms from Met Office / Wikipedia records):
     A hard-coded table of UK named storms (2015-2024) with their active date
     ranges.  Any row whose date falls within a named storm's dates is labelled 1.
     This provides high-quality positive examples for the most extreme events.
@@ -14,7 +14,7 @@ Labels from both methods are OR-combined to form the final storm_label.
 
 Glossary:
   Beaufort scale  = the 0-12 international scale of wind speed; Force 8 =
-                    gale (17.5-20.7 m/s) — causes structural damage and is
+                    gale (17.5-20.7 m/s) -- causes structural damage and is
                     the Met Office threshold for "Severe Weather Warning"
   wind gust       = peak instantaneous wind speed in a 3-second window;
                     higher than the mean 10-min "sustained wind"
@@ -24,10 +24,10 @@ Glossary:
   OR-combine      = the final label is 1 if EITHER method says 1; this
                     maximises recall, trading off some precision
 
-  Input  ← data/processed/master_features_uk_2000_2024.parquet
-  Input  ← data/raw/labels/era5_wind_max.parquet  (optional; see below)
-  Output → data/labels/storm_labels.parquet
-  Used by← ai-engine/training/train_all_hazards_v2.py
+  Input  <- data/processed/master_features_uk_2000_2024.parquet
+  Input  <- data/raw/labels/era5_wind_max.parquet  (optional; see below)
+  Output -> data/labels/storm_labels.parquet
+  Used by<- ai-engine/training/train_all_hazards_v2.py
 
 ERA5 wind data:
   The master dataset contains ERA5-Land wind_speed (daily mean, not gust).
@@ -55,14 +55,12 @@ _RAW_LDIR  = _AI_ROOT / "data" / "raw" / "labels"
 _PROC_DIR  = _AI_ROOT / "data" / "processed"
 _LABEL_DIR = _AI_ROOT / "data" / "labels"
 
-GALE_THRESHOLD_GUST  = 17.5  # m/s — Beaufort F8, used if daily max gust available
-GALE_THRESHOLD_MEAN  = 14.0  # m/s — fallback when only daily mean wind is available
+GALE_THRESHOLD_GUST  = 17.5  # m/s -- Beaufort F8, used if daily max gust available
+GALE_THRESHOLD_MEAN  = 14.0  # m/s -- fallback when only daily mean wind is available
 
-# ---------------------------------------------------------------------------
 # Named UK storm table (hard-coded for 2015-2024)
 # Source: Met Office Storm Centre + Wikipedia "List of UK storms"
 # Extend this table as new storms are named.
-# ---------------------------------------------------------------------------
 NAMED_STORMS: list[dict] = [
     {"name": "Abigail",  "start": "2015-11-12", "end": "2015-11-13"},
     {"name": "Barkhane", "start": "2016-01-07", "end": "2016-01-08"},
@@ -117,11 +115,11 @@ def get_named_storm_dates() -> set[str]:
 def build_storm_labels(args: argparse.Namespace) -> None:
     _LABEL_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("[1/3] Loading master features …")
+    print("[1/3] Loading master features ...")
     master = pd.read_parquet(str(args.master))
     print(f"  {len(master):,} rows")
 
-    # ── Method 1: Wind threshold ──────────────────────────────────────────
+    # Method 1: Wind threshold
     wind_label = pd.Series(0, index=master.index, dtype=int)
     if "wind_speed" in master.columns:
         # Try to load external daily-max wind gust file if present
@@ -139,18 +137,18 @@ def build_storm_labels(args: argparse.Namespace) -> None:
             wind_label = (master["wind_speed"].fillna(0) >= GALE_THRESHOLD_MEAN).astype(int)
             print(f"  Using mean wind_speed proxy (≥ {GALE_THRESHOLD_MEAN} m/s)")
     else:
-        print("  No wind_speed column — wind-based labels will be zero.")
+        print("  No wind_speed column -- wind-based labels will be zero.")
 
-    # ── Method 2: Named storm dates ───────────────────────────────────────
-    print("[2/3] Applying named storm labels …")
+    # Method 2: Named storm dates
+    print("[2/3] Applying named storm labels ...")
     storm_dates         = get_named_storm_dates()
     named_storm_label   = master["date"].isin(storm_dates).astype(int)
     print(f"  Named storm dates covered: {len(storm_dates)}")
 
-    # ── Combine ───────────────────────────────────────────────────────────
+    # Combine
     storm_label = (wind_label | named_storm_label).astype(int)
 
-    print("[3/3] Saving …")
+    print("[3/3] Saving ...")
     out = master[["lat", "lon", "date"]].copy()
     out["storm_label"]        = storm_label
     out["label_wind"]         = wind_label
@@ -159,7 +157,7 @@ def build_storm_labels(args: argparse.Namespace) -> None:
     out_path = args.output or (_LABEL_DIR / "storm_labels.parquet")
     out.to_parquet(str(out_path), index=False, compression="snappy")
     pos_rate = storm_label.mean() * 100
-    print(f"\n  Saved → {out_path}")
+    print(f"\n  Saved -> {out_path}")
     print(f"  Positive rate: {pos_rate:.2f}%")
 
 

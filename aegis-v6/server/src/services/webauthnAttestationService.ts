@@ -19,7 +19,7 @@
 import crypto from 'crypto'
 import { logger } from '../services/logger.js'
 
-// COSE Algorithm identifiers
+//COSE Algorithm identifiers
 export enum COSEAlgorithm {
   ES256 = -7,   // ECDSA w/ SHA-256
   ES384 = -35,  // ECDSA w/ SHA-384
@@ -31,14 +31,14 @@ export enum COSEAlgorithm {
   EdDSA = -8,   // EdDSA (Ed25519)
 }
 
-// COSE Key Type identifiers
+//COSE Key Type identifiers
 export enum COSEKeyType {
   OKP = 1,  // Octet Key Pair (EdDSA)
   EC2 = 2,  // Elliptic Curve (ES256, ES384, ES512)
   RSA = 3,  // RSA
 }
 
-// COSE EC2 Curve identifiers
+//COSE EC2 Curve identifiers
 export enum COSECurve {
   P256 = 1,
   P384 = 2,
@@ -116,7 +116,7 @@ export interface AttestationVerificationResult {
   errors: string[]
 }
 
-// CBOR decoder (simplified - handles common WebAuthn CBOR structures)
+//CBOR decoder (simplified - handles common WebAuthn CBOR structures)
 class SimpleCBORDecoder {
   private data: Buffer
   private offset: number = 0
@@ -251,11 +251,11 @@ export function parseAttestationObject(attestationObjectB64: string): ParsedAtte
 function parseAuthenticatorData(authData: Buffer): ParsedAuthenticatorData {
   let offset = 0
   
-  // RP ID Hash (32 bytes)
+  //RP ID Hash (32 bytes)
   const rpIdHash = authData.slice(offset, offset + 32)
   offset += 32
   
-  // Flags (1 byte)
+  //Flags (1 byte)
   const flagsByte = authData[offset++]
   const flags = {
     userPresent: !!(flagsByte & 0x01),
@@ -266,7 +266,7 @@ function parseAuthenticatorData(authData: Buffer): ParsedAuthenticatorData {
     extensionData: !!(flagsByte & 0x80),
   }
   
-  // Sign Count (4 bytes, big-endian)
+  //Sign Count (4 bytes, big-endian)
   const signCount = authData.readUInt32BE(offset)
   offset += 4
   
@@ -276,22 +276,22 @@ function parseAuthenticatorData(authData: Buffer): ParsedAuthenticatorData {
     signCount,
   }
   
-  // Attested Credential Data (optional)
+  //Attested Credential Data (optional)
   if (flags.attestedCredentialData) {
-    // AAGUID (16 bytes)
+    //AAGUID (16 bytes)
     const aaguidBuffer = authData.slice(offset, offset + 16)
     const aaguid = formatAAGUID(aaguidBuffer)
     offset += 16
     
-    // Credential ID Length (2 bytes, big-endian)
+    //Credential ID Length (2 bytes, big-endian)
     const credentialIdLength = authData.readUInt16BE(offset)
     offset += 2
     
-    // Credential ID
+    //Credential ID
     const credentialId = authData.slice(offset, offset + credentialIdLength)
     offset += credentialIdLength
     
-    // Credential Public Key (CBOR encoded)
+    //Credential Public Key (CBOR encoded)
     const publicKeyData = authData.slice(offset)
     const credentialPublicKey = parseCOSEPublicKey(publicKeyData)
     
@@ -403,7 +403,7 @@ function ec2KeyToPEM(coseKey: COSEPublicKey): string {
     throw new Error('Missing x or y coordinate for EC key')
   }
   
-  // Determine curve OID
+  //Determine curve OID
   let curveOID: Buffer
   let keySize: number
   
@@ -424,15 +424,15 @@ function ec2KeyToPEM(coseKey: COSEPublicKey): string {
       throw new Error(`Unsupported EC curve: ${coseKey.crv}`)
   }
   
-  // Pad coordinates to correct length
+  //Pad coordinates to correct length
   const x = padBuffer(coseKey.x, keySize)
   const y = padBuffer(coseKey.y, keySize)
   
-  // Build SubjectPublicKeyInfo
-  // Point format: 0x04 || x || y
+  //Build SubjectPublicKeyInfo
+  //Point format: 0x04 || x || y
   const point = Buffer.concat([Buffer.from([0x04]), x, y])
   
-  // Algorithm identifier: EC + curve OID
+  //Algorithm identifier: EC + curve OID
   const algorithmIdentifier = Buffer.concat([
     Buffer.from([0x30, 0x13]), // SEQUENCE
     Buffer.from([0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01]), // OID: ecPublicKey
@@ -440,13 +440,13 @@ function ec2KeyToPEM(coseKey: COSEPublicKey): string {
     curveOID,
   ])
   
-  // BIT STRING wrapper for point
+  //BIT STRING wrapper for point
   const bitString = Buffer.concat([
     Buffer.from([0x03, point.length + 1, 0x00]),
     point,
   ])
   
-  // Final SubjectPublicKeyInfo
+  //Final SubjectPublicKeyInfo
   const spki = Buffer.concat([
     Buffer.from([0x30, algorithmIdentifier.length + bitString.length]),
     algorithmIdentifier,
@@ -464,7 +464,7 @@ function rsaKeyToPEM(coseKey: COSEPublicKey): string {
     throw new Error('Missing n or e for RSA key')
   }
   
-  // Build RSAPublicKey
+  //Build RSAPublicKey
   const nWithPadding = prependZeroIfNeeded(coseKey.n)
   const eWithPadding = prependZeroIfNeeded(coseKey.e)
   
@@ -473,7 +473,7 @@ function rsaKeyToPEM(coseKey: COSEPublicKey): string {
   
   const rsaPublicKey = wrapSequence(Buffer.concat([nDer, eDer]))
   
-  // Build SubjectPublicKeyInfo
+  //Build SubjectPublicKeyInfo
   const algorithmIdentifier = Buffer.from([
     0x30, 0x0d, // SEQUENCE
     0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, // OID: rsaEncryption
@@ -498,13 +498,13 @@ function okpKeyToPEM(coseKey: COSEPublicKey): string {
     throw new Error('Missing x coordinate for OKP key')
   }
   
-  // Ed25519 algorithm identifier
+  //Ed25519 algorithm identifier
   const algorithmIdentifier = Buffer.from([
     0x30, 0x05, // SEQUENCE
     0x06, 0x03, 0x2b, 0x65, 0x70, // OID: Ed25519 (1.3.101.112)
   ])
   
-  // BIT STRING wrapper for public key
+  //BIT STRING wrapper for public key
   const bitString = Buffer.concat([
     Buffer.from([0x03, coseKey.x.length + 1, 0x00]),
     coseKey.x,
@@ -537,7 +537,7 @@ export function coseKeyToJWK(coseKey: COSEPublicKey): any {
     jwk.x = coseKey.x?.toString('base64url')
   }
   
-  // Set algorithm
+  //Set algorithm
   switch (coseKey.alg) {
     case COSEAlgorithm.ES256: jwk.alg = 'ES256'; break
     case COSEAlgorithm.ES384: jwk.alg = 'ES384'; break
@@ -551,7 +551,7 @@ export function coseKeyToJWK(coseKey: COSEPublicKey): any {
   return jwk
 }
 
-// Helper functions
+//Helper functions
 function padBuffer(buf: Buffer, length: number): Buffer {
   if (buf.length >= length) return buf.slice(0, length)
   const padded = Buffer.alloc(length)
@@ -571,7 +571,7 @@ function wrapSequence(buf: Buffer): Buffer {
   if (buf.length < 128) {
     return Buffer.concat([Buffer.from([0x30, buf.length]), buf])
   }
-  // Handle longer sequences
+  //Handle longer sequences
   if (buf.length < 256) {
     return Buffer.concat([Buffer.from([0x30, 0x81, buf.length]), buf])
   }
@@ -595,7 +595,7 @@ export function verifyAttestationSignature(
   publicKey: string
 ): boolean {
   if (attestation.fmt === 'none') {
-    // No attestation - self-attestation, signature not verified by attester
+    //No attestation - self-attestation, signature not verified by attester
     return true
   }
   
@@ -603,18 +603,18 @@ export function verifyAttestationSignature(
     return false
   }
   
-  // Create signed data: authenticator data || SHA-256(clientDataJSON)
+  //Create signed data: authenticator data || SHA-256(clientDataJSON)
   const clientDataHash = crypto.createHash('sha256').update(clientDataJSON).digest()
   
-  // For packed/fido-u2f formats, the signature is over authData || clientDataHash
-  // This would need the raw authData buffer - simplified for now
+  //For packed/fido-u2f formats, the signature is over authData || clientDataHash
+  //This would need the raw authData buffer - simplified for now
   
   try {
     const keyObject = crypto.createPublicKey(publicKey)
     const algorithm = getVerifyAlgorithm(attestation.attStmt.alg || COSEAlgorithm.ES256)
     
-    // Verification would use the signature here
-    // This is simplified - full implementation needs raw authData
+    //Verification would use the signature here
+    //This is simplified - full implementation needs raw authData
     return true
   } catch {
     return false
@@ -669,12 +669,12 @@ function determineAAL(
   flags: ParsedAuthenticatorData['flags'],
   attestationType: AttestationVerificationResult['attestationType']
 ): 1 | 2 | 3 {
-  // AAL3 requires hardware-backed key + user verification
+  //AAL3 requires hardware-backed key + user verification
   if (flags.userVerified && attestationType !== 'none' && attestationType !== 'self') {
     return 3
   }
   
-  // AAL2 requires user verification
+  //AAL2 requires user verification
   if (flags.userVerified || flags.userPresent) {
     return 2
   }
@@ -696,11 +696,11 @@ export async function verifyAttestation(
   const errors: string[] = []
   
   try {
-    // Parse client data
+    //Parse client data
     const clientDataJSON = Buffer.from(clientDataJSONB64, 'base64url')
     const clientData = JSON.parse(clientDataJSON.toString())
     
-    // Verify client data
+    //Verify client data
     if (clientData.type !== 'webauthn.create') {
       errors.push(`Invalid type: ${clientData.type}`)
     }
@@ -714,21 +714,21 @@ export async function verifyAttestation(
       warnings.push(`Origin mismatch: expected ${origin}, got ${clientData.origin}`)
     }
     
-    // Parse attestation
+    //Parse attestation
     const attestation = parseAttestationObject(attestationObjectB64)
     
-    // Verify RP ID hash
+    //Verify RP ID hash
     const expectedRpIdHash = crypto.createHash('sha256').update(rpId).digest()
     if (!attestation.authData.rpIdHash.equals(expectedRpIdHash)) {
       errors.push('RP ID hash mismatch')
     }
     
-    // Check user presence
+    //Check user presence
     if (!attestation.authData.flags.userPresent) {
       errors.push('User presence flag not set')
     }
     
-    // Extract credential data
+    //Extract credential data
     if (!attestation.authData.attestedCredentialData) {
       errors.push('No attested credential data')
       return {
@@ -750,21 +750,21 @@ export async function verifyAttestation(
     
     const { aaguid, credentialId, credentialPublicKey } = attestation.authData.attestedCredentialData
     
-    // Convert public key
+    //Convert public key
     const publicKeyPEM = coseKeyToPEM(credentialPublicKey)
     const publicKeyJWK = coseKeyToJWK(credentialPublicKey)
     
-    // Verify attestation signature (if applicable)
+    //Verify attestation signature (if applicable)
     const signatureValid = verifyAttestationSignature(attestation, clientDataJSON, publicKeyPEM)
     if (!signatureValid) {
       warnings.push('Attestation signature could not be verified')
     }
     
-    // Determine attestation type and AAL
+    //Determine attestation type and AAL
     const attestationType = determineAttestationType(attestation)
     const authenticatorAssuranceLevel = determineAAL(attestation.authData.flags, attestationType)
     
-    // Warnings for non-verified attestation
+    //Warnings for non-verified attestation
     if (attestation.fmt === 'none') {
       warnings.push('No attestation provided - authenticator identity not verified')
     }
@@ -836,7 +836,7 @@ export function verifyAuthenticationSignature(
     const clientDataJSON = Buffer.from(clientDataJSONB64, 'base64url')
     const signature = Buffer.from(signatureB64, 'base64url')
     
-    // Parse client data
+    //Parse client data
     const clientData = JSON.parse(clientDataJSON.toString())
     
     if (clientData.type !== 'webauthn.get') {
@@ -847,7 +847,7 @@ export function verifyAuthenticationSignature(
       return { verified: false, newCounter: storedCounter, flags: {} as any, error: 'Challenge mismatch' }
     }
     
-    // Parse authenticator data (minimal for authentication)
+    //Parse authenticator data (minimal for authentication)
     const rpIdHash = authenticatorData.slice(0, 32)
     const expectedRpIdHash = crypto.createHash('sha256').update(expectedRpId).digest()
     
@@ -867,7 +867,7 @@ export function verifyAuthenticationSignature(
     
     const signCount = authenticatorData.readUInt32BE(33)
     
-    // Counter check (anti-clone detection)
+    //Counter check (anti-clone detection)
     if (signCount !== 0 && storedCounter !== 0 && signCount <= storedCounter) {
       return {
         verified: false,
@@ -877,7 +877,7 @@ export function verifyAuthenticationSignature(
       }
     }
     
-    // Verify signature
+    //Verify signature
     const clientDataHash = crypto.createHash('sha256').update(clientDataJSON).digest()
     const signedData = Buffer.concat([authenticatorData, clientDataHash])
     

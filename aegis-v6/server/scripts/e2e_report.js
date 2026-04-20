@@ -1,4 +1,4 @@
-// E2E test: submit a report and verify AI analysis
+//E2E test: submit a report and verify AI analysis
 const http = require('http');
 
 function postReport() {
@@ -23,7 +23,7 @@ function postReport() {
         console.log(`Report Submit: Status ${res.statusCode}`);
         try {
           const j = JSON.parse(data);
-          // Show key AI fields
+          //Show key AI fields
           if (j.data) {
             const r = j.data;
             console.log(`  ID: ${r.id}`);

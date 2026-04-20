@@ -30,7 +30,7 @@ export async function getCachedResponse(queryHash: string): Promise<string | nul
 
 export async function cacheResponse(queryHash: string, queryText: string, response: string, model: string): Promise<void> {
   try {
-    // Generate embedding for semantic cache lookup
+    //Generate embedding for semantic cache lookup
     let embeddingStr: string | null = null
     try {
       const embResult = await generateEmbeddings({ texts: [queryText] })
@@ -38,7 +38,7 @@ export async function cacheResponse(queryHash: string, queryText: string, respon
         embeddingStr = `[${embResult.embeddings[0].join(',')}]`
       }
     } catch {
-      // Embedding generation is best-effort
+      //Embedding generation is best-effort
     }
 
     await pool.query(

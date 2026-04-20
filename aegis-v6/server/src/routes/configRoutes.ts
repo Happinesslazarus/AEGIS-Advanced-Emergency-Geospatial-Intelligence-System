@@ -8,10 +8,10 @@
  * - Most endpoints are public (no auth) for pre-login use
  * - Admin endpoints for updating configuration require auth
  *
- * GET /api/config/region   — Active region config
- * GET /api/config/regions  — All available regions
- * GET /api/config/hazards  — Enabled hazard modules
- * GET /api/config/shelters — Emergency shelter locations
+ * GET /api/config/region   -- Active region config
+ * GET /api/config/regions  -- All available regions
+ * GET /api/config/hazards  -- Enabled hazard modules
+ * GET /api/config/shelters -- Emergency shelter locations
  * */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -26,10 +26,10 @@ import { AppError } from '../utils/AppError.js'
 
 const router = Router()
 
-/* GET /api/config/region — Active region configuration */
+/* GET /api/config/region -- Active region configuration */
 router.get('/region', (_req: Request, res: Response) => {
   const region = getActiveRegion()
-  // Augment with adapter metadata for richer frontend config
+  //Augment with adapter metadata for richer frontend config
   try {
     const adapter = regionRegistry.getActiveRegion()
     const meta = adapter.getMetadata()
@@ -69,14 +69,14 @@ router.get('/region', (_req: Request, res: Response) => {
       },
     })
   } catch {
-    // Adapter not available — return legacy config only
+    //Adapter not available -- return legacy config only
     res.json(region)
   }
 })
 
-/* GET /api/config/regions — All available regions (legacy + adapter-backed) */
+/* GET /api/config/regions -- All available regions (legacy + adapter-backed) */
 router.get('/regions', (_req: Request, res: Response) => {
-  // Legacy region configs
+  //Legacy region configs
   const legacyRegions = listRegionIds().map((id) => ({
     id,
     name: REGIONS[id].name,
@@ -84,7 +84,7 @@ router.get('/regions', (_req: Request, res: Response) => {
     center: REGIONS[id].center,
   }))
 
-  // Adapter-backed regions with richer metadata
+  //Adapter-backed regions with richer metadata
   const adapterRegions = regionRegistry.listRegions().map((id) => {
     const adapter = regionRegistry.getRegion(id)
     if (!adapter) return null
@@ -104,7 +104,7 @@ router.get('/regions', (_req: Request, res: Response) => {
   res.json({ regions: legacyRegions, adapterRegions, activeRegion: activeId })
 })
 
-/* GET /api/config/hazards — All hazard modules with enabled status */
+/* GET /api/config/hazards -- All hazard modules with enabled status */
 router.get('/hazards', (_req: Request, res: Response) => {
   res.json({
     hazards: Object.values(HAZARD_MODULES),
@@ -112,12 +112,12 @@ router.get('/hazards', (_req: Request, res: Response) => {
   })
 })
 
-/* GET /api/config/incidents — Incident type definitions (schema, widgets, AI mapping, thresholds) */
+/* GET /api/config/incidents -- Incident type definitions (schema, widgets, AI mapping, thresholds) */
 router.get('/incidents', (_req: Request, res: Response) => {
   res.json({ incidents: listIncidentTypes() })
 })
 
-/* PUT /api/config/incidents/:incidentId — Upsert incident type definition (admin only) */
+/* PUT /api/config/incidents/:incidentId -- Upsert incident type definition (admin only) */
 router.put('/incidents/:incidentId', authMiddleware, requireRole('admin'), (req: Request, res: Response, next: NextFunction) => {
   try {
     const incidentId = String(req.params.incidentId || '').trim().toLowerCase()
@@ -132,7 +132,7 @@ router.put('/incidents/:incidentId', authMiddleware, requireRole('admin'), (req:
   }
 })
 
-/* GET /api/config/shelters — Active emergency shelters */
+/* GET /api/config/shelters -- Active emergency shelters */
 router.get('/shelters', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const lat = parseFloat(req.query.lat as string)
@@ -167,12 +167,12 @@ router.get('/shelters', async (req: Request, res: Response, next: NextFunction) 
   }
 })
 
-/* ── Shelter OSM Cache ──────────────────────────────────────────────────────
+/* -- Shelter OSM Cache ------------------------------------------------------
  *  Persistent PostgreSQL cache for Overpass API results.
  *  - Survives server restarts (unlike the old in-memory Map)
  *  - Stale-while-revalidate: serve old data immediately, refresh in background
- *  - 4-tier: fresh cache → Overpass proxy → stale cache → PostGIS shelters
- * ──────────────────────────────────────────────────────────────────────────*/
+ * - 4-tier: fresh cache -> Overpass proxy -> stale cache -> PostGIS shelters
+ * --------------------------------------------------------------------------*/
 
 const OVERPASS_MIRRORS = [
   'https://overpass-api.de/api/interpreter',
@@ -207,7 +207,7 @@ function cacheKey(lat: number, lng: number, radius: number,
   if (bbox) {
     return `b_${r2(bbox.south)}_${r2(bbox.north)}_${r2(bbox.west)}_${r2(bbox.east)}`
   }
-  // Bucket radius: 5k / 15k / 50k / 100k
+  //Bucket radius: 5k / 15k / 50k / 100k
   const rb = radius <= 7500 ? 5000 : radius <= 30000 ? 15000 : radius <= 75000 ? 50000 : 100000
   return `r_${r2(lat)}_${r2(lng)}_${rb}`
 }
@@ -257,7 +257,7 @@ function parseOsmElements(elements: any[]): NormalizedShelter[] {
   return result
 }
 
-/** Race all Overpass mirrors server-side — no CORS, no browser timeouts */
+/** Race all Overpass mirrors server-side -- no CORS, no browser timeouts */
 async function fetchOverpassRaw(query: string): Promise<any[] | null> {
   const controllers: AbortController[] = []
   const promises = OVERPASS_MIRRORS.map(async (endpoint) => {
@@ -299,7 +299,7 @@ ${['hospital','fire_station','community_centre'].map(t=>`    way["amenity"="${t}
   );out center body 40;`
 }
 
-/** Write to cache. Fire-and-forget — non-fatal if it fails */
+/** Write to cache. Fire-and-forget -- non-fatal if it fails */
 async function writeCacheRow(key: string, shelters: NormalizedShelter[]): Promise<void> {
   try {
     await pool.query(`
@@ -317,13 +317,13 @@ async function writeCacheRow(key: string, shelters: NormalizedShelter[]): Promis
  *
  * The canonical shelter endpoint. The browser NEVER calls Overpass directly.
  * Query params:
- *   lat, lng        — required (point centre)
- *   radius          — metres, default 5000, max 100000
- *   south,north,west,east — optional bbox override (for area-level searches)
+ *   lat, lng        -- required (point centre)
+ *   radius          -- metres, default 5000, max 100000
+ *   south,north,west,east -- optional bbox override (for area-level searches)
  *
  * Tiers:
  *   1. PostgreSQL fresh cache  (< CACHE_FRESH_TTL_H hours old)
- *   2. Overpass API proxy      (server → mirrors, stored in cache)
+ * 2. Overpass API proxy (server -> mirrors, stored in cache)
  *   3. PostgreSQL stale cache  (> CACHE_FRESH_TTL_H but data exists)
  *   4. PostGIS shelters table  (our own database)
  */
@@ -348,7 +348,7 @@ router.get('/shelters/near', async (req: Request, res: Response, next: NextFunct
       ? cacheKey(lat, lng, radius, { south, north, west, east })
       : cacheKey(lat, lng, radius)
 
-    // ── Tier 1: Fresh PostgreSQL cache ──────────────────────────────────────
+    //Tier 1: Fresh PostgreSQL cache
     const cacheRes = await pool.query<{ shelters: NormalizedShelter[]; source: string; age_h: number }>(`
       SELECT shelters, source,
              EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS age_h
@@ -361,17 +361,17 @@ router.get('/shelters/near', async (req: Request, res: Response, next: NextFunct
         res.json({ shelters: row.shelters, source: `${row.source}_cache`, radius, cached: true, cacheAgeH: Math.round(row.age_h * 10) / 10 })
         return
       }
-      // Stale but available — serve immediately then refresh in background
+      //Stale but available -- serve immediately then refresh in background
       if (row.age_h < CACHE_STALE_TTL_H) {
         res.json({ shelters: row.shelters, source: 'stale_cache', radius, cached: true, stale: true, cacheAgeH: Math.round(row.age_h * 10) / 10 })
-        // Background refresh — don't await
+        //Background refresh -- don't await
         const oql = isBbox ? buildBboxOQL(south, north, west, east) : buildRadiusOQL(lat, lng, radius)
         fetchOverpassRaw(oql).then(els => { if (els) writeCacheRow(key, parseOsmElements(els)) }).catch(() => {})
         return
       }
     }
 
-    // ── Tier 2: Fetch fresh from Overpass (server-side, no CORS) ────────────
+    //Tier 2: Fetch fresh from Overpass (server-side, no CORS)
     const oql = isBbox ? buildBboxOQL(south, north, west, east) : buildRadiusOQL(lat, lng, radius)
     const elements = await fetchOverpassRaw(oql)
     if (elements) {
@@ -380,14 +380,14 @@ router.get('/shelters/near', async (req: Request, res: Response, next: NextFunct
       res.json({ shelters, source: 'overpass', radius, cached: false }); return
     }
 
-    // ── Tier 3: Stale cache (even if very old — better than nothing) ────────
+    //Tier 3: Stale cache (even if very old -- better than nothing)
     if (cacheRes.rows.length > 0) {
       const row = cacheRes.rows[0]
       res.json({ shelters: row.shelters, source: 'stale_cache', radius, cached: true, stale: true, cacheAgeH: Math.round(row.age_h * 10) / 10 })
       return
     }
 
-    // ── Tier 4: Our own PostGIS shelters database ────────────────────────────
+    //Tier 4: Our own PostGIS shelters database
     const { rows: dbRows } = await pool.query(`
       SELECT id, name, address, capacity, current_occupancy, shelter_type, amenities, phone,
              ST_Y(coordinates::geometry) AS lat, ST_X(coordinates::geometry) AS lng
@@ -411,12 +411,12 @@ router.get('/shelters/near', async (req: Request, res: Response, next: NextFunct
       res.json({ shelters, source: 'postgis', radius, cached: false }); return
     }
 
-    // Nothing available at all — return graceful empty so client shows "no shelters" not an error
+    //Nothing available at all -- return graceful empty so client shows "no shelters" not an error
     res.json({ shelters: [], source: 'none', radius, cached: false })
   } catch (err) { next(err) }
 })
 
-/* GET /api/config/shelters/overpass — Legacy proxy (kept for backwards compat) */
+/* GET /api/config/shelters/overpass -- Legacy proxy (kept for backwards compat) */
 router.get('/shelters/overpass', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const lat = parseFloat(req.query.lat as string)
@@ -436,11 +436,11 @@ router.get('/shelters/overpass', async (req: Request, res: Response, next: NextF
   } catch (err) { next(err) }
 })
 
-/* GET /api/config/health — Extended health check with service status */
+/* GET /api/config/health -- Extended health check with service status */
 router.get('/health', async (_req: Request, res: Response, next: NextFunction) => {
   const checks: Record<string, string> = {}
 
-  // Database
+  //Database
   try {
     await pool.query('SELECT 1')
     checks.database = 'connected'
@@ -448,11 +448,11 @@ router.get('/health', async (_req: Request, res: Response, next: NextFunction) =
     checks.database = 'disconnected'
   }
 
-  // LLM providers
+  //LLM providers
   const llmStatus = getProviderStatus()
   checks.llm_providers = llmStatus.length > 0 ? `${llmStatus.length} configured` : 'none configured'
 
-  // SMTP
+  //SMTP
   checks.email = process.env.SMTP_USER ? 'configured' : 'not configured'
   checks.sms = process.env.TWILIO_ACCOUNT_SID ? 'configured' : 'not configured'
   checks.telegram = process.env.TELEGRAM_BOT_TOKEN ? 'configured' : 'not configured'

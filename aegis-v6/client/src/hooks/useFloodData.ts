@@ -54,12 +54,12 @@ export function useFloodData(initialRegion = 'scotland'): UseFloodDataResult {
     }
   }, [])
 
-  // Load enabled regions on mount
+  //Load enabled regions on mount
   useEffect(() => {
     fetchRegions()
   }, [fetchRegions])
 
-  // Load flood data for current region
+  //Load flood data for current region
   useEffect(() => {
     fetchFloodData(currentRegion)
   }, [currentRegion, fetchFloodData])

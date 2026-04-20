@@ -1,5 +1,5 @@
 ﻿/**
- * Community event broadcaster — minimal Socket.IO wrapper that emits
+ * Community event broadcaster -- minimal Socket.IO wrapper that emits
  * events to all clients in the 'community' room.
  *
  * - Stores a reference to the Socket.IO server instance

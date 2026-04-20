@@ -1,5 +1,5 @@
 /**
- * Tests for the disasterTypes data module — a static configuration file that
+ * Tests for the disasterTypes data module -- a static configuration file that
  * defines all supported disaster/incident category names, icons, and colours,
  * plus the sub-types (specific events) nested under each category.
  *
@@ -32,13 +32,13 @@ import { INCIDENT_CATEGORIES, DISASTER_SUBTYPES } from '../data/disasterTypes'
 
 describe('Disaster Types Configuration', () => {
   test('has 6 incident categories', () => {
-    // The data file must define exactly 6 top-level categories (natural disaster,
-    // infrastructure, public safety, etc.); this validates that none were accidentally removed
+    //The data file must define exactly 6 top-level categories (natural disaster,
+    //infrastructure, public safety, etc.); this validates that none were accidentally removed
     expect(INCIDENT_CATEGORIES.length).toBe(6)
   })
 
   test('each category has required fields', () => {
-    // Every category must have all four UI fields populated so icons and labels render correctly
+    //Every category must have all four UI fields populated so icons and labels render correctly
     for (const cat of INCIDENT_CATEGORIES) {
       expect(cat.key).toBeTruthy()   // string ID used in API requests and route params
       expect(cat.label).toBeTruthy() // human-readable display name shown in the UI
@@ -48,7 +48,7 @@ describe('Disaster Types Configuration', () => {
   })
 
   test('natural_disaster has flood, severe_storm, heatwave, wildfire, landslide', () => {
-    // The five main natural disaster subtypes must exist; Scotland experiences all of these
+    //The five main natural disaster subtypes must exist; Scotland experiences all of these
     const natDisaster = DISASTER_SUBTYPES.natural_disaster
     const keys = natDisaster.map(s => s.key) // extract just the ID strings for .toContain checks
     expect(keys).toContain('flood')
@@ -59,8 +59,8 @@ describe('Disaster Types Configuration', () => {
   })
 
   test('all 11 core incident subtypes are marked as implemented', () => {
-    // The AI engine's incident classifier must support all 11 core types;
-    // implemented:false is only set for planned-but-not-ready types
+    //The AI engine's incident classifier must support all 11 core types;
+    //implemented:false is only set for planned-but-not-ready types
     const coreIds = [
       'flood', 'severe_storm', 'heatwave', 'wildfire', 'landslide',   // natural disasters
       'power_outage', 'water_supply_disruption', 'infrastructure_damage', // infrastructure

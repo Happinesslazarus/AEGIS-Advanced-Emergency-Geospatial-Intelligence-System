@@ -72,16 +72,16 @@ async function setupConnections() {
 
     log('Logging in admin...', 'info');
     adminToken = await loginUser(ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_LOGIN_PATH);
-    log('✓ Admin login successful', 'success');
+    log(' Admin login successful', 'success');
 
-    // For citizen, we'll try to get an existing citizen or it will fail
-    // This is ok - we'll handle the error
+    //For citizen, we'll try to get an existing citizen or it will fail
+    //This is ok - we'll handle the error
     try {
       citizenToken = await loginUser(CITIZEN_EMAIL, CITIZEN_PASSWORD, CITIZEN_LOGIN_PATH);
-      log('✓ Citizen login successful', 'success');
+      log(' Citizen login successful', 'success');
     } catch (e) {
       log(`Citizen login not available (this is OK for testing): ${e.message}`, 'warning');
-      // We'll skip citizen-side testing if citizen account doesn't exist
+      //We'll skip citizen-side testing if citizen account doesn't exist
       return false;
     }
 
@@ -97,7 +97,7 @@ function connectSockets() {
     let adminConnected = false;
     let citizenConnected = false;
 
-    // Admin socket
+    //Admin socket
     log('Connecting admin socket...', 'info');
     adminSocket = io(SOCKET_URL, {
       auth: { token: adminToken },
@@ -106,7 +106,7 @@ function connectSockets() {
     });
 
     adminSocket.on('connect', () => {
-      log('✓ Admin socket connected', 'success');
+      log(' Admin socket connected', 'success');
       adminConnected = true;
       setupAdminListeners();
       if (adminConnected && citizenConnected) resolve(true);
@@ -118,7 +118,7 @@ function connectSockets() {
       resolve(false);
     });
 
-    // Citizen socket
+    //Citizen socket
     if (citizenToken) {
       log('Connecting citizen socket...', 'info');
       citizenSocket = io(SOCKET_URL, {
@@ -128,7 +128,7 @@ function connectSockets() {
       });
 
       citizenSocket.on('connect', () => {
-        log('✓ Citizen socket connected', 'success');
+        log(' Citizen socket connected', 'success');
         citizenConnected = true;
         setupCitizenListeners();
         if (adminConnected && citizenConnected) resolve(true);
@@ -140,7 +140,7 @@ function connectSockets() {
       });
     }
 
-    // Timeout
+    //Timeout
     setTimeout(() => {
       if (!adminConnected) {
         log('Admin connection timeout', 'error');
@@ -152,21 +152,21 @@ function connectSockets() {
 
 function setupAdminListeners() {
   adminSocket.on('admin:new_thread', (data) => {
-    log(`✓ Admin received new thread: ${data.subject}`, 'success');
+    log(` Admin received new thread: ${data.subject}`, 'success');
     testThreadId = data.id;
     testResults.push({ test: 'Admin receives new thread', passed: !!testThreadId });
 
-    // Simulate admin reading message and replying
+    //Simulate admin reading message and replying
     setTimeout(() => {
       log(`Admin sending reply to thread ${testThreadId}...`, 'info');
       adminSocket.emit('message:send',
         { threadId: testThreadId, content: 'Hello citizen, how can I help?' },
         (response) => {
           if (response?.success) {
-            log('✓ Admin sent message successfully', 'success');
+            log(' Admin sent message successfully', 'success');
             testResults.push({ test: 'Admin sends message', passed: true });
           } else {
-            log('✗ Admin message failed', 'error');
+ log('x Admin message failed', 'error');
             testResults.push({ test: 'Admin sends message', passed: false });
           }
         }
@@ -175,7 +175,7 @@ function setupAdminListeners() {
   });
 
   adminSocket.on('admin:new_message', (data) => {
-    log(`✓ Admin received new message from citizen: "${data.message?.content}"`, 'success');
+    log(` Admin received new message from citizen: "${data.message?.content}"`, 'success');
     messageCounts.adminReceived++;
   });
 
@@ -186,11 +186,11 @@ function setupAdminListeners() {
 
 function setupCitizenListeners() {
   citizenSocket.on('citizen:new_reply', (data) => {
-    log(`✓ Citizen received reply: "${data.message?.content}"`, 'success');
+    log(` Citizen received reply: "${data.message?.content}"`, 'success');
     messageCounts.citizenReceived++;
     testResults.push({ test: 'Citizen receives admin reply', passed: true });
 
-    // Test complete
+    //Test complete
     completeTest();
   });
 
@@ -200,7 +200,7 @@ function setupCitizenListeners() {
 }
 
 async function testMessaging() {
-  // Only test if citizen is available
+  //Only test if citizen is available
   if (!citizenToken) {
     log('Citizen token not available, testing with admin only', 'warning');
     return;
@@ -217,10 +217,10 @@ async function testMessaging() {
     },
     (response) => {
       if (response?.success) {
-        log('✓ Citizen created thread successfully', 'success');
+        log(' Citizen created thread successfully', 'success');
         testResults.push({ test: 'Citizen creates thread', passed: true });
       } else {
-        log(`✗ Citizen thread creation failed: ${response?.error}`, 'error');
+ log(`x Citizen thread creation failed: ${response?.error}`, 'error');
         testResults.push({ test: 'Citizen creates thread', passed: false });
       }
     }
@@ -232,7 +232,7 @@ function completeTest() {
 
   let passed = 0;
   testResults.forEach((result, i) => {
-    const icon = result.passed ? '✓' : '✗';
+ const icon = result.passed ? '' : 'x';
     const color = result.passed ? 'success' : 'error';
     log(`${i + 1}. ${icon} ${result.test}`, color);
     if (result.passed) passed++;
@@ -253,7 +253,7 @@ function completeTest() {
   process.exit(1);
 }
 
-// Run test
+//Run test
 async function runTest() {
   try {
     validateCredentials();
@@ -274,7 +274,7 @@ async function runTest() {
     log('Starting test scenarios...', 'info');
     await testMessaging();
 
-    // Wait for test to complete (with timeout)
+    //Wait for test to complete (with timeout)
     setTimeout(() => {
       if (testResults.length > 0) {
         completeTest();

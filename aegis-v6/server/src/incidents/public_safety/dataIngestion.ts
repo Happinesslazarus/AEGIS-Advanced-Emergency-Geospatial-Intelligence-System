@@ -14,7 +14,7 @@ export class PublicSafetyDataIngestion {
    */
   static async ingestData(region: string): Promise<{ recordsIngested: number; source: string }> {
     try {
-      // Count recent public safety reports
+      //Count recent public safety reports
       const result = await pool.query(
         `SELECT COUNT(*) as count
          FROM reports

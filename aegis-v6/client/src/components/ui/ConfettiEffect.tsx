@@ -1,5 +1,5 @@
 /**
- * ConfettiEffect — Lightweight confetti burst animation using CSS.
+ * ConfettiEffect -- Lightweight confetti burst animation using CSS.
  * No external dependencies. Renders 30 confetti particles that fan
  * outward from the trigger point and fade away.
  * Used after report submission, quiz completion, badge unlocks, etc.

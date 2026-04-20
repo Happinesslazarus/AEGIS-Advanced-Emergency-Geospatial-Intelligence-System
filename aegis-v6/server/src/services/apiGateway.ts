@@ -1,5 +1,5 @@
 ﻿/**
- * API gateway layer — manages API key registration/validation with per-key
+ * API gateway layer -- manages API key registration/validation with per-key
  * rate limits and daily quotas, API versioning with deprecation sunset
  * tracking, standard JSON response envelopes, and HMAC webhook verification.
  *
@@ -13,7 +13,7 @@ import { Request, Response, NextFunction } from 'express'
 import client from 'prom-client'
 import { logger } from './logger.js'
 
-// Prometheus metrics
+//Prometheus metrics
 const apiKeyUsage = new client.Counter({
   name: 'aegis_api_key_requests_total',
   help: 'API requests by key',
@@ -38,7 +38,7 @@ const quotaExceeded = new client.Counter({
   labelNames: ['key_id'] as const,
 })
 
-// API Key management
+//API Key management
 interface ApiKey {
   id: string
   key: string
@@ -54,7 +54,7 @@ interface ApiKey {
   metadata?: Record<string, any>
 }
 
-// Usage tracking
+//Usage tracking
 interface UsageRecord {
   keyId: string
   minuteCount: number
@@ -63,7 +63,7 @@ interface UsageRecord {
   lastDailyReset: number
 }
 
-// Endpoint deprecation
+//Endpoint deprecation
 interface DeprecationInfo {
   endpoint: string
   version: string
@@ -73,12 +73,12 @@ interface DeprecationInfo {
   message: string
 }
 
-// Storage
+//Storage
 const apiKeys = new Map<string, ApiKey>()
 const usageTracking = new Map<string, UsageRecord>()
 const deprecations = new Map<string, DeprecationInfo>()
 
-// Standard response envelope
+//Standard response envelope
 interface ApiResponse<T = any> {
   success: boolean
   data?: T
@@ -153,17 +153,17 @@ export function validateApiKey(key: string): {
     return { valid: false, error: 'API key has expired' }
   }
   
-  // Check rate limit and quota
+  //Check rate limit and quota
   const usage = getOrCreateUsage(apiKey.id)
   const now = Date.now()
   
-  // Reset minute counter if needed
+  //Reset minute counter if needed
   if (now - usage.lastMinuteReset > 60_000) {
     usage.minuteCount = 0
     usage.lastMinuteReset = now
   }
   
-  // Reset daily counter if needed
+  //Reset daily counter if needed
   const dayMs = 24 * 60 * 60 * 1000
   if (now - usage.lastDailyReset > dayMs) {
     usage.dailyCount = 0
@@ -180,7 +180,7 @@ export function validateApiKey(key: string): {
     return { valid: false, error: 'Daily quota exceeded. Resets at midnight UTC.' }
   }
   
-  // Update usage
+  //Update usage
   usage.minuteCount++
   usage.dailyCount++
   apiKey.lastUsed = new Date()
@@ -233,7 +233,7 @@ export function apiKeyMiddleware(options: { required?: boolean } = {}) {
       return
     }
     
-    // Attach API key info to request
+    //Attach API key info to request
     ;(req as any).apiKey = validation.apiKey
     apiKeyUsage.labels(validation.apiKey!.id, req.path).inc()
     
@@ -262,22 +262,22 @@ export function versioningMiddleware(
   res: Response,
   next: NextFunction
 ): void {
-  // Extract version from URL, header, or query param
+  //Extract version from URL, header, or query param
   let version = 'v1' // default
   
-  // URL path versioning: /api/v2/reports
+  //URL path versioning: /api/v2/reports
   const pathMatch = req.path.match(/\/api\/(v\d+)\//)
   if (pathMatch) {
     version = pathMatch[1]
   }
   
-  // Header versioning: X-API-Version: 2
+  //Header versioning: X-API-Version: 2
   const headerVersion = req.headers['x-api-version'] as string
   if (headerVersion) {
     version = `v${headerVersion}`
   }
   
-  // Query param: ?api_version=2
+  //Query param: ?api_version=2
   if (req.query.api_version) {
     version = `v${req.query.api_version}`
   }
@@ -285,7 +285,7 @@ export function versioningMiddleware(
   ;(req as any).apiVersion = version
   apiVersionUsage.labels(version).inc()
   
-  // Check for deprecation
+  //Check for deprecation
   const deprecation = deprecations.get(`${version}:${req.path}`) ||
                       deprecations.get(`${version}:*`)
   
@@ -299,18 +299,18 @@ export function versioningMiddleware(
       res.setHeader('Link', `<${deprecation.replacementEndpoint}>; rel="successor-version"`)
     }
     
-    // Store deprecation info for response envelope
+    //Store deprecation info for response envelope
     ;(req as any).deprecationInfo = deprecation
   }
   
-  // Add version to response
+  //Add version to response
   res.setHeader('X-API-Version', version)
   
   next()
 }
 
 /**
- * Response envelope middleware — wraps all responses in standard format
+ * Response envelope middleware -- wraps all responses in standard format
  */
 export function responseEnvelopeMiddleware(
   req: Request,
@@ -320,7 +320,7 @@ export function responseEnvelopeMiddleware(
   const originalJson = res.json.bind(res)
   
   res.json = function(data: any): Response {
-    // Skip if already wrapped
+    //Skip if already wrapped
     if (data && typeof data === 'object' && 'success' in data) {
       return originalJson(data)
     }
@@ -393,7 +393,7 @@ export function verifyWebhookSignature(
     .update(payload)
     .digest('hex')
   
-  // Constant-time comparison
+  //Constant-time comparison
   try {
     return crypto.timingSafeEqual(
       Buffer.from(signature),
@@ -425,10 +425,10 @@ export function webhookVerificationMiddleware(secretEnvVar: string) {
       return
     }
     
-    // Get raw body for verification
+    //Get raw body for verification
     const rawBody = (req as any).rawBody || JSON.stringify(req.body)
     
-    // Handle different signature formats
+    //Handle different signature formats
     const signatureValue = signature.startsWith('sha256=') 
       ? signature.replace('sha256=', '')
       : signature

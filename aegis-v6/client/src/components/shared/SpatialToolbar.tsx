@@ -16,7 +16,7 @@ import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { sanitizeHtml } from './SafeHtml'
 
-// Types
+//Types
 
 type ToolId =
   | 'distance' | 'area' | 'buffer' | 'radius-search'
@@ -67,7 +67,7 @@ interface Props {
   hideToggle?: boolean
 }
 
-// Haversine & Geodesic Math
+//Haversine & Geodesic Math
 
 const R_EARTH = 6371 // Earth radius in km
 
@@ -115,7 +115,7 @@ function formatDist(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(2)} km`
 }
 
-// Tool Definitions
+//Tool Definitions
 
 function getTools(lang: string): ToolDef[] {
   return [
@@ -134,7 +134,7 @@ function getTools(lang: string): ToolDef[] {
 ]
 }
 
-// Marker Icons
+//Marker Icons
 
 function toolIcon(color: string, label: string): L.DivIcon {
   return L.divIcon({
@@ -146,7 +146,7 @@ function toolIcon(color: string, label: string): L.DivIcon {
   })
 }
 
-// Click Handler Sub-component
+//Click Handler Sub-component
 
 function ToolClickHandler({ activeTool, onMapClick }: { activeTool: ToolId | null; onMapClick: (e: L.LeafletMouseEvent) => void }) {
   useMapEvents({
@@ -159,7 +159,7 @@ function ToolClickHandler({ activeTool, onMapClick }: { activeTool: ToolId | nul
   return null
 }
 
-// Main Component
+//Main Component
 
 export default function SpatialToolbar({ reports = [], open, hideToggle }: Props): JSX.Element {
   const map = useMap()
@@ -179,7 +179,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
   const [densityPoints, setDensityPoints] = useState<DensityPoint[]>([])
   const abortRef = useRef<AbortController | null>(null)
 
-  // Cursor style when tool active
+  //Cursor style when tool active
   useEffect(() => {
     const container = map.getContainer()
     if (activeTool && activeTool !== 'export') {
@@ -209,12 +209,12 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
       setActiveTool(null)
     } else {
       setActiveTool(id)
-      // Export shows format picker — no immediate action needed
+      //Export shows format picker -- no immediate action needed
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTool, reset])
 
-  //  Distance
+  // Distance
 
   const totalDistance = useMemo(() => {
     if (points.length < 2) return 0
@@ -225,14 +225,14 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     return d
   }, [points])
 
-  //  Area
+  // Area
 
   const polygonArea = useMemo(() => {
     if (points.length < 3) return 0
     return sphericalPolygonArea(points)
   }, [points])
 
-  //  Reverse Geocode
+  // Reverse Geocode
 
   const reverseGeocode = useCallback(async (lat: number, lng: number): Promise<string> => {
     try {
@@ -247,7 +247,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     }
   }, [])
 
-  //  Elevation Lookup
+  // Elevation Lookup
 
   const fetchElevation = useCallback(async (coords: [number, number][]): Promise<ElevationPoint[]> => {
     try {
@@ -261,15 +261,15 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
         elevation: p.elevation ?? null,
       })) || []
     } catch {
-      // Fallback: mark elevation as unavailable
+      //Fallback: mark elevation as unavailable
       return coords.map(c => ({ lat: c[0], lng: c[1], elevation: null }))
     }
   }, [])
 
-  //  Nearest Shelter
+  // Nearest Shelter
 
   const findNearestShelter = useCallback(async (lat: number, lng: number): Promise<ShelterResult | null> => {
-    // Try PostGIS nearest-neighbour first (uses KNN <-> operator)
+    //Try PostGIS nearest-neighbour first (uses KNN <-> operator)
     try {
       const pgr = await fetch('/api/spatial/nearest', {
         method: 'POST',
@@ -291,7 +291,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
       }
     } catch { /* PostGIS unavailable, fall through to client-side */ }
 
-    // Fallback: client-side Haversine distance sort
+    //Fallback: client-side Haversine distance sort
     try {
       const r = await fetch(`/api/config/shelters?lat=${lat}&lng=${lng}&radius=100`)
       if (!r.ok) return null
@@ -314,10 +314,10 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     }
   }, [])
 
-  //  Flood Risk Query
+  // Flood Risk Query
 
   const queryFloodRisk = useCallback(async (lat: number, lng: number): Promise<string> => {
-    // Try PostGIS ST_Contains / ST_DWithin flood zone check first
+    //Try PostGIS ST_Contains / ST_DWithin flood zone check first
     try {
       const pgr = await fetch('/api/spatial/flood-risk', {
         method: 'POST',
@@ -330,12 +330,12 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
         lines.push(`**Flood Risk: ${pgData.risk_level}**`)
         if (pgData.in_flood_zone && pgData.zones.length > 0) {
           pgData.zones.forEach((z: any) => {
-            lines.push(`Zone: ${z.zone_name || 'Unknown'} — ${z.flood_type || ''} (${Math.round((z.probability || 0) * 100)}%)`)
+            lines.push(`Zone: ${z.zone_name || 'Unknown'} -- ${z.flood_type || ''} (${Math.round((z.probability || 0) * 100)}%)`)
           })
         } else if (pgData.nearby_zones.length > 0) {
           lines.push('Nearby flood zones:')
           pgData.nearby_zones.forEach((z: any) => {
-            lines.push(`  ${z.zone_name} — ${formatDist(parseFloat(z.distance_km) || 0)} away`)
+            lines.push(`  ${z.zone_name} -- ${formatDist(parseFloat(z.distance_km) || 0)} away`)
           })
         }
         if (pgData.predictions.length > 0) {
@@ -348,14 +348,14 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
       }
     } catch { /* PostGIS unavailable, fall through */ }
 
-    // Fallback: client-side point-in-polygon check
+    //Fallback: client-side point-in-polygon check
     try {
       const r = await fetch(`/api/map/risk-layer`)
       if (!r.ok) return 'No flood risk data available'
       const data = await r.json()
       if (!data?.features?.length) return 'No flood risk zones found in database'
 
-      // Check if point is inside any risk polygon
+      //Check if point is inside any risk polygon
       const pt = L.latLng(lat, lng)
       for (const feature of data.features) {
         if (feature.geometry?.type === 'Polygon') {
@@ -371,14 +371,14 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
       }
       return 'Location is outside mapped flood risk zones'
     } catch {
-      return 'Flood risk query failed — database may be unavailable'
+      return 'Flood risk query failed -- database may be unavailable'
     }
   }, [])
 
-  //  Radius Search
+  // Radius Search
 
   const doRadiusSearch = useCallback(async (lat: number, lng: number, radiusKm: number) => {
-    // Try PostGIS ST_DWithin buffer analysis first
+    //Try PostGIS ST_DWithin buffer analysis first
     try {
       const pgr = await fetch('/api/spatial/buffer-analysis', {
         method: 'POST',
@@ -401,13 +401,13 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
       }
     } catch { /* PostGIS unavailable, fall through */ }
 
-    // Fallback: client-side Haversine filter
+    //Fallback: client-side Haversine filter
     const nearbyReports = reports.filter(r => {
       if (!r.coordinates?.length) return false
       return haversine(lat, lng, r.coordinates[0], r.coordinates[1]) <= radiusKm
     })
 
-    // Fetch shelters within radius
+    //Fetch shelters within radius
     let shelters: ShelterResult[] = []
     try {
       const sr = await fetch(`/api/config/shelters?lat=${lat}&lng=${lng}&radius=${radiusKm}`)
@@ -427,7 +427,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     return { reports: nearbyReports.length, shelters }
   }, [reports])
 
-  //  PostGIS Buffer Analysis
+  // PostGIS Buffer Analysis
 
   const runBufferAnalysis = useCallback(async (lat: number, lng: number, radiusKm: number): Promise<BufferAnalysisResult | null> => {
     try {
@@ -443,7 +443,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     }
   }, [])
 
-  //  PostGIS Density Map
+  // PostGIS Density Map
 
   const fetchDensity = useCallback(async (): Promise<DensityPoint[]> => {
     try {
@@ -468,7 +468,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     }
   }, [map])
 
-  //  Export View
+  // Export View
 
   const [exportFormat, setExportFormat] = useState<'json' | 'csv' | 'geojson' | 'kml'>('json')
 
@@ -539,7 +539,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     setActiveTool(null)
   }, [map, reports, exportFormat, getExportData])
 
-  //  Map Click Handler
+  // Map Click Handler
 
   const handleMapClick = useCallback(async (e: L.LeafletMouseEvent) => {
     const { lat, lng } = e.latlng
@@ -602,7 +602,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
         if (vals.length) {
           const min = Math.min(...vals.map(e => e.elevation!))
           const max = Math.max(...vals.map(e => e.elevation!))
-          setResult(`Elevation: ${min.toFixed(0)}m – ${max.toFixed(0)}m (${newPts.length} points)`)
+          setResult(`Elevation: ${min.toFixed(0)}m - ${max.toFixed(0)}m (${newPts.length} points)`)
         } else {
           setResult('Elevation data unavailable for these coordinates')
         }
@@ -651,7 +651,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
           ]
           setResult(lines.join('\n'))
         } else {
-          setResult('PostGIS buffer analysis unavailable — ensure database has PostGIS extension')
+          setResult('PostGIS buffer analysis unavailable -- ensure database has PostGIS extension')
         }
         setLoading(false)
         break
@@ -672,14 +672,14 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     }
   }, [activeTool, points, bufferRadius, doRadiusSearch, queryFloodRisk, findNearestShelter, fetchElevation, reverseGeocode, runBufferAnalysis, fetchDensity])
 
-  // Auto-update distance result
+  //Auto-update distance result
   useEffect(() => {
     if (activeTool === 'distance' && points.length >= 2) {
       setResult(`Total distance: ${formatDist(totalDistance)} (${points.length} points)`)
     }
   }, [activeTool, points, totalDistance])
 
-  // Auto-update area result
+  //Auto-update area result
   useEffect(() => {
     if (activeTool === 'area' && points.length >= 3) {
       const area = polygonArea
@@ -807,7 +807,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
 
       {/*  Toolbar UI  */}
       <div className="absolute top-3 right-3 z-[760] select-none" style={{ pointerEvents: 'auto' }}>
-        {/* Toggle button — hidden when the parent toolbar controls it */}
+        {/* Toggle button -- hidden when the parent toolbar controls it */}
         {!hideToggle && (
           <button
             onClick={() => setExpanded(!expanded)}
@@ -909,7 +909,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                 {result && !loading && (
                   <div className="text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded p-2 whitespace-pre-wrap leading-relaxed">
                     {result.split('\n').map((line, i) => {
-                      // SECURITY: Sanitize HTML before rendering to prevent XSS
+                      //SECURITY: Sanitize HTML before rendering to prevent XSS
                       const html = sanitizeHtml(line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'))
                       return <p key={i} dangerouslySetInnerHTML={{ __html: html }} />
                     })}

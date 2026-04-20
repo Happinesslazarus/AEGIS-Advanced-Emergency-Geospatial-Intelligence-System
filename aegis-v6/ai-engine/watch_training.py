@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# *- coding: utf-8 -*
 """
-AEGIS v6 — Live Training Dashboard
-====================================
+AEGIS v6 -- Live Training Dashboard
 Run from ai-engine/:
     python watch_training.py
 
@@ -32,11 +31,11 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-# ── paths ───────────────────────────────────────────────────────────────────
+# paths
 _ROOT     = Path(__file__).parent
 LOG_DIR   = _ROOT / "logs"
 
-# ── ordered list of all 11 hazard models ────────────────────────────────────
+# ordered list of all 11 hazard models
 ALL_HAZARDS = [
     ("flood",                   "Flood"),
     ("heatwave",                "Heatwave"),
@@ -51,7 +50,7 @@ ALL_HAZARDS = [
     ("environmental_hazard",    "Environmental Hazard"),
 ]
 
-# ── results from the session BEFORE this run (already registered) ────────────
+# results from the session BEFORE this run (already registered)
 # These appear in the table immediately so the board looks complete.
 PRIOR_RESULTS = {
     "flood":     {"roc_auc": 0.9872, "f1_macro": 0.9631, "accuracy": 0.9714,
@@ -75,7 +74,7 @@ _STEP_NAMES = {
     "8": "Evaluation",
 }
 
-# ── helpers ──────────────────────────────────────────────────────────────────
+# helpers
 
 def _strip_ansi(s: str) -> str:
     return re.sub(r"\x1b\[[0-9;]*[mK]", "", s)
@@ -104,7 +103,7 @@ def _acc_style(v: float) -> str:
     return "red"
 
 
-# ── log parser ───────────────────────────────────────────────────────────────
+# log parser
 
 def parse_log(hazard: str) -> dict:
     """
@@ -119,35 +118,35 @@ def parse_log(hazard: str) -> dict:
     text = _strip_ansi(raw)
     d: dict = {}
 
-    # ── current step ──────────────────────────────────────────────────────
+    # current step
     steps = re.findall(r"Step (\d)/8[:\s]", text)
     if steps:
         d["step"] = steps[-1]
         d["step_name"] = _STEP_NAMES.get(steps[-1], "")
 
-    # ── candidate model AUCs ──────────────────────────────────────────────
+    # candidate model AUCs
     for tag, key in [("XGBoost", "xgb_auc"), ("LightGBM", "lgb_auc"),
                      ("LogReg",  "lr_auc")]:
         hits = re.findall(rf"{tag} val AUC: ([0-9.]+)", text)
         if hits:
             d[key] = float(hits[-1])
 
-    # ── best model chosen ─────────────────────────────────────────────────
+    # best model chosen
     bm = re.findall(r"Best model: (\w+)", text)
     if bm:
         d["best_model"] = bm[-1]
 
-    # ── optimal threshold ─────────────────────────────────────────────────
+    # optimal threshold
     thr = re.findall(r"Optimal threshold: ([0-9.]+)", text)
     if thr:
         d["threshold"] = float(thr[-1])
 
-    # ── Brier score ───────────────────────────────────────────────────────
+    # Brier score
     bs = re.findall(r"calibrated=([0-9.]+) \(improvement", text)
     if bs:
         d["brier"] = float(bs[-1])
 
-    # ── final test metrics ────────────────────────────────────────────────
+    # final test metrics
     full = re.findall(
         r"Full evaluation complete: accuracy=([0-9.]+), f1_macro=([0-9.]+), roc_auc=([0-9.]+)",
         text,
@@ -158,18 +157,18 @@ def parse_log(hazard: str) -> dict:
         d["f1_macro"]  = float(f1)
         d["roc_auc"]   = float(auc)
 
-    # ── 95 % CI ───────────────────────────────────────────────────────────
+    # 95 % CI
     ci = re.findall(r"95% CI \[([0-9.]+),\s*([0-9.]+)\]", text)
     if ci:
         d["ci_lo"] = float(ci[-1][0])
         d["ci_hi"] = float(ci[-1][1])
 
-    # ── F1 positive class ─────────────────────────────────────────────────
+    # F1 positive class
     f1p = re.findall(r"F1 positive: ([0-9.]+)", text)
     if f1p:
         d["f1_positive"] = float(f1p[-1])
 
-    # ── label balance ─────────────────────────────────────────────────────
+    # label balance
     lb = re.findall(r"(\d[\d,]*) positive.*?(\d[\d,]*) negative", text)
     if lb:
         pos = int(lb[-1][0].replace(",", ""))
@@ -177,7 +176,7 @@ def parse_log(hazard: str) -> dict:
         d["n_pos"] = pos
         d["n_neg"] = neg
 
-    # ── done / failed flags ───────────────────────────────────────────────
+    # done / failed flags
     if re.search(r"training complete:", text, re.IGNORECASE) or "Artifacts saved" in text:
         d["done"] = True
     if re.search(r"training failed:|NOT_TRAINABLE", text, re.IGNORECASE):
@@ -201,13 +200,13 @@ def collect() -> dict[str, dict]:
     return result
 
 
-# ── rich rendering ───────────────────────────────────────────────────────────
+# rich rendering
 
 def make_main_table(data: dict[str, dict]) -> Table:
     t = Table(
         title=(
-            "[bold bright_cyan]AEGIS v6 — Hazard Model Training[/bold bright_cyan]"
-            "  [dim](live · refreshes every 3 s)[/dim]"
+            "[bold bright_cyan]AEGIS v6 -- Hazard Model Training[/bold bright_cyan]"
+            "  [dim](live - refreshes every 3 s)[/dim]"
         ),
         box=box.ROUNDED,
         header_style="bold white on grey23",
@@ -231,7 +230,7 @@ def make_main_table(data: dict[str, dict]) -> Table:
     for i, (key, label) in enumerate(ALL_HAZARDS, 1):
         d = data.get(key, {})
 
-        # ── status cell ──────────────────────────────────────────────────
+        # status cell
         if d.get("failed"):
             status = Text("[FAIL]",      style="bold red")
         elif d.get("done"):
@@ -242,11 +241,11 @@ def make_main_table(data: dict[str, dict]) -> Table:
         else:
             status = Text("-- queued",   style="dim")
 
-        # ── algorithm cell ───────────────────────────────────────────────
+        # algorithm cell
         algo = d.get("best_model", "")
         algo_map = {"xgboost": "XGBoost", "lightgbm": "LightGBM",
                     "logistic_regression": "LogReg"}
-        algo_disp = algo_map.get(algo, algo.upper() if algo else "—")
+        algo_disp = algo_map.get(algo, algo.upper() if algo else "--")
         if algo == "xgboost":
             algo_style = "cyan"
         elif algo == "lightgbm":
@@ -255,25 +254,25 @@ def make_main_table(data: dict[str, dict]) -> Table:
             algo_style = "dim"
         algo_txt = Text(algo_disp, style=algo_style)
 
-        # ── metric cells ─────────────────────────────────────────────────
+        # metric cells
         auc = d.get("roc_auc")
         f1  = d.get("f1_macro")
         acc = d.get("accuracy")
         thr = d.get("threshold")
 
-        auc_txt = Text(f"{auc:.4f}" if auc else "—",
+        auc_txt = Text(f"{auc:.4f}" if auc else "--",
                        style=_auc_style(auc) if auc else "dim")
-        f1_txt  = Text(f"{f1:.4f}"  if f1  else "—",
+        f1_txt  = Text(f"{f1:.4f}"  if f1  else "--",
                        style=_f1_style(f1)   if f1  else "dim")
-        acc_txt = Text(f"{acc:.4f}" if acc else "—",
+        acc_txt = Text(f"{acc:.4f}" if acc else "--",
                        style=_acc_style(acc) if acc else "dim")
-        thr_txt = Text(f"{thr:.4f}" if thr else "—", style="dim cyan")
+        thr_txt = Text(f"{thr:.4f}" if thr else "--", style="dim cyan")
 
         ci = (f"[{d['ci_lo']:.4f}, {d['ci_hi']:.4f}]"
-              if d.get("ci_lo") and d.get("ci_hi") else "—")
-        ci_txt = Text(ci, style="dim" if ci == "—" else "")
+              if d.get("ci_lo") and d.get("ci_hi") else "--")
+        ci_txt = Text(ci, style="dim" if ci == "--" else "")
 
-        # ── label balance ────────────────────────────────────────────────
+        # label balance
         n_pos = d.get("n_pos", 0)
         n_neg = d.get("n_neg", 0)
         if n_pos or n_neg:
@@ -281,9 +280,9 @@ def make_main_table(data: dict[str, dict]) -> Table:
             pct   = n_pos / total * 100 if total else 0
             lb_s  = f"{total:,}  ({pct:.0f}%)"
         else:
-            lb_s = "—"
+            lb_s = "--"
 
-        # ── hazard name (bold if active) ─────────────────────────────────
+        # hazard name (bold if active)
         name_style = "bold white" if d.get("step") and not d.get("done") else "white"
 
         t.add_row(
@@ -327,12 +326,12 @@ def make_live_panel(data: dict[str, dict]) -> Panel:
 
     # progress bar
     filled = int(int(step) / 8 * 20)
-    bar = "█" * filled + "░" * (20 - filled)
+    bar = "#" * filled + " " * (20 - filled)
 
     lines: list[str] = [
         f"[bold white]{label}[/bold white]",
         f"",
-        f"  Step [bold yellow]{step}[/bold yellow]/8 — [dim]{sname}[/dim]",
+        f"  Step [bold yellow]{step}[/bold yellow]/8 -- [dim]{sname}[/dim]",
         f"  [yellow]{bar}[/yellow]  {int(step)/8*100:.0f}%",
         "",
     ]
@@ -389,7 +388,7 @@ def make_summary_panel(data: dict[str, dict]) -> Panel:
         key=lambda k: data[k]["roc_auc"],
         default=None,
     )
-    best_label = next((l for k, l in ALL_HAZARDS if k == best_key), "—") if best_key else "—"
+    best_label = next((l for k, l in ALL_HAZARDS if k == best_key), "--") if best_key else "--"
     best_auc   = data[best_key]["roc_auc"] if best_key else 0
 
     ts = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
@@ -414,7 +413,7 @@ def make_summary_panel(data: dict[str, dict]) -> Panel:
     )
 
 
-# ── main loop ────────────────────────────────────────────────────────────────
+# main loop
 
 def main() -> None:
     console = Console(highlight=False)

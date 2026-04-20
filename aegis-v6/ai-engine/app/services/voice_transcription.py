@@ -3,10 +3,10 @@ Provides real-time voice-to-text transcription for AEGIS incident reports
 using a locally-running faster-whisper (CTranslate2 backend) model.
 
 Why local (not API-based)?
-  • Emergency responders may have limited or no internet connectivity
-  • Audio data from incidents may contain sensitive personal information
-  • Response latency must be < 2 seconds for good UX
-  • Faster-whisper is 4-6× faster than original Whisper at same accuracy
+  - Emergency responders may have limited or no internet connectivity
+  - Audio data from incidents may contain sensitive personal information
+  - Response latency must be < 2 seconds for good UX
+  - Faster-whisper is 4-6× faster than original Whisper at same accuracy
 
 Pipeline:
   1. Accept audio bytes (WebM/Ogg/WAV) from the WebSocket endpoint
@@ -16,10 +16,10 @@ Pipeline:
   5. Extract AEGIS-relevant keywords (hazard types, location indicators)
 
 Models available:
-  tiny.en   — 39M params, ~200ms latency;  good for real-time partial results
-  base.en   — 74M params, ~600ms latency;  recommended default
-  small.en  — 244M params, ~1.5s latency;  best accuracy for longer reports
-  medium.en — 769M params, ~5s;            only if GPU available with VRAM > 4GB
+  tiny.en   -- 39M params, ~200ms latency;  good for real-time partial results
+  base.en   -- 74M params, ~600ms latency;  recommended default
+  small.en  -- 244M params, ~1.5s latency;  best accuracy for longer reports
+  medium.en -- 769M params, ~5s;            only if GPU available with VRAM > 4GB
 
 Glossary:
   faster-whisper  = re-implementation of OpenAI Whisper using CTranslate2;
@@ -32,10 +32,10 @@ Glossary:
   ffmpeg          = open-source audio/video conversion tool; must be installed
                     separately (apt install ffmpeg / choco install ffmpeg)
 
-  Called by  ← app/routers/voice.py  (WebSocket ws://…/api/voice/stream)
-             ← client/src/hooks/useVoiceInput.ts  (browser side)
-  Uses       ← ~/.cache/huggingface/hub/  (model downloaded on first run)
-  Returns to → multimodal_fusion.py  (text field)
+ Called by <- app/routers/voice.py (WebSocket ws://.../api/voice/stream)
+ <- client/src/hooks/useVoiceInput.ts (browser side)
+ Uses <- ~/.cache/huggingface/hub/ (model downloaded on first run)
+ Returns to -> multimodal_fusion.py (text field)
 
 Usage (programmatic):
   from app.services.voice_transcription import VoiceTranscriptionService
@@ -58,7 +58,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# ── AEGIS keyword extractor vocabulary ────────────────────────────────────
+# AEGIS keyword extractor vocabulary
 HAZARD_KEYWORDS = {
     "flood":                    ["flood", "flooding", "inundated", "waterlogged", "submerged"],
     "wildfire":                 ["fire", "wildfire", "blaze", "burning", "smoke", "flames"],
@@ -86,9 +86,9 @@ def extract_keywords(text: str) -> dict[str, Any]:
     Scan transcription text for AEGIS-relevant hazard and severity keywords.
 
     Returns a dict with:
-      detected_hazards     — ordered list of (hazard, keyword_count)
-      primary_hazard       — most likely incident type
-      severity_hint        — "critical" | "high" | "medium" | "low" | "unknown"
+      detected_hazards     -- ordered list of (hazard, keyword_count)
+      primary_hazard       -- most likely incident type
+      severity_hint        -- "critical" | "high" | "medium" | "low" | "unknown"
     """
     text_lower = text.lower()
     hazard_hits: dict[str, int] = {}
@@ -130,7 +130,7 @@ def _convert_to_wav16k(audio_bytes: bytes, input_format: str = "webm") -> bytes:
             [
                 "ffmpeg", "-y",
                 "-i", in_path,
-                "-ar", "16000",    # 16kHz — Whisper's expected sample rate
+                "-ar", "16000",    # 16kHz -- Whisper's expected sample rate
                 "-ac", "1",        # mono
                 "-f", "wav",
                 out_path,
@@ -161,7 +161,6 @@ class VoiceTranscriptionService:
     it never blocks the FastAPI event loop.
 
     Parameters
-    ----------
     model_size : faster-whisper model; "tiny.en", "base.en", "small.en", "medium.en"
     device     : "cpu" or "cuda"; auto-detected if not specified
     compute_type : quantisation type; "int8" (CPU fast), "float16" (GPU)
@@ -195,7 +194,7 @@ class VoiceTranscriptionService:
             if self._model is not None:
                 return
             logger.info(f"Loading faster-whisper {self._model_size} "
-                        f"on {self._device} ({self._compute_type}) …")
+                        f"on {self._device} ({self._compute_type}) ...")
             try:
                 from faster_whisper import WhisperModel
                 self._model = WhisperModel(
@@ -212,7 +211,7 @@ class VoiceTranscriptionService:
 
     def _run_inference(self, wav_bytes: bytes) -> dict[str, Any]:
         """
-        Synchronous inference — run in a thread pool executor.
+        Synchronous inference -- run in a thread pool executor.
         Writes wav_bytes to a temp file and transcribes.
         """
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
@@ -230,7 +229,7 @@ class VoiceTranscriptionService:
             all_segs    = list(segments)
             full_text   = " ".join(s.text.strip() for s in all_segs).strip()
 
-            # Average log-probability → approximate confidence
+ # Average log-probability -> approximate confidence
             if all_segs:
                 avg_logprob = sum(s.avg_logprob for s in all_segs) / len(all_segs)
                 confidence  = round(min(1.0, max(0.0, (avg_logprob + 0.7) / 0.7)), 3)
@@ -256,13 +255,12 @@ class VoiceTranscriptionService:
         Transcribe audio bytes and optionally extract AEGIS keywords.
 
         Parameters
-        ----------
         audio_bytes  : raw bytes from MediaRecorder or uploaded file
         input_format : "webm", "ogg", "wav", "mp4"; auto-converted to 16kHz WAV
         enrich       : if True, appends keyword extraction results to the response
 
         Returns
-        -------
+
         dict with keys: text, confidence, detected_language, duration_s,
                         detected_hazards, primary_hazard, severity_hint
         """
@@ -304,5 +302,5 @@ class VoiceTranscriptionService:
         For real-time display, returns the transcription immediately without
         waiting for the full recording to finish.
         """
-        # Re-use the same pipeline — faster-whisper handles short clips well
+        # Re-use the same pipeline -- faster-whisper handles short clips well
         return await self.transcribe(audio_chunk, input_format=input_format, enrich=False)

@@ -36,7 +36,7 @@ async def verify_api_key(
     # Require API key in ALL environments (fail-closed).
     # The Express server always sends X-API-Key even on localhost.
     if not API_SECRET_KEY:
-        logger.error("API_SECRET_KEY not set — rejecting request")
+        logger.error("API_SECRET_KEY not set -- rejecting request")
         raise HTTPException(status_code=500, detail="Server misconfiguration")
     
     # Check X-API-Key header

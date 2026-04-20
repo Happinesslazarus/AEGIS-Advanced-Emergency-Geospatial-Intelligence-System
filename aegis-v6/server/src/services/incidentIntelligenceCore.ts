@@ -197,19 +197,19 @@ type MultiPolygonMask = {
   coordinates: number[][][][]
 }
 
-// Context for geography/magnitude-aware cascade evaluation
+//Context for geography/magnitude-aware cascade evaluation
 export interface CascadeContext {
   isUrban: boolean
   isCoastal: boolean
-  populationDensity: number  // per km—
+  populationDensity: number  // per km--
   timeOfDay: number          // 0-23
   magnitude?: number         // 0-1 overall incident magnitude
 }
 
-// Default cascade rules: each rule defines an incident chain and a trigger condition.
-// trigger() receives a map of signal type -> count. Fires when there are enough
-// co-occurring signals of the right types to infer a likely cascade.
-// Examples: flood + storm -> infrastructure damage; heatwave + drought -> wildfire risk.
+//Default cascade rules: each rule defines an incident chain and a trigger condition.
+//trigger() receives a map of signal type -> count. Fires when there are enough
+//co-occurring signals of the right types to infer a likely cascade.
+//Examples: flood + storm -> infrastructure damage; heatwave + drought -> wildfire risk.
 const DEFAULT_CASCADE_RULES: Array<{ chain: string[]; trigger: (signals: Record<string, number>) => boolean }> = [
   {
     chain: ['severe_storm', 'flood', 'infrastructure_damage', 'evacuation'],
@@ -245,11 +245,11 @@ const DEFAULT_CASCADE_RULES: Array<{ chain: string[]; trigger: (signals: Record<
   },
 ]
 
-// Evidence source fusion weights by hazard type.
-// These control how much weight each evidence source (sensor vs citizen report
-// vs external feed vs model prediction) contributes to confidence scoring.
-// Public safety incidents weight citizen reports more heavily (0.46) because
-// first-hand witness accounts are the most reliable signal for those events.
+//Evidence source fusion weights by hazard type.
+//These control how much weight each evidence source (sensor vs citizen report
+//vs external feed vs model prediction) contributes to confidence scoring.
+//Public safety incidents weight citizen reports more heavily (0.46) because
+//first-hand witness accounts are the most reliable signal for those events.
 const FUSION_PROFILES: Record<string, { sensor: number; reports: number; external: number; model: number }> = {
   flood: { sensor: 0.45, reports: 0.25, external: 0.2, model: 0.1 },
   severe_storm: { sensor: 0.35, reports: 0.3, external: 0.2, model: 0.15 },
@@ -282,9 +282,9 @@ export class IncidentIntelligenceCore {
     }
   }
 
-  // Convert raw database report rows into normalised EvidenceEvent objects.
-  // Scores confidence from a combination of hazard type, AI confidence %, and severity.
-  // Applies a freshness decay so older events carry less weight.
+  //Convert raw database report rows into normalised EvidenceEvent objects.
+  //Scores confidence from a combination of hazard type, AI confidence %, and severity.
+  //Applies a freshness decay so older events carry less weight.
   buildEvidenceEvents(rows: Array<any>): EvidenceEvent[] {
     const now = Date.now()
     return rows
@@ -294,7 +294,7 @@ export class IncidentIntelligenceCore {
         const occurredAt = new Date(r.created_at || Date.now())
         const ai = Number(r.ai_confidence ?? 50)
         const baseConfidence = this.scoreConfidence(signalType, ai, r.severity)
-        // Freshness: events from 24h ago score near 0; events from right now score 1.0
+        //Freshness: events from 24h ago score near 0; events from right now score 1.0
         const ageMs = Math.max(0, now - occurredAt.getTime())
         const freshness = Math.max(0.05, Math.min(1, 1 - (ageMs / (24 * 60 * 60 * 1000))))
         return {
@@ -304,7 +304,7 @@ export class IncidentIntelligenceCore {
           lat: Number(r.lat),
           lng: Number(r.lng),
           occurredAt,
-          // Final confidence = base * freshness (fresh high-confidence reports score highest)
+          //Final confidence = base * freshness (fresh high-confidence reports score highest)
           confidence: Number((baseConfidence * freshness).toFixed(2)),
           freshness: Number(freshness.toFixed(2)),
           provenance: 'reports_table',
@@ -313,17 +313,17 @@ export class IncidentIntelligenceCore {
       })
   }
 
-  // Union-Find (Disjoint Set Union) spatial clustering.
-  // For each pair of events, union them if they're within radiusMeters of each other.
-  // This correctly handles transitive clusters (A near B, B near C → one cluster {A,B,C})
-  // without requiring all three events to be within radius of each other.
+  //Union-Find (Disjoint Set Union) spatial clustering.
+  //For each pair of events, union them if they're within radiusMeters of each other.
+ //This correctly handles transitive clusters (A near B, B near C -> one cluster {A,B,C})
+  //without requiring all three events to be within radius of each other.
   clusterEvidence(events: EvidenceEvent[], options: ClusterOptions): IncidentCluster[] {
     if (events.length === 0) return []
 
-    // Initialise each event as its own cluster root
+    //Initialise each event as its own cluster root
     const parent = events.map((_, i) => i)
 
-    // Path-compressed find: follows parent pointers with path compression for speed
+    //Path-compressed find: follows parent pointers with path compression for speed
     const find = (x: number): number => {
       let n = x
       while (parent[n] !== n) {
@@ -333,22 +333,22 @@ export class IncidentIntelligenceCore {
       return n
     }
 
-    // Union: merge the two clusters containing a and b
+    //Union: merge the two clusters containing a and b
     const union = (a: number, b: number): void => {
       const ra = find(a)
       const rb = find(b)
       if (ra !== rb) parent[rb] = ra
     }
 
-    // Pair-wise distance check: O(n²) but acceptable for typical incident counts (<500)
+    //Pair-wise distance check: O(n²) but acceptable for typical incident counts (<500)
     for (let i = 0; i < events.length; i++) {
       for (let j = i + 1; j < events.length; j++) {
         const dist = this.haversineMeters(events[i].lat, events[i].lng, events[j].lat, events[j].lng)
-        if (dist <= options.radiusMeters) union(i, j) // they're neighbours — merge their groups
+        if (dist <= options.radiusMeters) union(i, j) // they're neighbours -- merge their groups
       }
     }
 
-    // Collect all events that belong to the same root into groups
+    //Collect all events that belong to the same root into groups
     const groups = new Map<number, EvidenceEvent[]>()
     events.forEach((event, idx) => {
       const root = find(idx)
@@ -359,18 +359,18 @@ export class IncidentIntelligenceCore {
     return Array.from(groups.values())
       .filter((group) => group.length >= options.minReports) // drop clusters below minimum size
       .map((group, idx) => {
-        // Centroid of the cluster (simple average lat/lng)
+        //Centroid of the cluster (simple average lat/lng)
         const centerLat = group.reduce((acc, e) => acc + e.lat, 0) / group.length
         const centerLng = group.reduce((acc, e) => acc + e.lng, 0) / group.length
-        // Radius = maximum distance from centroid to any member event
+        //Radius = maximum distance from centroid to any member event
         const radius = Math.max(...group.map((e) => this.haversineMeters(centerLat, centerLng, e.lat, e.lng)))
 
-        // Dominant incident type = the one that appears most often in this cluster
+        //Dominant incident type = the one that appears most often in this cluster
         const typeCount: Record<string, number> = {}
         for (const e of group) typeCount[e.signalType] = (typeCount[e.signalType] || 0) + 1
         const dominantType = Object.entries(typeCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'mixed'
 
-        // Cluster confidence = average member confidence * 0.8 + size bonus (capped at +0.19)
+        //Cluster confidence = average member confidence * 0.8 + size bonus (capped at +0.19)
         const avgConf = group.reduce((acc, e) => acc + e.confidence, 0) / group.length
         const confidence = Math.max(0.05, Math.min(0.99, Number((avgConf * 0.8 + Math.min(group.length / 15, 0.19)).toFixed(2))))
 
@@ -392,19 +392,19 @@ export class IncidentIntelligenceCore {
       .sort((a, b) => b.reports - a.reports)
   }
 
-  // Cascade inference engine.
-  // Aggregates signal counts by type from the evidence events, then checks each
-  // DEFAULT_CASCADE_RULE to see if it triggers. For each triggered rule, calculates:
-  // - momentum boost from recent vs prior event rates
-  // - freshness factor based on average event age
-  // - p10/p50/p90 confidence band via simple Monte Carlo sampling
+  //Cascade inference engine.
+  //Aggregates signal counts by type from the evidence events, then checks each
+  //DEFAULT_CASCADE_RULE to see if it triggers. For each triggered rule, calculates:
+  //momentum boost from recent vs prior event rates
+  //freshness factor based on average event age
+  //p10/p50/p90 confidence band via simple Monte Carlo sampling
   inferCascades(
     events: EvidenceEvent[],
     options?: CascadeInferenceOptions,
   ): { activeSignals: Record<string, { count: number; avg: number }>; inferred: CascadingInsight[] } {
     const forecastHorizonMinutes = Math.max(30, Math.min(24 * 60, options?.forecastHorizonMinutes ?? 180))
 
-    // Count signals by type and accumulate average confidence per type
+    //Count signals by type and accumulate average confidence per type
     const activeSignals: Record<string, { count: number; avg: number }> = {}
     for (const e of events) {
       const existing = activeSignals[e.signalType] || { count: 0, avg: 0 }
@@ -413,7 +413,7 @@ export class IncidentIntelligenceCore {
       activeSignals[e.signalType] = { count: nextCount, avg: Number(nextAvg.toFixed(2)) }
     }
 
-    // Separate recent (0-1h) vs prior (1-2h) counts for momentum calculation
+    //Separate recent (0-1h) vs prior (1-2h) counts for momentum calculation
     const now = Date.now()
     const oneHourAgo = now - 60 * 60 * 1000
     const twoHoursAgo = now - 2 * 60 * 60 * 1000
@@ -441,8 +441,8 @@ export class IncidentIntelligenceCore {
 
         const avgCount = chainSignals.length ? chainSignals.reduce((a, b) => a + b.count, 0) / chainSignals.length : 0
         const avgConf = chainSignals.length ? chainSignals.reduce((a, b) => a + b.avg, 0) / chainSignals.length : 50
-        // Momentum boost: if a signal is growing faster in the last hour vs the hour before,
-        // increase confidence. Cap at +0.25 per signal; cap decrease at -0.15.
+        //Momentum boost: if a signal is growing faster in the last hour vs the hour before,
+        //increase confidence. Cap at +0.25 per signal; cap decrease at -0.15.
         const momentumBoost = rule.chain.reduce((acc, signal) => {
           const recent = recentCounts[signal] || 0
           const previous = priorCounts[signal] || 0
@@ -488,12 +488,12 @@ export class IncidentIntelligenceCore {
 
         const evidenceStrength = Number(Math.min(1, (avgCount / 12) + (avgConf / 100) * 0.4).toFixed(2))
 
-        // Monte Carlo confidence bands: add Gaussian noise (scaled by evidence strength)
-        // and record the 10th, 50th, and 90th percentiles to give a prediction interval.
+        //Monte Carlo confidence bands: add Gaussian noise (scaled by evidence strength)
+        //and record the 10th, 50th, and 90th percentiles to give a prediction interval.
         const monteCarloRuns = options?.monteCarloRuns ?? 50
         const mcSamples: number[] = []
         for (let mc = 0; mc < monteCarloRuns; mc++) {
-          // Noise scale shrinks as evidence accumulates (Bayesian narrowing effect)
+          //Noise scale shrinks as evidence accumulates (Bayesian narrowing effect)
           const noiseScale = Math.max(0.02, 0.2 - (evidenceStrength * 0.15))
           const noise = (Math.random() - 0.5) * 2 * noiseScale
           mcSamples.push(Math.max(0.01, Math.min(0.99, confidence + noise)))
@@ -519,8 +519,8 @@ export class IncidentIntelligenceCore {
         }
       })
 
-    // Predictive precursor mode: if leading signals are intensifying but full rule trigger has not fired.
-    // This gives early warning before a cascade is confirmed, using partial signal matches.
+    //Predictive precursor mode: if leading signals are intensifying but full rule trigger has not fired.
+    //This gives early warning before a cascade is confirmed, using partial signal matches.
     for (const rule of DEFAULT_CASCADE_RULES) {
       const alreadyIncluded = inferred.some((i) => i.chain.join('|') === rule.chain.join('|'))
       if (alreadyIncluded) continue
@@ -532,7 +532,7 @@ export class IncidentIntelligenceCore {
       const headRecent = recentCounts[head] || 0
       const secondRecent = recentCounts[second] || 0
 
-      // At least 2 head signals or growing in the last hour = precursor condition met
+      //At least 2 head signals or growing in the last hour = precursor condition met
       if (headCount >= 2 && (secondCount >= 1 || headRecent >= 2 || secondRecent >= 1)) {
         const precursorConfidence = Number(
           Math.max(
@@ -571,9 +571,9 @@ export class IncidentIntelligenceCore {
     return { activeSignals, inferred }
   }
 
-  // Promote evidence clusters to first-class IncidentObject records.
-  // Adds lifecycle state (weak/possible/probable/high/confirmed) and
-  // a human-readable explanation including the fusion profile weights used.
+  //Promote evidence clusters to first-class IncidentObject records.
+  //Adds lifecycle state (weak/possible/probable/high/confirmed) and
+  //a human-readable explanation including the fusion profile weights used.
   promoteIncidentObjects(events: EvidenceEvent[], options: ClusterOptions): IncidentObject[] {
     const clusters = this.clusterEvidence(events, options)
     return clusters.map((cluster) => {
@@ -599,9 +599,9 @@ export class IncidentIntelligenceCore {
     return incident.explanation
   }
 
-  // Build a GeoJSON MultiPolygon mask around high-confidence recent events.
-  // Used to flag dangerous route segments during evacuation planning.
-  // Critical events get a 250m radius; all others 140m.
+  //Build a GeoJSON MultiPolygon mask around high-confidence recent events.
+  //Used to flag dangerous route segments during evacuation planning.
+  //Critical events get a 250m radius; all others 140m.
   buildRouteRiskMask(events: EvidenceEvent[], options?: Partial<RouteRiskMaskOptions>): MultiPolygonMask | null {
     const settings: RouteRiskMaskOptions = {
       maxDistanceMeters: options?.maxDistanceMeters ?? 10000,
@@ -628,14 +628,14 @@ export class IncidentIntelligenceCore {
     }
   }
 
-  // Return the fusion weight profile for a given incident/hazard type.
-  // Falls back to 'default' profile if the type is unrecognised.
+  //Return the fusion weight profile for a given incident/hazard type.
+  //Falls back to 'default' profile if the type is unrecognised.
   getFusionProfile(incidentType: string): { sensor: number; reports: number; external: number; model: number } {
     return FUSION_PROFILES[incidentType] || FUSION_PROFILES.default
   }
 
-  // Lifecycle state based on confidence + evidence count together.
-  // A high-confidence cluster with few reports stays at 'possible' to avoid false positives.
+  //Lifecycle state based on confidence + evidence count together.
+  //A high-confidence cluster with few reports stays at 'possible' to avoid false positives.
   private toLifecycleState(confidence: number, evidenceCount: number): ConfidenceLifecycleState {
     if (confidence >= 0.9 && evidenceCount >= 6) return 'confirmed'
     if (confidence >= 0.78 && evidenceCount >= 4) return 'high'
@@ -661,8 +661,8 @@ export class IncidentIntelligenceCore {
     }
   }
 
-  // Blend AI confidence with fusion profile weights to produce a single 0-1 confidence value.
-  // AI score carries (reports + model) share of the final score; severity adds a small direct bonus.
+  //Blend AI confidence with fusion profile weights to produce a single 0-1 confidence value.
+  //AI score carries (reports + model) share of the final score; severity adds a small direct bonus.
   private scoreConfidence(signalType: string, aiConfidence: number, severity?: string): number {
     const profile = this.getFusionProfile(signalType)
     const ai = Math.max(0, Math.min(1, aiConfidence > 1 ? aiConfidence / 100 : aiConfidence))
@@ -670,8 +670,8 @@ export class IncidentIntelligenceCore {
     return Math.max(0.05, Math.min(0.99, Number((ai * (profile.reports + profile.model) + 0.15 + sevBoost).toFixed(2))))
   }
 
-  // Haversine great-circle distance between two lat/lng points.
-  // Returns metres. Accurate to ~0.3% for distances under 200km.
+  //Haversine great-circle distance between two lat/lng points.
+  //Returns metres. Accurate to ~0.3% for distances under 200km.
   private haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const toRad = (v: number): number => (v * Math.PI) / 180
     const earthRadiusM = 6371000
@@ -687,8 +687,8 @@ export class IncidentIntelligenceCore {
     return earthRadiusM * c
   }
 
-  // Build a closed GeoJSON polygon approximating a circle around a point.
-  // Uses 20 segments — sufficient precision for map rendering at city scale.
+  //Build a closed GeoJSON polygon approximating a circle around a point.
+  //Uses 20 segments -- sufficient precision for map rendering at city scale.
   private createCirclePolygon(centerLng: number, centerLat: number, radiusMeters: number): number[][][] {
     const points: number[][] = []
     const segments = 20
@@ -719,11 +719,11 @@ export class IncidentIntelligenceCore {
   ): { activeSignals: Record<string, { count: number; avg: number }>; inferred: CascadingInsight[] } {
     const base = this.inferCascades(events, options)
 
-    // Apply context-aware adjustments to each inferred cascade
+    //Apply context-aware adjustments to each inferred cascade
     const adjusted = base.inferred.map(insight => {
       let multiplier = 1.0
 
-      // Urban areas: infrastructure cascades more likely (power, water, transport)
+      //Urban areas: infrastructure cascades more likely (power, water, transport)
       const infraChains = ['power_outage', 'water_supply', 'infrastructure_damage', 'communication_failure']
       const hasInfraChain = insight.chain.some(c => infraChains.includes(c))
       if (context.isUrban && hasInfraChain) {
@@ -732,23 +732,23 @@ export class IncidentIntelligenceCore {
         multiplier *= 0.75 // Less interconnected infrastructure in rural areas
       }
 
-      // Coastal areas: flood ? infrastructure cascades more severe
+      //Coastal areas: flood ? infrastructure cascades more severe
       if (context.isCoastal && insight.chain.includes('flood')) {
         multiplier *= 1.15
       }
 
-      // Population density scaling: higher density = higher impact, lower threshold for cascades
+      //Population density scaling: higher density = higher impact, lower threshold for cascades
       if (context.populationDensity > 5000) multiplier *= 1.2
       else if (context.populationDensity > 1000) multiplier *= 1.1
       else if (context.populationDensity < 100) multiplier *= 0.85
 
-      // Night-time: power outage cascades more dangerous (no visibility, harder response)
+      //Night-time: power outage cascades more dangerous (no visibility, harder response)
       const isNight = context.timeOfDay >= 22 || context.timeOfDay < 6
       if (isNight && insight.chain.includes('power_outage')) {
         multiplier *= 1.2
       }
 
-      // Magnitude boost: higher magnitude events cascade more aggressively
+      //Magnitude boost: higher magnitude events cascade more aggressively
       if (context.magnitude && context.magnitude > 0.7) {
         multiplier *= 1 + (context.magnitude - 0.7) * 0.5 // Up to +15% at magnitude 1.0
       }
@@ -762,7 +762,7 @@ export class IncidentIntelligenceCore {
         ...insight,
         confidence: Number(adjustedConfidence.toFixed(2)),
         impact_score: adjustedImpact,
-        // Reduce lead time in urban areas (faster cascade propagation)
+        //Reduce lead time in urban areas (faster cascade propagation)
         likely_within_minutes: context.isUrban && insight.likely_within_minutes
           ? Math.round(insight.likely_within_minutes * 0.8)
           : insight.likely_within_minutes,

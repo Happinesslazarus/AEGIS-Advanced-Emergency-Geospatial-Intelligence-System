@@ -10,14 +10,14 @@
  * - On completion, updates the reports table with {severity, category, sentiment, ...}
  * - Operators see AI scores in client/src/pages/AdminPage.tsx (Incident Queue)
  *
- * - analyseReport(reportId)   — full pipeline for a fresh report
- * - reanalyseReport(reportId) — re-trigger pipeline on an updated report (operator action)
+ * - analyseReport(reportId)   -- full pipeline for a fresh report
+ * - reanalyseReport(reportId) -- re-trigger pipeline on an updated report (operator action)
  *
- * - server/src/services/classifierRouter.ts    — routes to ONNX classifiers
- * - server/src/services/llmRouter.ts           — LLM-based reasoning for severity
- * - server/src/services/imageAnalysisService.ts — vision analysis for evidence photos
- * - server/src/services/governanceEngine.ts    — policy / content moderation rules
- * - server/src/routes/reportRoutes.ts          — triggers this pipeline on new submissions
+ * - server/src/services/classifierRouter.ts    -- routes to ONNX classifiers
+ * - server/src/services/llmRouter.ts           -- LLM-based reasoning for severity
+ * - server/src/services/imageAnalysisService.ts -- vision analysis for evidence photos
+ * - server/src/services/governanceEngine.ts    -- policy / content moderation rules
+ * - server/src/routes/reportRoutes.ts          -- triggers this pipeline on new submissions
  * */
 
 import pool from '../models/db.js'
@@ -32,13 +32,13 @@ import { logger } from './logger.js'
 
 export interface CrossRefSimilarityEntry {
   id: string
-  similarity: number       // 0—1 TF-IDF cosine similarity
+  similarity: number       // 0--1 TF-IDF cosine similarity
   isNearDuplicate: boolean // true when similarity = 0.70
 }
 
 export interface WaterDepthEstimate {
   valueMetres: number | null
-  confidenceScore: number              // 0—1
+  confidenceScore: number              // 0--1
   method: 'text_extraction' | 'gauge_derived' | 'photo_derived' | 'composite'
   textClues: string[]                  // raw phrases that triggered extraction
 }
@@ -87,12 +87,12 @@ export interface AIAnalysisResult {
 }
 
 
-/* Step 1: Sentiment analysis — detects emotional tone of report text */
+/* Step 1: Sentiment analysis -- detects emotional tone of report text */
 async function analyseSentiment(text: string): Promise<{ score: number; label: string; panicLevel: string }> {
   const result = await classify({ text, task: 'sentiment' })
   const score = result.score
 
-  // Map sentiment to panic level based on negative sentiment strength
+  //Map sentiment to panic level based on negative sentiment strength
   let panicLevel = 'None'
   const negativeLabels = ['negative', 'NEGATIVE', 'LABEL_0']
   if (negativeLabels.includes(result.label)) {
@@ -143,7 +143,7 @@ function detectVulnerablePersons(text: string): { alert: boolean; keywords: stri
     'bedridden', 'oxygen tank', 'ventilator', 'medication', 'insulin',
   ]
 
-  // Negation phrases that negate the vulnerability detection
+  //Negation phrases that negate the vulnerability detection
   const negationPatterns = [
     /\bno\s+(\w+)/gi,
     /\bnot\s+(\w+)/gi,
@@ -166,13 +166,13 @@ function detectVulnerablePersons(text: string): { alert: boolean; keywords: stri
   for (const kw of vulnerableKeywords) {
     if (!lower.includes(kw)) continue
 
-    // Check each sentence containing the keyword for negation context
+    //Check each sentence containing the keyword for negation context
     let isNegated = false
     for (const sentence of sentences) {
       const sentLower = sentence.toLowerCase()
       if (!sentLower.includes(kw)) continue
 
-      // Check if keyword appears within 5 words of a negation
+      //Check if keyword appears within 5 words of a negation
       const words = sentLower.split(/\s+/)
       const kwIdx = words.findIndex(w => w.includes(kw))
       if (kwIdx === -1) continue
@@ -180,7 +180,7 @@ function detectVulnerablePersons(text: string): { alert: boolean; keywords: stri
       for (const negPattern of negationPatterns) {
         negPattern.lastIndex = 0
         if (negPattern.test(sentLower)) {
-          // Find the negation word position
+          //Find the negation word position
           const negWords = ['no', 'not', 'without', 'none', "don't", "dont", "isn't", "isnt", "aren't", "arent", 'nobody']
           for (const negWord of negWords) {
             const negIdx = words.findIndex(w => w.includes(negWord))
@@ -202,7 +202,7 @@ function detectVulnerablePersons(text: string): { alert: boolean; keywords: stri
     }
   }
 
-  // Context scoring: proximity of vulnerability keywords to danger/urgency keywords
+  //Context scoring: proximity of vulnerability keywords to danger/urgency keywords
   const dangerKeywords = ['trapped', 'stuck', 'stranded', 'drowning', 'injured', 'hurt', 'danger',
     'help', 'rescue', 'urgent', 'emergency', 'dying', 'critical', 'bleeding', 'unconscious',
     'collapsed', 'falling', 'fire', 'flood', 'smoke']
@@ -211,7 +211,7 @@ function detectVulnerablePersons(text: string): { alert: boolean; keywords: stri
     ? Math.min(1, (found.length * 0.3) + (dangerCount * 0.2))
     : 0
 
-  // Build descriptive details
+  //Build descriptive details
   if (found.length > 0) {
     details.push(`Vulnerable indicators: ${found.join(', ')}`)
     if (dangerCount > 0) {
@@ -250,7 +250,7 @@ function tokenise(text: string): string[] {
 function computeTF(tokens: string[]): Map<string, number> {
   const tf = new Map<string, number>()
   for (const t of tokens) tf.set(t, (tf.get(t) || 0) + 1)
-  // Normalise by document length
+  //Normalise by document length
   for (const [k, v] of tf) tf.set(k, v / tokens.length)
   return tf
 }
@@ -258,7 +258,7 @@ function computeTF(tokens: string[]): Map<string, number> {
  /*
  * TF-IDF cosine similarity between two raw text strings.
  * Approximation: IDF is approximated as log(2 / df) where df ? {1,2}
- * (i.e. terms shared by both documents get IDF=log(1)=0; unique terms get IDF=log(2)—0.693).
+ * (i.e. terms shared by both documents get IDF=log(1)=0; unique terms get IDF=log(2)--0.693).
  * This is sufficient for short disaster-report texts and avoids requiring a corpus.
   */
 function tfidfCosineSimilarity(a: string, b: string): number {
@@ -275,7 +275,7 @@ function tfidfCosineSimilarity(a: string, b: string): number {
 
   let dotProduct = 0, normA = 0, normB = 0
   for (const term of vocab) {
-    // IDF: shared term ? log(1)=0 contribution; unique ? log(2)
+    //IDF: shared term ? log(1)=0 contribution; unique ? log(2)
     const idf = sharedTerms.has(term) ? 0 : LOG2
     const wa = (tfA.get(term) || 0) * (1 + idf)
     const wb = (tfB.get(term) || 0) * (1 + idf)
@@ -291,14 +291,14 @@ function tfidfCosineSimilarity(a: string, b: string): number {
 
  /*
  * Estimates water depth from three independent signals and combines them:
- *   1. Text extraction — NLP scan for explicit measurements and depth vocabulary
- *   2. Gauge-derived   — river level above warning threshold mapped to floodplain depth
- *   3. Photo-derived   — CNN water-confidence mapped to expected visible depth
+ *   1. Text extraction -- NLP scan for explicit measurements and depth vocabulary
+ *   2. Gauge-derived   -- river level above warning threshold mapped to floodplain depth
+ *   3. Photo-derived   -- CNN water-confidence mapped to expected visible depth
  * The composite method uses a confidence-weighted average of available signals.
  * @param text                 Report description
  * @param gaugeWaterLevelM     Current gauge reading in metres (optional)
  * @param gaugeWarningLevelM   Gauge warning threshold in metres (optional)
- * @param photoWaterConfidence CNN water confidence 0—1 from image analysis (optional)
+ * @param photoWaterConfidence CNN water confidence 0--1 from image analysis (optional)
   */
 function estimateWaterDepth(
   text: string,
@@ -310,9 +310,9 @@ function estimateWaterDepth(
   const textClues: string[] = []
   const candidates: Array<{ value: number; confidence: number; method: string }> = []
 
-  //  1. Text extraction
+  // 1. Text extraction
 
-  // Explicit metric measurements:  "1.5 metres", "80 cm", "500 mm"
+  //Explicit metric measurements:  "1.5 metres", "80 cm", "500 mm"
   const metreMatch = lower.match(/(\d+(?:\.\d+)?)\s*(?:m(?:etre|eters?)?)\b(?!\s*ph)/)
   const cmMatch    = lower.match(/(\d+(?:\.\d+)?)\s*(?:centimetre|centimeter|cm)\b/)
   const mmMatch    = lower.match(/(\d+(?:\.\d+)?)\s*(?:millimetre|millimeter|mm)\b/)
@@ -340,7 +340,7 @@ function estimateWaterDepth(
     if (v > 0 && v < 2) { textClues.push(`${inchMatch[1]}"`); candidates.push({ value: v, confidence: 0.82, method: 'text_extraction' }) }
   }
 
-  // Depth vocabulary (body-part / landmark anchors)
+  //Depth vocabulary (body-part / landmark anchors)
   const DEPTH_VOCABULARY: Array<{ patterns: string[]; depthM: number; confidence: number }> = [
     { patterns: ['ankle deep','ankle-deep','ankle level','ankle high'],           depthM: 0.15, confidence: 0.78 },
     { patterns: ['shin deep','shin high','shin level','shin-deep'],              depthM: 0.30, confidence: 0.76 },
@@ -370,40 +370,40 @@ function estimateWaterDepth(
     }
   }
 
-  //  2. Gauge-derived depth
+  // 2. Gauge-derived depth
   if (gaugeWaterLevelM !== undefined && gaugeWarningLevelM !== undefined && gaugeWarningLevelM > 0) {
     const excessM = gaugeWaterLevelM - gaugeWarningLevelM
     if (excessM > 0) {
-      // Approximate floodplain depth from gauge excess using a non-linear transfer function.
-      // River channels confine ~80% of excess — remaining 20% spreads onto floodplain.
-      // Typical bank-full excess of 1m ? ~0.20m floodplain inundation.
+      //Approximate floodplain depth from gauge excess using a non-linear transfer function.
+      //River channels confine ~80% of excess -- remaining 20% spreads onto floodplain.
+      //Typical bank-full excess of 1m ? ~0.20m floodplain inundation.
       const floodplainDepth = Math.min(3.0, excessM * 0.22 + 0.08)
       candidates.push({ value: Math.round(floodplainDepth * 100) / 100, confidence: 0.65, method: 'gauge_derived' })
     }
   }
 
-  //  3. Photo-derived depth
+  // 3. Photo-derived depth
   if (photoWaterConfidence !== undefined && photoWaterConfidence > 0.20) {
-    // Map CNN water confidence to expected visible floodwater depth.
-    // High confidence (=0.85) suggests clearly visible standing water (~0.30—0.60m).
-    // Moderate confidence (0.5—0.85) suggests shallow water (~0.05—0.30m).
+    //Map CNN water confidence to expected visible floodwater depth.
+    //High confidence (=0.85) suggests clearly visible standing water (~0.30--0.60m).
+    //Moderate confidence (0.5--0.85) suggests shallow water (~0.05--0.30m).
     let photoDepth: number
     if (photoWaterConfidence >= 0.85) photoDepth = 0.30 + (photoWaterConfidence - 0.85) * 2.0
     else if (photoWaterConfidence >= 0.50) photoDepth = 0.05 + (photoWaterConfidence - 0.50) * 0.71
     else photoDepth = 0.03 + photoWaterConfidence * 0.04
     candidates.push({
       value: Math.round(Math.min(3.0, photoDepth) * 100) / 100,
-      confidence: 0.45 + photoWaterConfidence * 0.25, // max 0.70 — photo alone is uncertain
+      confidence: 0.45 + photoWaterConfidence * 0.25, // max 0.70 -- photo alone is uncertain
       method: 'photo_derived',
     })
   }
 
-  //  Composite aggregation
+  // Composite aggregation
   if (candidates.length === 0) {
     return { valueMetres: null, confidenceScore: 0, method: 'text_extraction', textClues }
   }
 
-  // Weight by individual confidence, highest confidence wins as anchor
+  //Weight by individual confidence, highest confidence wins as anchor
   candidates.sort((a, b) => b.confidence - a.confidence)
 
   const totalWeight = candidates.reduce((s, c) => s + c.confidence, 0)
@@ -424,7 +424,7 @@ function estimateWaterDepth(
   }
 }
 
-/* Step 8: Cross-reference with nearby recent reports — with TF-IDF similarity scoring */
+/* Step 8: Cross-reference with nearby recent reports -- with TF-IDF similarity scoring */
 async function crossReference(
   lat: number, lng: number, reportId: string, currentText: string,
 ): Promise<{
@@ -434,7 +434,7 @@ async function crossReference(
   nearDuplicateCount: number
 }> {
   try {
-    // Find reports within 5km submitted in the last 24 hours
+    //Find reports within 5km submitted in the last 24 hours
     const result = await pool.query(
       `SELECT id::text, description
        FROM reports
@@ -458,7 +458,7 @@ async function crossReference(
       return { id: row.id, similarity: sim, isNearDuplicate: sim >= 0.70 }
     })
 
-    // Sort by similarity descending so highest-risk duplicates appear first
+    //Sort by similarity descending so highest-risk duplicates appear first
     similarityScores.sort((a, b) => b.similarity - a.similarity)
 
     return {
@@ -481,7 +481,7 @@ async function estimateDamage(
       messages: [
         {
           role: 'system',
-          content: 'You are a disaster damage assessment expert. Given an emergency report, estimate the potential damage. Respond ONLY with valid JSON: {"estimatedCost": "—X-—Y", "affectedProperties": N, "confidence": 0.0-1.0}. Be conservative in estimates.',
+          content: 'You are a disaster damage assessment expert. Given an emergency report, estimate the potential damage. Respond ONLY with valid JSON: {"estimatedCost": "--X---Y", "affectedProperties": N, "confidence": 0.0-1.0}. Be conservative in estimates.',
         },
         {
           role: 'user',
@@ -590,7 +590,7 @@ export async function analyseReport(
   const start = Date.now()
   const modelsUsed: string[] = []
 
-  // Run independent steps in parallel for speed
+  //Run independent steps in parallel for speed
   const [
     sentiment,
     fake,
@@ -611,7 +611,7 @@ export async function analyseReport(
     crossReference(lat, lng, reportId, text),
   ])
 
-  // Extract results with fallbacks for failed steps and log any errors
+  //Extract results with fallbacks for failed steps and log any errors
   let sentimentVal = sentiment.status === 'fulfilled' ? sentiment.value : { score: 0, label: 'unknown', panicLevel: 'None' as const }
   let fakeVal = fake.status === 'fulfilled' ? fake.value : { probability: 0, label: 'unknown' }
   let severityVal = severityResult.status === 'fulfilled' ? severityResult.value : { assessment: 'unknown', confidence: 0 }
@@ -623,7 +623,7 @@ export async function analyseReport(
     ? crossRef.value
     : { reportIds: [], count: 0, crossReferenceSimilarityScores: [], nearDuplicateCount: 0 }
 
-  // Log failures for debugging
+  //Log failures for debugging
   if (sentiment.status === 'rejected') logger.warn({ err: sentiment.reason, reportId }, '[AI] Sentiment analysis failed')
   if (fake.status === 'rejected') logger.warn({ err: fake.reason, reportId }, '[AI] Fake detection failed')
   if (severityResult.status === 'rejected') logger.warn({ err: severityResult.reason, reportId }, '[AI] Severity assessment failed')
@@ -633,15 +633,15 @@ export async function analyseReport(
   if (vulnerable.status === 'rejected') logger.warn({ err: vulnerable.reason, reportId }, '[AI] Vulnerable person detection failed')
   if (crossRef.status === 'rejected') logger.warn({ err: crossRef.reason, reportId }, '[AI] Cross-reference check failed')
 
-  // LLM fallback: trigger when HF sentiment+fake both fail, OR when BART-MNLI models all return unknown
+  //LLM fallback: trigger when HF sentiment+fake both fail, OR when BART-MNLI models all return unknown
   const hfSentimentFakeFailed = sentimentVal.label === 'unknown' && fakeVal.label === 'unknown'
   const bartMnliFailed = severityVal.assessment === 'unknown' && categoryVal.category === 'unknown' && urgencyVal.level === 'unknown'
   const needsLlmFallback = hfSentimentFakeFailed || bartMnliFailed
   if (needsLlmFallback) {
-    logger.info({ reportId, hfSentimentFakeFailed, bartMnliFailed }, '[AI] HF classifiers degraded — running LLM fallback')
+    logger.info({ reportId, hfSentimentFakeFailed, bartMnliFailed }, '[AI] HF classifiers degraded -- running LLM fallback')
     const llmResult = await llmFallbackAnalysis(text)
     if (llmResult) {
-      // Only overwrite fields that are still 'unknown' — preserve successful HF results
+      //Only overwrite fields that are still 'unknown' -- preserve successful HF results
       if (sentimentVal.label === 'unknown') {
         sentimentVal = { score: llmResult.sentimentScore, label: llmResult.sentimentLabel, panicLevel: llmResult.panicLevel }
       }
@@ -657,7 +657,7 @@ export async function analyseReport(
       if (categoryVal.category === 'unknown') {
         categoryVal = { category: llmResult.category, confidence: llmResult.categoryConfidence }
       }
-      // Use LLM's panic level if it's higher than what sentiment alone gave us
+      //Use LLM's panic level if it's higher than what sentiment alone gave us
       const panicRank = { 'None': 0, 'Low': 1, 'Moderate': 2, 'High': 3 }
       const currentRank = panicRank[sentimentVal.panicLevel as keyof typeof panicRank] ?? 0
       const llmRank = panicRank[llmResult.panicLevel] ?? 0
@@ -669,8 +669,8 @@ export async function analyseReport(
     }
   }
 
-  // Post-process panic level: upgrade based on urgency, vulnerability, and severity signals
-  // (sentiment score alone is a weak proxy — this composite gives a much more accurate reading)
+  //Post-process panic level: upgrade based on urgency, vulnerability, and severity signals
+  // (sentiment score alone is a weak proxy -- this composite gives a much more accurate reading)
   const panicLevels = ['None', 'Low', 'Moderate', 'High'] as const
   let panicIdx = panicLevels.indexOf((sentimentVal.panicLevel as typeof panicLevels[number]) ?? 'None')
   if (panicIdx < 0) panicIdx = 0
@@ -682,7 +682,7 @@ export async function analyseReport(
   else if (severityVal.assessment === 'medium') panicIdx = Math.max(panicIdx, 1)
   sentimentVal = { ...sentimentVal, panicLevel: panicLevels[panicIdx] }
 
-  // Track which models were used
+  //Track which models were used
   if (sentiment.status === 'fulfilled' && !hfSentimentFakeFailed) modelsUsed.push('sentiment-roberta')
   if (fake.status === 'fulfilled' && !hfSentimentFakeFailed) modelsUsed.push('fake-detector')
   if (severityResult.status === 'fulfilled' && severityVal.assessment !== 'unknown') modelsUsed.push('severity-bart-mnli')
@@ -690,8 +690,8 @@ export async function analyseReport(
   if (language.status === 'fulfilled') modelsUsed.push('language-xlm-roberta')
   if (urgency.status === 'fulfilled' && !hfSentimentFakeFailed && urgencyVal.level !== 'unknown') modelsUsed.push('urgency-bart-mnli')
 
-  // Damage estimation for high-severity reports (expensive LLM call)
-  // Also run when AI detects high/critical severity or urgent/trapped-persons signals
+  //Damage estimation for high-severity reports (expensive LLM call)
+  //Also run when AI detects high/critical severity or urgent/trapped-persons signals
   let damageEstimate = null
   const isDamageable = severity === 'high' || severity === 'critical'
     || severityVal.assessment === 'high' || severityVal.assessment === 'critical'
@@ -702,13 +702,13 @@ export async function analyseReport(
     if (damageEstimate) modelsUsed.push('damage-llm')
   }
 
-  // Step 10: Photo analysis via CNN (if media attached)
+  //Step 10: Photo analysis via CNN (if media attached)
   let photoVerified = false
   let photoValidation: AIAnalysisResult['photoValidation'] = null
 
   if (hasMedia) {
     try {
-      // Look up media URL from DB
+      //Look up media URL from DB
       const mediaResult = await pool.query(
         `SELECT media_url FROM reports WHERE id = $1 AND has_media = true`,
         [reportId],
@@ -734,15 +734,15 @@ export async function analyseReport(
     }
   }
 
-  // Step 11: Water depth estimation — composite of text NLP, gauge signal, and photo CNN
+  //Step 11: Water depth estimation -- composite of text NLP, gauge signal, and photo CNN
   const waterDepthEstimate = estimateWaterDepth(
     text,
-    undefined, // gauge readings not available at this layer — fusion engine handles those
+    undefined, // gauge readings not available at this layer -- fusion engine handles those
     undefined,
     photoValidation?.waterConfidence,
   )
 
-  // Persist water depth into report_media if we have a media record
+  //Persist water depth into report_media if we have a media record
   if (waterDepthEstimate.valueMetres !== null) {
     try {
       await pool.query(
@@ -757,7 +757,7 @@ export async function analyseReport(
     } catch { /* non-critical */ }
   }
 
-  // Generate reasoning summary for transparency and human review
+  //Generate reasoning summary for transparency and human review
   const reasoningParts: string[] = []
   reasoningParts.push(`Report analysed using ${modelsUsed.length} AI models.`)
   
@@ -785,7 +785,7 @@ export async function analyseReport(
     reasoningParts.push(`Photo verification complete - flood-related content detected with ${Math.round(photoValidation.waterConfidence * 100)}% confidence.`)
   }
   
-  // Composite confidence: best available score across working models
+  //Composite confidence: best available score across working models
   const compositeConfidence = Math.max(
     sentimentVal.score,
     urgencyVal.score,
@@ -796,7 +796,7 @@ export async function analyseReport(
   
   const reasoning = reasoningParts.join(' ')
   
-  // Compile list of data sources used in this analysis
+  //Compile list of data sources used in this analysis
   const sources: string[] = []
   if (sentiment.status === 'fulfilled' || modelsUsed.includes('llm-analysis-fallback')) sources.push('NLP Sentiment Analysis (RoBERTa)')
   if (fake.status === 'fulfilled' || modelsUsed.includes('llm-analysis-fallback')) sources.push('Authenticity Detector')
@@ -840,7 +840,7 @@ export async function analyseReport(
     sources,
   }
 
-  // Run governance checks (human-in-the-loop enforcement)
+  //Run governance checks (human-in-the-loop enforcement)
   const governance = await enforceGovernance(
     reportId,
     Math.round(compositeConfidence * 100),
@@ -849,7 +849,7 @@ export async function analyseReport(
     severityVal.assessment,
   ).catch(() => null)
 
-  // Persist results to the database
+  //Persist results to the database
   try {
     const confidenceScore = Math.round(compositeConfidence * 100)
     const status = governance?.requiresHumanReview ? 'flagged' : undefined
@@ -867,7 +867,7 @@ export async function analyseReport(
 
     await pool.query(updateQuery, updateParams)
 
-    // Log AI execution for transparency dashboard
+    //Log AI execution for transparency dashboard
     await pool.query(
       `INSERT INTO ai_executions (model_name, model_version, input_payload, raw_response, execution_time_ms, target_type, target_id)
        VALUES ('analysis_pipeline', 'v1', $1, $2, $3, 'report', $4)`,
@@ -882,7 +882,7 @@ export async function analyseReport(
     logger.error({ err, reportId }, '[AI Pipeline] Failed to persist results')
   }
 
-  devLog(`[AI Pipeline] Report ${reportId} analysed in ${result.processingTimeMs}ms — ${modelsUsed.length} models used`)
+  devLog(`[AI Pipeline] Report ${reportId} analysed in ${result.processingTimeMs}ms -- ${modelsUsed.length} models used`)
   return result
 }
 
@@ -907,10 +907,10 @@ export async function reanalyseReport(reportId: string): Promise<AIAnalysisResul
   }
 }
 
-//     Priority Scoring, Geospatial Context, Credibility Assessment, Triage, and Confidence Explanation
+//    Priority Scoring, Geospatial Context, Credibility Assessment, Triage, and Confidence Explanation
 
 /**
- * Named Entity Recognition (NER) — extract structured entities from disaster report text.
+ * Named Entity Recognition (NER) -- extract structured entities from disaster report text.
  * Uses regex-based pattern matching tuned for emergency/disaster domain.
  */
 export function extractEntities(text: string): {
@@ -926,12 +926,12 @@ export function extractEntities(text: string): {
 
   const lower = text.toLowerCase()
 
-  // Locations
-  // Street names: "123 Main Street", "Oak Road", "Elm Avenue", "Park Lane"
+  //Locations
+  //Street names: "123 Main Street", "Oak Road", "Elm Avenue", "Park Lane"
   const streetPatterns = text.match(/\b\d+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\s+(?:Street|St|Road|Rd|Avenue|Ave|Lane|Ln|Drive|Dr|Boulevard|Blvd|Way|Place|Pl|Court|Ct|Terrace|Crescent)\b/g)
   if (streetPatterns) locations.push(...streetPatterns)
 
-  // Named street without numbers: "High Street", "Mill Road"
+  //Named street without numbers: "High Street", "Mill Road"
   const namedStreets = text.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\s+(?:Street|Road|Avenue|Lane|Drive|Boulevard|Way|Place|Court|Terrace|Crescent)\b/g)
   if (namedStreets) {
     for (const ns of namedStreets) {
@@ -939,7 +939,7 @@ export function extractEntities(text: string): {
     }
   }
 
-  // "near X", "at X", "by the X" — capture next 2-4 words as location reference
+  // "near X", "at X", "by the X" -- capture next 2-4 words as location reference
   const nearPatterns = text.match(/(?:near|at|by the|close to|opposite|behind|beside|next to)\s+(?:the\s+)?([A-Z][a-zA-Z\s]{2,30}?)(?:\.|,|;|\s-|\s(?:and|but|where|which|that|there|we|i|the\s+water))/gi)
   if (nearPatterns) {
     for (const m of nearPatterns) {
@@ -948,8 +948,8 @@ export function extractEntities(text: string): {
     }
   }
 
-  // People
-  // Person counts: "family of 5", "3 people", "group of 10"
+  //People
+  //Person counts: "family of 5", "3 people", "group of 10"
   const familyOf = lower.match(/family\s+of\s+(\d+)/g)
   if (familyOf) people.push(...familyOf)
 
@@ -959,7 +959,7 @@ export function extractEntities(text: string): {
   const groupOf = lower.match(/group\s+of\s+(\d+)/g)
   if (groupOf) people.push(...groupOf)
 
-  // Vulnerable descriptors
+  //Vulnerable descriptors
   const personDescriptors = [
     'elderly', 'children', 'child', 'baby', 'infant', 'toddler',
     'pregnant woman', 'pregnant', 'disabled', 'wheelchair user',
@@ -974,7 +974,7 @@ export function extractEntities(text: string): {
   const nAdults = text.match(/\b(\d+)\s+(?:adults|children|kids|elderly|babies|infants)\b/gi)
   if (nAdults) people.push(...nAdults)
 
-  // Infrastructure
+  //Infrastructure
   const infraKeywords = [
     'bridge', 'overpass', 'underpass', 'flyover', 'viaduct',
     'road', 'highway', 'motorway', 'roundabout', 'junction', 'intersection',
@@ -991,8 +991,8 @@ export function extractEntities(text: string): {
     if (lower.includes(kw)) infrastructure.push(kw)
   }
 
-  // Hazards
-  // Extract hazard mentions with modifiers
+  //Hazards
+  //Extract hazard mentions with modifiers
   const hazardPatterns: Array<{ regex: RegExp; label: string }> = [
     { regex: /(?:severe|heavy|flash|sudden|fast[- ]rising|major|catastrophic|extreme)?\s*flood(?:ing|waters?|plain)?/gi, label: 'flood' },
     { regex: /(?:thick|heavy|dense|choking|black)?\s*smoke/gi, label: 'smoke' },
@@ -1021,7 +1021,7 @@ export function extractEntities(text: string): {
     }
   }
 
-  // Temporal references
+  //Temporal references
   const temporalPatterns = [
     /since\s+(?:yesterday|last\s+(?:night|week|month)|this\s+(?:morning|afternoon|evening))/gi,
     /for\s+(?:the\s+(?:last|past)\s+)?\d+\s+(?:hours?|minutes?|days?|weeks?)/gi,
@@ -1038,7 +1038,7 @@ export function extractEntities(text: string): {
     if (matches) temporalRefs.push(...matches.map(m => m.trim()))
   }
 
-  // Quantities
+  //Quantities
   const quantityPatterns = [
     /\b\d+(?:\.\d+)?\s*(?:metres?|meters?|m)\b(?!\s*ph)/gi,
     /\b\d+(?:\.\d+)?\s*(?:feet|foot|ft)\b/gi,
@@ -1048,7 +1048,7 @@ export function extractEntities(text: string): {
     /\b\d+(?:\.\d+)?\s*(?:kilometres?|kilometers?|km)\b/gi,
     /\b\d+(?:\.\d+)?\s*(?:miles?|mi)\b/gi,
     /\b\d+(?:\.\d+)?\s*(?:litres?|liters?|l)\b/gi,
-    /\b\d+(?:\.\d+)?\s*(?:degrees?|—)\s*(?:c|f|celsius|fahrenheit)?\b/gi,
+    /\b\d+(?:\.\d+)?\s*(?:degrees?|--)\s*(?:c|f|celsius|fahrenheit)?\b/gi,
     /\b\d+(?:\.\d+)?\s*(?:mph|km\/h|knots?)\b/gi,
     /\b\d+(?:\.\d+)?\s*(?:deep|wide|long|high|tall)\b/gi,
   ]
@@ -1057,7 +1057,7 @@ export function extractEntities(text: string): {
     if (matches) quantities.push(...matches.map(m => m.trim()))
   }
 
-  // Deduplicate all arrays
+  //Deduplicate all arrays
   const dedupe = (arr: string[]) => [...new Set(arr)]
   return {
     locations: dedupe(locations),
@@ -1070,7 +1070,7 @@ export function extractEntities(text: string): {
 }
 
 /**
- * Multi-Hazard Classification — detect primary and secondary hazards from report text.
+ * Multi-Hazard Classification -- detect primary and secondary hazards from report text.
  * Starts with the primary classification from the ML classifier, then scans for
  * secondary hazard indicators using keyword co-occurrence patterns.
  */
@@ -1081,12 +1081,12 @@ export function classifyMultiHazard(
 ): Array<{ hazardType: string; confidence: number; source: 'primary' | 'secondary' | 'inferred' }> {
   const results: Array<{ hazardType: string; confidence: number; source: 'primary' | 'secondary' | 'inferred' }> = []
 
-  // Primary hazard from classifier
+  //Primary hazard from classifier
   results.push({ hazardType: primaryCategory, confidence: categoryConfidence, source: 'primary' })
 
   const lower = text.toLowerCase()
 
-  // Secondary hazard detection rules: keyword co-occurrence patterns
+  //Secondary hazard detection rules: keyword co-occurrence patterns
   const secondaryRules: Array<{
     hazardType: string
     patterns: Array<{ keywords: string[]; minMatch: number; confidence: number }>
@@ -1196,7 +1196,7 @@ export function classifyMultiHazard(
   ]
 
   for (const rule of secondaryRules) {
-    // Skip if this is already the primary
+    //Skip if this is already the primary
     if (rule.hazardType === primaryCategory) continue
 
     let bestConfidence = 0
@@ -1208,13 +1208,13 @@ export function classifyMultiHazard(
     }
 
     if (bestConfidence > 0) {
-      // Inferred hazards: co-occurrence of flood+trapped ? also public_safety
+      //Inferred hazards: co-occurrence of flood+trapped ? also public_safety
       const source = bestConfidence >= 0.55 ? 'secondary' as const : 'inferred' as const
       results.push({ hazardType: rule.hazardType, confidence: bestConfidence, source })
     }
   }
 
-  // Inferred compound hazards
+  //Inferred compound hazards
   const detectedTypes = new Set(results.map(r => r.hazardType))
   if (detectedTypes.has('flood') && lower.includes('trapped') && !detectedTypes.has('public_safety')) {
     results.push({ hazardType: 'public_safety', confidence: 0.55, source: 'inferred' })
@@ -1223,13 +1223,13 @@ export function classifyMultiHazard(
     results.push({ hazardType: 'power_outage', confidence: 0.40, source: 'inferred' })
   }
 
-  // Sort by confidence descending
+  //Sort by confidence descending
   results.sort((a, b) => b.confidence - a.confidence)
   return results
 }
 
 /**
- * Priority Scoring — compute a weighted priority score and assign a tier (P1—P4).
+ * Priority Scoring -- compute a weighted priority score and assign a tier (P1--P4).
  * Combines severity, urgency, vulnerability, verification, and corroboration signals.
  */
 export function computePriorityScore(analysis: {
@@ -1241,13 +1241,13 @@ export function computePriorityScore(analysis: {
 }): { score: number; tier: 'P1' | 'P2' | 'P3' | 'P4'; factors: Array<{ name: string; value: number; weight: number }> } {
   const factors: Array<{ name: string; value: number; weight: number }> = []
 
-  // Severity (40%)
+  //Severity (40%)
   const severityMap: Record<string, number> = { critical: 100, high: 75, medium: 50, low: 25 }
   const severityLower = analysis.severityAssessment.toLowerCase()
   const severityValue = severityMap[severityLower] ?? 40
   factors.push({ name: 'severity', value: severityValue, weight: 0.40 })
 
-  // Urgency (25%)
+  //Urgency (25%)
   const urgencyMap: Record<string, number> = {
     extremely: 100, 'extremely urgent': 100, 'extremely_urgent': 100,
     urgent: 75, 'very urgent': 85,
@@ -1258,27 +1258,27 @@ export function computePriorityScore(analysis: {
   const urgencyValue = urgencyMap[urgencyLower] ?? Math.min(100, Math.round(analysis.urgencyScore * 100))
   factors.push({ name: 'urgency', value: urgencyValue, weight: 0.25 })
 
-  // Vulnerable persons (15%)
+  //Vulnerable persons (15%)
   let vulnerableValue = 0
   if (analysis.vulnerablePersonAlert) {
     vulnerableValue = Math.min(100, 50 + analysis.vulnerableKeywords.length * 10)
   }
   factors.push({ name: 'vulnerable_persons', value: vulnerableValue, weight: 0.15 })
 
-  // Verification (10%)
+  //Verification (10%)
   let verificationValue = 20 // no photo
   if (analysis.photoVerified) verificationValue = 80
   else if (analysis.photoVerified === false && analysis.nearbyReportCount > 0) verificationValue = 50 // has photo but not verified
   factors.push({ name: 'verification', value: verificationValue, weight: 0.10 })
 
-  // Report corroboration (10%)
+  //Report corroboration (10%)
   const corroborationValue = Math.min(100, analysis.nearbyReportCount * 25)
   factors.push({ name: 'corroboration', value: corroborationValue, weight: 0.10 })
 
-  // Weighted sum
+  //Weighted sum
   let score = factors.reduce((sum, f) => sum + f.value * f.weight, 0)
 
-  // Fake penalty: deduct 30% of score if high fake probability
+  //Fake penalty: deduct 30% of score if high fake probability
   if (analysis.fakeProbability > 0.5) {
     score = score * 0.70
     factors.push({ name: 'fake_penalty', value: -Math.round(score * 0.30), weight: 1.0 })
@@ -1296,7 +1296,7 @@ export function computePriorityScore(analysis: {
 }
 
 /**
- * Geospatial Context Enrichment — query nearby infrastructure, flood zones,
+ * Geospatial Context Enrichment -- query nearby infrastructure, flood zones,
  * historical risk scores, and recent incidents around a coordinate.
  */
 export async function enrichGeospatialContext(lat: number, lng: number): Promise<{
@@ -1310,7 +1310,7 @@ export async function enrichGeospatialContext(lat: number, lng: number): Promise
   let historicalRiskScore = 0
   let recentIncidentCount = 0
 
-  // Query shelters within 5km
+  //Query shelters within 5km
   try {
     const shelterResult = await pool.query(
       `SELECT name,
@@ -1337,7 +1337,7 @@ export async function enrichGeospatialContext(lat: number, lng: number): Promise
     }
   } catch { /* non-critical */ }
 
-  // Query recent reports within 2km in the last 7 days
+  //Query recent reports within 2km in the last 7 days
   try {
     const recentResult = await pool.query(
       `SELECT COUNT(*)::int as cnt
@@ -1354,7 +1354,7 @@ export async function enrichGeospatialContext(lat: number, lng: number): Promise
     recentIncidentCount = recentResult.rows[0]?.cnt ?? 0
   } catch { /* non-critical */ }
 
-  // Query zone_risk_scores for this location
+  //Query zone_risk_scores for this location
   try {
     const zoneResult = await pool.query(
       `SELECT zone_name, risk_score
@@ -1373,7 +1373,7 @@ export async function enrichGeospatialContext(lat: number, lng: number): Promise
     }
   } catch { /* non-critical */ }
 
-  // Query historical flood events near this point
+  //Query historical flood events near this point
   try {
     const floodResult = await pool.query(
       `SELECT COUNT(*)::int as cnt
@@ -1386,7 +1386,7 @@ export async function enrichGeospatialContext(lat: number, lng: number): Promise
       [lat, lng],
     )
     const historicalCount = floodResult.rows[0]?.cnt ?? 0
-    // Boost risk score based on historical flood frequency
+    //Boost risk score based on historical flood frequency
     historicalRiskScore = Math.min(100, historicalRiskScore + historicalCount * 5)
   } catch { /* non-critical */ }
 
@@ -1394,7 +1394,7 @@ export async function enrichGeospatialContext(lat: number, lng: number): Promise
 }
 
 /**
- * Report Credibility Assessment — evaluate the trustworthiness of a report
+ * Report Credibility Assessment -- evaluate the trustworthiness of a report
  * based on text quality, media presence, location, cross-references, and reporter history.
  */
 export async function assessCredibility(
@@ -1407,7 +1407,7 @@ export async function assessCredibility(
   const flags: string[] = []
   let score = 50 // baseline
 
-  // Text coherence
+  //Text coherence
   const textLength = text.trim().length
   if (textLength < 20) {
     score -= 15
@@ -1419,7 +1419,7 @@ export async function assessCredibility(
     score += 10 // reasonable length
   }
 
-  // Check for gibberish: >50% alphabetic characters expected
+  //Check for gibberish: >50% alphabetic characters expected
   const alphaCount = (text.match(/[a-zA-Z]/g) || []).length
   const alphaRatio = textLength > 0 ? alphaCount / textLength : 0
   if (alphaRatio < 0.50) {
@@ -1429,21 +1429,21 @@ export async function assessCredibility(
     score += 5
   }
 
-  // Check for structure: has at least some punctuation or sentence breaks
+  //Check for structure: has at least some punctuation or sentence breaks
   const hasPunctuation = /[.!?,;:]/.test(text)
   if (hasPunctuation) score += 5
   else flags.push('no_punctuation')
 
-  // Media bonus
+  //Media bonus
   if (hasMedia) {
     score += 20
   } else {
     flags.push('no_media')
   }
 
-  // Location check
+  //Location check
   if (lat !== null && lng !== null) {
-    // Reasonable bounds check: lat -90 to 90, lng -180 to 180
+    //Reasonable bounds check: lat -90 to 90, lng -180 to 180
     const validLat = lat >= -90 && lat <= 90
     const validLng = lng >= -180 && lng <= 180
     if (validLat && validLng) {
@@ -1457,9 +1457,9 @@ export async function assessCredibility(
     flags.push('no_gps_location')
   }
 
-  // Reporter trust (from reporter_scores table)
+  //Reporter trust (from reporter_scores table)
   try {
-    // Use reporter fingerprint from the report
+    //Use reporter fingerprint from the report
     const reporterResult = await pool.query(
       `SELECT rs.trust_score
        FROM reports r
@@ -1472,9 +1472,9 @@ export async function assessCredibility(
       if (trustScore >= 70) score += 10
       else if (trustScore < 30) { score -= 15; flags.push('low_reporter_trust') }
     }
-  } catch { /* reporter_scores may not exist — non-critical */ }
+  } catch { /* reporter_scores may not exist -- non-critical */ }
 
-  // Cross-reference: similar reports nearby
+  //Cross-reference: similar reports nearby
   if (lat !== null && lng !== null) {
     try {
       const nearbyResult = await pool.query(
@@ -1499,7 +1499,7 @@ export async function assessCredibility(
     } catch { /* non-critical */ }
   }
 
-  // Fake probability check
+  //Fake probability check
   try {
     const fakeResult = await pool.query(
       `SELECT ai_analysis->'fakeProbability' as fake_prob
@@ -1516,7 +1516,7 @@ export async function assessCredibility(
     }
   } catch { /* non-critical */ }
 
-  // Clamp score to 0—100
+  //Clamp score to 0--100
   score = Math.max(0, Math.min(100, score))
 
   let recommendation: 'trust' | 'verify' | 'suspect'
@@ -1528,7 +1528,7 @@ export async function assessCredibility(
 }
 
 /**
- * Triage Recommendation Generator — produce actionable response guidance
+ * Triage Recommendation Generator -- produce actionable response guidance
  * based on the AI analysis of a report.
  */
 export function generateTriageRecommendation(analysis: {
@@ -1552,7 +1552,7 @@ export function generateTriageRecommendation(analysis: {
   const isCritical = severity === 'critical'
   const isHigh = severity === 'high'
 
-  // Determine alert level and notify targets based on severity + urgency + vulnerability
+  //Determine alert level and notify targets based on severity + urgency + vulnerability
   if ((isCritical || (isHigh && isUrgent)) && analysis.vulnerablePersonAlert) {
     alertLevel = 'emergency'
     notifyTargets.push('ambulance', 'fire_service', 'police', 'emergency_coordinator')
@@ -1579,13 +1579,13 @@ export function generateTriageRecommendation(analysis: {
     reasoningParts.push('Low severity: standard logging is sufficient')
   }
 
-  // Category-specific actions
+  //Category-specific actions
   if (category.includes('flood')) {
     actions.push('Deploy sandbag resources to affected area')
     if (analysis.estimatedWaterDepth?.valueMetres > 0.5) {
       actions.push('Consider water pump deployment')
       actions.push('Issue flood warning to nearby residents')
-      reasoningParts.push(`Water depth estimated at ${analysis.estimatedWaterDepth.valueMetres}m — pump deployment recommended`)
+      reasoningParts.push(`Water depth estimated at ${analysis.estimatedWaterDepth.valueMetres}m -- pump deployment recommended`)
     }
     if (analysis.estimatedWaterDepth?.valueMetres > 1.0) {
       actions.push('Deploy rescue boats')
@@ -1631,13 +1631,13 @@ export function generateTriageRecommendation(analysis: {
     reasoningParts.push('Water supply disruption requires boil advisory and distribution')
   }
 
-  // Cross-referencing amplification
+  //Cross-referencing amplification
   if (analysis.nearbyReportCount >= 3) {
-    actions.push(`Cluster detected: ${analysis.nearbyReportCount} corroborating reports nearby — consider area-wide response`)
+    actions.push(`Cluster detected: ${analysis.nearbyReportCount} corroborating reports nearby -- consider area-wide response`)
     reasoningParts.push(`${analysis.nearbyReportCount} nearby reports suggest a widespread incident`)
   }
 
-  // Vulnerable persons specific actions
+  //Vulnerable persons specific actions
   if (analysis.vulnerablePersonAlert && alertLevel !== 'emergency') {
     actions.push('Flag for priority welfare check on vulnerable individuals')
     if (!notifyTargets.includes('ambulance') && analysis.vulnerableKeywords.some(kw =>
@@ -1654,7 +1654,7 @@ export function generateTriageRecommendation(analysis: {
 }
 
 /**
- * Confidence Explanation — generate a human-readable explanation of the
+ * Confidence Explanation -- generate a human-readable explanation of the
  * overall analysis confidence, including strong signals, weak signals, and missing data.
  */
 export function explainAnalysisConfidence(analysis: {
@@ -1668,7 +1668,7 @@ export function explainAnalysisConfidence(analysis: {
   const weakSignals: string[] = []
   const missingData: string[] = []
 
-  // Individual confidence signals
+  //Individual confidence signals
   const signals: Array<{ name: string; confidence: number; weight: number }> = [
     { name: 'severity_classification', confidence: analysis.severityConfidence, weight: 0.25 },
     { name: 'category_classification', confidence: analysis.categoryConfidence, weight: 0.25 },
@@ -1678,7 +1678,7 @@ export function explainAnalysisConfidence(analysis: {
     { name: 'verification', confidence: analysis.photoVerified ? 0.9 : (analysis.nearbyReportCount > 0 ? 0.6 : 0.3), weight: 0.10 },
   ]
 
-  // Categorise signals
+  //Categorise signals
   for (const sig of signals) {
     if (sig.confidence > 0.8) {
       strongSignals.push(`${sig.name} (${Math.round(sig.confidence * 100)}%)`)
@@ -1687,17 +1687,17 @@ export function explainAnalysisConfidence(analysis: {
     }
   }
 
-  // Identify missing data
+  //Identify missing data
   if (!analysis.photoVerified) missingData.push('verified photo')
   if (analysis.nearbyReportCount === 0) missingData.push('corroborating nearby reports')
 
-  // Weighted average confidence
+  //Weighted average confidence
   const totalWeight = signals.reduce((sum, s) => sum + s.weight, 0)
   const overallConfidence = Math.round(
     signals.reduce((sum, s) => sum + s.confidence * s.weight, 0) / totalWeight * 100
   ) / 100
 
-  // Generate explanation
+  //Generate explanation
   const parts: string[] = [`Analysis confidence is ${Math.round(overallConfidence * 100)}%`]
 
   if (strongSignals.length > 0) {

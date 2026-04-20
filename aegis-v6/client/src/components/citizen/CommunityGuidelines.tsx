@@ -83,13 +83,13 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
   const progressPct = Math.round((readCount / totalSections) * 100)
   const allRead = readCount === totalSections
 
-  // Mark section as read when expanded / clicked
+  //Mark section as read when expanded / clicked
   const toggleSection = (id: string) => {
     setExpandedSection(prev => prev === id ? null : id)
     setReadSections(prev => new Set(prev).add(id))
   }
 
-  // Intersection observer to mark sections read on scroll-into-view
+  //Intersection observer to mark sections read on scroll-into-view
   useEffect(() => {
     if (!isOpen) return
     const observer = new IntersectionObserver(
@@ -107,7 +107,7 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
     return () => observer.disconnect()
   }, [isOpen])
 
-  // Reset on open
+  //Reset on open
   useEffect(() => {
     if (isOpen) {
       setReadSections(new Set())
@@ -115,7 +115,7 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
     }
   }, [isOpen])
 
-  // Keyboard: Escape closes
+  //Keyboard: Escape closes
   useEffect(() => {
     if (!isOpen) return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -172,7 +172,7 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
           </div>
         </div>
 
-        {/* Content — scrollable */}
+        {/* Content -- scrollable */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
           {sections.map(sec => {
             const Icon = sec.icon
@@ -219,12 +219,12 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
                           { titleKey: 'community.valueResponsibilityTitle', descKey: 'community.valueResponsibilityDesc' },
                           { titleKey: 'community.valueSupportTitle', descKey: 'community.valueSupportDesc' },
                         ].map(v => (
-                          <li key={v.titleKey}>✓ <strong>{t(v.titleKey, lang)}:</strong> {t(v.descKey, lang)}</li>
+                          <li key={v.titleKey}> <strong>{t(v.titleKey, lang)}:</strong> {t(v.descKey, lang)}</li>
                         ))}
                       </ul>
                     ) : (
                       <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1.5">
-                        {sec.bullets.map(b => <li key={b}>• {t(b, lang)}</li>)}
+                        {sec.bullets.map(b => <li key={b}>- {t(b, lang)}</li>)}
                       </ul>
                     )}
                   </div>

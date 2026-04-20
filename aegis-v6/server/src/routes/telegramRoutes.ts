@@ -22,14 +22,14 @@ const router = Router()
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || ''
 const API = `https://api.telegram.org/bot${BOT_TOKEN}`
 
-// Allowed webhook domains (comma-separated in env, or the server's own domain).
-// If not set, any non-private HTTPS domain is accepted.
+//Allowed webhook domains (comma-separated in env, or the server's own domain).
+//If not set, any non-private HTTPS domain is accepted.
 const ALLOWED_WEBHOOK_DOMAINS: string[] = (process.env.TELEGRAM_WEBHOOK_ALLOWED_DOMAINS || '')
   .split(',')
   .map(d => d.trim().toLowerCase())
   .filter(Boolean)
 
-// Rate limit: 5 webhook configuration attempts per hour
+//Rate limit: 5 webhook configuration attempts per hour
 const webhookConfigLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
@@ -38,7 +38,7 @@ const webhookConfigLimiter = rateLimit({
   legacyHeaders: false,
 })
 
-// helpers
+//helpers
 
 async function tgPost(method: string, body: object) {
   const r = await fetch(`${API}/${method}`, {
@@ -64,8 +64,8 @@ async function processUpdate(update: any): Promise<void> {
 
   if (!chatId) return
 
-  // Update subscriptions that have a matching @username OR the numeric chatId
-  // stored as a string
+  //Update subscriptions that have a matching @username OR the numeric chatId
+  //stored as a string
   const lookups: string[] = [`${chatId}`]  // numeric id as string
   if (username) {
     lookups.push(`@${username}`)
@@ -84,7 +84,7 @@ async function processUpdate(update: any): Promise<void> {
     logger.info({ rowCount, username, chatId }, '[Telegram] Updated subscription(s)')
   }
 
-  // Respond to /start or any first contact with a welcome message
+  //Respond to /start or any first contact with a welcome message
   if (text.startsWith('/start') || (rowCount && rowCount > 0)) {
     await tgPost('sendMessage', {
       chat_id: chatId,
@@ -99,10 +99,10 @@ async function processUpdate(update: any): Promise<void> {
   }
 }
 
-// Webhook endpoint (Telegram ? server)
+//Webhook endpoint (Telegram ? server)
 
 router.post('/webhook', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  // Always acknowledge immediately so Telegram doesn't retry
+  //Always acknowledge immediately so Telegram doesn't retry
   res.sendStatus(200)
 
   if (!BOT_TOKEN) return
@@ -114,7 +114,7 @@ router.post('/webhook', async (req: Request, res: Response, next: NextFunction):
   }
 })
 
-// Manual poll (dev / fallback when webhook not configured)
+//Manual poll (dev / fallback when webhook not configured)
 
 let _lastOffset = 0
 
@@ -137,7 +137,7 @@ router.get('/updates', async (_req: Request, res: Response, next: NextFunction):
       if (update.update_id >= _lastOffset) _lastOffset = update.update_id + 1
       const before = captured
       await processUpdate(update)
-      // processUpdate doesn't return a count; we trust the DB log
+      //processUpdate doesn't return a count; we trust the DB log
     }
 
     res.json({ ok: true, updates: data.result?.length || 0, nextOffset: _lastOffset })
@@ -146,7 +146,7 @@ router.get('/updates', async (_req: Request, res: Response, next: NextFunction):
   }
 })
 
-// Register webhook with Telegram (admin-only, validated, audited)
+//Register webhook with Telegram (admin-only, validated, audited)
 
 /**
  * Validate that a webhook URL is safe to register.
@@ -166,12 +166,12 @@ function validateWebhookUrl(raw: string): { valid: boolean; reason?: string } {
 
   const host = parsed.hostname.toLowerCase()
 
-  // Block localhost variants
+  //Block localhost variants
   if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]' || host === '0.0.0.0') {
     return { valid: false, reason: 'Localhost webhook URLs are not allowed.' }
   }
 
-  // Block IP literals (private ranges + any raw IP to prevent SSRF)
+  //Block IP literals (private ranges + any raw IP to prevent SSRF)
   const ipv4Match = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
   if (ipv4Match) {
     const [, a, b] = ipv4Match.map(Number)
@@ -183,7 +183,7 @@ function validateWebhookUrl(raw: string): { valid: boolean; reason?: string } {
     if (isPrivate) {
       return { valid: false, reason: 'Private/reserved IP addresses are not allowed.' }
     }
-    // Block all raw IPs unless domain allowlist explicitly includes it
+    //Block all raw IPs unless domain allowlist explicitly includes it
     if (ALLOWED_WEBHOOK_DOMAINS.length > 0 && !ALLOWED_WEBHOOK_DOMAINS.includes(host)) {
       return { valid: false, reason: 'IP-literal webhook URLs are not in the allowed domain list.' }
     }
@@ -192,7 +192,7 @@ function validateWebhookUrl(raw: string): { valid: boolean; reason?: string } {
     }
   }
 
-  // Domain allowlist enforcement
+  //Domain allowlist enforcement
   if (ALLOWED_WEBHOOK_DOMAINS.length > 0) {
     const allowed = ALLOWED_WEBHOOK_DOMAINS.some(
       domain => host === domain || host.endsWith(`.${domain}`)
@@ -226,7 +226,7 @@ router.post(
       throw AppError.badRequest('A valid webhook url string is required.')
     }
 
-    // Validate the URL before sending to Telegram
+    //Validate the URL before sending to Telegram
     const validation = validateWebhookUrl(url)
     if (!validation.valid) {
       await auditWebhookAttempt(operatorId, ip, url, false, validation.reason!)
@@ -271,7 +271,7 @@ async function auditWebhookAttempt(
       ]
     )
   } catch {
-    // Audit logging must never break the request flow
+    //Audit logging must never break the request flow
     logger.error('[Telegram] Failed to write audit log for webhook config attempt')
   }
 }

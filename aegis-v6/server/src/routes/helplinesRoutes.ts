@@ -20,7 +20,7 @@ const helplinesLimiter = rateLimit({
   legacyHeaders: false,
 })
 
-// In-memory cache per country code — TTL 1 hour
+//In-memory cache per country code -- TTL 1 hour
 interface CacheEntry { data: HelplineOrg[]; ts: number }
 const cache = new Map<string, CacheEntry>()
 const CACHE_TTL_MS = 60 * 60 * 1000
@@ -34,11 +34,11 @@ export interface HelplineOrg {
   slug: string
 }
 
-// Only allow clean ISO 3166-1 alpha-2 codes and GB sub-national codes (e.g. GB-ENG)
+//Only allow clean ISO 3166-1 alpha-2 codes and GB sub-national codes (e.g. GB-ENG)
 const VALID_CC = /^[A-Z]{2}(-[A-Z]{2,3})?$/
 
 async function fetchFromFindAHelpline(countryCode: string): Promise<HelplineOrg[]> {
-  // findahelpline.com uses lowercase 2-letter ISO codes, with GB sub-regions like gb-eng
+  //findahelpline.com uses lowercase 2-letter ISO codes, with GB sub-regions like gb-eng
   const cc = countryCode.toLowerCase().replace('_', '-')
   const url = `https://findahelpline.com/countries/${cc}`
 
@@ -54,7 +54,7 @@ async function fetchFromFindAHelpline(countryCode: string): Promise<HelplineOrg[
 
   const html = await res.text()
 
-  // Extract the embedded Next.js SSR page data
+  //Extract the embedded Next.js SSR page data
   const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/)
   if (!match?.[1]) return []
 
@@ -83,7 +83,7 @@ async function fetchFromFindAHelpline(countryCode: string): Promise<HelplineOrg[
     }))
 }
 
-// GET /api/helplines?country=GB
+//GET /api/helplines?country=GB
 router.get('/', helplinesLimiter, async (req: Request, res: Response): Promise<void> => {
   const country = ((req.query.country as string) || '').trim().toUpperCase()
 
@@ -105,7 +105,7 @@ router.get('/', helplinesLimiter, async (req: Request, res: Response): Promise<v
     res.setHeader('X-Cache', 'MISS')
     res.json({ data, source: 'findahelpline.com', country })
   } catch {
-    // Return empty — client falls back to hardcoded data gracefully
+    //Return empty -- client falls back to hardcoded data gracefully
     res.json({ data: [], source: 'findahelpline.com', country })
   }
 })

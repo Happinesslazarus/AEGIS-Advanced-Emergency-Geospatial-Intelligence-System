@@ -34,7 +34,7 @@ class InfrastructureDamageModule extends BaseIncidentModule {
   async evaluateAlertRules(context: AlertRuleContext): Promise<AlertRuleResult[]> {
     const results = await super.evaluateAlertRules(context)
 
-    // Bridge/building damage = escalated priority
+    //Bridge/building damage = escalated priority
     const criticalAssets = context.recentReports.filter(
       r => ['bridge', 'building'].includes(r.customFields?.assetType) && r.severity === 'Critical'
     )

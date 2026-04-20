@@ -91,7 +91,7 @@ export class EnvironmentalHazardDataIngestion {
       })
     })
 
-    // Calculate averages
+    //Calculate averages
     const averages: Record<string, number> = {}
     Object.keys(aggregated).forEach(param => {
       const values = aggregated[param]

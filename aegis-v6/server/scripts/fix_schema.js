@@ -6,7 +6,7 @@ const pool = new Pool({
 async function main() {
   const client = await pool.connect();
   try {
-    // 1. Add 'critical' to severity enum
+    //1. Add 'critical' to severity enum
     try {
       await client.query("ALTER TYPE report_severity ADD VALUE IF NOT EXISTS 'critical'");
       console.log('OK: Added critical to severity enum');
@@ -14,7 +14,7 @@ async function main() {
       console.log('Severity enum:', e.message);
     }
 
-    // 2. Create weather_observations table
+    //2. Create weather_observations table
     await client.query(`
       CREATE TABLE IF NOT EXISTS weather_observations (
         id SERIAL PRIMARY KEY,
@@ -34,7 +34,7 @@ async function main() {
     `);
     console.log('OK: weather_observations table');
 
-    // 3. Create llm_feedback table
+    //3. Create llm_feedback table
     await client.query(`
       CREATE TABLE IF NOT EXISTS llm_feedback (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -51,7 +51,7 @@ async function main() {
     `);
     console.log('OK: llm_feedback table');
 
-    // 4. Create llm_pending_finetune table
+    //4. Create llm_pending_finetune table
     await client.query(`
       CREATE TABLE IF NOT EXISTS llm_pending_finetune (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -65,7 +65,7 @@ async function main() {
     `);
     console.log('OK: llm_pending_finetune table');
 
-    // 5. Verify tables
+    //5. Verify tables
     const { rows } = await client.query(`
       SELECT table_name FROM information_schema.tables 
       WHERE table_schema = 'public' 
@@ -74,7 +74,7 @@ async function main() {
     `);
     console.log('Verified tables:', rows.map(r => r.table_name).join(', '));
 
-    // 6. Verify severity enum
+    //6. Verify severity enum
     const enumResult = await client.query(`
       SELECT unnest(enum_range(NULL::report_severity))::text AS val
     `);

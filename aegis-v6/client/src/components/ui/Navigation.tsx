@@ -10,7 +10,7 @@ import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useTranslation } from 'react-i18next'
 
-// NAVBAR
+//NAVBAR
 
 interface NavbarProps {
   /** Logo element or text */
@@ -125,7 +125,7 @@ export const Navbar = memo<NavbarProps>(({
 
 Navbar.displayName = 'Navbar'
 
-// NAV LINK
+//NAV LINK
 
 interface NavLinkProps {
   item: NavItem
@@ -167,7 +167,7 @@ const NavLink = memo<NavLinkProps>(({
 
 NavLink.displayName = 'NavLink'
 
-// MOBILE MENU
+//MOBILE MENU
 
 interface MobileMenuProps {
   items: NavItem[]
@@ -227,7 +227,7 @@ const MobileMenu = memo<MobileMenuProps>(({
 
 MobileMenu.displayName = 'MobileMenu'
 
-// BREADCRUMBS
+//BREADCRUMBS
 
 interface BreadcrumbItem {
   label: string
@@ -305,7 +305,7 @@ export const Breadcrumbs = memo<BreadcrumbsProps>(({
 
 Breadcrumbs.displayName = 'Breadcrumbs'
 
-// SIDEBAR NAV
+//SIDEBAR NAV
 
 interface SidebarNavProps {
   items: NavItem[]
@@ -364,7 +364,7 @@ export const SidebarNav = memo<SidebarNavProps>(({
 
 SidebarNav.displayName = 'SidebarNav'
 
-// MOBILE DRAWER
+//MOBILE DRAWER
 
 interface MobileDrawerProps {
   isOpen: boolean
@@ -448,7 +448,7 @@ export const MobileDrawer = memo<MobileDrawerProps>(({
 
 MobileDrawer.displayName = 'MobileDrawer'
 
-// ICONS
+//ICONS
 
 const MenuIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -468,7 +468,7 @@ const ChevronRightIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 )
 
-// EXPORTS
+//EXPORTS
 
 export default {
   Navbar,

@@ -1,5 +1,5 @@
 /**
- * AlertsPanel — inline alerts feed used as a tab inside CitizenPage and
+ * AlertsPanel -- inline alerts feed used as a tab inside CitizenPage and
  * CitizenDashboard. Identical content to AlertsPage but without the full-page
  * chrome (no navbar, no min-h-screen wrapper, no back-link).
  */
@@ -170,7 +170,7 @@ export default function AlertsPanel() {
               <h2 className="text-base font-black">{t('alerts.pageTitle', lang) || 'Live Alerts'}</h2>
               <p className="text-[11px] text-white/60">
                 {activeLocation || t('alerts.yourArea', lang) || 'Your area'}
-                {severityCounts.all > 0 && ` · ${severityCounts.all} active`}
+                {severityCounts.all > 0 && ` - ${severityCounts.all} active`}
               </p>
             </div>
           </div>
@@ -201,7 +201,7 @@ export default function AlertsPanel() {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder={t('alerts.searchPlaceholder', lang) || 'Search alerts…'}
+              placeholder={t('alerts.searchPlaceholder', lang) || 'Search alerts...'}
               className="flex-1 bg-transparent text-sm outline-none text-gray-900 dark:text-white placeholder-gray-400"
             />
             {searchQuery && (

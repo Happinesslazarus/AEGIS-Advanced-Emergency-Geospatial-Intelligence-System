@@ -2,21 +2,20 @@
 Trains the public safety incident risk-prediction model using weather-related
 road accident records as independent training labels.
 
-Label sources (BOTH INDEPENDENT — no leakage)
-----------------------------------------------
-1. UK Stats19 (DfT, Great Britain, 2015–2023):
-   ~130,000–160,000 police-reported road injury accidents/year with weather
-   condition codes.  Adverse-weather accidents (codes 2–8: rain, snow, fog,
+Label sources (BOTH INDEPENDENT -- no leakage)
+1. UK Stats19 (DfT, Great Britain, 2015-2023):
+   ~130,000-160,000 police-reported road injury accidents/year with weather
+   condition codes.  Adverse-weather accidents (codes 2-8: rain, snow, fog,
    high winds) become positive labels within 80km of training stations.
    Free CSV: https://data.gov.uk/dataset/road-safety-data
 
-2. US NHTSA FARS (Fatal Accident Reporting System, 2015–2022):
+2. US NHTSA FARS (Fatal Accident Reporting System, 2015-2022):
    All US fatal road accidents with adverse atmospheric condition codes.
    ZIP download: https://www.nhtsa.gov/research-data/fatality-analysis-reporting-system-fars
 
 Label independence:
   Both datasets record OBSERVED accidents at the scene by police officers.
-  They represent the CONSEQUENCE of adverse weather on human activity —
+  They represent the CONSEQUENCE of adverse weather on human activity --
   entirely independent of ERA5 reanalysis used as features.
 
 A station-day is POSITIVE when at least one adverse-weather accident occurred
@@ -58,12 +57,12 @@ class PublicSafetyIncidentRealPipeline(BaseRealPipeline):
         lead_hours=3,
         region_scope="UK+US",
         label_source=(
-            "UK DfT Stats19 Road Safety Data (2015–2023): police-reported road "
+            "UK DfT Stats19 Road Safety Data (2015-2023): police-reported road "
             "injury accidents with adverse weather condition codes (rain, snow, fog, "
-            "high winds) — ~130,000 adverse-weather accidents/year.  "
-            "US NHTSA FARS Fatal Accident Reporting System (2015–2022): all US fatal "
+            "high winds) -- ~130,000 adverse-weather accidents/year.  "
+            "US NHTSA FARS Fatal Accident Reporting System (2015-2022): all US fatal "
             "accidents with adverse atmospheric condition codes.  "
-            "Both are observed police/NHTSA records — independent of ERA5 reanalysis.  "
+            "Both are observed police/NHTSA records -- independent of ERA5 reanalysis.  "
             "Stats19 free: https://data.gov.uk/dataset/road-safety-data  "
             "FARS free: https://www.nhtsa.gov/research-data/fatality-analysis-reporting-system-fars"
         ),
@@ -82,7 +81,7 @@ class PublicSafetyIncidentRealPipeline(BaseRealPipeline):
                 "A station-day is POSITIVE when at least one adverse-weather accident "
                 "occurred within 50 km of the station's coordinates.  All 24 hourly "
                 "rows for that station-day are labelled POSITIVE.  "
-                "50 km corresponds to a ~30-mile metropolitan catchment — consistent "
+                "50 km corresponds to a ~30-mile metropolitan catchment -- consistent "
                 "with UK county police force operational areas and US MSA traffic zones.  "
                 "22 training stations cover Great Britain (Stats19 catchment, 11 sites) "
                 "and contiguous US (FARS catchment, 11 sites).  "
@@ -91,11 +90,11 @@ class PublicSafetyIncidentRealPipeline(BaseRealPipeline):
             ),
             "limitations": (
                 "Stats19 covers Great Britain only (not Northern Ireland). "
-                "FARS covers only fatal accidents — injury accidents not included. "
+                "FARS covers only fatal accidents -- injury accidents not included. "
                 "Adverse weather reporting relies on officer judgement at scene. "
                 "Daily resolution label broadcast to hourly timestamps introduces "
                 "up to 23h temporal imprecision within each positive day. "
-                "50 km radius produces ~25% positive rate — high but operationally "
+                "50 km radius produces ~25% positive rate -- high but operationally "
                 "valid given that adverse weather in the UK causes accidents on "
                 "approximately 1 in 4 days when averaged across seasons."
             ),
@@ -103,7 +102,7 @@ class PublicSafetyIncidentRealPipeline(BaseRealPipeline):
                 "DfT Road Safety Data methodology note (RAS30); "
                 "NHTSA FARS Analytical User's Guide 2022.  "
                 "Brodsky H. & Hakkert A.S. (1988). 'Risk of a road accident in "
-                "rainy weather.' Accident Anal. Prev., 20(3), 161–176."
+                "rainy weather.' Accident Anal. Prev., 20(3), 161-176."
             ),
         },
         min_total_samples=500,
@@ -117,7 +116,7 @@ class PublicSafetyIncidentRealPipeline(BaseRealPipeline):
         # and UK storm frequency, Pall et al. 2011 Nature). This produces genuine
         # year-to-year variation in positive label density that is NOT model degradation.
         # Brodsky & Hakkert (1988) Accid. Anal. Prev. 20:161 confirm non-stationary
-        # weather–accident relationships across multi-year horizons.
+        # weather-accident relationships across multi-year horizons.
         allow_temporal_drift=True,
     )
 
@@ -155,11 +154,11 @@ class PublicSafetyIncidentRealPipeline(BaseRealPipeline):
         """Build road accident labels from Stats19 + NHTSA FARS."""
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build public safety labels")
+            raise RuntimeError("No weather data -- cannot build public safety labels")
 
         if not road_accidents_available():
             logger.info(
-                "No accident data found locally — attempting download ..."
+                "No accident data found locally -- attempting download ..."
             )
             start_year = int(self.start_date[:4])
             end_year   = int(self.end_date[:4])
@@ -200,7 +199,7 @@ class PublicSafetyIncidentRealPipeline(BaseRealPipeline):
         """Build per-station features with visibility, snow, and dewpoint."""
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build features")
+            raise RuntimeError("No weather data -- cannot build features")
         return build_per_station_features(
             weather,
             self.feature_engineer,
@@ -214,7 +213,7 @@ class PublicSafetyIncidentRealPipeline(BaseRealPipeline):
     def hazard_feature_columns(self) -> list[str]:
         """Feature columns for public safety incident 3h-ahead forecasting.
 
-        Labels are from police-reported road accident records — all ERA5
+        Labels are from police-reported road accident records -- all ERA5
         meteorological features are legitimate predictors.
         Physical drivers of adverse-weather accidents:
           - Ice (temp + humidity + still air)

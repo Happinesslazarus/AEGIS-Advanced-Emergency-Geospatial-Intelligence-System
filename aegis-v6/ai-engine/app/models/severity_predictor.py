@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-# Optional heavy imports — guarded for startup speed: xgboost and shap add ~2s
+# Optional heavy imports -- guarded for startup speed: xgboost and shap add ~2s
 # to import time and are only needed when a trained model is actually present.
 _xgb = None
 _tfidf = None
@@ -34,7 +34,7 @@ def _lazy_imports():
             import xgboost as xgb_mod
             _xgb = xgb_mod
         except ImportError:
-            logger.warning("xgboost not available — falling back to sklearn")
+            logger.warning("xgboost not available -- falling back to sklearn")
     if _tfidf is None:
         from sklearn.feature_extraction.text import TfidfVectorizer
         _tfidf = TfidfVectorizer
@@ -115,7 +115,7 @@ class SeverityPredictor:
                 self.model = None
                 self.vectorizer = None
         else:
-            logger.info("No trained severity model found — using heuristic fallback")
+            logger.info("No trained severity model found -- using heuristic fallback")
             self.model_version = 'heuristic-v3.0.0'
 
     @staticmethod
@@ -257,12 +257,12 @@ class SeverityPredictor:
                         trapped_persons: int = 0, affected_area_km2: float = 0,
                         population_affected: int = 0, hazard_type: str = "",
                         weather_conditions: Optional[Dict] = None) -> np.ndarray:
-        """Build feature vector from inputs — must match training feature layout.
+        """Build feature vector from inputs -- must match training feature layout.
         
-        Feature layout (order matters — must mirror `_train_async`):
-          [0 : N_word)      — word TF-IDF (1200 features)
-          [N_word : N_char) — char n-gram TF-IDF (300 features)
-          [N_char : end)    — engineered numeric (41 features)
+        Feature layout (order matters -- must mirror `_train_async`):
+          [0 : N_word)      -- word TF-IDF (1200 features)
+          [N_word : N_char) -- char n-gram TF-IDF (300 features)
+          [N_char : end)    -- engineered numeric (41 features)
         """
         full_text = f"{text} {description}"
 
@@ -345,7 +345,7 @@ class SeverityPredictor:
         # TreeExplainer is used instead of the generic KernelExplainer because
         # XGBoost tree structures allow exact SHAP values in O(TLD) time.
         # `shap_values` is a list (one array per class) for multi-class XGBoost;
-        # for binary models or DMatrix it may be a plain ndarray — handled below.
+        # for binary models or DMatrix it may be a plain ndarray -- handled below.
         contributing_factors = []
         if _shap and self.model is not None:
             try:
@@ -385,7 +385,7 @@ class SeverityPredictor:
     def _predict_heuristic(self, text, description, trapped, area,
                            population, hazard_type, weather) -> Dict[str, Any]:
         """
-        Improved heuristic fallback — used ONLY when no trained model exists.
+        Improved heuristic fallback -- used ONLY when no trained model exists.
         """
         full_text = f"{text} {description}".lower()
         score = 0.0
@@ -482,7 +482,7 @@ class SeverityPredictor:
             return asyncio.run(self._train_async(db_url))
 
     async def async_train(self, db_url: str) -> Dict[str, Any]:
-        """Train severity model (async — call from within running event loop)."""
+        """Train severity model (async -- call from within running event loop)."""
         return await self._train_async(db_url)
 
     async def _train_async(self, db_url: str) -> Dict[str, Any]:
@@ -498,7 +498,7 @@ class SeverityPredictor:
         from sklearn.preprocessing import StandardScaler
         from sklearn.pipeline import Pipeline
 
-        logger.info("Starting severity model training (v3.0 — advanced pipeline)...")
+        logger.info("Starting severity model training (v3.0 -- advanced pipeline)...")
 
         conn = await asyncpg.connect(db_url)
 
@@ -539,7 +539,7 @@ class SeverityPredictor:
                 if count < MIN_SAMPLES_PER_CLASS:
                     logger.warning(f"Class '{cls_name}' has only {count} samples")
 
-            # TF-IDF: word n-grams (1-3) — expanded for richer vocabulary
+            # TF-IDF: word n-grams (1-3) -- expanded for richer vocabulary
             vectorizer = _tfidf(
                 max_features=1200,
                 ngram_range=(1, 3),
@@ -599,7 +599,7 @@ class SeverityPredictor:
                 stratify=y if min(np.bincount(y)) >= 2 else None
             )
 
-            # SMOTE oversampling — k_neighbors must be < smallest class count or
+            # SMOTE oversampling -- k_neighbors must be < smallest class count or
             # SMOTE raises a ValueError.  We compute the safe maximum and skip
             # SMOTE entirely when a class has only one sample.
             try:
@@ -611,7 +611,7 @@ class SeverityPredictor:
                     X_train, y_train = smote.fit_resample(X_train, y_train)
                     logger.info(f"SMOTE resampled: {dict(zip(*np.unique(y_train, return_counts=True)))}")
             except ImportError:
-                logger.warning("imbalanced-learn not installed — using class_weight instead")
+                logger.warning("imbalanced-learn not installed -- using class_weight instead")
             except Exception as smote_err:
                 logger.warning(f"SMOTE failed (non-fatal): {smote_err}")
 
@@ -768,7 +768,7 @@ class SeverityPredictor:
                 self.training_metrics = metrics
                 logger.info(f"Active model updated to {version}")
             else:
-                logger.info(f"Keeping previous model — candidate {version} not promoted")
+                logger.info(f"Keeping previous model -- candidate {version} not promoted")
 
             return metrics
 

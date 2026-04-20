@@ -10,12 +10,12 @@
  * - Map rendered via client/src/components/shared/DisasterMap.tsx
  * - Public report submission calls POST /api/reports (no auth required)
  *
- * - client/src/pages/CitizenDashboard.tsx        — the authenticated follow-up page
- * - client/src/components/shared/DisasterMap.tsx — the live map component
- * - server/src/routes/reportRoutes.ts            — public report endpoints
+ * - client/src/pages/CitizenDashboard.tsx        -- the authenticated follow-up page
+ * - client/src/components/shared/DisasterMap.tsx -- the live map component
+ * - server/src/routes/reportRoutes.ts            -- public report endpoints
  */
 
-/* CitizenPage.tsx — Public citizen portal with alerts, reports, map, and community help. */
+/* CitizenPage.tsx -- Public citizen portal with alerts, reports, map, and community help. */
 
 import { useState, useMemo, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import type { ComponentType } from 'react'
@@ -58,7 +58,7 @@ import { SkeletonCard, Skeleton } from '../components/ui/Skeleton'
 import type { SidebarItem } from '../components/layout/Sidebar'
 import { GLOBAL_EMERGENCY_DB, type GlobalEmergencyEntry } from '../config/globalEmergencyDB'
 
-// Lazy load heavy components for bundle optimization
+//Lazy load heavy components for bundle optimization
 const DisasterMap = lazy(() => import('../components/shared/DisasterMap'))
 const WeatherPanel = lazy(() => import('../components/shared/WeatherPanel'))
 const LiveIncidentMapPanel = lazy(() => import('../components/citizen/LiveIncidentMapPanel'))
@@ -70,8 +70,8 @@ const IntelligenceDashboard = lazy(() => import('../components/shared/Intelligen
 const OnboardingTutorial = lazy(() => import('../components/citizen/OnboardingTutorial'))
 const ShelterFinder = lazy(() => import('../components/citizen/ShelterFinder'))
 
-// Map region-picker city keys to ISO country codes for emergency number lookup
-// Country-level keys (e.g. 'at', 'de') are ISO codes already and handled dynamically
+//Map region-picker city keys to ISO country codes for emergency number lookup
+//Country-level keys (e.g. 'at', 'de') are ISO codes already and handled dynamically
 const CITY_TO_COUNTRY: Record<string, string> = {
   world: 'GB', generic: 'GB',
   uk: 'GB', scotland: 'GB', aberdeen: 'GB', edinburgh: 'GB', glasgow: 'GB', dundee: 'GB',
@@ -84,7 +84,7 @@ const CITY_TO_COUNTRY: Record<string, string> = {
   asia: 'IN', europe: 'GB', northamerica: 'US', southamerica: 'BR', africa: 'NG', oceania: 'AU',
 }
 
-/* ── Citizen Welcome Animations ── */
+/* -- Citizen Welcome Animations -- */
 const CP_STYLE_ID = 'citizen-page-hero-animations'
 function injectCPAnimations() {
   if (document.getElementById(CP_STYLE_ID)) return
@@ -132,7 +132,7 @@ function injectCPAnimations() {
   document.head.appendChild(style)
 }
 
-/* ── Typing text for hero subtitle ── */
+/* -- Typing text for hero subtitle -- */
 function HeroTypingText({ texts, speed = 55, pause = 3000, className = '' }: { texts: string[]; speed?: number; pause?: number; className?: string }) {
   const [textIdx, setTextIdx] = useState(0)
   const [charIdx, setCharIdx] = useState(0)
@@ -166,7 +166,7 @@ function HeroTypingText({ texts, speed = 55, pause = 3000, className = '' }: { t
   )
 }
 
-/* ── Animated counter ── */
+/* -- Animated counter -- */
 function CPAnimatedCounter({ value, duration = 1200, className = '', style }: { value: number; duration?: number; className?: string; style?: React.CSSProperties }) {
   const [display, setDisplay] = useState(0)
   const prevRef = useRef(0)
@@ -189,7 +189,7 @@ function CPAnimatedCounter({ value, duration = 1200, className = '', style }: { 
   return <span className={`tabular-nums ${className}`} style={style}>{display.toLocaleString()}</span>
 }
 
-/* ── Severity donut ring ── */
+/* -- Severity donut ring -- */
 function HeroSeverityRing({ alerts: alertList }: { alerts: Array<{ severity: string }> }) {
   const counts = useMemo(() => ({
     critical: alertList.filter(a => a.severity === 'critical').length,
@@ -276,7 +276,7 @@ export default function CitizenPage(): JSX.Element {
   const [sortOrder, setSortOrder] = useState('desc')
   const [safetyStatus, setSafetyStatus] = useState<string|null>(null)
   const [showSubscribe, setShowSubscribe] = useState(false)
-  // selectedCountry is used for SOS handler and emergency-info fallback display
+  //selectedCountry is used for SOS handler and emergency-info fallback display
   const selectedCountry: CountryCode = ALL_COUNTRY_CODES.find(c => c.code === 'GB') || ALL_COUNTRY_CODES[0]
   const [userPosition, setUserPosition] = useState<[number,number]|null>(null)
   const [locationDenied, setLocationDenied] = useState(false)
@@ -311,18 +311,18 @@ export default function CitizenPage(): JSX.Element {
   const [heroMounted, setHeroMounted] = useState(false)
   const [activeAction, setActiveAction] = useState<string | null>(null)
 
-  // Derive emergency info from region picker (activeLocation) or subscribe modal country
+  //Derive emergency info from region picker (activeLocation) or subscribe modal country
   const emergencyInfo = useMemo<GlobalEmergencyEntry | null>(() => {
-    // 1. Check explicit city-name mapping
+    //1. Check explicit city-name mapping
     const cityCode = CITY_TO_COUNTRY[activeLocation]
     if (cityCode) {
       const entry = GLOBAL_EMERGENCY_DB.find(e => e.code === cityCode)
       if (entry) return entry
     }
-    // 2. Try activeLocation as ISO code directly (COUNTRY_DATA uses lowercase ISO codes)
+    //2. Try activeLocation as ISO code directly (COUNTRY_DATA uses lowercase ISO codes)
     const directMatch = GLOBAL_EMERGENCY_DB.find(e => e.code === activeLocation.toUpperCase())
     if (directMatch) return directMatch
-    // 3. Fallback to subscribe modal's selected country
+    //3. Fallback to subscribe modal's selected country
     return GLOBAL_EMERGENCY_DB.find(e => e.code === selectedCountry.code) || GLOBAL_EMERGENCY_DB.find(e => e.code === 'GB') || null
   }, [activeLocation, selectedCountry.code])
 
@@ -339,7 +339,7 @@ export default function CitizenPage(): JSX.Element {
     if (sosTimerRef.current) clearInterval(sosTimerRef.current)
   }, [])
 
-  // Redirect authenticated citizens to their dashboard when they land on /citizen
+  //Redirect authenticated citizens to their dashboard when they land on /citizen
   // (e.g. coming from the LandingPage "Access Citizen Portal" button while signed in)
   useEffect(() => {
     if (isCitizenLoggedIn) {
@@ -347,7 +347,7 @@ export default function CitizenPage(): JSX.Element {
     }
   }, [isCitizenLoggedIn, navigate])
 
-  // Offline detection
+  //Offline detection
   useEffect(() => {
     const up = () => setIsOffline(false)
     const dn = () => setIsOffline(true)
@@ -356,7 +356,7 @@ export default function CitizenPage(): JSX.Element {
     return () => { window.removeEventListener('online', up); window.removeEventListener('offline', dn) }
   }, [])
 
-  // Live clock for hero banner — 1s tick for live seconds display
+  //Live clock for hero banner -- 1s tick for live seconds display
   useEffect(() => {
     injectCPAnimations()
     setHeroMounted(true)
@@ -364,7 +364,7 @@ export default function CitizenPage(): JSX.Element {
     return () => clearInterval(timer)
   }, [])
 
-  // Handle URL params for deep-linking (e.g. from web push notifications)
+  //Handle URL params for deep-linking (e.g. from web push notifications)
   useEffect(() => {
     const tabParam = searchParams.get('tab')
     const alertParam = searchParams.get('alert')
@@ -373,7 +373,7 @@ export default function CitizenPage(): JSX.Element {
       if (validTabs.includes(tabParam)) setActiveTab(tabParam)
     }
     if (alertParam) {
-      // Fetch the specific alert and show detail modal
+      //Fetch the specific alert and show detail modal
       apiGetAlerts()
         .then(list => {
           const found = (list as any[]).find((a: any) => String(a.id) === alertParam)
@@ -386,14 +386,14 @@ export default function CitizenPage(): JSX.Element {
           }
         })
         .catch(() => {})
-      // Clean the URL param after handling
+      //Clean the URL param after handling
       searchParams.delete('alert')
       searchParams.delete('tab')
       setSearchParams(searchParams, { replace: true })
     }
   }, [searchParams, setSearchParams])
 
-  // Derived: slice the pool at the current offset to show one batch
+  //Derived: slice the pool at the current offset to show one batch
   const newsItems = useMemo(() => newsPool.slice(newsOffset, newsOffset + NEWS_BATCH), [newsPool, newsOffset])
   const hasNextBatchInPool = newsOffset + NEWS_BATCH < newsPool.length
   const hasMoreFromServer = newsServerPage < newsTotalPages
@@ -418,7 +418,7 @@ export default function CitizenPage(): JSX.Element {
     }
   }, [])
 
-  // "Next news" — advances through pool; fetches next server page when pool runs low; cycles on wrap
+  // "Next news" -- advances through pool; fetches next server page when pool runs low; cycles on wrap
   const nextNews = useCallback(async (): Promise<void> => {
     if (newsLoadingRef.current) return
     if (hasNextBatchInPool) {
@@ -443,7 +443,7 @@ export default function CitizenPage(): JSX.Element {
       }
       return
     }
-    // Wrap around to start and fetch fresh from server
+    //Wrap around to start and fetch fresh from server
     newsLoadingRef.current = true
     setNewsRefreshing(true)
     try {
@@ -480,10 +480,10 @@ export default function CitizenPage(): JSX.Element {
     }
   }
 
-  // Guest SOS Handler
+  //Guest SOS Handler
   const handleGuestSOS = () => {
     if (sosCountdown !== null) {
-      // Cancel countdown
+      //Cancel countdown
       if (sosTimerRef.current) {
         clearInterval(sosTimerRef.current)
         sosTimerRef.current = null
@@ -492,9 +492,9 @@ export default function CitizenPage(): JSX.Element {
       if (navigator.vibrate) navigator.vibrate(30)
       return
     }
-    // Haptic feedback on tap
+    //Haptic feedback on tap
     if (navigator.vibrate) navigator.vibrate([50, 30, 50])
-    // Start 5-second countdown
+    //Start 5-second countdown
     let count = 5
     setSosCountdown(count)
     sosTimerRef.current = setInterval(() => {
@@ -515,7 +515,7 @@ export default function CitizenPage(): JSX.Element {
     setSosSending(true)
     setSosAddress('')
     try {
-      // Get GPS location
+      //Get GPS location
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         if (!navigator.geolocation) return reject(new Error('No GPS'))
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000, enableHighAccuracy: true })
@@ -524,7 +524,7 @@ export default function CitizenPage(): JSX.Element {
       const lat = position?.coords.latitude ?? userPosition?.[0] ?? loc.center?.[0] ?? 0
       const lng = position?.coords.longitude ?? userPosition?.[1] ?? loc.center?.[1] ?? 0
 
-      // Reverse geocode for human-readable address
+      //Reverse geocode for human-readable address
       let addressText = `GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}`
       try {
         const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`, { headers: { 'Accept-Language': 'en' } })
@@ -541,7 +541,7 @@ export default function CitizenPage(): JSX.Element {
       const now = new Date()
       const countryName = selectedCountry?.name || emergencyInfo?.name || 'Unknown'
       const emergNum = emergencyInfo?.emergencyNumber || '112'
-      const fullDesc = `GUEST SOS EMERGENCY — Citizen requires immediate assistance.\n` +
+      const fullDesc = `GUEST SOS EMERGENCY -- Citizen requires immediate assistance.\n` +
         `Location: ${addressText}\n` +
         `Country: ${countryName}\n` +
         `Time: ${now.toLocaleString()} (${Intl.DateTimeFormat().resolvedOptions().timeZone})\n` +
@@ -549,7 +549,7 @@ export default function CitizenPage(): JSX.Element {
         `Emergency Number: ${emergNum}\n` +
         `Activated from AEGIS public safety page.`
 
-      // Submit emergency report via public reports API (field names match server validation)
+      //Submit emergency report via public reports API (field names match server validation)
       const csrfSos = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
       const response = await fetch('/api/reports', {
         method: 'POST',
@@ -573,14 +573,14 @@ export default function CitizenPage(): JSX.Element {
       if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100])
       setSosActive(true)
       pushNotification(t('citizenPage.sosSent', lang), 'error')
-      // Auto-clear after 60 seconds
+      //Auto-clear after 60 seconds
       setTimeout(() => setSosActive(false), 60000)
     } catch (err: any) {
       console.error('SOS send error:', err)
       if (navigator.vibrate) navigator.vibrate([200, 100, 200])
       const emergNum = emergencyInfo?.emergencyNumber || '112'
-      pushNotification(`${t('citizenPage.sosFailed', lang)} — Please call ${emergNum} directly`, 'error')
-      // Still show the SOS active panel so user can call emergency number
+      pushNotification(`${t('citizenPage.sosFailed', lang)} -- Please call ${emergNum} directly`, 'error')
+      //Still show the SOS active panel so user can call emergency number
       setSosActive(true)
       setTimeout(() => setSosActive(false), 60000)
     } finally {
@@ -604,7 +604,7 @@ export default function CitizenPage(): JSX.Element {
 
   const stats = { total: reports.length, urgent: reports.filter(r=>r.status==='Urgent').length, high: reports.filter(r=>r.severity==='High').length, verified: reports.filter(r=>r.status==='Verified').length, alertCount: alerts.length }
 
-  // Time-based greeting
+  //Time-based greeting
   const heroGreeting = useMemo(() => {
     const h = currentTime.getHours()
     if (h < 12) return { text: 'Good Morning', icon: Sun, period: 'morning' }
@@ -612,13 +612,13 @@ export default function CitizenPage(): JSX.Element {
     return { text: 'Good Evening', icon: Sparkles, period: 'evening' }
   }, [currentTime.getHours()])
 
-  // Threat level
+  //Threat level
   const criticalCount = alerts.filter((a: any) => a.severity === 'critical' || a.severity === 'high' || a.severity === 'High').length
   const heroThreatLevel = criticalCount > 3 ? 'SEVERE' : criticalCount > 0 ? 'ELEVATED' : alerts.length > 0 ? 'GUARDED' : 'LOW'
   const heroThreatColor = { SEVERE: 'text-red-300', ELEVATED: 'text-orange-300', GUARDED: 'text-amber-300', LOW: 'text-green-300' }[heroThreatLevel]
   const heroThreatBg = { SEVERE: 'bg-red-500/20 border-red-500/30', ELEVATED: 'bg-orange-500/20 border-orange-500/30', GUARDED: 'bg-amber-500/20 border-amber-500/30', LOW: 'bg-green-500/20 border-green-500/30' }[heroThreatLevel]
 
-  // Crowd intelligence: reports in last 24h, last 7d, and last hour
+  //Crowd intelligence: reports in last 24h, last 7d, and last hour
   const reportsLast24h = useMemo(() => {
     const now = Date.now()
     return reports.filter(r => now - new Date(r.timestamp).getTime() < 86400000)
@@ -632,7 +632,7 @@ export default function CitizenPage(): JSX.Element {
     return reports.filter(r => now - new Date(r.timestamp).getTime() < 3600000)
   }, [reports])
 
-  // Stats trend: compare today vs yesterday same window
+  //Stats trend: compare today vs yesterday same window
   const statsYesterdayTotal = useMemo(() => {
     const now = Date.now()
     return reports.filter(r => {
@@ -644,7 +644,7 @@ export default function CitizenPage(): JSX.Element {
     ? Math.round(((stats.total - statsYesterdayTotal) / statsYesterdayTotal) * 100)
     : 0
 
-  // AI hazard risk scores derived from alert severity + report frequency (0-95 cap)
+  //AI hazard risk scores derived from alert severity + report frequency (0-95 cap)
   const hazardRisks = useMemo(() => {
     const score = (keywords: string[]) => {
       let s = 0
@@ -673,11 +673,11 @@ export default function CitizenPage(): JSX.Element {
     ]
   }, [alerts, reportsLast24h])
 
-  // Connected users estimate: seeded from real activity signals
+  //Connected users estimate: seeded from real activity signals
   const connectedUsers = useMemo(() =>
     Math.max(48, alerts.length * 12 + reports.length * 2 + 120), [alerts.length, reports.length])
 
-  // News filtered by hazard type
+  //News filtered by hazard type
   const filteredNewsItems = useMemo(() => {
     if (newsHazardFilter === 'all') return newsItems
     const KWMAP: Record<string, string[]> = {
@@ -691,7 +691,7 @@ export default function CitizenPage(): JSX.Element {
     return newsItems.filter(n => kws.some(k => (n.title + ' ' + n.source).toLowerCase().includes(k)))
   }, [newsItems, newsHazardFilter])
 
-  // Activity timeline: prefer 24h data, fall back to 7d if empty
+  //Activity timeline: prefer 24h data, fall back to 7d if empty
   const timeline24h = useMemo(() => {
     const source = reportsLast24h.length > 0 ? reportsLast24h : reportsLast7d
     return [...source]
@@ -781,7 +781,7 @@ export default function CitizenPage(): JSX.Element {
       url: window.location.href,
     }
 
-    // Try native Web Share API first
+    //Try native Web Share API first
     if (navigator.share) {
       try {
         await navigator.share(shareData)
@@ -792,13 +792,13 @@ export default function CitizenPage(): JSX.Element {
         }
       }
     } else {
-      // Fallback: Copy to clipboard and show mailto option
+      //Fallback: Copy to clipboard and show mailto option
       const reportText = `${shareData.title}\n\n${shareData.text}\n\nView on AEGIS: ${shareData.url}`
       try {
         await navigator.clipboard.writeText(reportText)
         pushNotification(t('citizenPage.copiedToClipboard', lang), 'success')
         
-        // Also offer email option
+        //Also offer email option
         const mailtoLink = `mailto:?subject=${encodeURIComponent(shareData.title)}&body=${encodeURIComponent(reportText)}`
         window.open(mailtoLink, '_blank')
       } catch {
@@ -837,7 +837,7 @@ export default function CitizenPage(): JSX.Element {
     <AppLayout activeKey={activeTab} onNavigate={handleSidebarNav}>
 
       <div className={`space-y-3 sm:space-y-4 md:space-y-6 ${isRtl(lang)?'rtl':'ltr'}`} dir={isRtl(lang)?'rtl':'ltr'}>
-        {/* COMMAND HQ HERO — AEGIS Blue Theme */}
+        {/* COMMAND HQ HERO -- AEGIS Blue Theme */}
         <div className={`relative overflow-hidden rounded-2xl shadow-2xl shadow-aegis-600/30 ring-1 ring-white/10 transition-opacity duration-500 ${heroMounted ? 'opacity-100' : 'opacity-0'}`}>
           <div className={`absolute inset-0 ${
             heroThreatLevel === 'SEVERE' ? 'bg-gradient-to-r from-red-900 via-aegis-800 to-red-900'
@@ -902,7 +902,7 @@ export default function CitizenPage(): JSX.Element {
               <div className="flex items-center gap-2 mb-0.5">
                 <heroGreeting.icon className="w-3.5 h-3.5 text-white/70" />
                 <span className="text-sm font-semibold text-white/90">{heroGreeting.text}</span>
-                <span className="text-xs text-white/50">— stay safe, stay informed</span>
+                <span className="text-xs text-white/50">-- stay safe, stay informed</span>
               </div>
               <div className="flex items-center gap-1.5 text-[10px] font-mono text-aegis-200/80">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
@@ -953,7 +953,7 @@ export default function CitizenPage(): JSX.Element {
                 <Shield className="w-4.5 h-4.5 text-white" />
               </div>
               <div>
-                <p className="font-bold text-sm text-gray-900 dark:text-white mb-2">Welcome to AEGIS — 3 steps to stay safe</p>
+                <p className="font-bold text-sm text-gray-900 dark:text-white mb-2">Welcome to AEGIS -- 3 steps to stay safe</p>
                 <div className="flex flex-wrap gap-3">
                   {[
                     { n: '1', icon: MapPin, text: 'Check the Disaster Map for incidents near you' },
@@ -1011,7 +1011,7 @@ export default function CitizenPage(): JSX.Element {
           </div>
         </div>
 
-        {/* LIVE ALERT TICKER — below Situational Overview */}
+        {/* LIVE ALERT TICKER -- below Situational Overview */}
         {alerts.length > 0 && (
           <div className="glass-card border border-red-200/60 dark:border-red-500/20 rounded-2xl overflow-hidden cp-fade-up" style={{ animationDelay: '0.12s' }}>
             <div className="flex items-center">
@@ -1024,7 +1024,7 @@ export default function CitizenPage(): JSX.Element {
                   {[...alerts, ...alerts].map((a: any, i: number) => (
                     <span key={i} className="inline-flex items-center gap-2 text-[11px] font-semibold text-red-800 dark:text-red-200 flex-shrink-0">
                       <span className={`w-1.5 h-1.5 rounded-full ${a.severity === 'critical' ? 'bg-red-500 animate-pulse' : 'bg-amber-400'}`}/>
-                      {a.title || a.type || 'Alert'} · {a.location || a.locationText || ''}
+                      {a.title || a.type || 'Alert'} - {a.location || a.locationText || ''}
                       <span className="text-red-300 dark:text-red-600 mx-1">|</span>
                     </span>
                   ))}
@@ -1048,7 +1048,7 @@ export default function CitizenPage(): JSX.Element {
                   <span className="w-1 h-1 rounded-full bg-aegis-500 animate-pulse inline-block" />AI POWERED
                 </span>
               </div>
-              <p className="text-[9px] text-gray-400 dark:text-gray-500 font-mono hidden sm:block mt-0.5">Real-time threat analysis · 6 hazard types · crowd-sourced intel</p>
+              <p className="text-[9px] text-gray-400 dark:text-gray-500 font-mono hidden sm:block mt-0.5">Real-time threat analysis - 6 hazard types - crowd-sourced intel</p>
             </div>
             <div className="flex items-center gap-1.5 text-[9px] font-bold text-gray-500 dark:text-gray-400 flex-shrink-0">
               <Clock className="w-3 h-3" />
@@ -1056,7 +1056,7 @@ export default function CitizenPage(): JSX.Element {
             </div>
           </div>
           <div className="p-2 sm:p-3 grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
-            {/* HAZARD ASSESSMENT — interactive flip card */}
+            {/* HAZARD ASSESSMENT -- interactive flip card */}
             <div className="rounded-xl border border-gray-200/70 dark:border-gray-700/50 bg-white/60 dark:bg-gray-800/30 p-3 flex flex-col gap-2.5">
 
               {/* Header */}
@@ -1094,7 +1094,7 @@ export default function CitizenPage(): JSX.Element {
                       className="absolute inset-0 transition-transform duration-500 ease-in-out"
                       style={{ transformStyle: 'preserve-3d', transform: hazardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
                     >
-                      {/* FRONT — risk overview */}
+                      {/* FRONT -- risk overview */}
                       <div
                         className={`absolute inset-0 rounded-xl border ${meta.border} ${meta.bgFill} p-3 flex flex-col`}
                         style={{ backfaceVisibility: 'hidden' }}
@@ -1109,7 +1109,7 @@ export default function CitizenPage(): JSX.Element {
                             <p className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug line-clamp-2">{meta.description}</p>
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <p className={`text-2xl font-black tabular-nums leading-none ${riskTextColor}`}>{h.pct > 0 ? `${h.pct}%` : '—'}</p>
+                            <p className={`text-2xl font-black tabular-nums leading-none ${riskTextColor}`}>{h.pct > 0 ? `${h.pct}%` : '--'}</p>
                             <p className="text-[8px] text-gray-400 font-medium">risk index</p>
                           </div>
                         </div>
@@ -1127,15 +1127,15 @@ export default function CitizenPage(): JSX.Element {
                         <p className="text-[8px] text-gray-400 dark:text-gray-600 mt-1.5 font-medium flex items-center justify-end gap-0.5">Tap for safety guide <ChevronRight className="w-3 h-3" /></p>
                       </div>
 
-                      {/* BACK — safety guide (scrollable) */}
+                      {/* BACK -- safety guide (scrollable) */}
                       <div
                         className={`absolute inset-0 rounded-xl border ${meta.border} ${meta.bgFill} p-3 flex flex-col`}
                         style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                       >
                         <div className="flex items-center gap-1.5 mb-2 pb-1.5 border-b border-gray-200/60 dark:border-gray-700/40 flex-shrink-0">
                           <span className="text-base">{h.emoji}</span>
-                          <p className="text-[9px] font-black text-gray-700 dark:text-gray-200 uppercase tracking-wider">{h.label} — SAFETY GUIDE</p>
-                          <span className="ml-auto text-[7px] text-gray-400 italic">scroll ↓</span>
+                          <p className="text-[9px] font-black text-gray-700 dark:text-gray-200 uppercase tracking-wider">{h.label} -- SAFETY GUIDE</p>
+ <span className="ml-auto text-[7px] text-gray-400 italic">scroll v</span>
                         </div>
                         <div className="flex-1 overflow-y-auto space-y-2 pr-0.5" style={{ scrollbarWidth: 'thin' }}>
                           <div>
@@ -1143,7 +1143,7 @@ export default function CitizenPage(): JSX.Element {
                             {meta.tips.map((tip, ti) => (
                               <div key={ti} className="flex items-start gap-1.5 mb-1.5">
                                 <span className="w-3.5 h-3.5 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                  <span className="text-[7px] font-black text-green-600">✓</span>
+                                  <span className="text-[7px] font-black text-green-600"></span>
                                 </span>
                                 <p className="text-[9px] text-gray-700 dark:text-gray-300 leading-snug">{tip}</p>
                               </div>
@@ -1176,7 +1176,7 @@ export default function CitizenPage(): JSX.Element {
                 )
               })()}
 
-              {/* Bottom navigation — prev / hazard name + counter / next */}
+              {/* Bottom navigation -- prev / hazard name + counter / next */}
               <div className="flex items-center justify-between pt-1.5 border-t border-gray-100 dark:border-gray-700/40">
                 <button
                   onClick={() => { setActiveHazardIdx(idx => (idx - 1 + hazardRisks.length) % hazardRisks.length); setHazardFlipped(false) }}
@@ -1213,7 +1213,7 @@ export default function CitizenPage(): JSX.Element {
 
             </div>
 
-            {/* CROWD INTEL — Advanced Redesign */}
+            {/* CROWD INTEL -- Advanced Redesign */}
             <div className="rounded-xl border border-teal-200/70 dark:border-teal-700/40 bg-gradient-to-b from-teal-50/40 to-white/60 dark:from-teal-950/20 dark:to-gray-800/30 p-3 flex flex-col gap-2.5">
 
               {/* Header */}
@@ -1249,7 +1249,7 @@ export default function CitizenPage(): JSX.Element {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">COMMUNITY ACTIVITY</span>
-                      <span className={`text-[8px] font-black ${actTextColor}`}>{actLabel} · {actPct}%</span>
+                      <span className={`text-[8px] font-black ${actTextColor}`}>{actLabel} - {actPct}%</span>
                     </div>
                     <div className="h-2.5 bg-gray-100 dark:bg-gray-800/60 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full transition-all duration-1000 ${actBar}`} style={{ width: `${Math.max(actPct, 4)}%` }} />
@@ -1267,7 +1267,7 @@ export default function CitizenPage(): JSX.Element {
                 {timeline24h.length > 0 ? (
                   <div>
                     <p className="text-[8px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-                      {timelineLabel} · {timeline24h.length} incident{timeline24h.length !== 1 ? 's' : ''}
+                      {timelineLabel} - {timeline24h.length} incident{timeline24h.length !== 1 ? 's' : ''}
                     </p>
                     <div className="space-y-0.5">
                       {timeline24h.slice(0, 4).map((r: any, idx: number) => {
@@ -1300,7 +1300,7 @@ export default function CitizenPage(): JSX.Element {
                             </div>
                             <div className="text-right flex-shrink-0">
                               <span className="text-[9px] text-gray-400 tabular-nums font-bold block">{ago}</span>
-                              {r.verified && <span className="text-[7px] font-black text-green-600 dark:text-green-400">✓ VFD</span>}
+                              {r.verified && <span className="text-[7px] font-black text-green-600 dark:text-green-400"> VFD</span>}
                             </div>
                           </div>
                         )
@@ -1337,7 +1337,7 @@ export default function CitizenPage(): JSX.Element {
           </div>
         </div>
 
-        {/* COMMUNITY & SUBSCRIPTIONS — below situation overview */}
+        {/* COMMUNITY & SUBSCRIPTIONS -- below situation overview */}
         <div className="glass-card rounded-2xl border border-gray-200/60 dark:border-gray-700/60 overflow-hidden cp-fade-up" style={{ animationDelay: '0.18s' }}>
           <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200/60 dark:border-gray-700/40 bg-gray-50/50 dark:bg-gray-800/20">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-aegis-500 to-blue-600 flex items-center justify-center shadow-md flex-shrink-0">
@@ -1402,7 +1402,7 @@ export default function CitizenPage(): JSX.Element {
               </button>
             </div>
 
-            {/* Inline full-width expanded panel — opens below buttons like a page */}
+            {/* Inline full-width expanded panel -- opens below buttons like a page */}
             <AnimatePresence mode="wait">
               {activeAction === 'report' && (
                 <motion.div key="action-report" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2, ease: 'easeInOut' }} className="overflow-hidden">
@@ -1465,7 +1465,7 @@ export default function CitizenPage(): JSX.Element {
           </div>
         </div>
 
-        {/* SIGN IN UNLOCK BANNER — only shown to guests */}
+        {/* SIGN IN UNLOCK BANNER -- only shown to guests */}
         {!isCitizenLoggedIn && (
           <div className="glass-card rounded-2xl border border-aegis-200/60 dark:border-aegis-700/40 overflow-hidden cp-fade-up" style={{ animationDelay: '0.22s' }}>
             <div className="flex items-center gap-2 px-4 py-3 border-b border-aegis-100/60 dark:border-aegis-800/40 bg-aegis-50/50 dark:bg-aegis-950/20">
@@ -1511,7 +1511,7 @@ export default function CitizenPage(): JSX.Element {
           </div>
         )}
 
-        {/* TAB NAV — AEGIS themed */}
+        {/* TAB NAV -- AEGIS themed */}
         <div ref={tabContentRef} className="glass-card rounded-2xl p-1.5 sm:p-2 overflow-x-auto tab-bar-scroll shadow-lg">
           <div className="flex gap-1 sm:gap-1.5 min-w-max">
             {TABS.map(tab => (
@@ -1559,7 +1559,7 @@ export default function CitizenPage(): JSX.Element {
                 <LiveIncidentMapPanel reports={reports} userPosition={userPosition} center={loc.center} zoom={loc.zoom} />
               </Suspense>
             </ErrorBoundary>
-            {/* Panels below map — full-width responsive grid */}
+            {/* Panels below map -- full-width responsive grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <ErrorBoundary name="IntelligenceDashboard" fallback={<div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700">Failed to load intelligence</div>}>
                 <Suspense fallback={<div className="h-40 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-3/4" /><Skeleton className="h-8 w-20 mt-2 rounded-lg" /></div>}>
@@ -1572,7 +1572,7 @@ export default function CitizenPage(): JSX.Element {
                 </Suspense>
               </ErrorBoundary>
             </div>
-            {/* River Levels — full width */}
+            {/* River Levels -- full width */}
             <ErrorBoundary name="RiverGaugePanel" fallback={<div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700">Failed to load river data</div>}>
               <Suspense fallback={<div className="h-40 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-8 w-16" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-1/2" /></div>}>
                 <RiverGaugePanel/>
@@ -1621,7 +1621,7 @@ export default function CitizenPage(): JSX.Element {
                 {newsPool.length > 0 && (
                   <span className="text-xs text-gray-400 dark:text-gray-500">
                     {Math.floor(newsOffset / NEWS_BATCH) + 1}/{Math.ceil(newsPool.length / NEWS_BATCH)}
-                    {newsLastFetched && ` · ${newsLastFetched.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                    {newsLastFetched && ` - ${newsLastFetched.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                   </span>
                 )}
                 {newsOffset > 0 && (
@@ -1629,7 +1629,7 @@ export default function CitizenPage(): JSX.Element {
                     onClick={() => setNewsOffset(o => Math.max(0, o - NEWS_BATCH))}
                     className="flex items-center gap-1 text-xs text-gray-500 hover:text-aegis-600 bg-gray-100/80 dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 px-3 py-2 rounded-xl transition-all hover:scale-[1.02] font-bold"
                   >
-                    ← Prev
+ <- Prev
                   </button>
                 )}
                 <button
@@ -1638,7 +1638,7 @@ export default function CitizenPage(): JSX.Element {
                   className="flex items-center gap-1.5 text-xs text-aegis-600 hover:text-aegis-700 bg-aegis-50/80 dark:bg-aegis-950/30 border border-aegis-200/60 dark:border-aegis-800/60 px-4 py-2 rounded-xl transition-all disabled:opacity-60 hover:scale-[1.02] active:scale-95 font-bold backdrop-blur-sm"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 transition-transform duration-500 ${newsRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`}/>
-                  {newsRefreshing ? 'Loading…' : hasNextBatchInPool || hasMoreFromServer ? 'Next →' : 'Refresh ↺'}
+ {newsRefreshing ? 'Loading...' : hasNextBatchInPool || hasMoreFromServer ? 'Next ->' : 'Refresh ↺'}
                 </button>
               </div>
             </div>
@@ -1680,7 +1680,7 @@ export default function CitizenPage(): JSX.Element {
                 <div className="glass-card rounded-2xl p-8 text-center">
                   <Newspaper className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3"/>
                   <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                    {newsHazardFilter !== 'all' ? `No ${newsHazardFilter} articles in this batch — try Next ↺` : t('citizenPage.noNewsAvailable', lang)}
+                    {newsHazardFilter !== 'all' ? `No ${newsHazardFilter} articles in this batch -- try Next ↺` : t('citizenPage.noNewsAvailable', lang)}
                   </p>
                 </div>
               )}
@@ -1702,7 +1702,7 @@ export default function CitizenPage(): JSX.Element {
                         <span className={`text-[8px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${cfg.bg} border`}>{cfg.label}</span>
                       </div>
                       <a href={n.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold hover:text-aegis-600 transition-colors block">{n.title}</a>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{n.source} · {n.time}</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{n.source} - {n.time}</p>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all">
                       <a href={waUrl} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp"
@@ -1719,7 +1719,7 @@ export default function CitizenPage(): JSX.Element {
               })}
               {newsPool.length > NEWS_BATCH && (
                 <div className="flex items-center justify-center gap-2 pt-1 text-xs text-gray-400">
-                  <span>{newsOffset + 1}–{Math.min(newsOffset + NEWS_BATCH, newsPool.length)} of {newsTotal || newsPool.length} articles</span>
+                  <span>{newsOffset + 1}-{Math.min(newsOffset + NEWS_BATCH, newsPool.length)} of {newsTotal || newsPool.length} articles</span>
                 </div>
               )}
             </div>
@@ -1738,7 +1738,7 @@ export default function CitizenPage(): JSX.Element {
                 </div>
                 <div>
                   <h3 className="font-extrabold text-lg text-gray-900 dark:text-white">Emergency Preparedness</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Essential supplies and plans — are you ready if disaster strikes?</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Essential supplies and plans -- are you ready if disaster strikes?</p>
                 </div>
               </div>
             </div>
@@ -1752,7 +1752,7 @@ export default function CitizenPage(): JSX.Element {
                 { icon: FileText,   color: 'from-teal-400 to-emerald-600',   label: 'ID documents in waterproof bag',           desc: 'Passport, insurance, medical records, emergency contacts' },
                 { icon: Zap,        color: 'from-yellow-400 to-amber-500',   label: 'Torch, batteries & portable radio',        desc: 'Hand-crank or battery radio for emergency broadcasts' },
                 { icon: Navigation, color: 'from-indigo-400 to-violet-600',  label: 'Evacuation route planned & shared',        desc: 'Plan 2 routes, share with family, set a meeting point' },
-                { icon: Smartphone, color: 'from-slate-400 to-gray-600',     label: 'Emergency contacts saved offline',         desc: 'Write numbers on paper — phones may not work' },
+                { icon: Smartphone, color: 'from-slate-400 to-gray-600',     label: 'Emergency contacts saved offline',         desc: 'Write numbers on paper -- phones may not work' },
                 { icon: Banknote,   color: 'from-green-400 to-emerald-600',  label: 'Emergency cash (ATMs may be offline)',     desc: 'Keep small denominations, enough for 3 days of essentials' },
               ] as { icon: ComponentType<{ className?: string }>; color: string; label: string; desc: string }[]).map((item, i) => (
                 <div key={i} className="glass-card rounded-xl p-4 border border-emerald-100 dark:border-emerald-800/30 hover:shadow-lg hover:border-emerald-300 dark:hover:border-emerald-700 transition-all duration-300 group cp-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -1772,14 +1772,14 @@ export default function CitizenPage(): JSX.Element {
             {/* Sign in CTA */}
             <div className="flex items-center justify-center gap-3 py-2">
               <Link to="/citizen/login" className="flex items-center gap-2 text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-600 transition-colors group">
-                <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform"/> Full preparedness guide & training (sign in) →
+ <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform"/> Full preparedness guide & training (sign in) ->
               </Link>
             </div>
           </div>
         )}
         </div>
 
-      {/* FOOTER — dynamic emergency numbers based on selected country */}
+      {/* FOOTER -- dynamic emergency numbers based on selected country */}
       <footer className="relative overflow-hidden bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-950 border-t border-gray-200/50 dark:border-gray-800/50 mt-10">
         <div className="absolute inset-0 opacity-[0.03]">
           <svg width="100%" height="100%"><defs><pattern id="footerGrid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#footerGrid)"/></svg>
@@ -1861,7 +1861,7 @@ export default function CitizenPage(): JSX.Element {
         </div>
       </footer>
 
-      {/* FLOATING SOS BUTTON — hidden while chatbot is open (unless SOS is active) */}
+      {/* FLOATING SOS BUTTON -- hidden while chatbot is open (unless SOS is active) */}
       {(!showChatbot || sosActive || sosCountdown !== null) && (
       <button
         onClick={handleGuestSOS}
@@ -1899,7 +1899,7 @@ export default function CitizenPage(): JSX.Element {
         </>
       )}
 
-      {/* SOS Countdown Overlay — full-screen feedback */}
+      {/* SOS Countdown Overlay -- full-screen feedback */}
       {sosCountdown !== null && (
         <div className="fixed inset-0 z-[95] bg-red-950/90 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in">
           <div className="text-center space-y-6">
@@ -1920,7 +1920,7 @@ export default function CitizenPage(): JSX.Element {
         </div>
       )}
 
-      {/* SOS Active Panel — prominent, dynamic emergency numbers */}
+      {/* SOS Active Panel -- prominent, dynamic emergency numbers */}
       {sosActive && (
         <div className="fixed inset-x-4 bottom-28 z-[91] bg-gradient-to-br from-red-900 to-red-950 text-white rounded-2xl px-5 py-4 shadow-2xl shadow-red-900/50 max-w-sm mx-auto animate-scale-in border border-red-700/50">
           <div className="flex items-start gap-3">
@@ -1967,14 +1967,14 @@ export default function CitizenPage(): JSX.Element {
         </div>
       )}
 
-      {/* SOS Label — small text above the button */}
+      {/* SOS Label -- small text above the button */}
       {!sosActive && sosCountdown === null && (
         <div className="fixed z-[90] pointer-events-none text-center" style={{ bottom: 'max(10.5rem, calc(env(safe-area-inset-bottom, 0px) + 10.5rem))', right: '0.75rem', width: '4.5rem' }}>
           <span className="text-[9px] font-bold text-red-600 dark:text-red-400 bg-white/90 dark:bg-gray-900/90 px-1.5 py-0.5 rounded-md shadow-sm">SOS</span>
         </div>
       )}
 
-      {/* FLOATING CHATBOT BUTTON — only opens on click, never auto */}
+      {/* FLOATING CHATBOT BUTTON -- only opens on click, never auto */}
       {!showChatbot && (
         <button onClick={()=>setShowChatbot(true)} className="fixed z-[90] w-16 h-16 bg-gradient-to-br from-aegis-500 to-aegis-700 hover:from-aegis-400 hover:to-aegis-600 text-white rounded-full shadow-2xl shadow-aegis-600/40 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-90" style={{ bottom: 'max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1.5rem))', right: '1.5rem' }} aria-label={t('nav.aiAssistant', lang)}>
           <MessageCircle className="w-6 h-6"/>
@@ -2164,8 +2164,8 @@ export default function CitizenPage(): JSX.Element {
                 <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
                   <h5 className="font-semibold text-sm text-red-800 dark:text-red-200">{t('citizenPage.trappedPersons', lang)}</h5>
                   <p className="text-xs text-red-700 dark:text-red-300 mt-1">
-                    {selectedReport.trappedPersons === 'yes' ? 'Yes — People are trapped or in immediate danger'
-                      : selectedReport.trappedPersons === 'property' ? 'No — But property or infrastructure at risk'
+                    {selectedReport.trappedPersons === 'yes' ? 'Yes -- People are trapped or in immediate danger'
+                      : selectedReport.trappedPersons === 'property' ? 'No -- But property or infrastructure at risk'
                       : selectedReport.trappedPersons}
                   </p>
                 </div>
@@ -2238,7 +2238,7 @@ export default function CitizenPage(): JSX.Element {
   )
 }
 
-// GuestReportsTab — Professional-grade Recent Reports for guest page
+//GuestReportsTab -- Professional-grade Recent Reports for guest page
 
 function GuestReportsTab({ reports, sorted, loading, searchTerm, setSearchTerm, sortField, setSortField, sortOrder, setSortOrder, onViewReport, onShareReport, onPrintReport, onNewReport, lang }: any) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'Unverified' | 'Verified' | 'Urgent' | 'Resolved'>('all')

@@ -8,10 +8,10 @@
  * - Real-time level changes broadcast via Socket.IO
  * - Responses cached via cacheService
  *
- * GET /api/rivers/levels             — All station levels
- * GET /api/rivers/levels/:stationId  — Station with 24hr history
- * GET /api/rivers/history/:stationId — Extended history
- * GET /api/rivers/config             — Region river config
+ * GET /api/rivers/levels             -- All station levels
+ * GET /api/rivers/levels/:stationId  -- Station with 24hr history
+ * GET /api/rivers/history/:stationId -- Extended history
+ * GET /api/rivers/config             -- Region river config
  * */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -23,7 +23,7 @@ import { remember, buildCacheKey, CACHE_TTL, type CacheResponseMeta } from '../s
 const router = Router()
 
 /**
- * GET /api/rivers/levels — Current levels for all stations in the active region
+ * GET /api/rivers/levels -- Current levels for all stations in the active region
  */
 router.get('/levels', async (_req: Request, res: Response, next: NextFunction) => {
   try {
@@ -48,7 +48,7 @@ router.get('/levels', async (_req: Request, res: Response, next: NextFunction) =
 })
 
 /**
- * GET /api/rivers/levels/:stationId — Specific station with 24hr history
+ * GET /api/rivers/levels/:stationId -- Specific station with 24hr history
  */
 router.get('/levels/:stationId', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -77,7 +77,7 @@ router.get('/levels/:stationId', async (req: Request, res: Response, next: NextF
 })
 
 /**
- * GET /api/rivers/history/:stationId — Historical readings for a station
+ * GET /api/rivers/history/:stationId -- Historical readings for a station
  */
 router.get('/history/:stationId', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -104,7 +104,7 @@ router.get('/history/:stationId', async (req: Request, res: Response, next: Next
 })
 
 /**
- * GET /api/rivers/config — River configuration for the active region
+ * GET /api/rivers/config -- River configuration for the active region
  */
 router.get('/config', async (_req: Request, res: Response) => {
   const region = getActiveCityRegion()

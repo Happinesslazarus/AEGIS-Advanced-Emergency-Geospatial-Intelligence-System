@@ -14,7 +14,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from
 import request from 'supertest'
 import express, { type Request, type Response, type NextFunction } from 'express'
 
-// Test environment
+//Test environment
 process.env.JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-at-least-32-chars'
 process.env.NODE_ENV = 'test'
@@ -29,7 +29,7 @@ import {
 import { insertCitizen, seedCitizenData } from './helpers/testFixtures'
 import citizenRoutes from '../routes/citizenRoutes'
 
-// Build test app
+//Build test app
 
 let app: express.Express
 
@@ -45,7 +45,7 @@ function buildGdprTestApp() {
   return _app
 }
 
-// Lifecycle
+//Lifecycle
 
 beforeAll(async () => {
   app = buildGdprTestApp()
@@ -68,7 +68,7 @@ afterAll(async () => {
 
 describe('GDPR Integration Tests', () => {
 
-  // Data Export (Article 20)
+  //Data Export (Article 20)
 
   describe('Data Export', () => {
     it('should export all citizen data', async () => {
@@ -117,7 +117,7 @@ describe('GDPR Integration Tests', () => {
     })
   })
 
-  // Data Erasure (Article 17)
+  //Data Erasure (Article 17)
 
   describe('Data Erasure', () => {
     it('should delete all citizen data and anonymise reports', async () => {
@@ -130,12 +130,12 @@ describe('GDPR Integration Tests', () => {
       expect(res.status).toBe(200)
       expect(res.body.success).toBe(true)
 
-      // Verify citizen account deleted
+      //Verify citizen account deleted
       const pool = getTestPool()
       const citizen = await pool.query('SELECT id FROM citizens WHERE id = $1', [TEST_CITIZEN.id])
       expect(citizen.rows.length).toBe(0)
 
-      // Verify personal data deleted
+      //Verify personal data deleted
       const contacts = await pool.query('SELECT id FROM emergency_contacts WHERE citizen_id = $1', [TEST_CITIZEN.id])
       expect(contacts.rows.length).toBe(0)
 
@@ -156,7 +156,7 @@ describe('GDPR Integration Tests', () => {
         .delete('/api/citizen/data-erasure')
         .set(...authHeader(citizenToken()))
 
-      // Reports should exist but be anonymised
+      //Reports should exist but be anonymised
       const pool = getTestPool()
       const reports = await pool.query('SELECT reporter_name, citizen_id FROM reports WHERE reporter_name = $1', ['Anonymised'])
       expect(reports.rows.length).toBeGreaterThanOrEqual(1)
@@ -191,7 +191,7 @@ describe('GDPR Integration Tests', () => {
     })
 
     it('should be transactional (all-or-nothing)', async () => {
-      // If the citizen has seeded data, erasure should delete everything atomically
+      //If the citizen has seeded data, erasure should delete everything atomically
       await seedCitizenData(TEST_CITIZEN.id)
 
       const res = await request(app)
@@ -199,14 +199,14 @@ describe('GDPR Integration Tests', () => {
         .set(...authHeader(citizenToken()))
 
       expect(res.status).toBe(200)
-      // If it succeeded, all personal data must be gone
+      //If it succeeded, all personal data must be gone
       const pool = getTestPool()
       const citizen = await pool.query('SELECT id FROM citizens WHERE id = $1', [TEST_CITIZEN.id])
       expect(citizen.rows.length).toBe(0)
     })
   })
 
-  // 30-Day Account Deletion Grace Period
+  //30-Day Account Deletion Grace Period
 
   describe('Account Deletion (30-day grace)', () => {
     it('should request deletion and set 30-day schedule', async () => {
@@ -218,7 +218,7 @@ describe('GDPR Integration Tests', () => {
       expect(res.body.success).toBe(true)
       expect(res.body.deletion_scheduled_at).toBeDefined()
 
-      // Verify the scheduled date is ~30 days ahead
+      //Verify the scheduled date is ~30 days ahead
       const scheduledDate = new Date(res.body.deletion_scheduled_at)
       const now = new Date()
       const daysDiff = (scheduledDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
@@ -250,7 +250,7 @@ describe('GDPR Integration Tests', () => {
       expect(res.status).toBe(200)
       expect(res.body.success).toBe(true)
 
-      // Verify timestamps cleared
+      //Verify timestamps cleared
       const pool = getTestPool()
       const { rows } = await pool.query(
         'SELECT deletion_requested_at, deletion_scheduled_at FROM citizens WHERE id = $1',

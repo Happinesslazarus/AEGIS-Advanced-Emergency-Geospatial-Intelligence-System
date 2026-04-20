@@ -38,9 +38,9 @@ export function useAudioAlerts(userSettings?: Partial<AudioAlertSettings>) {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const playedAlertsRef = useRef<Set<string>>(new Set())
 
-  // Check browser support for the Web Speech Synthesis API.
-  // Most modern browsers support this; Firefox requires a user gesture first;
-  // JSDOM (used in tests) does not support it at all.
+  //Check browser support for the Web Speech Synthesis API.
+  //Most modern browsers support this; Firefox requires a user gesture first;
+  //JSDOM (used in tests) does not support it at all.
   useEffect(() => {
     const isSupported = 'speechSynthesis' in window
     setSupported(isSupported)
@@ -53,24 +53,24 @@ export function useAudioAlerts(userSettings?: Partial<AudioAlertSettings>) {
 
       loadVoices()
       // 'voiceschanged' fires asynchronously (especially in Chrome) when the
-      // browser finishes loading the OS voice list.  We must listen for it or
-      // the initial getVoices() call returns an empty array.
+      //browser finishes loading the OS voice list.  We must listen for it or
+      //the initial getVoices() call returns an empty array.
       speechSynthesis.addEventListener('voiceschanged', loadVoices)
       return () => speechSynthesis.removeEventListener('voiceschanged', loadVoices)
     }
   }, [])
 
-  // Persist settings
+  //Persist settings
   useEffect(() => {
     localStorage.setItem('aegis-audio-settings', JSON.stringify(settings))
   }, [settings])
 
-  // getVoice: pick the best available voice.
-  // en-GB is preferred for a Scottish emergency platform; en-US is the
-  // fallback; if no English voice is found we use whatever is first in the list.
+  //getVoice: pick the best available voice.
+  //en-GB is preferred for a Scottish emergency platform; en-US is the
+  //fallback; if no English voice is found we use whatever is first in the list.
   const getVoice = useCallback((): SpeechSynthesisVoice | null => {
     if (settings.voice === 'default' || !voices.length) {
-      // Prefer English UK/US voice
+      //Prefer English UK/US voice
       return (
         voices.find(v => v.lang === 'en-GB') ||
         voices.find(v => v.lang.startsWith('en')) ||
@@ -80,18 +80,18 @@ export function useAudioAlerts(userSettings?: Partial<AudioAlertSettings>) {
     return voices.find(v => v.name === settings.voice) || voices[0] || null
   }, [settings.voice, voices])
 
-  // speak: low-level Text-to-Speech function.
+  //speak: low-level Text-to-Speech function.
   // `alertId` deduplication prevents the same alert from being read multiple
-  // times if the component re-renders while the alert is still active.
+  //times if the component re-renders while the alert is still active.
   const speak = useCallback((text: string, options?: { priority?: 'critical' | 'warning' | 'info'; alertId?: string }) => {
     if (!supported || !settings.enabled) return
 
-    // Don't repeat the same alert — store spoken alert IDs in a ref so the
-    // check is synchronous and doesn't trigger a re-render.
+    //Don't repeat the same alert -- store spoken alert IDs in a ref so the
+    //check is synchronous and doesn't trigger a re-render.
     if (options?.alertId && playedAlertsRef.current.has(options.alertId)) return
     if (options?.alertId) playedAlertsRef.current.add(options.alertId)
 
-    // Cancel any in-progress speech so the new message starts immediately.
+    //Cancel any in-progress speech so the new message starts immediately.
     speechSynthesis.cancel()
 
     const utterance = new SpeechSynthesisUtterance(text)
@@ -110,13 +110,13 @@ export function useAudioAlerts(userSettings?: Partial<AudioAlertSettings>) {
     speechSynthesis.speak(utterance)
   }, [supported, settings, getVoice])
 
-  // Stop speaking
+  //Stop speaking
   const stop = useCallback(() => {
     speechSynthesis.cancel()
     setSpeaking(false)
   }, [])
 
-  // Auto-play alert (respects settings)
+  //Auto-play alert (respects settings)
   const playAlert = useCallback((alert: {
     id: string
     title: string
@@ -129,7 +129,7 @@ export function useAudioAlerts(userSettings?: Partial<AudioAlertSettings>) {
     const isCritical = alert.severity === 'critical' || alert.severity === 'high'
     const isWarning = alert.severity === 'warning' || alert.severity === 'medium'
 
-    // Check auto-play settings
+    //Check auto-play settings
     if (isCritical && !settings.autoPlayCritical) return
     if (isWarning && !settings.autoPlayWarning) return
     if (!isCritical && !isWarning) return
@@ -144,7 +144,7 @@ export function useAudioAlerts(userSettings?: Partial<AudioAlertSettings>) {
     speak(text, { priority: isCritical ? 'critical' : 'warning', alertId: alert.id })
   }, [settings, speak])
 
-  // Speak alert manually (ignores auto-play settings)
+  //Speak alert manually (ignores auto-play settings)
   const speakAlert = useCallback((alert: {
     id?: string
     title: string
@@ -162,12 +162,12 @@ export function useAudioAlerts(userSettings?: Partial<AudioAlertSettings>) {
     speak(`${prefix} ${alert.title}. ${alert.message}${areaText}`, { alertId: alert.id })
   }, [speak])
 
-  // Update settings
+  //Update settings
   const updateSettings = useCallback((partial: Partial<AudioAlertSettings>) => {
     setSettings(prev => ({ ...prev, ...partial }))
   }, [])
 
-  // Toggle enabled
+  //Toggle enabled
   const toggleEnabled = useCallback(() => {
     setSettings(prev => ({ ...prev, enabled: !prev.enabled }))
     if (speaking) stop()

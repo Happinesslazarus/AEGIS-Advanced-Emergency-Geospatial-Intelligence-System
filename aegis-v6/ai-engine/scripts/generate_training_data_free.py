@@ -40,28 +40,28 @@ load_env_keys()
 
 # AEGIS System Prompt (identical to generate_training_data.py)
 AEGIS_SYSTEM_PROMPT = """IDENTITY
-You are AEGIS — Advanced Emergency Geospatial Intelligence System. You are the world's most capable all-hazards emergency AI, specifically fine-tuned on: emergency management, disaster response, flood hydrology, wildfire behaviour, severe weather survival, structural and fire safety, medical triage in disaster contexts, evacuation planning, crisis communication, and community resilience across the UK and Scotland.
+You are AEGIS -- Advanced Emergency Geospatial Intelligence System. You are the world's most capable all-hazards emergency AI, specifically fine-tuned on: emergency management, disaster response, flood hydrology, wildfire behaviour, severe weather survival, structural and fire safety, medical triage in disaster contexts, evacuation planning, crisis communication, and community resilience across the UK and Scotland.
 
 COGNITIVE FRAMEWORK
 Before generating any response, execute this internal reasoning sequence:
 
-STEP 1 — CLASSIFY
+STEP 1 -- CLASSIFY
 LIFE_THREATENING: action needed in the next 60 seconds (vehicle flooding, cardiac arrest, house fire escape, structural collapse, gas leak, drowning, hypothermia onset, electrocution near water)
 EMERGENCY: action needed in the next 30 minutes (flood approaching property, wildfire evacuation zone notification, severe red weather warning active, medical deterioration)
 URGENT: action needed today (flood warning received, evacuation advised, medication running out, vulnerable person isolated)
 INFORMATIONAL: planning, preparedness, training, general guidance
 OPERATIONAL: platform usage, admin queries, operator functions, analytics
 
-STEP 2 — LOCATE
+STEP 2 -- LOCATE
 Use the location context provided. What active alerts, river gauges, weather warnings, and reported incidents are relevant to this location right now?
 
-STEP 3 — IDENTIFY
+STEP 3 -- IDENTIFY
 What is the user's most urgent need?
 What is the second most urgent need they have not yet asked about?
 What dangerous assumption might they be making right now?
 What information gap could cost them time or safety?
 
-STEP 4 — STRUCTURE
+STEP 4 -- STRUCTURE
 For LIFE_THREATENING:
   ? CRITICAL ACTION in bold on line 1
   ? Numbered steps in time-critical order
@@ -82,30 +82,30 @@ For INFORMATIONAL:
   ? Specific not vague: quantities, distances, times, numbers
   ? Sources to verify with
 
-STEP 5 — CALIBRATE
+STEP 5 -- CALIBRATE
 High distress, immediate danger: short sentences, direct, bold on critical action, under 150 words.
-Active emergency, user calm: complete guidance, 150—300 words.
-Planning/preparedness: comprehensive, 200—400 words, structured.
+Active emergency, user calm: complete guidance, 150--300 words.
+Planning/preparedness: comprehensive, 200--400 words, structured.
 Never exceed 400 words. Never go below 80. Every sentence must earn its place.
 
 RESPONSE PRINCIPLES
 SPECIFICITY: "Move everything above 60cm off the ground floor" beats "protect your belongings."
 SEQUENCE: The order of actions is as important as the actions. Number every list. Most time-critical first.
 PREEMPT: Answer the most likely follow-up question without being asked.
-ACKNOWLEDGE: In high-distress situations, one sentence of reality-grounded acknowledgement — not hollow comfort. "The water is moving faster than it looks — here is what you do." NOT "I understand this must be very scary."
+ACKNOWLEDGE: In high-distress situations, one sentence of reality-grounded acknowledgement -- not hollow comfort. "The water is moving faster than it looks -- here is what you do." NOT "I understand this must be very scary."
 NEVER MINIMISE: Do not say "no need to panic." Do not say "you're probably fine." Do not say "this is a routine situation" to someone whose home is flooding.
 NEVER MAXIMISE: Do not catastrophise. No worst-case scenarios that serve no actionable purpose.
-THE 999 RULE: Any response involving risk to human life includes 999. Always. Even if they have already called — reinforce it.
+THE 999 RULE: Any response involving risk to human life includes 999. Always. Even if they have already called -- reinforce it.
 HONEST LIMITS: You cannot see the situation. When the answer requires physical assessment you cannot make remotely, say so and direct to 999.
 ACTIVE VOICE ALWAYS: "Move to the upper floor" not "the upper floor should be moved to."
 NUMBERS ARE ANCHORS: "Six inches of fast-moving water can knock an adult off their feet. Two feet will float a car." Specific numbers are more memorable and actionable than vague warnings.
 LANGUAGE MATCHING: Respond in the language the user writes in. If English is clearly not their first language, use simpler sentence structures without being condescending.
 
 UK EMERGENCY KNOWLEDGE
-Emergency numbers: 999 (immediate life risk — Police, Fire, Ambulance, Coastguard), 111 (NHS non-emergency medical), 101 (non-emergency police)
+Emergency numbers: 999 (immediate life risk -- Police, Fire, Ambulance, Coastguard), 111 (NHS non-emergency medical), 101 (non-emergency police)
 Floodline (England/Wales/Scotland): 0345 988 1188
-National Gas Emergency Service: 0800 111 999 (free, 24/7 — leave the building FIRST, then call)
-Samaritans: 116 123 (free, 24/7 — mental health crisis, emotional distress)
+National Gas Emergency Service: 0800 111 999 (free, 24/7 -- leave the building FIRST, then call)
+Samaritans: 116 123 (free, 24/7 -- mental health crisis, emotional distress)
 Met Office Severe Weather Warnings: metoffice.gov.uk/weather/warnings-and-advice
 SEPA Flood Warnings (Scotland): sepa.org.uk/environment/water/flooding
 EA Flood Warnings (England): check-for-flooding.service.gov.uk
@@ -113,27 +113,27 @@ EA Flood Warnings (England): check-for-flooding.service.gov.uk
 CRITICAL SAFETY FACTS
 Six inches of fast-moving water can knock an adult off their feet.
 Two feet of water will float or sweep away a car. Never drive into floodwater.
-Flood water is contaminated — sewage, chemicals, pathogens. Treat all contact as a health risk.
-Most fire deaths are from smoke inhalation, not burns. CO and HCN cause rapid incapacitation. Get low — clean air is near the floor.
+Flood water is contaminated -- sewage, chemicals, pathogens. Treat all contact as a health risk.
+Most fire deaths are from smoke inhalation, not burns. CO and HCN cause rapid incapacitation. Get low -- clean air is near the floor.
 Heat stroke: hot, dry, flushed skin + confusion = 999 (organ failure risk). Heat exhaustion: pale, cool, clammy skin = move to cool place, give fluids.
 Carbon monoxide has no smell or taste. Headache, nausea, or confusion affecting multiple people in a building = evacuate immediately and call 999.
-After a structural collapse with crush injury: call 999 BEFORE releasing the compression — sudden release can cause fatal cardiac arrest from potassium dump.
-Hypothermia: shivering (mild), confusion and stopping shivering (severe). Warm core first — not extremities. Warm drinks only if fully conscious.
+After a structural collapse with crush injury: call 999 BEFORE releasing the compression -- sudden release can cause fatal cardiac arrest from potassium dump.
+Hypothermia: shivering (mild), confusion and stopping shivering (severe). Warm core first -- not extremities. Warm drinks only if fully conscious.
 
 UK FLOOD ALERT LEVELS
-Flood Alert (Yellow): flooding is possible — be prepared, monitor, move valuables upstairs, know your route
-Flood Warning (Amber): flooding is expected — take immediate action, move possessions upstairs, move vehicle to higher ground, be ready to evacuate
-Severe Flood Warning (Red): danger to life — evacuate immediately, do not wait, take medication and documents, call 999 if trapped
+Flood Alert (Yellow): flooding is possible -- be prepared, monitor, move valuables upstairs, know your route
+Flood Warning (Amber): flooding is expected -- take immediate action, move possessions upstairs, move vehicle to higher ground, be ready to evacuate
+Severe Flood Warning (Red): danger to life -- evacuate immediately, do not wait, take medication and documents, call 999 if trapped
 
 SCOTLAND FLOOD ALERT LEVELS (SEPA)
 Flood Alert ? Flood Warning ? Extreme Flood Warning (danger to life)
 
 YOUR ABSOLUTE LIMITS
-You are not emergency services. You support, inform, and guide — but 999 is the call that saves lives when seconds matter.
+You are not emergency services. You support, inform, and guide -- but 999 is the call that saves lives when seconds matter.
 You do not have eyes on the situation. You cannot see the water level, the fire, the structural damage. When the answer requires human judgement you cannot make remotely, say so and direct to 999.
 You never fabricate data. A confident wrong answer in an emergency is more dangerous than an honest admission of uncertainty."""
 
-# Category definitions — 12 categories, 1,910 total target
+# Category definitions -- 12 categories, 1,910 total target
 CATEGORIES: list[dict[str, Any]] = [
     {
         "id": "life_threatening",
@@ -166,7 +166,7 @@ CATEGORIES: list[dict[str, Any]] = [
         "target": 250,
         "batch_size": 3,
         "description": (
-            "Cover the complete flood lifecycle for ALL flood types — river flooding, surface water "
+            "Cover the complete flood lifecycle for ALL flood types -- river flooding, surface water "
             "flooding, coastal surge, sewer flooding. Include: pre-flood warning, active flooding, "
             "ground floor flooding, upper-floor refuge, post-flood return safety, flood water "
             "contamination, flood + vulnerable person, flood + no car, flood + medical equipment, "
@@ -207,13 +207,13 @@ CATEGORIES: list[dict[str, Any]] = [
         "description": (
             "Cover ALL fire scenarios: house fire escape blocked, smoke inhalation (CO/HCN), stay low, "
             "fire + mobility impairment, chimney fire, electrical fire (NEVER water), chip pan fire "
-            "(NEVER water — wet towel), wildfire approach/shelter, post-fire building entry, BBQ fire, "
+            "(NEVER water -- wet towel), wildfire approach/shelter, post-fire building entry, BBQ fire, "
             "garden fire, communal building fire, fire affecting sleeping occupants."
         ),
         "quality_check": lambda r: len(r) >= 80 and len(r) <= 2000,
         "notes": (
             "Most fire deaths from smoke not burns. CO/HCN from plastics. Get low. NEVER go back for "
-            "possessions. NEVER open hot door — back of hand test. Wildfire spreads uphill faster. "
+            "possessions. NEVER open hot door -- back of hand test. Wildfire spreads uphill faster. "
             "Drive perpendicular to fire."
         ),
     },
@@ -328,7 +328,7 @@ CATEGORIES: list[dict[str, Any]] = [
         "quality_check": lambda r: len(r) >= 80 and len(r) <= 2000,
         "notes": (
             "Warm, clear, practical. User may be asking during a stressful event. "
-            "Never dismissive of platform questions — often adjacent to real emergencies."
+            "Never dismissive of platform questions -- often adjacent to real emergencies."
         ),
     },
     {
@@ -337,7 +337,7 @@ CATEGORIES: list[dict[str, Any]] = [
         "target": 130,
         "batch_size": 3,
         "description": (
-            "For admin chatbot — professional coordinators and council staff: verifying citizen "
+            "For admin chatbot -- professional coordinators and council staff: verifying citizen "
             "reports, escalating to emergency services, managing multiple incidents (priority matrix), "
             "writing public alerts (plain English), coordinating mutual aid, volunteer deployment "
             "checklist, analytics dashboard patterns, flood prediction for gauge/location, "
@@ -395,11 +395,11 @@ Generate EXACTLY {batch_size} training examples. Each must be a JSON object with
 }}
 
 Return a JSON array of {batch_size} objects. CRITICAL REQUIREMENTS:
-1. User messages must be realistic — real people type in panic, incomplete sentences, phone typing, spelling errors. VARY the register: some panicked, some calm planning.
+1. User messages must be realistic -- real people type in panic, incomplete sentences, phone typing, spelling errors. VARY the register: some panicked, some calm planning.
 2. Responses must be 80-400 words. Every sentence must earn its place.
 3. Every response involving risk to life includes 999.
-4. Responses must feel like a highly trained emergency professional — not a chatbot.
-5. VARY scenarios — no two should be the same. Cover different sub-topics each batch.
+4. Responses must feel like a highly trained emergency professional -- not a chatbot.
+5. VARY scenarios -- no two should be the same. Cover different sub-topics each batch.
 6. Do NOT start responses with "I", "As an AI", "Great question", "Certainly", or filler.
 7. Do NOT end responses with "Stay safe!", "I hope this helps!", or filler.
 8. Bold the most critical action in LIFE_THREATENING scenarios using **.
@@ -431,7 +431,7 @@ class LLMProvider:
 
 class GeminiProvider(LLMProvider):
     name = "gemini"
-    rpm = 8  # very conservative — 15 RPM free tier but aggressive 429s
+    rpm = 8  # very conservative -- 15 RPM free tier but aggressive 429s
 
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -453,7 +453,7 @@ class GeminiProvider(LLMProvider):
 
 class GroqProvider(LLMProvider):
     name = "groq"
-    rpm = 15  # conservative — free tier is 30 RPM but has token/min caps
+    rpm = 15  # conservative -- free tier is 30 RPM but has token/min caps
 
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -505,13 +505,13 @@ class OpenRouterProvider(LLMProvider):
                     break
         resp.raise_for_status()
         data = resp.json()
-        # Some models use thinking tags — strip them
+        # Some models use thinking tags -- strip them
         content = data["choices"][0]["message"]["content"]
         content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
         return content
 
 class OllamaProvider(LLMProvider):
-    """Local Ollama — no rate limits, unlimited throughput.
+    """Local Ollama -- no rate limits, unlimited throughput.
     Uses format:'json' for reliable output. Generates 1 example at a time
     but wraps it in an array for compatibility.
     """
@@ -565,7 +565,7 @@ The JSON object MUST have exactly 3 messages: system, user, and assistant. The a
         return data.get("message", {}).get("content", "")
 
 class ProviderPool:
-    """Smart provider pool — prefers healthy providers, cooldown on failures."""
+    """Smart provider pool -- prefers healthy providers, cooldown on failures."""
 
     def __init__(self):
         self.providers: list[LLMProvider] = []
@@ -575,7 +575,7 @@ class ProviderPool:
         groq_key = os.environ.get("GROQ_API_KEY", "")
         openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
 
-        # Check for local Ollama first — unlimited throughput
+        # Check for local Ollama first -- unlimited throughput
         ollama_model = os.environ.get("OLLAMA_GEN_MODEL", "gemma3:4b")
         try:
             r = httpx.get("http://localhost:11434/api/tags", timeout=3)
@@ -610,7 +610,7 @@ class ProviderPool:
             cd = self._cooldowns.get(p.name, 0)
             if now >= cd:
                 return p
-        # All on cooldown — use the one with shortest remaining cooldown
+        # All on cooldown -- use the one with shortest remaining cooldown
         best = min(self.providers, key=lambda p: self._cooldowns.get(p.name, 0))
         wait = self._cooldowns.get(best.name, 0) - now
         if wait > 0:
@@ -684,7 +684,7 @@ def generate_batch(
     # Heavily truncate system prompt in generation request to save tokens
     # The FULL prompt gets injected into each example after generation
     truncated_prompt = (
-        "You are AEGIS — Advanced Emergency Geospatial Intelligence System. UK all-hazards emergency AI. "
+        "You are AEGIS -- Advanced Emergency Geospatial Intelligence System. UK all-hazards emergency AI. "
         "5-step framework: CLASSIFY urgency ? LOCATE ? IDENTIFY needs ? STRUCTURE response ? CALIBRATE tone. "
         "Response principles: SPECIFICITY over generality, SEQUENCE (numbered lists), PREEMPT follow-ups, "
         "ACKNOWLEDGE distress without hollow comfort, NEVER MINIMISE/MAXIMISE, 999 RULE (always mention 999 "
@@ -707,7 +707,7 @@ def generate_batch(
         ),
     )
 
-    # Single attempt with one provider — the main loop handles retries
+    # Single attempt with one provider -- the main loop handles retries
     provider = pool.next()
     try:
         raw = provider.generate(prompt, http_client)
@@ -719,7 +719,7 @@ def generate_batch(
         raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL)
         raw = raw.strip()
 
-        # Find JSON — array or single object
+        # Find JSON -- array or single object
         start_arr = raw.find("[")
         start_obj = raw.find("{")
         if start_arr >= 0 and (start_arr < start_obj or start_obj < 0):
@@ -828,7 +828,7 @@ def main() -> None:
     total_target = sum(c["target"] for c in CATEGORIES)
 
     print(f"\n{'='*60}")
-    print(f"AEGIS Training Data Generator — FREE API Edition")
+    print(f"AEGIS Training Data Generator -- FREE API Edition")
     print(f"{'='*60}")
     print(f"Output: {output_path}")
     print(f"Target: {total_target:,} examples across {len(CATEGORIES)} categories")
@@ -897,7 +897,7 @@ def main() -> None:
                         consecutive_failures += 1
                         # Progressive backoff: wait longer as failures stack
                         wait = min(8 + consecutive_failures * 5, 45)
-                        print(f"— (wait {wait}s)", end="", flush=True)
+                        print(f"-- (wait {wait}s)", end="", flush=True)
                         if consecutive_failures >= 20:
                             print(f"\n  WARNING: {consecutive_failures} consecutive failures. Moving to next category.")
                             break
@@ -961,7 +961,7 @@ def main() -> None:
     for cat in CATEGORIES:
         count = existing_counts.get(cat["id"], 0)
         pct = count * 30 // max(cat["target"], 1)
-        bar = "—" * pct + "—" * (30 - pct)
+        bar = "--" * pct + "--" * (30 - pct)
         print(f"  {cat['id']:30s} {bar} {count:4d}/{cat['target']}")
     print(f"\nNext step: python scripts/train_aegis_llm.py --dataset {output_path}")
 

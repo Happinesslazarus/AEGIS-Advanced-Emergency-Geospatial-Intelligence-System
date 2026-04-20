@@ -306,7 +306,7 @@ class BaseHazardPipeline(abc.ABC):
     # Full pipeline runner
 
     def run(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Execute the full pipeline: ingest → features → labels → split → train → eval → SHAP → save."""
+        """Execute the full pipeline: ingest -> features -> labels -> split -> train -> eval -> SHAP -> save."""
         logger.info(f"{'='*60}")
         logger.info(f"Training: {self.HAZARD_NAME}  region={self.region.region_id}")
         logger.info(f"Model type: {self.MODEL_TYPE_LABEL}")
@@ -335,7 +335,7 @@ class BaseHazardPipeline(abc.ABC):
         logger.info(f"After dropping NaNs: {len(X)} samples, pos_rate={y.mean():.3f}")
 
         if len(X) < 20:
-            logger.warning(f"Very small dataset ({len(X)} samples) — results unreliable")
+            logger.warning(f"Very small dataset ({len(X)} samples) -- results unreliable")
 
         # 4. Split
         self.split_data(X, y)

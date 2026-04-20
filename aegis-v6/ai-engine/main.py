@@ -35,7 +35,7 @@ from typing import Dict, List, Any
 from datetime import datetime
 
 # GPU memory management: allow GPU but cap usage to prevent DWM crashes on Windows
-# RTX 2060 Super has 8GB — reserve ~2GB for Windows DWM/desktop rendering
+# RTX 2060 Super has 8GB -- reserve ~2GB for Windows DWM/desktop rendering
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 try:
     import tensorflow as tf
@@ -48,7 +48,7 @@ try:
 except Exception:
     pass  # TensorFlow may not be installed or no GPUs available
 
-# Rate limiting (slowapi — backed by in-process memory limiter)
+# Rate limiting (slowapi -- backed by in-process memory limiter)
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -121,7 +121,7 @@ async def _drift_check_loop():
 
                     # Trigger retraining for critically drifted models
                     if critical:
-                        logger.warning(f"[DRIFT-SCHEDULER] CRITICAL drift on '{model_name}' — triggering auto-retrain")
+                        logger.warning(f"[DRIFT-SCHEDULER] CRITICAL drift on '{model_name}' -- triggering auto-retrain")
                         try:
                             from app.api.endpoints import (
                                 severity_predictor_direct,
@@ -140,7 +140,7 @@ async def _drift_check_loop():
                         except Exception as e:
                             logger.error(f"[DRIFT-SCHEDULER] Auto-retrain failed for '{model_name}': {e}")
                     else:
-                        logger.info(f"[DRIFT-SCHEDULER] Non-critical drift on '{model_name}' — monitoring only")
+                        logger.info(f"[DRIFT-SCHEDULER] Non-critical drift on '{model_name}' -- monitoring only")
             else:
                 logger.info(f"[DRIFT-SCHEDULER] No drift detected across {len(results)} model(s)")
 
@@ -179,7 +179,7 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"Sentry initialization failed: {e}")
     else:
-        logger.info("Sentry: DSN not configured — error tracking disabled")
+        logger.info("Sentry: DSN not configured -- error tracking disabled")
 
     # Load models on startup
     try:

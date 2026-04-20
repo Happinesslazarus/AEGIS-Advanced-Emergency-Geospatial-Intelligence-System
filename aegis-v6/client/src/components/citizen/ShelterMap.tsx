@@ -66,7 +66,7 @@ const TYPE_COLORS: Record<string, string> = {
   school: '#8b5cf6',
 }
 
-/* Inline SVG paths from Lucide icons — used in marker DivIcons where React components can't render */
+/* Inline SVG paths from Lucide icons -- used in marker DivIcons where React components can't render */
 const TYPE_SVGS: Record<string, string> = {
   shelter: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
   hospital: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v12"/><path d="M6 12h12"/></svg>',
@@ -230,7 +230,7 @@ export default function ShelterMap({ origin, shelters, selectedId, onSelect }: P
                       <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 1 }}>{s.name}</div>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 99, background: TYPE_COLORS[s.type] + '22', color: TYPE_COLORS[s.type], fontWeight: 600 }}>{TYPE_LABELS[s.type] || s.type}</span>
-                        <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 99, background: s.isOpen ? '#dcfce7' : '#fee2e2', color: s.isOpen ? '#16a34a' : '#dc2626', fontWeight: 600 }}>{s.isOpen ? '● Open' : '✕ Closed'}</span>
+                        <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 99, background: s.isOpen ? '#dcfce7' : '#fee2e2', color: s.isOpen ? '#16a34a' : '#dc2626', fontWeight: 600 }}>{s.isOpen ? '* Open' : 'x Closed'}</span>
                       </div>
                     </div>
                   </div>
@@ -304,7 +304,7 @@ export default function ShelterMap({ origin, shelters, selectedId, onSelect }: P
         })}
       </MapContainer>
 
-      {/* Tile layer switcher — rendered outside MapContainer for proper z-index */}
+      {/* Tile layer switcher -- rendered outside MapContainer for proper z-index */}
       <TileLayerSwitcher active={activeLayer} onChange={setActiveLayer} />
     </div>
   )

@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Clock, RefreshCw } from 'lucide-react'
 
-// Session timing constants (milliseconds)
+//Session timing constants (milliseconds)
 const SESSION_TIMEOUT = 30 * 60 * 1000 // 30 minutes
 const WARNING_THRESHOLD = 5 * 60 * 1000 // Show warning 5 minutes before expiry
 const ACTIVITY_DEBOUNCE = 60 * 1000 // Debounce activity detection
@@ -52,27 +52,27 @@ export function SessionExpiryHandler({
   const onExpireRef = useRef(onExpire)
   useEffect(() => { onExpireRef.current = onExpire }, [onExpire])
 
-  // Reset timers on activity
+  //Reset timers on activity
   const resetTimers = useCallback(() => {
     const now = Date.now()
     
-    // Debounce activity detection
+    //Debounce activity detection
     if (now - lastActivityRef.current < ACTIVITY_DEBOUNCE) return
     lastActivityRef.current = now
 
-    // Clear existing timers
+    //Clear existing timers
     if (warningTimerRef.current) clearTimeout(warningTimerRef.current)
     if (expiryTimerRef.current) clearTimeout(expiryTimerRef.current)
     if (countdownRef.current) clearInterval(countdownRef.current)
 
     setShowWarning(false)
 
-    // Set new warning timer
+    //Set new warning timer
     warningTimerRef.current = setTimeout(() => {
       setShowWarning(true)
       setTimeRemaining(warningThreshold)
       
-      // Start countdown
+      //Start countdown
       countdownRef.current = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1000) {
@@ -84,14 +84,14 @@ export function SessionExpiryHandler({
       }, 1000)
     }, timeout - warningThreshold)
 
-    // Set expiry timer
+    //Set expiry timer
     expiryTimerRef.current = setTimeout(() => {
       setShowWarning(false)
       onExpireRef.current()
     }, timeout)
   }, [timeout, warningThreshold])
 
-  // Track user activity
+  //Track user activity
   useEffect(() => {
     if (!isAuthenticated) return
 
@@ -101,7 +101,7 @@ export function SessionExpiryHandler({
       window.addEventListener(event, resetTimers, { passive: true })
     })
 
-    // Initialize timers
+    //Initialize timers
     resetTimers()
 
     return () => {
@@ -114,7 +114,7 @@ export function SessionExpiryHandler({
     }
   }, [isAuthenticated, resetTimers])
 
-  // Handle session refresh
+  //Handle session refresh
   const handleRefresh = async () => {
     setIsRefreshing(true)
     try {
@@ -131,7 +131,7 @@ export function SessionExpiryHandler({
     }
   }
 
-  // Format time remaining for display
+  //Format time remaining for display
   const formatTime = (ms: number) => {
     const minutes = Math.floor(ms / 60000)
     const seconds = Math.floor((ms % 60000) / 1000)

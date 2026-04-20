@@ -9,7 +9,7 @@ animate the approaching threat on a time slider.
 """
 
 """
- AEGIS AI ENGINE — Severe Storm Prediction Module
+ AEGIS AI ENGINE -- Severe Storm Prediction Module
  Physics-based rule layer using wind speed, pressure drop, humidity,
  and precipitation intensity as primary indicators.
 """
@@ -91,7 +91,7 @@ class SevereStormPredictor:
             generated_at=datetime.utcnow(),
             expires_at=datetime.utcnow() + timedelta(hours=12),
             data_sources=["weather_api", "met_office", "radar", "citizen_reports"],
-            warnings=["Storm windows can change rapidly — re-check every 30 minutes"] if probability > 0.55 else [],
+            warnings=["Storm windows can change rapidly -- re-check every 30 minutes"] if probability > 0.55 else [],
             model_type_label=self._model_type_label or ("rule_based" if not model_metadata else "weakly_supervised"),
             shap_explanation=self._last_shap,
             label_strategy=self._label_strategy,

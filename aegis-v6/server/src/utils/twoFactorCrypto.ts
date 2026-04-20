@@ -13,7 +13,7 @@
 import crypto from 'crypto'
 import { logger } from '../services/logger.js'
 
-// Encryption Key
+//Encryption Key
 
 const ALGORITHM = 'aes-256-gcm'
 const IV_LENGTH = 16 // 128-bit IV for AES-GCM
@@ -27,9 +27,9 @@ function getEncryptionKey(): Buffer {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('[FATAL] TWO_FACTOR_ENCRYPTION_KEY is not set. Cannot operate 2FA in production without it.')
     }
-    // Dev fallback: deterministic key derived from JWT_SECRET so secrets survive restarts
+    //Dev fallback: deterministic key derived from JWT_SECRET so secrets survive restarts
     const fallback = process.env.JWT_SECRET || 'aegis-dev-2fa-key-not-for-production'
-    logger.warn('[2FA] TWO_FACTOR_ENCRYPTION_KEY not set — deriving from JWT_SECRET (dev only)')
+    logger.warn('[2FA] TWO_FACTOR_ENCRYPTION_KEY not set -- deriving from JWT_SECRET (dev only)')
     return crypto.createHash('sha256').update(fallback).digest()
   }
   if (keyHex.length !== 64) {
@@ -38,7 +38,7 @@ function getEncryptionKey(): Buffer {
   return Buffer.from(keyHex, 'hex')
 }
 
-// AES-256-GCM Encrypt / Decrypt
+//AES-256-GCM Encrypt / Decrypt
 
 /**
  * Encrypt a plaintext string using AES-256-GCM.
@@ -74,7 +74,7 @@ export function decrypt2FASecret(encryptedStr: string): string {
   return decrypted
 }
 
-// Backup Code Generation & Hashing
+//Backup Code Generation & Hashing
 
 /**
  * Generate a single human-readable backup code: XXXX-XXXX (uppercase alphanumeric).
@@ -96,7 +96,7 @@ function generateSingleBackupCode(): string {
 
 /**
  * Generate a set of backup codes.
- * Returns { plainCodes, hashedCodes } — plainCodes shown once to user,
+ * Returns { plainCodes, hashedCodes } -- plainCodes shown once to user,
  * hashedCodes stored in the database.
  */
 export function generateBackupCodes(): { plainCodes: string[]; hashedCodes: string[] } {
@@ -136,7 +136,7 @@ export function verifyBackupCode(submittedCode: string, hashedCodes: string[]): 
   return -1
 }
 
-// Temp Token for 2FA Login Flow
+//Temp Token for 2FA Login Flow
 
 /**
  * Generate a cryptographically secure one-time temp token for the 2FA login step.
@@ -153,7 +153,7 @@ export function hashTempToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex')
 }
 
-// TOTP Replay Protection
+//TOTP Replay Protection
 
 /**
  * Hash a TOTP code for replay detection (SHA-256).
@@ -171,19 +171,19 @@ export function isTOTPReplay(
   codeHash: string,
   lastTOTPHash: string | null,
   lastTOTPAt: Date | null,
-  windowSeconds: number = 90 // 3 TOTP periods (30s each) to cover —1 window
+  windowSeconds: number = 90 // 3 TOTP periods (30s each) to cover --1 window
 ): boolean {
   if (!lastTOTPHash || !lastTOTPAt) return false
   const elapsed = Date.now() - new Date(lastTOTPAt).getTime()
   if (elapsed > windowSeconds * 1000) return false
-  // Timing-safe comparison
+  //Timing-safe comparison
   const a = Buffer.from(codeHash, 'hex')
   const b = Buffer.from(lastTOTPHash, 'hex')
   if (a.length !== b.length) return false
   return crypto.timingSafeEqual(a, b)
 }
 
-// Brute-Force Protection Helpers
+//Brute-Force Protection Helpers
 
 const TWO_FA_MAX_ATTEMPTS = 5
 const TWO_FA_LOCKOUT_MINUTES = 10

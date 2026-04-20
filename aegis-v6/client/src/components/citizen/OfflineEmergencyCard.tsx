@@ -59,12 +59,12 @@ const BASE_TIPS = [
   'Keep medication, water, and ID ready for rapid evacuation.',
 ]
 
-// Build flat country label map for all countries
+//Build flat country label map for all countries
 const COUNTRY_LABELS: Record<string, string> = Object.fromEntries(
   ALL_COUNTRIES.map(c => [c.code, `${c.flag} ${c.name}`])
 )
 
-// Total number of supported countries
+//Total number of supported countries
 const TOTAL_COUNTRIES = ALL_COUNTRIES.length
 
 export default function OfflineEmergencyCard(): JSX.Element {
@@ -156,7 +156,7 @@ export default function OfflineEmergencyCard(): JSX.Element {
       localStorage.setItem('aegis-emergency-card', JSON.stringify(card))
       setSaved(true)
     } catch {
-      // Ignore storage failures.
+      //Ignore storage failures.
     }
   }
 
@@ -167,7 +167,7 @@ export default function OfflineEmergencyCard(): JSX.Element {
     const generated = new Date().toLocaleString()
     const cardId = `AEG-${Date.now().toString(36).toUpperCase().slice(-8)}`
 
-    // Inline Lucide-compatible SVG helper — no Unicode emojis
+    //Inline Lucide-compatible SVG helper -- no Unicode emojis
     const svg = (paths: string, size = 12, color = 'currentColor', sw = 2) =>
       `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" ` +
       `fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" ` +
@@ -334,7 +334,7 @@ ${personalNotes ? `<div class="section">
       try {
         await navigator.share({ title: 'AEGIS Emergency Card', text })
       } catch {
-        // User cancelled.
+        //User cancelled.
       }
       return
     }
@@ -342,7 +342,7 @@ ${personalNotes ? `<div class="section">
     try {
       await navigator.clipboard.writeText(text)
     } catch {
-      // Ignore clipboard failures.
+      //Ignore clipboard failures.
     }
   }
 
@@ -400,7 +400,7 @@ ${personalNotes ? `<div class="section">
             className="flex items-center gap-1.5 text-[10px] font-bold bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all border border-blue-200/50 dark:border-blue-800/50"
           >
             {locating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Compass className="w-3.5 h-3.5" />}
-            // GPS
+            //GPS
           </button>
         </div>
       </div>

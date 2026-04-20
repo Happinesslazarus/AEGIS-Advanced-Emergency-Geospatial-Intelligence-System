@@ -76,7 +76,7 @@ async def augment_reporter_scores(conn: asyncpg.Connection):
 async def assign_reporter_ips(conn: asyncpg.Connection):
     """
     Validate reporter_ip data on existing reports.
-    Does NOT fabricate or randomly assign IPs — only reports status.
+    Does NOT fabricate or randomly assign IPs -- only reports status.
     """
     logger.info("Checking reporter IP assignment status...")
     
@@ -91,7 +91,7 @@ async def assign_reporter_ips(conn: asyncpg.Connection):
         logger.warning(
             f"NO reports have reporter_ip values ({total} total reports). "
             "Reporter trust scoring requires real IP/fingerprint data from the web application. "
-            "Cannot assign fake IPs — this must come from real user submissions."
+            "Cannot assign fake IPs -- this must come from real user submissions."
         )
     else:
         coverage = (has_ips / total * 100) if total > 0 else 0
@@ -104,7 +104,7 @@ async def diversify_incident_categories(conn: asyncpg.Connection):
     Re-label a subset of existing flood reports based on text content
     analysis to create multi-class training data for the classifier.
     
-    Strategy (REAL DATA ONLY — no synthetic descriptions):
+    Strategy (REAL DATA ONLY -- no synthetic descriptions):
     - Analyze description text for keywords matching non-flood hazards
     - Re-label reports that genuinely mention drought/heat/storm/wildfire/infrastructure
     - Keep the majority as flood (realistic for UK)
@@ -167,7 +167,7 @@ async def diversify_incident_categories(conn: asyncpg.Connection):
 
     logger.info(f"Analyzing {len(reports)} flood reports for category reassignment...")
 
-    # Keyword-based reassignment ONLY — no synthetic fallback
+    # Keyword-based reassignment ONLY -- no synthetic fallback
     reassignments = {cat: [] for cat in category_keywords}
     already_assigned = set()
 
@@ -182,7 +182,7 @@ async def diversify_incident_categories(conn: asyncpg.Connection):
                     already_assigned.add(row['id'])
                     break
 
-    # Batch-update the categories — ONLY real keyword matches
+    # Batch-update the categories -- ONLY real keyword matches
     total_reassigned = 0
     for category, report_ids in reassignments.items():
         if report_ids:
@@ -191,11 +191,11 @@ async def diversify_incident_categories(conn: asyncpg.Connection):
                 WHERE id = ANY($2::uuid[])
             """, category, report_ids)
             total_reassigned += len(report_ids)
-            logger.info(f"  → {category}: {len(report_ids)} reports re-labeled via keyword match")
+            logger.info(f"  -> {category}: {len(report_ids)} reports re-labeled via keyword match")
         else:
             logger.warning(
-                f"  → {category}: 0 keyword matches found in existing reports. "
-                f"Under-represented category — add REAL {category} reports to improve training."
+                f"  -> {category}: 0 keyword matches found in existing reports. "
+                f"Under-represented category -- add REAL {category} reports to improve training."
             )
 
     # Final distribution

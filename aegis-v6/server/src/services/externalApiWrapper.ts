@@ -1,5 +1,5 @@
 ﻿/**
- * Unified outbound HTTP wrapper — all external API calls (SEPA, Met Office,
+ * Unified outbound HTTP wrapper -- all external API calls (SEPA, Met Office,
  * OpenWeatherMap, HuggingFace, LLM) go through this wrapper which provides
  * retry with timeout, PostgreSQL-backed response caching, and an in-memory
  * circuit breaker (opens after 10 failures, 5-min cooldown).
@@ -24,7 +24,7 @@ interface CallResult<T> {
   cachedAt?: string
 }
 
-// In-memory circuit breaker state
+//In-memory circuit breaker state
 const circuitState: Record<string, { failures: number; openUntil: number }> = {}
 const CIRCUIT_THRESHOLD = 10
 const CIRCUIT_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
@@ -46,7 +46,7 @@ export async function callExternalAPI<T>(
   maxRetries: number = 3,
 ): Promise<CallResult<T>> {
 
-  // Circuit breaker check
+  //Circuit breaker check
   const circuit = circuitState[name]
   if (circuit && circuit.failures >= CIRCUIT_THRESHOLD && Date.now() < circuit.openUntil) {
     logger.warn({ name, failures: circuit.failures }, '[ExternalAPI] Circuit OPEN - serving cache only')
@@ -61,12 +61,12 @@ export async function callExternalAPI<T>(
     try {
       const data = await withTimeout(fetchFn(), timeoutMs)
 
-      // Success - reset circuit breaker
+      //Success - reset circuit breaker
       if (circuitState[name]) {
         circuitState[name].failures = 0
       }
 
-      // Update cache
+      //Update cache
       await updateCache(cacheKey, data)
 
       return { data, source: 'live', stale: false }
@@ -80,7 +80,7 @@ export async function callExternalAPI<T>(
     }
   }
 
-  // All retries failed - increment circuit breaker
+  //All retries failed - increment circuit breaker
   if (!circuitState[name]) {
     circuitState[name] = { failures: 0, openUntil: 0 }
   }
@@ -90,14 +90,14 @@ export async function callExternalAPI<T>(
     logger.error({ name, threshold: CIRCUIT_THRESHOLD, cooldownSec: CIRCUIT_COOLDOWN_MS / 1000 }, '[ExternalAPI] Circuit breaker OPENED')
   }
 
-  // Try cache fallback
+  //Try cache fallback
   const cached = await getCache<T>(cacheKey)
   if (cached) {
     logger.warn({ name, cachedAt: cached.cachedAt.toISOString() }, '[ExternalAPI] Serving stale cached data')
     return { data: cached.data, source: 'cache', stale: true, cachedAt: cached.cachedAt.toISOString() }
   }
 
-  // No cache either - hard failure
+  //No cache either - hard failure
   logger.error({ name }, '[ExternalAPI] No live data and no cache available')
   throw new ExternalAPIError(name, 'All retries failed and no cache available')
 }
@@ -126,7 +126,7 @@ export function getCircuitBreakerStates(): Record<string, { failures: number; is
   return result
 }
 
-// Helpers
+//Helpers
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -187,7 +187,7 @@ async function logExternalAPIError(
       ],
     )
   } catch {
-    // Don't fail the caller if error logging fails
+    //Don't fail the caller if error logging fails
   }
 }
 

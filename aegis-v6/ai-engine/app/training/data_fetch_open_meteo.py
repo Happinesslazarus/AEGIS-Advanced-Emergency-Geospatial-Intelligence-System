@@ -77,7 +77,7 @@ def fetch_open_meteo_history(
             df.sort_index(inplace=True)
             logger.info(
                 f"Open-Meteo: fetched {len(df)} hours for ({latitude}, {longitude}) "
-                f"{start_date}→{end_date}"
+ f"{start_date}->{end_date}"
             )
             return df
         except Exception as exc:
@@ -87,7 +87,7 @@ def fetch_open_meteo_history(
 
     raise RuntimeError(
         f"Open-Meteo fetch failed after {retry} attempts "
-        f"for ({latitude}, {longitude}) {start_date}→{end_date}"
+ f"for ({latitude}, {longitude}) {start_date}->{end_date}"
     )
 
 def fetch_grid_sample(

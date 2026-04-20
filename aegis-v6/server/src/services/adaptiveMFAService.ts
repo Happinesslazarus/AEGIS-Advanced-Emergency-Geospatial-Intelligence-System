@@ -25,7 +25,7 @@ import { logger } from '../services/logger.js'
 import { decrypt2FASecret } from '../utils/twoFactorCrypto.js'
 import { verifyAuthenticationSignature } from './webauthnAttestationService.js'
 
-// Authenticator Assurance Levels (AAL) per NIST SP 800-63B
+//Authenticator Assurance Levels (AAL) per NIST SP 800-63B
 export enum AuthenticatorAssuranceLevel {
   AAL1 = 1, // Single-factor: password
   AAL2 = 2, // Multi-factor: password + OTP/push
@@ -92,7 +92,7 @@ export interface ResourceProtection {
   sensitiveActions?: string[]
 }
 
-// Configuration
+//Configuration
 const config = {
   defaultAAL: AuthenticatorAssuranceLevel.AAL2,
   challengeTimeoutMinutes: 5,
@@ -102,10 +102,10 @@ const config = {
   highValueTransactionThreshold: 1000, // Currency amount
 }
 
-// In-memory challenge storage (use Redis in production)
+//In-memory challenge storage (use Redis in production)
 const pendingChallenges = new Map<string, StepUpChallenge>()
 
-// Resource protection rules
+//Resource protection rules
 const protectedResources = new Map<string, ResourceProtection>()
 
 /**
@@ -142,13 +142,13 @@ export async function initAdaptiveMFA(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_mfa_step_up_session ON mfa_step_up_history(session_id);
     `)
     
-    // Load protected resources
+    //Load protected resources
     await loadProtectedResources()
     
-    // Register default protected resources
+    //Register default protected resources
     registerDefaultProtectedResources()
     
-    // Clean expired challenges
+    //Clean expired challenges
     setInterval(cleanExpiredChallenges, 60 * 1000) // Every minute
     
     logger.info('[AdaptiveMFA] Service initialized')
@@ -180,14 +180,14 @@ async function loadProtectedResources(): Promise<void> {
  */
 function registerDefaultProtectedResources(): void {
   const defaults: ResourceProtection[] = [
-    // Critical admin operations
+    //Critical admin operations
     {
       resourceId: 'admin:*',
       resourceType: 'api',
       requiredAAL: AuthenticatorAssuranceLevel.AAL3,
       reauthTimeout: 300, // 5 minutes
     },
-    // Financial transactions
+    //Financial transactions
     {
       resourceId: 'transactions:create',
       resourceType: 'api',
@@ -195,49 +195,49 @@ function registerDefaultProtectedResources(): void {
       reauthTimeout: 600,
       sensitiveActions: ['transfer', 'withdrawal', 'payment'],
     },
-    // Security settings
+    //Security settings
     {
       resourceId: 'settings:security',
       resourceType: 'page',
       requiredAAL: AuthenticatorAssuranceLevel.AAL2,
       reauthTimeout: 300,
     },
-    // Password change
+    //Password change
     {
       resourceId: 'auth:password:change',
       resourceType: 'action',
       requiredAAL: AuthenticatorAssuranceLevel.AAL2,
       reauthTimeout: 180,
     },
-    // Add MFA device
+    //Add MFA device
     {
       resourceId: 'auth:mfa:add',
       resourceType: 'action',
       requiredAAL: AuthenticatorAssuranceLevel.AAL2,
       reauthTimeout: 180,
     },
-    // View sensitive data
+    //View sensitive data
     {
       resourceId: 'data:pii',
       resourceType: 'data',
       requiredAAL: AuthenticatorAssuranceLevel.AAL2,
       reauthTimeout: 900,
     },
-    // API key management
+    //API key management
     {
       resourceId: 'settings:api-keys',
       resourceType: 'api',
       requiredAAL: AuthenticatorAssuranceLevel.AAL3,
       reauthTimeout: 300,
     },
-    // AI model retrain (admin) — requires step-up: destructive and safety-critical
+    //AI model retrain (admin) -- requires step-up: destructive and safety-critical
     {
       resourceId: 'admin:ai:retrain',
       resourceType: 'api',
       requiredAAL: AuthenticatorAssuranceLevel.AAL2,
       reauthTimeout: 600,
     },
-    // AI model rollback (admin)
+    //AI model rollback (admin)
     {
       resourceId: 'admin:ai:rollback',
       resourceType: 'api',
@@ -271,17 +271,17 @@ function cleanExpiredChallenges(): void {
 function calculateContextRisk(context: AuthenticationContext): number {
   let risk = context.riskScore // Start with anomaly detection score
   
-  // New device adds risk
+  //New device adds risk
   if (context.isNewDevice) {
     risk += 20
   }
   
-  // New location adds risk
+  //New location adds risk
   if (context.isNewLocation) {
     risk += 15
   }
   
-  // Session age increases risk for sensitive operations
+  //Session age increases risk for sensitive operations
   const sessionAgeMinutes = context.sessionAge
   if (sessionAgeMinutes > 60) {
     risk += 10
@@ -290,19 +290,19 @@ function calculateContextRisk(context: AuthenticationContext): number {
     risk += 20
   }
   
-  // Cap at 100
+  //Cap at 100
   return Math.min(risk, 100)
 }
 
 /**
- * Determine available MFA methods for user — handles both admins (user_mfa table)
+ * Determine available MFA methods for user -- handles both admins (user_mfa table)
  * and citizens (citizens.two_factor_secret column).
  */
 async function getAvailableMFAMethods(userId: string): Promise<MFAMethod[]> {
   const methods: MFAMethod[] = ['password'] // Always available
   
   try {
-    // Check admin TOTP (user_mfa table)
+    //Check admin TOTP (user_mfa table)
     const adminTotpResult = await pool.query(
       'SELECT 1 FROM user_mfa WHERE user_id = $1 AND type = $2 AND enabled = TRUE',
       [userId, 'totp']
@@ -311,7 +311,7 @@ async function getAvailableMFAMethods(userId: string): Promise<MFAMethod[]> {
       methods.push('totp')
     }
 
-    // Check citizen TOTP (stored directly on citizens row)
+    //Check citizen TOTP (stored directly on citizens row)
     if (!methods.includes('totp')) {
       const citizenTotpResult = await pool.query(
         'SELECT 1 FROM citizens WHERE id = $1 AND two_factor_enabled = TRUE AND two_factor_secret IS NOT NULL',
@@ -322,7 +322,7 @@ async function getAvailableMFAMethods(userId: string): Promise<MFAMethod[]> {
       }
     }
     
-    // Check for passkeys (shared table, both user types)
+    //Check for passkeys (shared table, both user types)
     const passkeyResult = await pool.query(
       'SELECT 1 FROM passkey_credentials WHERE user_id = $1',
       [userId]
@@ -331,7 +331,7 @@ async function getAvailableMFAMethods(userId: string): Promise<MFAMethod[]> {
       methods.push('passkey', 'hardware_key')
     }
     
-    // Check for backup contact methods — try users table first, then citizens
+    //Check for backup contact methods -- try users table first, then citizens
     const adminResult = await pool.query(
       'SELECT email, phone FROM users WHERE id = $1',
       [userId]
@@ -377,10 +377,10 @@ export async function checkStepUpRequired(
   resourceId: string,
   transactionValue?: number
 ): Promise<StepUpRequirement> {
-  // Get resource protection requirements
+  //Get resource protection requirements
   let protection = protectedResources.get(resourceId)
   
-  // Check wildcard patterns
+  //Check wildcard patterns
   if (!protection) {
     for (const [pattern, prot] of protectedResources) {
       if (pattern.endsWith(':*')) {
@@ -393,7 +393,7 @@ export async function checkStepUpRequired(
     }
   }
   
-  // Default protection
+  //Default protection
   if (!protection) {
     protection = {
       resourceId,
@@ -403,28 +403,28 @@ export async function checkStepUpRequired(
     }
   }
   
-  // Calculate current risk
+  //Calculate current risk
   const risk = calculateContextRisk(context)
   
-  // Determine required AAL
+  //Determine required AAL
   let requiredAAL = protection.requiredAAL
   
-  // Elevate AAL based on risk
+  //Elevate AAL based on risk
   if (risk >= config.riskScoreStepUpThreshold) {
     requiredAAL = Math.max(requiredAAL, AuthenticatorAssuranceLevel.AAL2) as AuthenticatorAssuranceLevel
   }
   
-  // Elevate for high-value transactions
+  //Elevate for high-value transactions
   if (transactionValue && transactionValue >= config.highValueTransactionThreshold) {
     requiredAAL = Math.max(requiredAAL, AuthenticatorAssuranceLevel.AAL2) as AuthenticatorAssuranceLevel
     
-    // Very high value requires AAL3
+    //Very high value requires AAL3
     if (transactionValue >= config.highValueTransactionThreshold * 10) {
       requiredAAL = AuthenticatorAssuranceLevel.AAL3
     }
   }
   
-  // Check if re-auth needed based on timeout
+  //Check if re-auth needed based on timeout
   const lastAuth = context.lastAuthentication
   const timeSinceAuth = lastAuth
     ? (Date.now() - lastAuth.getTime()) / 1000
@@ -432,7 +432,7 @@ export async function checkStepUpRequired(
   
   const needsReauth = timeSinceAuth > protection.reauthTimeout
   
-  // Check if current AAL is sufficient
+  //Check if current AAL is sufficient
   const stepUpNeeded = context.currentAAL < requiredAAL || needsReauth
   
   if (!stepUpNeeded) {
@@ -445,13 +445,13 @@ export async function checkStepUpRequired(
     }
   }
   
-  // Get available methods that can reach required AAL
+  //Get available methods that can reach required AAL
   const availableMethods = await getAvailableMFAMethods(context.userId)
   const allowedMethods = availableMethods.filter(
     method => getMethodAAL(method) >= requiredAAL
   )
   
-  // Build reason
+  //Build reason
   let reason: string
   if (needsReauth) {
     reason = `Re-authentication required (session age: ${Math.round(timeSinceAuth / 60)} minutes)`
@@ -483,7 +483,7 @@ export async function createStepUpChallenge(
   resourceId?: string,
   transactionId?: string
 ): Promise<StepUpChallenge> {
-  // Verify method can provide required AAL
+  //Verify method can provide required AAL
   if (getMethodAAL(method) < targetAAL) {
     throw new Error(`Method ${method} cannot provide AAL${targetAAL}`)
   }
@@ -491,22 +491,22 @@ export async function createStepUpChallenge(
   const challengeId = crypto.randomBytes(32).toString('hex')
   const expiresAt = new Date(Date.now() + config.challengeTimeoutMinutes * 60 * 1000)
   
-  // Generate method-specific challenge data
+  //Generate method-specific challenge data
   let challengeData: string | undefined
   switch (method) {
     case 'totp':
-      // No additional challenge data needed
+      //No additional challenge data needed
       break
     case 'passkey':
     case 'hardware_key':
-      // WebAuthn challenge
+      //WebAuthn challenge
       challengeData = crypto.randomBytes(32).toString('base64url')
       break
     case 'email_otp':
     case 'sms_otp':
-      // Generate OTP and send
+      //Generate OTP and send
       challengeData = generateOTP()
-      // Would send via email/SMS service
+      //Would send via email/SMS service
       break
     default:
       break
@@ -566,7 +566,7 @@ export async function verifyStepUpChallenge(
   if (challenge.attempts > config.maxChallengeAttempts) {
     pendingChallenges.delete(challengeId)
     
-    // Log failed step-up
+    //Log failed step-up
     await logStepUpAttempt(
       challenge.userId,
       sessionId,
@@ -582,17 +582,17 @@ export async function verifyStepUpChallenge(
     return { success: false, error: 'Too many failed attempts' }
   }
   
-  // Verify based on method
+  //Verify based on method
   let verified = false
   
   switch (challenge.method) {
     case 'totp':
-      // Would verify against user's TOTP secret
+      //Would verify against user's TOTP secret
       verified = await verifyTOTP(challenge.userId, response)
       break
     case 'passkey':
     case 'hardware_key':
-      // Would verify WebAuthn assertion
+      //Would verify WebAuthn assertion
       verified = await verifyPasskey(challenge.userId, response, challenge.challengeData!)
       break
     case 'email_otp':
@@ -607,7 +607,7 @@ export async function verifyStepUpChallenge(
     return { success: false, error: 'Invalid response' }
   }
   
-  // Success - clean up and log
+  //Success - clean up and log
   pendingChallenges.delete(challengeId)
   
   await logStepUpAttempt(
@@ -639,7 +639,7 @@ async function verifyTOTP(userId: string, code: string): Promise<boolean> {
     const token = code.replace(/\s/g, '')
     const opts = { token, digits: 6, period: 30, window: 1 } as any
 
-    // Admin path: user_mfa table
+    //Admin path: user_mfa table
     const adminResult = await pool.query(
       'SELECT secret FROM user_mfa WHERE user_id = $1 AND type = $2 AND enabled = TRUE LIMIT 1',
       [userId, 'totp']
@@ -650,7 +650,7 @@ async function verifyTOTP(userId: string, code: string): Promise<boolean> {
       return result.valid
     }
 
-    // Citizen path: two_factor_secret column on citizens
+    //Citizen path: two_factor_secret column on citizens
     const citizenResult = await pool.query(
       'SELECT two_factor_secret FROM citizens WHERE id = $1 AND two_factor_enabled = TRUE AND two_factor_secret IS NOT NULL LIMIT 1',
       [userId]
@@ -852,7 +852,7 @@ export function adaptiveMFAMiddleware(resourceId: string) {
         : 0,
     }
     
-    // Get transaction value if applicable
+    //Get transaction value if applicable
     const transactionValue = req.body?.amount || req.body?.value
     
     const requirement = await checkStepUpRequired(context, resourceId, transactionValue)

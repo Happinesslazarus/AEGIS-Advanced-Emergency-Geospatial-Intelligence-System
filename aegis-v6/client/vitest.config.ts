@@ -8,10 +8,10 @@
  * as HTML + LCOV for CI artefact upload.
  *
  * Key settings:
- * - environment: jsdom    — DOM APIs available in all test files
- * - globals: true         — describe/test/expect available without import
- * - setupFiles            — client/src/__tests__/setup.ts runs before each suite
- * - coverage thresholds   — minimum 6% statements, 7% lines (incremental)
+ * - environment: jsdom    -- DOM APIs available in all test files
+ * - globals: true         -- describe/test/expect available without import
+ * - setupFiles            -- client/src/__tests__/setup.ts runs before each suite
+ * - coverage thresholds   -- minimum 6% statements, 7% lines (incremental)
  *
  * How it connects:
  * - Run with: npm test (from aegis-v6/client/)
@@ -43,11 +43,11 @@ export default defineConfig({
         'src/data/**/*.ts',
       ],
       exclude: ['src/__tests__/**', 'src/**/*.d.ts', 'src/**/*.stories.tsx'],
-      // Phase 3 coverage targets - incremental milestones
-      // Phase 3.1 (Complete): Foundation tests for critical paths (~5%)
-      // Phase 3.2 (Current): 7% coverage (599+ tests, hooks + components)
-      // Phase 3.3: 15% coverage (comprehensive utils/hooks)
-      // Phase 3.4: 35%+ coverage (world-class standard)
+      //Phase 3 coverage targets - incremental milestones
+      //Phase 3.1 (Complete): Foundation tests for critical paths (~5%)
+      //Phase 3.2 (Current): 7% coverage (599+ tests, hooks + components)
+      //Phase 3.3: 15% coverage (comprehensive utils/hooks)
+      //Phase 3.4: 35%+ coverage (world-class standard)
       thresholds: {
         statements: 6,
         branches: 4,

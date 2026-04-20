@@ -12,26 +12,26 @@
  * - Infrastructure services (circuit breakers, self-healing, event sourcing,
  *   bulkheads, secrets manager, feature flags) are initialised before routes
  * - The React frontend (client/) communicates exclusively through the /api/
- *   routes mounted here; in dev, Vite proxies API calls on port 5173 → 3001
+ * routes mounted here; in dev, Vite proxies API calls on port 5173 -> 3001
  * - In production, the built React app can optionally be served statically here
  *
  * Key actions / endpoints / exports:
- * - GET  /api/health          — public health check (DB + AI engine status)
- * - GET  /api/health/detailed — admin/operator health with pool stats & memory
- * - GET  /metrics             — Prometheus scrape endpoint
- * - GET  /healthz /readyz /startupz — Kubernetes liveness/readiness/startup probes
- * - GET  /api/internal/*      — admin-only introspection (circuits, QoS, chaos, etc.)
+ * - GET  /api/health          -- public health check (DB + AI engine status)
+ * - GET  /api/health/detailed -- admin/operator health with pool stats & memory
+ * - GET  /metrics             -- Prometheus scrape endpoint
+ * - GET  /healthz /readyz /startupz -- Kubernetes liveness/readiness/startup probes
+ * - GET  /api/internal/*      -- admin-only introspection (circuits, QoS, chaos, etc.)
  * - All other /api/* routes are mounted from server/src/routes/
  *
- * - server/src/middleware/auth.ts        — JWT verification & role-based gating
- * - server/src/middleware/errorHandler.ts — central error shaping for all routes
- * - server/src/models/db.ts              — PostgreSQL pool (used by all services)
- * - server/src/services/socket.ts        — Socket.IO server setup & event handlers
- * - server/src/services/cronJobs.ts      — background scheduled tasks
- * - server/src/services/zeroDowntime.ts  — graceful shutdown & K8s probes
- * - server/src/services/circuitBreaker.ts — protecting external dependency calls
- * - server/src/services/llmRouter.ts     — LLM provider routing + model warm-up
- * - server/src/routes/                   — all individual API route handlers
+ * - server/src/middleware/auth.ts        -- JWT verification & role-based gating
+ * - server/src/middleware/errorHandler.ts -- central error shaping for all routes
+ * - server/src/models/db.ts              -- PostgreSQL pool (used by all services)
+ * - server/src/services/socket.ts        -- Socket.IO server setup & event handlers
+ * - server/src/services/cronJobs.ts      -- background scheduled tasks
+ * - server/src/services/zeroDowntime.ts  -- graceful shutdown & K8s probes
+ * - server/src/services/circuitBreaker.ts -- protecting external dependency calls
+ * - server/src/services/llmRouter.ts     -- LLM provider routing + model warm-up
+ * - server/src/routes/                   -- all individual API route handlers
  * */
 
 import express from 'express'
@@ -51,7 +51,7 @@ import fs from 'fs'
 import dotenv from 'dotenv'
 import * as Sentry from '@sentry/node'
 
-// Load environment variables - try multiple .env locations for robustness
+//Load environment variables - try multiple .env locations for robustness
 const envCandidates = [
   path.resolve('.env'), // CWD (when run from server/)
   path.resolve('server', '.env'), // CWD is project root
@@ -64,11 +64,11 @@ for (const envFile of envCandidates) {
   }
 }
 if (!process.env.DATABASE_URL) {
-  // Last resort: try default dotenv.config()
+  //Last resort: try default dotenv.config()
   dotenv.config()
 }
 
-// Refuse to boot if critical config is missing
+//Refuse to boot if critical config is missing
 function validateStartupConfig(): void {
   const errors: string[] = []
   const warnings: string[] = []
@@ -76,14 +76,14 @@ function validateStartupConfig(): void {
 
   console.log(`\n Environment: ${isProduction ? 'PRODUCTION' : 'development'}`)
 
-  // DATABASE_URL is mandatory
+  //DATABASE_URL is mandatory
   if (!process.env.DATABASE_URL) {
     errors.push('DATABASE_URL is not set. PostgreSQL connection required.')
   }
 
-  // PRODUCTION-ONLY: Security-critical variables
+  //PRODUCTION-ONLY: Security-critical variables
   if (isProduction) {
-    // JWT secrets must be set and strong
+    //JWT secrets must be set and strong
     if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
       errors.push('JWT_SECRET must be set to a strong value (32+ chars) in production')
     }
@@ -94,7 +94,7 @@ function validateStartupConfig(): void {
       errors.push('REFRESH_TOKEN_SECRET must be set to a strong value (32+ chars) in production')
     }
 
-    // Internal API authentication
+    //Internal API authentication
     if (!process.env.INTERNAL_API_KEY || process.env.INTERNAL_API_KEY.length < 16) {
       errors.push('INTERNAL_API_KEY must be set (16+ chars) to protect internal endpoints')
     }
@@ -102,17 +102,17 @@ function validateStartupConfig(): void {
       errors.push('N8N_WEBHOOK_SECRET must be set (16+ chars) to protect webhook endpoints')
     }
 
-    // VAPID for push notifications
+    //VAPID for push notifications
     if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
       warnings.push('VAPID keys not set - push notifications will not work')
     }
 
-    // CORS should not be wildcard in production
+    //CORS should not be wildcard in production
     if (process.env.CORS_ORIGIN === '*') {
       warnings.push('CORS_ORIGIN is set to * (wildcard) - consider restricting to specific origins')
     }
   } else {
-    // Development warnings
+    //Development warnings
     if (!process.env.JWT_SECRET) {
       warnings.push('JWT_SECRET not set - using random dev secret (sessions reset on restart)')
     }
@@ -121,7 +121,7 @@ function validateStartupConfig(): void {
     }
   }
 
-  // At least one LLM provider key required for AI features
+  //At least one LLM provider key required for AI features
   const llmKeys = [
     process.env.GEMINI_API_KEY,
     process.env.GROQ_API_KEY,
@@ -129,7 +129,7 @@ function validateStartupConfig(): void {
     process.env.HF_API_KEY,
   ].filter(Boolean)
 
-  // Email mode check
+  //Email mode check
   const emailMode = (process.env.EMAIL_MODE || 'dev').toLowerCase()
   if (emailMode === 'production') {
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
@@ -154,7 +154,7 @@ function validateStartupConfig(): void {
     console.log(` [OK] LLM providers configured: ${providers.join(', ')}`)
   }
 
-  // Embedding provider check
+  //Embedding provider check
   const embKeys = [process.env.HF_API_KEY, process.env.GEMINI_API_KEY].filter(Boolean)
   if (embKeys.length === 0) {
     warnings.push('No embedding API keys - Vector search will use text-only fallback')
@@ -162,12 +162,12 @@ function validateStartupConfig(): void {
     console.log(` [OK] Embedding providers ready (${embKeys.length} key(s))`)
   }
 
-  // Weather API
+  //Weather API
   if (!process.env.WEATHER_API_KEY) {
     console.log(' ?? WEATHER_API_KEY not set - Using Open-Meteo (free, no key required)')
   }
 
-  // 2FA Encryption Key
+  //2FA Encryption Key
   if (!process.env.TWO_FACTOR_ENCRYPTION_KEY) {
     if (isProduction) {
       errors.push('TWO_FACTOR_ENCRYPTION_KEY must be set (64 hex chars). Generate with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"')
@@ -178,18 +178,18 @@ function validateStartupConfig(): void {
     errors.push('TWO_FACTOR_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)')
   }
 
-  // AI Engine
+  //AI Engine
   if (!process.env.AI_ENGINE_URL) {
     console.log(' ?? AI_ENGINE_URL not set - Defaulting to http://localhost:8000')
   }
 
-  // Print warnings
+  //Print warnings
   if (warnings.length > 0) {
     console.log('')
     warnings.forEach(w => console.warn(` [WARN] ${w}`))
   }
 
-  // Print errors and exit in production
+  //Print errors and exit in production
   if (errors.length > 0) {
     console.error('\n [ERR] FATAL CONFIGURATION ERRORS:')
     errors.forEach(e => console.error(` - ${e}`))
@@ -208,7 +208,7 @@ function validateStartupConfig(): void {
 
 validateStartupConfig()
 
-// Sentry Error Tracking (initializes only when DSN is configured)
+//Sentry Error Tracking (initializes only when DSN is configured)
 if (process.env.SENTRY_DSN) {
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
@@ -224,7 +224,7 @@ if (process.env.SENTRY_DSN) {
 
 import { initRegionRegistry } from './adapters/regions/RegionRegistry.js'
 
-// Region Adapter Registry - must init before route/service imports
+//Region Adapter Registry - must init before route/service imports
 try {
   initRegionRegistry()
 } catch (err: any) {
@@ -286,7 +286,7 @@ import { idempotencyMiddleware, getIdempotencyStats } from './middleware/idempot
 import { requestTimeoutMiddleware } from './middleware/requestTimeout.js'
 import { updatePoolMetrics } from './services/queryLogger.js'
 
-// Infrastructure services
+//Infrastructure services
 import { initFlags, isFeatureEnabled, featureFlagMiddleware, getFlagStats } from './services/featureFlags.js'
 import { adaptiveRateLimitMiddleware, getRateLimitStats } from './services/adaptiveRateLimiting.js'
 import { startSelfHealing, getHealthStatus } from './services/selfHealing.js'
@@ -294,12 +294,12 @@ import { qosMiddleware, getQosStats, Priority } from './services/requestPrioriti
 import { initCircuits, Circuits, getAllStatus as getCircuitStatus } from './services/circuitBreaker.js'
 import { initZeroDowntime, livenessHandler, readinessHandler, startupHandler, healthHandler, registerShutdownHook, trackConnectionStart, trackConnectionEnd } from './services/zeroDowntime.js'
 
-// Resilience and operations services
+//Resilience and operations services
 import { initBulkheads, getAllStatus as getBulkheadStatus, Bulkheads } from './services/bulkhead.js'
 import { getGatewayStats, apiKeyMiddleware, versioningMiddleware } from './services/apiGateway.js'
 import { coalesce, getCoalescingStats, createUserLoader, createReportLoader } from './services/requestCoalescing.js'
 
-// Data layer and API services
+//Data layer and API services
 import eventStreaming from './services/eventStreaming.js'
 import openApiGenerator from './services/openApiGenerator.js'
 
@@ -307,11 +307,11 @@ const app = express()
 const httpServer = createServer(app)  // Wrap Express in raw http.Server so Socket.IO can share the same port
 const PORT = parseInt(process.env.PORT || '3001')
 
-// --- Infrastructure Initialization ---
-// These must come before any route imports that use them.
-// Circuits + self-healing protect outbound calls (to DB, AI engine, external APIs).
-// Event sourcing creates the immutable audit trail needed by admin routes.
-// Feature flags lets us toggle behaviour without a redeploy.
+//Infrastructure Initialization
+//These must come before any route imports that use them.
+//Circuits + self-healing protect outbound calls (to DB, AI engine, external APIs).
+//Event sourcing creates the immutable audit trail needed by admin routes.
+//Feature flags lets us toggle behaviour without a redeploy.
 initCircuits()
 initZeroDowntime({ server: httpServer, dbPool: pool })
 startSelfHealing()
@@ -325,7 +325,7 @@ console.log('      - Circuit breakers: protecting external dependencies')
 console.log('      - Self-healing: autonomous failure recovery')
 console.log('      - Feature flags: gradual rollout support')
 
-// Resilience services
+//Resilience services
 initBulkheads()
 console.log(' [OK] Resilience services initialized')
 console.log('      - Bulkheads: resource isolation per service')
@@ -346,61 +346,61 @@ console.log('      - Event Streaming: async messaging')
 console.log('      - OpenAPI 3.1: auto-generated API documentation')
 console.log('')
 
-// Trust exactly one proxy hop (nginx/Docker gateway). This tells Express to
-// derive req.ip from the first X-Forwarded-For value only (not the raw socket IP),
-// which is required for rate limiting and IP logging to work correctly behind a
-// reverse proxy. '1' = exactly one hop; prevents clients from spoofing their IP
-// by injecting extra values into the header.
+//Trust exactly one proxy hop (nginx/Docker gateway). This tells Express to
+//derive req.ip from the first X-Forwarded-For value only (not the raw socket IP),
+//which is required for rate limiting and IP logging to work correctly behind a
+//reverse proxy. '1' = exactly one hop; prevents clients from spoofing their IP
+//by injecting extra values into the header.
 app.set('trust proxy', 1)
 
-// Initialize Socket.IO — must happen before any route that calls getIO()
-// We share the httpServer so Socket.IO and HTTP traffic use the same port.
+//Initialize Socket.IO -- must happen before any route that calls getIO()
+//We share the httpServer so Socket.IO and HTTP traffic use the same port.
 const io = initSocketServer(httpServer)
 
-// Make the io instance available inside route handlers via req.app.get('io').
-// This lets POST /api/community/posts broadcast a live notification without
-// directly importing socket.ts into the route file.
+//Make the io instance available inside route handlers via req.app.get('io').
+//This lets POST /api/community/posts broadcast a live notification without
+//directly importing socket.ts into the route file.
 app.set('io', io)
 
-// Share io with domain services that push real-time data to connected browsers.
-// Each service keeps its own reference so it can emit without going through a route.
+//Share io with domain services that push real-time data to connected browsers.
+//Each service keeps its own reference so it can emit without going through a route.
 setRiverIO(io)        // river level service broadcasts flood alerts
 setThreatIO(io)       // threat level service broadcasts amber/red escalations
 setCommunityRealtimeIo(io)  // community moderation broadcasts live updates
 
-/* ─── Middleware stack ────────────────────────────────────────────────────────
+/* --- Middleware stack --------------------------------------------------------
  * ORDER MATTERS here. Each layer sees the request before ones below it.
  * The general rule: security first, parsing second, auth/session third, routes last.
  *
- * 1. helmet        — sets secure HTTP response headers (CSP, HSTS, X-Frame, etc.)
- * 2. compression   — gzip/brotli response bodies (must come before routes)
- * 3. cache-control — sets Cache-Control headers for /api/* responses
- * 4. tracing       — injects trace-id for distributed request tracking
- * 5. service mesh  — B3/Envoy-compatible header propagation
- * 6. QoS           — prioritises emergency requests over background traffic
- * 7. adaptive rate  — throttles when the system is under load
- * 8. feature flags  — injects flag evaluations into req context
- * 9. chaos          — fault injection (dev/test only, gated by env var)
- * 10. connection tracking — graceful shutdown: counts active connections
- * 11. request timeout     — drops requests that take too long
- * 12. CORS         — controls which origins may call the API
- * 13. body parsing  — parses JSON and URL-encoded bodies
- * 14. cookie-parser — parses cookies (needed for CSRF)
- * 15. hpp           — strips duplicate HTTP query parameters (param pollution)
- * 16. global rate limit — hard 600 req/min ceiling per IP
- * 17. slow-down     — adds delay after 300 req/min to discourage scrapers
- * 18. requestId     — generates/forwards X-Request-ID correlation header
- * 19. metrics       — Prometheus request counter/duration middleware
- * 20. idempotency   — deduplicates retried POST/PUT requests via Idempotency-Key
- * 21. CSRF          — double-submit cookie pattern for state-changing requests
- * 22. passport      — initialises OAuth strategy (not session-based)
- * 23. request logger — structured HTTP access log via pino
- * ─────────────────────────────────────────────────────────────────────────── */
+ * 1. helmet        -- sets secure HTTP response headers (CSP, HSTS, X-Frame, etc.)
+ * 2. compression   -- gzip/brotli response bodies (must come before routes)
+ * 3. cache-control -- sets Cache-Control headers for /api/* responses
+ * 4. tracing       -- injects trace-id for distributed request tracking
+ * 5. service mesh  -- B3/Envoy-compatible header propagation
+ * 6. QoS           -- prioritises emergency requests over background traffic
+ * 7. adaptive rate  -- throttles when the system is under load
+ * 8. feature flags  -- injects flag evaluations into req context
+ * 9. chaos          -- fault injection (dev/test only, gated by env var)
+ * 10. connection tracking -- graceful shutdown: counts active connections
+ * 11. request timeout     -- drops requests that take too long
+ * 12. CORS         -- controls which origins may call the API
+ * 13. body parsing  -- parses JSON and URL-encoded bodies
+ * 14. cookie-parser -- parses cookies (needed for CSRF)
+ * 15. hpp           -- strips duplicate HTTP query parameters (param pollution)
+ * 16. global rate limit -- hard 600 req/min ceiling per IP
+ * 17. slow-down     -- adds delay after 300 req/min to discourage scrapers
+ * 18. requestId     -- generates/forwards X-Request-ID correlation header
+ * 19. metrics       -- Prometheus request counter/duration middleware
+ * 20. idempotency   -- deduplicates retried POST/PUT requests via Idempotency-Key
+ * 21. CSRF          -- double-submit cookie pattern for state-changing requests
+ * 22. passport      -- initialises OAuth strategy (not session-based)
+ * 23. request logger -- structured HTTP access log via pino
+ * --------------------------------------------------------------------------- */
 
-// Helmet sets a comprehensive set of security headers.
-// The CSP here is deliberately specific: only allow scripts from self and jsdelivr,
-// allow websocket connections to known AI provider URLs, block iframes entirely.
-// Learn more about each directive: https://helmetjs.github.io/
+//Helmet sets a comprehensive set of security headers.
+//The CSP here is deliberately specific: only allow scripts from self and jsdelivr,
+//allow websocket connections to known AI provider URLs, block iframes entirely.
+//Learn more about each directive: https://helmetjs.github.io/
 /* Security middleware */
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -437,11 +437,11 @@ app.use((_req, res, next) => {
   next()
 })
 
-// HTTP Compression (gzip/brotli) - reduces bandwidth by 70-90% for JSON responses.
-// SSE streams are excluded because compressing a live event stream breaks the clients.
+//HTTP Compression (gzip/brotli) - reduces bandwidth by 70-90% for JSON responses.
+//SSE streams are excluded because compressing a live event stream breaks the clients.
 app.use(compression({
   filter: (req, res) => {
-    // Don't compress SSE streams or already-compressed responses
+    //Don't compress SSE streams or already-compressed responses
     if (req.headers['accept']?.includes('text/event-stream')) return false
     return compression.filter(req, res)
   },
@@ -449,36 +449,36 @@ app.use(compression({
   threshold: 1024, // Only compress responses > 1KB
 }))
 
-// HTTP Cache-Control headers for API responses
-// Cacheable read-only endpoints get short-lived caches; mutating routes stay private
+//HTTP Cache-Control headers for API responses
+//Cacheable read-only endpoints get short-lived caches; mutating routes stay private
 app.use('/api', (req, res, next) => {
   if (req.method !== 'GET') {
     res.setHeader('Cache-Control', 'no-store')
     return next()
   }
-  // Short-lived cache for semi-static config/reference data (5 min public, 10 min stale)
+  //Short-lived cache for semi-static config/reference data (5 min public, 10 min stale)
   const cacheablePrefixes = ['/api/config', '/api/docs', '/api/openapi']
   if (cacheablePrefixes.some(p => req.originalUrl.startsWith(p))) {
     res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
   } else if (req.originalUrl.startsWith('/api/health')) {
     res.setHeader('Cache-Control', 'no-cache')
   } else {
-    // Private, short TTL for authenticated data (revalidate every 30s)
+    //Private, short TTL for authenticated data (revalidate every 30s)
     res.setHeader('Cache-Control', 'private, no-cache, max-age=0, must-revalidate')
   }
   next()
 })
 
-// Request prioritization (QoS) - emergency/distress requests get priority
+//Request prioritization (QoS) - emergency/distress requests get priority
 app.use(qosMiddleware)
 
-// Adaptive rate limiting - adjusts limits based on system load (CPU, memory, DB pool)
+//Adaptive rate limiting - adjusts limits based on system load (CPU, memory, DB pool)
 app.use(adaptiveRateLimitMiddleware)
 
-// Feature flags - injects feature evaluation into request context
+//Feature flags - injects feature evaluation into request context
 app.use(featureFlagMiddleware)
 
-// Connection tracking for graceful shutdown
+//Connection tracking for graceful shutdown
 app.use((req, res, next) => {
   trackConnectionStart()
   res.on('finish', trackConnectionEnd)
@@ -486,7 +486,7 @@ app.use((req, res, next) => {
   next()
 })
 
-// Request timeout protection - prevents hanging requests from exhausting resources
+//Request timeout protection - prevents hanging requests from exhausting resources
 app.use(requestTimeoutMiddleware)
 
 app.use(cors({
@@ -547,28 +547,28 @@ const loginLimiter = rateLimit({
   skipSuccessfulRequests: true,
 })
 
-// X-Request-ID - generates or forwards a correlation ID for every request.
-// Must be registered BEFORE the request logger so log lines include the ID.
-// Must also be before route handlers so they can read req.id for tracing.
+//X-Request-ID - generates or forwards a correlation ID for every request.
+//Must be registered BEFORE the request logger so log lines include the ID.
+//Must also be before route handlers so they can read req.id for tracing.
 app.use(requestIdMiddleware)
 
-// Prometheus metrics middleware - records request duration/count for all routes.
-// Must come after requestIdMiddleware so per-request labels are available.
+//Prometheus metrics middleware - records request duration/count for all routes.
+//Must come after requestIdMiddleware so per-request labels are available.
 app.use(metricsMiddleware)
 
-// Idempotency key support - prevents duplicate operations on retried POST/PUT requests.
-// Clients include `Idempotency-Key: <uuid>` header; the server caches the first response
-// for that key and replays it on retries instead of re-executing the handler.
-// Critical for payment-like flows (distress beacon creation, report submission).
+//Idempotency key support - prevents duplicate operations on retried POST/PUT requests.
+//Clients include `Idempotency-Key: <uuid>` header; the server caches the first response
+//for that key and replays it on retries instead of re-executing the handler.
+//Critical for payment-like flows (distress beacon creation, report submission).
 app.use(idempotencyMiddleware())
 
-// CSRF protection: double-submit cookie pattern.
-// On first request, we plant a random token in a readable cookie (aegis_csrf).
-// For any state-changing request (POST/PUT/DELETE/PATCH) the client must echo
-// that same value back in the X-CSRF-Token header.
-// If the values don't match, the request is rejected with 403.
-// Exempt paths: internal webhooks (n8n, Telegram) that use signed payloads instead.
-// Learn more: https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
+//CSRF protection: double-submit cookie pattern.
+//On first request, we plant a random token in a readable cookie (aegis_csrf).
+//For any state-changing request (POST/PUT/DELETE/PATCH) the client must echo
+//that same value back in the X-CSRF-Token header.
+//If the values don't match, the request is rejected with 403.
+//Exempt paths: internal webhooks (n8n, Telegram) that use signed payloads instead.
+//Learn more: https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
 app.use((req, res, next) => {
   if (!req.cookies?.aegis_csrf) {
     const csrfToken = cryptoNode.randomBytes(32).toString('hex')
@@ -582,23 +582,23 @@ app.use((req, res, next) => {
   }
 
   const safeMethods = ['GET', 'HEAD', 'OPTIONS']
-  // Auth endpoints are exempt: login/register have no session to protect, refresh/logout
-  // use httpOnly cookies which prevent CSRF by design (JS cannot read them to forge requests).
+  //Auth endpoints are exempt: login/register have no session to protect, refresh/logout
+  //use httpOnly cookies which prevent CSRF by design (JS cannot read them to forge requests).
   // /api/security/passkeys/ is exempt because WebAuthn uses its own cryptographic challenge
-  // binding (clientDataJSON origin check) which provides equivalent CSRF protection.
+  //binding (clientDataJSON origin check) which provides equivalent CSRF protection.
   const csrfExemptPaths = ['/api/internal/', '/api/telegram/', '/api/map-tiles/', '/api/auth/', '/api/citizen-auth/', '/api/spatial/', '/api/chat', '/api/notifications/', '/api/voice/', '/api/translate', '/api/security/']
 
   if (safeMethods.includes(req.method) || csrfExemptPaths.some(p => req.path.startsWith(p))) {
     return next()
   }
 
-  // For state-changing requests, verify the CSRF token
+  //For state-changing requests, verify the CSRF token
   const cookieToken = req.cookies?.aegis_csrf
   const headerToken = req.headers['x-csrf-token']
 
   if (!cookieToken || !headerToken || cookieToken !== headerToken) {
     res.status(403).json({
-      error: 'Security token mismatch. Your session may have expired — please refresh the page and try again. If the problem persists, clear your browser cookies.',
+      error: 'Security token mismatch. Your session may have expired -- please refresh the page and try again. If the problem persists, clear your browser cookies.',
       code: 'CSRF_INVALID',
     })
     return
@@ -611,14 +611,14 @@ app.use(passport.initialize())
 
 app.use(requestLogger())
 
-// Serve uploaded files with basic access control
-// Public evidence images are accessible, but add cache headers and prevent directory listing
+//Serve uploaded files with basic access control
+//Public evidence images are accessible, but add cache headers and prevent directory listing
 app.use('/uploads', (req, res, next) => {
-  // Block directory traversal attempts
+  //Block directory traversal attempts
   if (req.path.includes('..') || req.path.includes('\0')) {
     return res.status(400).json({ error: 'Invalid path' })
   }
-  // Set security headers for served files
+  //Set security headers for served files
   res.setHeader('X-Content-Type-Options', 'nosniff')
   res.setHeader('Content-Disposition', 'inline')
   next()
@@ -627,26 +627,26 @@ app.use('/uploads', (req, res, next) => {
   index: false, // Prevent directory listing
   maxAge: '1d', // Cache successful responses only
 }), express.static(path.join(process.cwd(), 'uploads', 'evidence'), {
-  // Fallback: serve evidence/ files for legacy URLs that omit the /evidence/ path segment
+  //Fallback: serve evidence/ files for legacy URLs that omit the /evidence/ path segment
   dotfiles: 'deny',
   index: false,
   maxAge: '1d',
 }))
 
-/* ─── API Routes ─────────────────────────────────────────────────────────────
+/* --- API Routes -------------------------------------------------------------
  * Each route module is a self-contained Express Router.
  * The route file handles HTTP wiring; actual business logic lives in services/.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * --------------------------------------------------------------------------- */
 
-// Prometheus metrics endpoint (not behind auth - scraped by Prometheus internally)
+//Prometheus metrics endpoint (not behind auth - scraped by Prometheus internally)
 app.get('/metrics', metricsHandler)
-// Kubernetes health probes
+//Kubernetes health probes
 app.get('/healthz', livenessHandler)         // Liveness probe - is process alive?
 app.get('/readyz', readinessHandler)         // Readiness probe - ready for traffic?
 app.get('/startupz', startupHandler)         // Startup probe - initialization complete?
 app.get('/api/health/full', healthHandler)   // Full health with component details
 
-// Internal introspection endpoints (admin only)
+//Internal introspection endpoints (admin only)
 app.get('/api/internal/circuits', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
   res.json({ success: true, circuits: getCircuitStatus() })
 })
@@ -691,7 +691,7 @@ app.get('/api/internal/openapi-stats', authMiddleware as any, requireRole('admin
   res.json({ success: true, openapi: openApiGenerator.getOpenAPIStats() })
 })
 
-// OpenAPI 3.1 Documentation (public access)
+//OpenAPI 3.1 Documentation (public access)
 app.use('/api/openapi', openApiGenerator.createOpenAPIRouter())
 
 app.use('/api/auth/login', loginLimiter) // Brute-force protection for login
@@ -733,21 +733,21 @@ app.use('/api/map-tiles', mapTileRoutes) // Same-origin map tile proxy (adblock/
 app.use('/api/telegram', telegramRoutes) // Telegram bot webhook & chat-id capture
 app.use('/api/helplines', helplinesRoutes) // Mental health & crisis helpline directory (findahelpline.com)
 
-// Sentry error handler - must be after all routes and before other error handlers
+//Sentry error handler - must be after all routes and before other error handlers
 if (process.env.SENTRY_DSN) {
   Sentry.setupExpressErrorHandler(app)
 }
 
-// Centralised error handler - formats all errors into { success, error: { code, message } }
+//Centralised error handler - formats all errors into { success, error: { code, message } }
 app.use(errorHandler)
 
-// Deep health check endpoint
-// Checks all critical dependencies - used by Kubernetes readiness/liveness probes.
+//Deep health check endpoint
+//Checks all critical dependencies - used by Kubernetes readiness/liveness probes.
 app.get('/api/health', async (_req, res) => {
   const checks: Record<string, string> = {}
   let overallOk = true
 
-  // 1. Database
+  //1. Database
   try {
     await pool.query('SELECT 1')
     checks.database = 'ok'
@@ -756,7 +756,7 @@ app.get('/api/health', async (_req, res) => {
     overallOk = false
   }
 
-  // 2. AI engine (non-blocking - degraded, not down, if unreachable)
+  //2. AI engine (non-blocking - degraded, not down, if unreachable)
   const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:8000'
   try {
     const aiRes = await fetch(`${aiEngineUrl}/health`, {
@@ -765,10 +765,10 @@ app.get('/api/health', async (_req, res) => {
     checks.aiEngine = aiRes.ok ? 'ok' : `degraded (${aiRes.status})`
   } catch {
     checks.aiEngine = 'unreachable'
-    // AI engine being down does not make the Node server unhealthy
+    //AI engine being down does not make the Node server unhealthy
   }
 
-  // 3. Connection pool stats
+  //3. Connection pool stats
   checks.dbPoolTotal = String((pool as any).totalCount ?? '?')
   checks.dbPoolIdle = String((pool as any).idleCount ?? '?')
   checks.dbPoolWaiting = String((pool as any).waitingCount ?? '?')
@@ -783,8 +783,8 @@ app.get('/api/health', async (_req, res) => {
   })
 })
 
-// Detailed Health Endpoint (authenticated, admin/operator only)
-// Exposes operational diagnostics - never expose secrets or raw credentials.
+//Detailed Health Endpoint (authenticated, admin/operator only)
+//Exposes operational diagnostics - never expose secrets or raw credentials.
 app.get('/api/health/detailed', authMiddleware as any, requireRole('admin', 'operator') as any, async (req: any, res) => {
   const mem = process.memoryUsage()
 
@@ -835,8 +835,8 @@ httpServer.listen(PORT, () => {
   console.log(` Chat API: http://localhost:${PORT}/api/chat`)
   console.log(` Config API: http://localhost:${PORT}/api/config\n`)
 
-  // One-time fix: avatar URLs were incorrectly saved as /uploads/<file> instead
-  // of /uploads/avatars/<file>. This corrects any existing rows in the database.
+  //One-time fix: avatar URLs were incorrectly saved as /uploads/<file> instead
+  //of /uploads/avatars/<file>. This corrects any existing rows in the database.
   ;(async () => {
     try {
       const res = await pool.query(`
@@ -856,50 +856,50 @@ httpServer.listen(PORT, () => {
       if ((res.rowCount ?? 0) + (opRes.rowCount ?? 0) > 0) {
         console.log(` [startup] Repaired ${(res.rowCount ?? 0) + (opRes.rowCount ?? 0)} broken avatar URL(s)`)
       }
-    } catch { /* non-fatal — operators table may not have avatar_url */ }
+    } catch { /* non-fatal -- operators table may not have avatar_url */ }
   })()
 
-  // Start background cron jobs (SEPA river ingestion, cleanup, scheduled reports, etc.)
-  // See server/src/services/cronJobs.ts for what runs and on what schedule.
+  //Start background cron jobs (SEPA river ingestion, cleanup, scheduled reports, etc.)
+  //See server/src/services/cronJobs.ts for what runs and on what schedule.
   startCronJobs()
 
-  // Start n8n health monitoring. If n8n is unreachable, falls back to built-in cron logic.
+  //Start n8n health monitoring. If n8n is unreachable, falls back to built-in cron logic.
   startN8nHealthMonitor()
 
-  // Pre-warm the primary Ollama/LLM model so the first real chat request isn't slow.
-  // Errors here are non-fatal; chat still works, just with a cold-start delay.
+  //Pre-warm the primary Ollama/LLM model so the first real chat request isn't slow.
+  //Errors here are non-fatal; chat still works, just with a cold-start delay.
   startModelWarmup().catch(() => {})
 
-  // Sync DB pool & WebSocket metrics to Prometheus every 5 seconds.
-  // 5s is a good balance: coarse enough not to hammer the pool stats, fine enough
-  // to catch sudden connection spikes before the next Prometheus scrape window.
+  //Sync DB pool & WebSocket metrics to Prometheus every 5 seconds.
+  //5s is a good balance: coarse enough not to hammer the pool stats, fine enough
+  //to catch sudden connection spikes before the next Prometheus scrape window.
   setInterval(() => {
     collectDBPoolMetrics(pool)
     updatePoolMetrics(pool)
     activeWebsocketConnections.set(io.engine.clientsCount)
-    // Refresh trusted device count — cheap aggregation query on the shared pool interval
+    //Refresh trusted device count -- cheap aggregation query on the shared pool interval
     pool.query('SELECT COUNT(*) AS cnt FROM trusted_devices WHERE revoked = false AND expires_at > NOW()')
       .then((r: any) => trustedDevicesGauge.set(parseInt(r.rows[0]?.cnt || '0')))
       .catch(() => {})
   }, 5000)
 })
 
-// Graceful shutdown is handled by the zeroDowntime service (connection draining,
-// shutdown hooks, health transitions). Signal handlers are registered by initZeroDowntime().
-// Learn more: server/src/services/zeroDowntime.ts
+//Graceful shutdown is handled by the zeroDowntime service (connection draining,
+//shutdown hooks, health transitions). Signal handlers are registered by initZeroDowntime().
+//Learn more: server/src/services/zeroDowntime.ts
 
-// Register custom shutdown hooks in priority order (highest number = runs first).
-// Each hook gets a chance to clean up its own resources before the process exits.
+//Register custom shutdown hooks in priority order (highest number = runs first).
+//Each hook gets a chance to clean up its own resources before the process exits.
 registerShutdownHook('cron-jobs', async () => {
   console.log('[Shutdown] Stopping cron jobs...')
-}, 100)  // priority 100 — stop cron before sockets so no new work starts
+}, 100)  // priority 100 -- stop cron before sockets so no new work starts
 
 registerShutdownHook('socket-connections', async () => {
   console.log('[Shutdown] Closing WebSocket connections...')
   io.close()
-}, 90)  // priority 90 — drain WebSocket clients before the HTTP server stops
+}, 90)  // priority 90 -- drain WebSocket clients before the HTTP server stops
 
 registerShutdownHook('llm-warmup', async () => {
   console.log('[Shutdown] LLM warmup cleanup...')
-  // Note: LLM cleanup would go here if needed
+  //Note: LLM cleanup would go here if needed
 }, 50)

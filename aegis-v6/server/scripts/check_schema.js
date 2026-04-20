@@ -18,7 +18,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     console.log('status_enum: ' + r3.rows.map(r => r.v).join(', '));
   } catch(e) { console.log('status enum err: ' + e.message); }
 
-  // Check reporter_scores table
+  //Check reporter_scores table
   try {
     const r4 = await pool.query("SELECT column_name,data_type FROM information_schema.columns WHERE table_name='reporter_scores' ORDER BY ordinal_position");
     console.log('\n=== REPORTER_SCORES COLUMNS ===');

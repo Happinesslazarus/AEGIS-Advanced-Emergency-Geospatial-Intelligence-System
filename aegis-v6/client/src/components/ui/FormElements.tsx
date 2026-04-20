@@ -8,7 +8,7 @@ import React, { forwardRef, memo, useState, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { InlineError } from './ErrorStates'
 
-// FORM FIELD
+//FORM FIELD
 
 interface FormFieldProps {
   /** Label text */
@@ -109,7 +109,7 @@ export const FormField = memo<FormFieldProps>(({
 
 FormField.displayName = 'FormField'
 
-// INPUT
+//INPUT
 
 interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   /** Size variant */
@@ -198,7 +198,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
 
 Input.displayName = 'Input'
 
-// TEXTAREA
+//TEXTAREA
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   /** Size variant */
@@ -262,7 +262,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({
 
 Textarea.displayName = 'Textarea'
 
-// SELECT
+//SELECT
 
 interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
   /** Size variant */
@@ -333,7 +333,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(({
 
 Select.displayName = 'Select'
 
-// CHECKBOX
+//CHECKBOX
 
 interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {
   /** Label text */
@@ -407,7 +407,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(({
 
 Checkbox.displayName = 'Checkbox'
 
-// RADIO GROUP
+//RADIO GROUP
 
 interface RadioOption {
   value: string
@@ -505,7 +505,7 @@ export const RadioGroup = memo<RadioGroupProps>(({
 
 RadioGroup.displayName = 'RadioGroup'
 
-// CHARACTER COUNTER
+//CHARACTER COUNTER
 
 interface CharacterCounterProps {
   current: number
@@ -544,7 +544,7 @@ export const CharacterCounter = memo<CharacterCounterProps>(({
 
 CharacterCounter.displayName = 'CharacterCounter'
 
-// PASSWORD STRENGTH
+//PASSWORD STRENGTH
 
 interface PasswordStrengthProps {
   password: string
@@ -606,7 +606,7 @@ export const PasswordStrength = memo<PasswordStrengthProps>(({
 
 PasswordStrength.displayName = 'PasswordStrength'
 
-// PASSWORD INPUT (with toggle)
+//PASSWORD INPUT (with toggle)
 
 interface PasswordInputProps extends Omit<InputProps, 'type' | 'rightIcon'> {
   /** Show strength indicator */
@@ -652,7 +652,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(({
 
 PasswordInput.displayName = 'PasswordInput'
 
-// FIELDSET
+//FIELDSET
 
 interface FieldsetProps {
   /** Legend text */
@@ -688,7 +688,7 @@ export const Fieldset = memo<FieldsetProps>(({
 
 Fieldset.displayName = 'Fieldset'
 
-// ICONS
+//ICONS
 
 const ChevronDownIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -709,7 +709,7 @@ const EyeOffIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 )
 
-// EXPORTS
+//EXPORTS
 
 export default {
   FormField,

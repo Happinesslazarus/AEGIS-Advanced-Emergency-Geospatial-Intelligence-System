@@ -1,8 +1,8 @@
 /**
  * Tests for the <ActivityLog> admin component and its companion utilities:
- *   - ActivityLog component   — renders a scrollable card of recent operator actions
- *   - useActivityLog() hook   — subscribes to the shared activity list (pub/sub pattern)
- *   - addActivity()           — appends a new entry to the shared log and notifies all hooks
+ *   - ActivityLog component   -- renders a scrollable card of recent operator actions
+ *   - useActivityLog() hook   -- subscribes to the shared activity list (pub/sub pattern)
+ *   - addActivity()           -- appends a new entry to the shared log and notifies all hooks
  *
  * The ActivityLog is shown on the admin dashboard so supervisors can see what operators
  * (e.g. "Emergency Operator", "System Administrator") have done recently.
@@ -28,7 +28,7 @@
  *   ActivityEntry       = type {id, action, operator, timestamp, type, reportId?}
  *   type                = activity category: verify/flag/urgent/alert/deploy/login/print/export
  *   reportId            = optional reference to the report the activity relates to (e.g. 'RPT-001')
- *   ACTIVITY_COLORS     = map from activity type → Tailwind CSS class string for icon colouring
+ * ACTIVITY_COLORS = map from activity type -> Tailwind CSS class string for icon colouring
  *   t: key => key       = i18n mock that returns raw translation keys (not translated strings)
  *   relative time       = "5m ago", "1h ago" etc. derived from the entry's timestamp
  *   pub/sub             = publish/subscribe pattern; addActivity publishes, all hook instances
@@ -45,22 +45,20 @@ import userEvent from '@testing-library/user-event' // realistic user interactio
 import ActivityLog, { addActivity, useActivityLog, type ActivityEntry } from '../components/admin/ActivityLog'
 import { renderHook } from '@testing-library/react'
 
-// ---------------------------------------------------------------------------
-// Module-level mocks
-// ---------------------------------------------------------------------------
+//Module-level mocks
 
-// i18n — all translation calls return the raw key so assertions are language-independent
+//i18n -- all translation calls return the raw key so assertions are language-independent
 vi.mock('../utils/i18n', () => ({
   t: (key: string) => key,
   getLanguage: () => 'en',
 }))
 
-// useLanguage — provides locale code; not critical to ActivityLog logic
+//useLanguage -- provides locale code; not critical to ActivityLog logic
 vi.mock('../hooks/useLanguage', () => ({
   useLanguage: () => 'en',
 }))
 
-// ACTIVITY_COLORS — maps activity type → CSS class; mocked to avoid importing full token map
+//ACTIVITY_COLORS -- maps activity type -> CSS class; mocked to avoid importing full token map
 vi.mock('../utils/colorTokens', () => ({
   ACTIVITY_COLORS: {
     verify: 'text-green-600 bg-green-50',   // green for verification actions
@@ -74,26 +72,24 @@ vi.mock('../utils/colorTokens', () => ({
   },
 }))
 
-// ---------------------------------------------------------------------------
-// ActivityLog component — rendering
-// ---------------------------------------------------------------------------
+//ActivityLog component -- rendering
 describe('ActivityLog', () => {
   describe('rendering', () => {
     test('renders activity log title', () => {
       render(<ActivityLog />)
-      // The card header uses the i18n key 'admin.activityLog.title' (returned raw by our mock)
+      //The card header uses the i18n key 'admin.activityLog.title' (returned raw by our mock)
       expect(screen.getByText('admin.activityLog.title')).toBeInTheDocument()
     })
 
     test('renders initial activity entries', () => {
       render(<ActivityLog />)
-      // The component ships with default seed entries — the login entry is always present
+      //The component ships with default seed entries -- the login entry is always present
       expect(screen.getByText(/Logged in to AEGIS Admin/)).toBeInTheDocument()
     })
 
     test('renders multiple activity types', () => {
       render(<ActivityLog />)
-      // Seed entries cover verify, alert, and flag activity types
+      //Seed entries cover verify, alert, and flag activity types
       expect(screen.getByText(/Verified report/)).toBeInTheDocument()
       expect(screen.getByText(/Sent alert/)).toBeInTheDocument()
       expect(screen.getByText(/Flagged report/)).toBeInTheDocument()
@@ -101,59 +97,53 @@ describe('ActivityLog', () => {
 
     test('displays operator names', () => {
       render(<ActivityLog />)
-      // Seed entries include at least one entry per operator role
+      //Seed entries include at least one entry per operator role
       expect(screen.getAllByText(/System Administrator/).length).toBeGreaterThan(0)
       expect(screen.getAllByText(/Emergency Operator/).length).toBeGreaterThan(0)
     })
 
     test('displays report IDs when present', () => {
       render(<ActivityLog />)
-      // Report IDs appear alongside the action text (e.g. "Verified report RPT-001")
+      //Report IDs appear alongside the action text (e.g. "Verified report RPT-001")
       expect(screen.getByText(/RPT-001/)).toBeInTheDocument()
       expect(screen.getByText(/RPT-003/)).toBeInTheDocument()
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Activity icons
-  // ---------------------------------------------------------------------------
+  //Activity icons
   describe('activity icons', () => {
     test('renders different icons for different activity types', () => {
       render(<ActivityLog />)
-      // Each entry renders a circular icon container; the CSS classes identify it
+      //Each entry renders a circular icon container; the CSS classes identify it
       const iconContainers = document.querySelectorAll('.w-7.h-7.rounded-full')
       expect(iconContainers.length).toBeGreaterThan(0)
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Styling
-  // ---------------------------------------------------------------------------
+  //Styling
   describe('styling', () => {
     test('applies card styling', () => {
       const { container } = render(<ActivityLog />)
-      // The outer wrapper uses the shared 'card' class for consistent admin panel look
+      //The outer wrapper uses the shared 'card' class for consistent admin panel look
       expect(container.querySelector('.card')).toBeInTheDocument()
     })
 
     test('has scrollable container for many entries', () => {
       const { container } = render(<ActivityLog />)
-      // overflow-y-auto enables scrolling when there are more entries than visible height
+      //overflow-y-auto enables scrolling when there are more entries than visible height
       const scrollContainer = container.querySelector('.overflow-y-auto')
       expect(scrollContainer).toBeInTheDocument()
     })
 
     test('limits height with max-h class', () => {
       const { container } = render(<ActivityLog />)
-      // max-h-96 caps the component at 384px (Tailwind spacing=96 → 24rem)
+ //max-h-96 caps the component at 384px (Tailwind spacing=96 -> 24rem)
       expect(container.querySelector('.max-h-96')).toBeInTheDocument()
     })
   })
 })
 
-// ---------------------------------------------------------------------------
-// useActivityLog hook — shared in-memory state
-// ---------------------------------------------------------------------------
+//useActivityLog hook -- shared in-memory state
 describe('useActivityLog hook', () => {
   test('returns initial log entries', () => {
     const { result } = renderHook(() => useActivityLog())
@@ -167,7 +157,7 @@ describe('useActivityLog hook', () => {
     const { result } = renderHook(() => useActivityLog())
     const [log] = result.current
 
-    // Every ActivityEntry must carry all five required fields
+    //Every ActivityEntry must carry all five required fields
     log.forEach((entry: ActivityEntry) => {
       expect(entry).toHaveProperty('id')        // unique identifier
       expect(entry).toHaveProperty('action')    // human-readable action description
@@ -178,9 +168,7 @@ describe('useActivityLog hook', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// addActivity — publish new entries and notify all hook subscribers
-// ---------------------------------------------------------------------------
+//addActivity -- publish new entries and notify all hook subscribers
 describe('addActivity', () => {
   test('adds new activity entry', async () => {
     const { result, rerender } = renderHook(() => useActivityLog())
@@ -190,11 +178,11 @@ describe('addActivity', () => {
       addActivity({
         action: 'Test action',
         operator: 'Test Operator',
-        type: 'verify', // activity type — determines icon and colour
+        type: 'verify', // activity type -- determines icon and colour
       })
     })
 
-    // waitFor retries the assertion until the hook reflects the new state
+    //waitFor retries the assertion until the hook reflects the new state
     await waitFor(() => {
       rerender()
       expect(result.current[0].length).toBe(initialCount + 1)
@@ -202,7 +190,7 @@ describe('addActivity', () => {
   })
 
   test('new entries appear at the beginning', async () => {
-    // The log is prepended (newest-first order) so index 0 = most recent entry
+    //The log is prepended (newest-first order) so index 0 = most recent entry
     const { result, rerender } = renderHook(() => useActivityLog())
 
     act(() => {
@@ -220,7 +208,7 @@ describe('addActivity', () => {
   })
 
   test('generates unique IDs', async () => {
-    // IDs must not collide even when entries are added in rapid succession
+    //IDs must not collide even when entries are added in rapid succession
     const { result, rerender } = renderHook(() => useActivityLog())
 
     act(() => {
@@ -243,7 +231,7 @@ describe('addActivity', () => {
   })
 
   test('generates valid timestamps', async () => {
-    // Timestamps must be in the range [before-add, after-add]
+    //Timestamps must be in the range [before-add, after-add]
     const { result, rerender } = renderHook(() => useActivityLog())
     const beforeAdd = Date.now() // milliseconds since Unix epoch
 
@@ -255,20 +243,20 @@ describe('addActivity', () => {
       rerender()
       const newEntry = result.current[0].find((e: ActivityEntry) => e.action === 'Timestamped action')
       expect(newEntry).toBeDefined()
-      const timestamp = new Date(newEntry!.timestamp).getTime() // parse ISO string → ms
+ const timestamp = new Date(newEntry!.timestamp).getTime() // parse ISO string -> ms
       expect(timestamp).toBeGreaterThanOrEqual(beforeAdd)  // not in the past
       expect(timestamp).toBeLessThanOrEqual(Date.now())    // not in the future
     })
   })
 
   test('supports optional reportId', async () => {
-    // reportId links an activity entry back to a specific incident report
+    //reportId links an activity entry back to a specific incident report
     const { result, rerender } = renderHook(() => useActivityLog())
 
     act(() => {
       addActivity({
         action: 'Report action',
-        reportId: 'RPT-TEST-001', // optional — only present for report-related actions
+        reportId: 'RPT-TEST-001', // optional -- only present for report-related actions
         operator: 'Operator',
         type: 'verify',
       })
@@ -282,9 +270,7 @@ describe('addActivity', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Time formatting — relative timestamps shown in the UI
-// ---------------------------------------------------------------------------
+//Time formatting -- relative timestamps shown in the UI
 describe('ActivityLog time formatting', () => {
   beforeEach(() => {
     vi.useFakeTimers() // freeze the clock for predictable "X ago" output
@@ -297,19 +283,17 @@ describe('ActivityLog time formatting', () => {
 
   test('displays relative time for recent activities', () => {
     render(<ActivityLog />)
-    // Seed entries have recent timestamps; the component renders them as
+    //Seed entries have recent timestamps; the component renders them as
     // "5m ago" (time.mAgo i18n key) or "1h ago" (time.hAgo i18n key)
     const timeElements = screen.getAllByText(/time\.(m|h)Ago/) // regex matches both keys
     expect(timeElements.length).toBeGreaterThan(0)
   })
 })
 
-// ---------------------------------------------------------------------------
-// Notification system — pub/sub broadcast to multiple hook instances
-// ---------------------------------------------------------------------------
+//Notification system -- pub/sub broadcast to multiple hook instances
 describe('ActivityLog notification system', () => {
   test('multiple hooks receive updates', async () => {
-    // Both hook instances share the same module-level store; addActivity notifies all
+    //Both hook instances share the same module-level store; addActivity notifies all
     const { result: result1 } = renderHook(() => useActivityLog())
     const { result: result2 } = renderHook(() => useActivityLog())
 
@@ -320,11 +304,11 @@ describe('ActivityLog notification system', () => {
       addActivity({
         action: 'Broadcast action',
         operator: 'Broadcaster',
-        type: 'alert', // type: alert → blue icon
+ type: 'alert', // type: alert -> blue icon
       })
     })
 
-    // Both subscribed hook instances should now have one extra entry
+    //Both subscribed hook instances should now have one extra entry
     await waitFor(() => {
       expect(result1.current[0].length).toBe(initialCount1 + 1)
       expect(result2.current[0].length).toBe(initialCount2 + 1)
@@ -332,13 +316,11 @@ describe('ActivityLog notification system', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Accessibility
-// ---------------------------------------------------------------------------
+//Accessibility
 describe('ActivityLog accessibility', () => {
   test('has semantic heading structure', () => {
     render(<ActivityLog />)
-    // The card title must be wrapped in an <h3> for correct heading hierarchy
+    //The card title must be wrapped in an <h3> for correct heading hierarchy
     const heading = screen.getByRole('heading', { level: 3 })
     expect(heading).toBeInTheDocument()
   })

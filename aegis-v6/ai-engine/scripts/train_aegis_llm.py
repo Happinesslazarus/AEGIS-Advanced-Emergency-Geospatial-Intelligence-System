@@ -10,7 +10,7 @@ import textwrap
 from dataclasses import dataclass
 from pathlib import Path
 
-# Hardware report — always runs first so the user knows what they have
+# Hardware report -- always runs first so the user knows what they have
 def hardware_report() -> dict:
     """Check GPU VRAM and recommend the appropriate model."""
     report = {"vram_gb": 0, "cuda_available": False, "recommended_model": "3b", "notes": []}
@@ -22,27 +22,27 @@ def hardware_report() -> dict:
             report["vram_gb"] = round(vram, 1)
             name = torch.cuda.get_device_name(0)
             report["gpu_name"] = name
-            print(f"\n GPU detected: {name} — {vram:.1f} GB VRAM")
+            print(f"\n GPU detected: {name} -- {vram:.1f} GB VRAM")
             if vram < 8:
                 report["recommended_model"] = "3b"
                 report["notes"].append("< 8GB VRAM: use 3B model only (Llama 3.2 3B)")
             elif vram < 16:
                 report["recommended_model"] = "3b"
                 report["notes"].append(
-                    "8—16GB VRAM: 3B is comfortable; 8B is possible with QLoRA + batch_size=1 "
+                    "8--16GB VRAM: 3B is comfortable; 8B is possible with QLoRA + batch_size=1 "
                     + "but may OOM. Use --model 3b for safety."
                 )
             elif vram < 40:
                 report["recommended_model"] = "8b"
-                report["notes"].append("16—40GB VRAM: 8B recommended. 70B needs cloud.")
+                report["notes"].append("16--40GB VRAM: 8B recommended. 70B needs cloud.")
             else:
                 report["recommended_model"] = "70b"
                 report["notes"].append("40GB+ VRAM: 70B is viable locally.")
         else:
-            report["notes"].append("No CUDA GPU found — CPU training will be very slow.")
+            report["notes"].append("No CUDA GPU found -- CPU training will be very slow.")
             print("\n WARNING: No CUDA GPU detected. Fine-tuning will take days on CPU.")
     except ImportError:
-        report["notes"].append("PyTorch not installed — run: pip install -r requirements-llm.txt")
+        report["notes"].append("PyTorch not installed -- run: pip install -r requirements-llm.txt")
     return report
 
 # Model configuration per size
@@ -58,14 +58,14 @@ class ModelConfig:
     max_seq_length: int
     # Memory
     load_in_4bit: bool
-    # Precision — Turing arch (RTX 20xx) does NOT support bfloat16
+    # Precision -- Turing arch (RTX 20xx) does NOT support bfloat16
     fp16: bool
     bf16: bool
 
 MODEL_CONFIGS: dict[str, ModelConfig] = {
     "3b": ModelConfig(
         model_id="meta-llama/Llama-3.2-3B-Instruct",
-        lora_r=32,          # Higher rank viable at 3B — more capacity
+        lora_r=32,          # Higher rank viable at 3B -- more capacity
         lora_alpha=64,
         batch_size=2,
         grad_accum=8,       # Effective batch = 16
@@ -76,11 +76,11 @@ MODEL_CONFIGS: dict[str, ModelConfig] = {
     ),
     "8b": ModelConfig(
         model_id="meta-llama/Llama-3.1-8B-Instruct",
-        lora_r=32,          # Upgraded from 16 — CPU offload makes r=32 viable on 8GB
+        lora_r=32,          # Upgraded from 16 -- CPU offload makes r=32 viable on 8GB
         lora_alpha=64,
         batch_size=1,       # MUST be 1 on 8GB VRAM for 8B
         grad_accum=16,      # Effective batch = 16
-        max_seq_length=1536, # 1536 vs 1024 — longer sequences, CPU offset activations
+        max_seq_length=1536, # 1536 vs 1024 -- longer sequences, CPU offset activations
         load_in_4bit=True,
         fp16=True,
         bf16=False,
@@ -98,7 +98,7 @@ MODEL_CONFIGS: dict[str, ModelConfig] = {
     ),
 }
 
-# Dataset validator — run before training to catch problems early
+# Dataset validator -- run before training to catch problems early
 def validate_dataset(dataset_path: Path) -> dict:
     """
     Validates a JSONL training dataset and prints a quality report.
@@ -163,7 +163,7 @@ def validate_dataset(dataset_path: Path) -> dict:
 
                 valid += 1
             except json.JSONDecodeError as e:
-                errors.append(f"L{lineno}: JSON error — {e}")
+                errors.append(f"L{lineno}: JSON error -- {e}")
             except Exception as e:
                 errors.append(f"L{lineno}: {e}")
 
@@ -208,7 +208,7 @@ def generate_cloud_script(args, config: ModelConfig) -> None:
     """Generate a RunPod-ready training script for large models."""
     script = textwrap.dedent(f"""\
         #!/bin/bash
-        # AEGIS LLM Fine-Tuning — RunPod Cloud Training Script
+        # AEGIS LLM Fine-Tuning -- RunPod Cloud Training Script
         # Generated for model: {config.model_id}
         # Recommended pod: RTX 4090 (24GB) for 8B | A100-40G for 70B | A100-80G for 70B without quantization
         # Estimated cost: ~$2-4 for 8B (3 epochs) | ~$15-25 for 70B (3 epochs) on RunPod
@@ -305,7 +305,7 @@ def generate_cloud_script(args, config: ModelConfig) -> None:
 # Training entrypoint
 def train(args, hw: dict) -> None:
     """Run the actual fine-tuning."""
-    # Deferred imports — only loaded when actually training
+    # Deferred imports -- only loaded when actually training
     try:
         import torch
         from datasets import load_dataset
@@ -326,7 +326,7 @@ def train(args, hw: dict) -> None:
     print(f"AEGIS LLM Fine-Tuning")
     print(f"  Model:        {config.model_id}")
     print(f"  LoRA rank:    r={config.lora_r}, alpha={config.lora_alpha}")
-    print(f"  Batch size:   {config.batch_size} — {config.grad_accum} accum = {config.batch_size * config.grad_accum} effective")
+    print(f"  Batch size:   {config.batch_size} -- {config.grad_accum} accum = {config.batch_size * config.grad_accum} effective")
     print(f"  Max seq len:  {config.max_seq_length} tokens")
     print(f"  Precision:    {'fp16' if config.fp16 else 'bf16' if config.bf16 else 'fp32'}")
     print(f"  Output:       {args.output}")
@@ -435,7 +435,7 @@ def train(args, hw: dict) -> None:
         greater_is_better=False,
         report_to="tensorboard",
         gradient_checkpointing=True,
-        optim="paged_adamw_8bit",        # Memory-efficient — NOT paged_adamw_32bit
+        optim="paged_adamw_8bit",        # Memory-efficient -- NOT paged_adamw_32bit
         lr_scheduler_type="cosine",
         weight_decay=0.01,
         max_grad_norm=0.3,               # Critical for stability with small effective batch
@@ -467,11 +467,11 @@ def train(args, hw: dict) -> None:
         processing_class=tokenizer,      # New TRL API (replaces tokenizer=)
         formatting_func=format_examples, # Correct: not dataset_text_field
         max_seq_length=config.max_seq_length,
-        packing=False,                   # Do not pack — emergency responses vary wildly in length
+        packing=False,                   # Do not pack -- emergency responses vary wildly in length
         dataset_kwargs={"skip_prepare_dataset": False},
     )
 
-    print(f"\nStarting training — {args.epochs} epochs...")
+    print(f"\nStarting training -- {args.epochs} epochs...")
     print(f"TensorBoard logs: tensorboard --logdir {output_dir}/runs")
 
     # Resume from latest checkpoint if --resume is set
@@ -482,7 +482,7 @@ def train(args, hw: dict) -> None:
             checkpoint = str(existing[-1])
             print(f"Resuming from checkpoint: {checkpoint}")
         else:
-            print("No checkpoint found in output directory — starting fresh")
+            print("No checkpoint found in output directory -- starting fresh")
 
     trainer.train(resume_from_checkpoint=checkpoint)
 
@@ -527,7 +527,7 @@ def _merge_and_save(model, tokenizer, output_dir: str, config: ModelConfig) -> N
         "lora_alpha": config.lora_alpha,
         "merged": True,
         "aegis_version": "1.0.0",
-        "description": "AEGIS Emergency AI — fine-tuned on all-hazards UK emergency management",
+        "description": "AEGIS Emergency AI -- fine-tuned on all-hazards UK emergency management",
     }
     with open(Path(merged_dir) / "aegis_metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
@@ -540,7 +540,7 @@ def _merge_and_save(model, tokenizer, output_dir: str, config: ModelConfig) -> N
 # Main
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="AEGIS QLoRA fine-tuning — optimised for 8GB VRAM (RTX 2060)"
+        description="AEGIS QLoRA fine-tuning -- optimised for 8GB VRAM (RTX 2060)"
     )
     parser.add_argument(
         "--model", choices=["3b", "8b", "70b"], default="3b",

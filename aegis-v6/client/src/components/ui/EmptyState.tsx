@@ -74,7 +74,7 @@ export default function EmptyState({
   )
 }
 
-// Pre-configured empty states
+//Pre-configured empty states
 
 export function EmptyMessages() {
   const lang = getLanguage()

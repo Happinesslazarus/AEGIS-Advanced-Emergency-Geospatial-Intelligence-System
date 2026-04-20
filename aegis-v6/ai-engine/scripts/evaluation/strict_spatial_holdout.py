@@ -174,7 +174,7 @@ def main(args: argparse.Namespace) -> None:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     cfg = HAZARD_CONFIG[args.hazard]
 
-    print("[1/5] Loading and validating data …")
+    print("[1/5] Loading and validating data ...")
     df = load_merged(args.hazard, args.allow_proxy_labels, args.allow_missing_spei)
     df = assign_region(df)
 
@@ -190,7 +190,7 @@ def main(args: argparse.Namespace) -> None:
     if test_region not in REGIONS:
         sys.exit(f"Unknown test region: {test_region}")
 
-    print("[2/5] Building strict spatial+temporal split …")
+    print("[2/5] Building strict spatial+temporal split ...")
     train_cutoff = pd.Timestamp(args.train_end)
     test_start = pd.Timestamp(args.test_start)
 
@@ -218,7 +218,7 @@ def main(args: argparse.Namespace) -> None:
     if overlap > 0:
         sys.exit("Spatial overlap detected between train/test locations. Split is not strict.")
 
-    print("[3/5] Training LightGBM baseline …")
+    print("[3/5] Training LightGBM baseline ...")
     X_train = train_df[feature_cols].fillna(0.0)
     X_test = test_df[feature_cols].fillna(0.0)
 
@@ -236,7 +236,7 @@ def main(args: argparse.Namespace) -> None:
     )
     model.fit(X_train, y_train)
 
-    print("[4/5] Evaluating holdout metrics …")
+    print("[4/5] Evaluating holdout metrics ...")
     proba = model.predict_proba(X_test)[:, 1]
     preds = (proba >= 0.5).astype(int)
 
@@ -265,7 +265,7 @@ def main(args: argparse.Namespace) -> None:
     print(f"  PR-AUC : {metrics['pr_auc']:.4f}")
     print(f"  F1     : {metrics['f1']:.4f}")
 
-    print("[5/5] Writing outputs …")
+    print("[5/5] Writing outputs ...")
     prefix = args.output_prefix
     out_json = REPORT_DIR / f"{prefix}_{args.hazard}.json"
     out_csv = REPORT_DIR / f"{prefix}_{args.hazard}.csv"

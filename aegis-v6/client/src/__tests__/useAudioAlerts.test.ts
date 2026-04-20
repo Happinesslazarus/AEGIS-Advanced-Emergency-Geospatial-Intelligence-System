@@ -15,7 +15,7 @@
  *   act()                     = flushes React state updates so assertions run
  *                               against the post-update state.
  *   Object.defineProperty()   = replaces a browser API (localStorage,
- *                               speechSynthesis) that doesn’t exist in the
+ *                               speechSynthesis) that doesn't exist in the
  *                               Node.js test environment.
  *   expect.stringContaining() = a partial-match matcher; passes if the actual
  *                               string contains the given substring.
@@ -26,8 +26,8 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 
-// Mock localStorage: Node.js (where Vitest runs) has no real localStorage,
-// so we create a plain object backed store and wrap it in the same interface.
+//Mock localStorage: Node.js (where Vitest runs) has no real localStorage,
+//so we create a plain object backed store and wrap it in the same interface.
 const mockLocalStorage: Record<string, string> = {}
 const localStorageMock = {
   getItem: vi.fn((key: string) => mockLocalStorage[key] || null),
@@ -37,8 +37,8 @@ const localStorageMock = {
 }
 Object.defineProperty(global, 'localStorage', { value: localStorageMock })
 
-// Mock speechSynthesis: the Web Speech API doesn’t exist in Node.js.
-// We stub every method so the hook can call them without crashing.
+//Mock speechSynthesis: the Web Speech API doesn't exist in Node.js.
+//We stub every method so the hook can call them without crashing.
 const mockSpeechSynthesis = {
   getVoices: vi.fn((): SpeechSynthesisVoice[] => []),
   addEventListener: vi.fn(),
@@ -49,9 +49,9 @@ const mockSpeechSynthesis = {
 }
 Object.defineProperty(global, 'speechSynthesis', { value: mockSpeechSynthesis })
 
-// Mock SpeechSynthesisUtterance: the class the hook constructs before calling
-// speechSynthesis.speak().  We stub it as a vi.fn() constructor so new
-// SpeechSynthesisUtterance('...') returns an object with the expected shape.
+//Mock SpeechSynthesisUtterance: the class the hook constructs before calling
+//speechSynthesis.speak().  We stub it as a vi.fn() constructor so new
+//SpeechSynthesisUtterance('...') returns an object with the expected shape.
 vi.stubGlobal('SpeechSynthesisUtterance', vi.fn().mockImplementation(() => ({
   text: '',
   voice: null,
@@ -93,7 +93,7 @@ describe('useAudioAlerts', () => {
       
       expect(result.current.settings.volume).toBe(0.5)
       expect(result.current.settings.autoPlayWarning).toBe(true)
-      // Other defaults preserved
+      //Other defaults preserved
       expect(result.current.settings.enabled).toBe(true)
       expect(result.current.settings.rate).toBe(1.0)
     })

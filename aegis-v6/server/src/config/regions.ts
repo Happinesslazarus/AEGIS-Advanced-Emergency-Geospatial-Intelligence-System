@@ -25,36 +25,36 @@ export const REGIONS: Record<string, RegionConfig> = {
     gaugeApi: 'https://timeseries.sepa.org.uk/KiWIS/KiWIS',
     wmsLayers: [
       {
-        name: 'SEPA Flood Map — River (High)',
+        name: 'SEPA Flood Map -- River (High)',
         url: 'https://map.sepa.org.uk/floodmap/wms',
         layers: 'sepa:fld_FluvialHighLikelihood',
         format: 'image/png',
         transparent: true,
-        attribution: '— SEPA',
+        attribution: '-- SEPA',
       },
       {
-        name: 'SEPA Flood Map — River (Medium)',
+        name: 'SEPA Flood Map -- River (Medium)',
         url: 'https://map.sepa.org.uk/floodmap/wms',
         layers: 'sepa:fld_FluvialMediumLikelihood',
         format: 'image/png',
         transparent: true,
-        attribution: '— SEPA',
+        attribution: '-- SEPA',
       },
       {
-        name: 'SEPA Flood Map — Surface Water',
+        name: 'SEPA Flood Map -- Surface Water',
         url: 'https://map.sepa.org.uk/floodmap/wms',
         layers: 'sepa:fld_PluvialHighLikelihood',
         format: 'image/png',
         transparent: true,
-        attribution: '— SEPA',
+        attribution: '-- SEPA',
       },
       {
-        name: 'SEPA Flood Map — Coastal',
+        name: 'SEPA Flood Map -- Coastal',
         url: 'https://map.sepa.org.uk/floodmap/wms',
         layers: 'sepa:fld_CoastalHighLikelihood',
         format: 'image/png',
         transparent: true,
-        attribution: '— SEPA',
+        attribution: '-- SEPA',
       },
     ],
     rivers: [
@@ -83,7 +83,7 @@ export const REGIONS: Record<string, RegionConfig> = {
         layers: 'Flood_Map_for_Planning_Rivers_and_Sea_Flood_Zone_3',
         format: 'image/png',
         transparent: true,
-        attribution: '— Environment Agency',
+        attribution: '-- Environment Agency',
       },
       {
         name: 'EA Flood Zone 2',
@@ -91,7 +91,7 @@ export const REGIONS: Record<string, RegionConfig> = {
         layers: 'Flood_Map_for_Planning_Rivers_and_Sea_Flood_Zone_2',
         format: 'image/png',
         transparent: true,
-        attribution: '— Environment Agency',
+        attribution: '-- Environment Agency',
       },
     ],
     rivers: [
@@ -111,24 +111,24 @@ export const REGIONS: Record<string, RegionConfig> = {
     emergencyNumber: '999',
     floodAuthority: 'Natural Resources Wales',
     weatherApi: 'https://api.openweathermap.org/data/2.5',
-    // NRW uses EA flood-monitoring API for gauge data
+    //NRW uses EA flood-monitoring API for gauge data
     gaugeApi: 'https://environment.data.gov.uk/flood-monitoring',
     wmsLayers: [
       {
-        name: 'NRW Flood Map — Rivers (High)',
+        name: 'NRW Flood Map -- Rivers (High)',
         url: 'https://lle.gov.wales/services/wms/nrw',
         layers: 'NRW:Fluvial_Flood_Map_for_Planning_High_Risk',
         format: 'image/png',
         transparent: true,
-        attribution: '— Natural Resources Wales',
+        attribution: '-- Natural Resources Wales',
       },
       {
-        name: 'NRW Flood Map — Surface Water',
+        name: 'NRW Flood Map -- Surface Water',
         url: 'https://lle.gov.wales/services/wms/nrw',
         layers: 'NRW:Surface_Water_Flood_Map_High_Risk',
         format: 'image/png',
         transparent: true,
-        attribution: '— Natural Resources Wales',
+        attribution: '-- Natural Resources Wales',
       },
     ],
     rivers: [
@@ -151,20 +151,20 @@ export const REGIONS: Record<string, RegionConfig> = {
     gaugeApi: 'https://www.nidirect.gov.uk/floodnireland',
     wmsLayers: [
       {
-        name: 'DfI Flood Map — Fluvial',
+        name: 'DfI Flood Map -- Fluvial',
         url: 'https://mapping.infrastructure-ni.gov.uk/arcgis/services/FloodMaps/Flood_Maps_wms/MapServer/WmsServer',
         layers: 'Fluvial_Flood_Extent_High',
         format: 'image/png',
         transparent: true,
-        attribution: '— Department for Infrastructure Northern Ireland',
+        attribution: '-- Department for Infrastructure Northern Ireland',
       },
       {
-        name: 'DfI Flood Map — Coastal',
+        name: 'DfI Flood Map -- Coastal',
         url: 'https://mapping.infrastructure-ni.gov.uk/arcgis/services/FloodMaps/Flood_Maps_wms/MapServer/WmsServer',
         layers: 'Coastal_Flood_Extent_High',
         format: 'image/png',
         transparent: true,
-        attribution: '— Department for Infrastructure Northern Ireland',
+        attribution: '-- Department for Infrastructure Northern Ireland',
       },
     ],
     rivers: [

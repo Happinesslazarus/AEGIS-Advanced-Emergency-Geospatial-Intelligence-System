@@ -21,7 +21,7 @@ export default function OfflineIndicator(): JSX.Element | null {
       setVisible(true)
       setJustReconnected(false)
     } else if (visible) {
-      // Show "Back online" briefly
+      //Show "Back online" briefly
       setJustReconnected(true)
       const timer = setTimeout(() => {
         setVisible(false)
@@ -48,7 +48,7 @@ export default function OfflineIndicator(): JSX.Element | null {
           <Check className="w-4 h-4 shrink-0" />
           <span>{t('offline.backOnline', lang)}</span>
           {queuedRequests > 0 && (
-            <span className="text-xs opacity-80">— {t('offline.syncing', lang)} {queuedRequests}</span>
+            <span className="text-xs opacity-80">-- {t('offline.syncing', lang)} {queuedRequests}</span>
           )}
         </>
       ) : (

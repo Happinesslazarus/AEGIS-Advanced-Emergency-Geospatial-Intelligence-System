@@ -15,7 +15,7 @@
  *   RTL                    = Right-To-Left; languages like Arabic, Hebrew, Urdu that
  *                            are written from right to left; requires mirroring the UI
  *   dir attribute          = HTML global attribute on <html> or <body>;
- *                            'rtl' or 'ltr' — tells the browser the base text direction
+ *                            'rtl' or 'ltr' -- tells the browser the base text direction
  *   Intl.NumberFormat      = formats a number into a locale-specific string;
  *                            supports currency, percent, and compact notation styles
  *   Intl.DateTimeFormat    = formats a Date into a locale-specific date/time string
@@ -29,8 +29,8 @@
  *   Intl.DisplayNames      = resolves human-readable names for language/region/currency codes
  *   LDML plural rule       = 'zero' | 'one' | 'two' | 'few' | 'many' | 'other'
  *                            as defined by Unicode CLDR (Common Locale Data Repository)
- *   compact notation       = number abbreviation: 1,200 → '1.2K', 2,500,000 → '2.5M'
- *   unitDisplay            = 'long' | 'short' | 'narrow' — how verbose the unit label is
+ * compact notation = number abbreviation: 1,200 -> '1.2K', 2,500,000 -> '2.5M'
+ *   unitDisplay            = 'long' | 'short' | 'narrow' -- how verbose the unit label is
  *   sensitivity: 'base'    = Collator option: compare only base letters, ignoring
  *                            accents and case ('a' == 'à' == 'A')
  *
@@ -40,20 +40,16 @@
  * - The applyRTL() function is called by ThemeContext when the user changes language
  */
 
-// ---------------------------------------------------------------------------
-// RTL (Right-To-Left) language constants and DOM helpers
-// ---------------------------------------------------------------------------
+//RTL (Right-To-Left) language constants and DOM helpers
 
-// Languages that are written right-to-left and need mirrored layouts
+//Languages that are written right-to-left and need mirrored layouts
 export const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur', 'yi', 'ps', 'sd', 'ug'] as const
 export type RTLLanguage = typeof RTL_LANGUAGES[number]
 
-// ---------------------------------------------------------------------------
-// Supported locale registry
-// ---------------------------------------------------------------------------
+//Supported locale registry
 
-// Full metadata for each locale; includes the date/number format convention
-// so components can show locale-appropriate date format hints to the user
+//Full metadata for each locale; includes the date/number format convention
+//so components can show locale-appropriate date format hints to the user
 export const SUPPORTED_LOCALES = {
   en: { name: 'English', nativeName: 'English', dir: 'ltr', dateFormat: 'MM/DD/YYYY', numberFormat: 'en-US' },
   es: { name: 'Spanish', nativeName: 'Español', dir: 'ltr', dateFormat: 'DD/MM/YYYY', numberFormat: 'es-ES' },
@@ -71,9 +67,7 @@ export const SUPPORTED_LOCALES = {
 
 export type SupportedLocale = keyof typeof SUPPORTED_LOCALES
 
-// ---------------------------------------------------------------------------
-// RTL support helpers
-// ---------------------------------------------------------------------------
+//RTL support helpers
 
 /**
  * Returns true if the given BCP-47 locale code is a right-to-left language.
@@ -101,8 +95,8 @@ export function applyRTL(locale: string): void {
   document.documentElement.setAttribute('dir', dir)    // tells the browser text direction
   document.documentElement.setAttribute('lang', locale) // used by screen readers and spellcheck
 
-  // The 'rtl' CSS class is used by Tailwind and custom CSS rules
-  // to flip flex-direction, margins, and icon placement
+  //The 'rtl' CSS class is used by Tailwind and custom CSS rules
+  //to flip flex-direction, margins, and icon placement
   if (dir === 'rtl') {
     document.documentElement.classList.add('rtl')
   } else {
@@ -112,7 +106,7 @@ export function applyRTL(locale: string): void {
 
 /**
  * Maps a physical CSS property to its logical CSS equivalent,
- * swapping inline-start ↔ inline-end for RTL languages.
+ * swapping inline-start <-> inline-end for RTL languages.
  * Logical CSS properties (e.g. 'margin-inline-start') are direction-aware,
  * so they automatically adapt without needing separate RTL overrides.
  */
@@ -132,9 +126,7 @@ export function getLogicalProperty(
   return mappings[property]?.[isRTL ? 'rtl' : 'ltr'] || property
 }
 
-// ---------------------------------------------------------------------------
-// Number formatting (uses Intl.NumberFormat internally)
-// ---------------------------------------------------------------------------
+//Number formatting (uses Intl.NumberFormat internally)
 
 /**
  * Formats a number into a locale-specific string.
@@ -176,7 +168,7 @@ export function formatCurrency(
 }
 
 /**
- * Formats a ratio (0.0–1.0) as a locale-specific percentage string.
+ * Formats a ratio (0.0-1.0) as a locale-specific percentage string.
  * decimals controls the number of decimal places shown.
  * Falls back to '(value*100)%' if Intl is unavailable.
  */
@@ -217,9 +209,7 @@ export function formatCompactNumber(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Date and time formatting (uses Intl.DateTimeFormat internally)
-// ---------------------------------------------------------------------------
+//Date and time formatting (uses Intl.DateTimeFormat internally)
 
 /**
  * Formats a date value (Date object, ISO string, or Unix timestamp) into a
@@ -315,7 +305,7 @@ export function formatRelativeTime(
       ...options,
     })
 
-    // Pick the most readable unit for the magnitude of the difference
+    //Pick the most readable unit for the magnitude of the difference
     if (Math.abs(diffSec) < 60) return rtf.format(diffSec, 'second')
     if (Math.abs(diffMin) < 60) return rtf.format(diffMin, 'minute')
     if (Math.abs(diffHour) < 24) return rtf.format(diffHour, 'hour')
@@ -362,9 +352,7 @@ export function formatDuration(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Pluralisation (uses Intl.PluralRules internally)
-// ---------------------------------------------------------------------------
+//Pluralisation (uses Intl.PluralRules internally)
 
 /**
  * Returns the CLDR plural category for a number in the given locale.
@@ -379,7 +367,7 @@ export function getPluralCategory(
     const pr = new Intl.PluralRules(locale)
     return pr.select(count)
   } catch {
-    // Fallback to simple English-like rules
+    //Fallback to simple English-like rules
     if (count === 0) return 'zero'
     if (count === 1) return 'one'
     if (count === 2) return 'two'
@@ -390,7 +378,7 @@ export function getPluralCategory(
 /**
  * Selects the correct plural form string for a count in the given locale.
  * forms must always include 'one' and 'other'; other keys are optional.
- * Example: pluralize(3, 'en', { one: 'alert', other: 'alerts' }) → 'alerts'
+ * Example: pluralize(3, 'en', { one: 'alert', other: 'alerts' }) -> 'alerts'
  */
 export function pluralize(
   count: number,
@@ -408,9 +396,7 @@ export function pluralize(
   return forms[category] || forms.other
 }
 
-// ---------------------------------------------------------------------------
-// List formatting (uses Intl.ListFormat internally)
-// ---------------------------------------------------------------------------
+//List formatting (uses Intl.ListFormat internally)
 
 /**
  * Formats an array of strings as a natural-language list in the given locale.
@@ -429,7 +415,7 @@ export function formatList(
   try {
     return new Intl.ListFormat(locale, { type, style }).format(items)
   } catch {
-    // Fallback
+    //Fallback
     if (type === 'disjunction') {
       return items.slice(0, -1).join(', ') + ' or ' + items[items.length - 1]
     }
@@ -437,9 +423,7 @@ export function formatList(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Locale detection and matching helpers
-// ---------------------------------------------------------------------------
+//Locale detection and matching helpers
 
 /**
  * Returns the browser's preferred BCP-47 language tag.
@@ -452,7 +436,7 @@ export function getBrowserLanguage(): string {
 
 /**
  * Finds the best matching supported locale from a list of preferred locales.
- * Tries: 1) exact match, 2) base-language match ('en-US' → 'en'),
+ * Tries: 1) exact match, 2) base-language match ('en-US' -> 'en'),
  *         3) first supported locale with the same base language.
  * Falls back to 'en' if nothing matches.
  */
@@ -461,18 +445,18 @@ export function getBestMatchingLocale(
   supportedLocales: string[] = Object.keys(SUPPORTED_LOCALES)
 ): string {
   for (const preferred of preferredLocales) {
-    // Exact match: 'en-GB' in supportedLocales
+    //Exact match: 'en-GB' in supportedLocales
     if (supportedLocales.includes(preferred)) {
       return preferred
     }
 
-    // Language-only match: strip region tag ('en-GB' → 'en')
+ //Language-only match: strip region tag ('en-GB' -> 'en')
     const lang = preferred.split('-')[0]
     if (supportedLocales.includes(lang)) {
       return lang
     }
 
-    // Prefix match: find any supported locale starting with the same base language
+    //Prefix match: find any supported locale starting with the same base language
     const match = supportedLocales.find(l => l.startsWith(lang))
     if (match) return match
   }
@@ -496,9 +480,7 @@ export function getLocaleNativeName(locale: string): string {
   return metadata?.nativeName || locale
 }
 
-// ---------------------------------------------------------------------------
-// Collation — locale-aware string sorting
-// ---------------------------------------------------------------------------
+//Collation -- locale-aware string sorting
 
 /**
  * Creates an Intl.Collator for locale-aware string comparison.
@@ -527,15 +509,13 @@ export function sortStrings(
   return [...strings].sort((a, b) => collator.compare(a, b))
 }
 
-// ---------------------------------------------------------------------------
-// Display names — resolve human-readable names for codes
-// ---------------------------------------------------------------------------
+//Display names -- resolve human-readable names for codes
 
 /**
  * Returns the human-readable language name for a BCP-47 language code.
  * displayLocale controls which language the name is returned in;
  * defaults to English ('en').
- * Example: getLanguageDisplayName('fr', 'en') → 'French'
+ * Example: getLanguageDisplayName('fr', 'en') -> 'French'
  */
 export function getLanguageDisplayName(
   languageCode: string,
@@ -576,7 +556,7 @@ export function getCurrencyDisplayName(
   }
 }
 
-// Default export
+//Default export
 export default {
   RTL_LANGUAGES,
   SUPPORTED_LOCALES,

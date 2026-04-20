@@ -64,13 +64,13 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [optempoExpanded, setOptempoExpanded] = useState(true)
 
-  //  Live clock
+  // Live clock
   useEffect(() => {
     const interval = setInterval(() => setClockNow(new Date()), 1000)
     return () => clearInterval(interval)
   }, [])
 
-  // Keyboard shortcuts
+  //Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
@@ -88,14 +88,14 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
     return () => document.removeEventListener('keydown', handler)
   }, [onExportCSV])
 
-  //  OPTEMPO metrics
+  // OPTEMPO metrics
   const optempo = useMemo(() => {
     const now = Date.now()
     const last1h = reports.filter(r => now - new Date(r.timestamp).getTime() < 3600000).length
     const last24h = reports.filter(r => now - new Date(r.timestamp).getTime() < 86400000).length
     const reportsPerHour = last24h > 0 ? (last24h / 24).toFixed(1) : '0'
 
-    // Tempo level
+    //Tempo level
     let tempoLevel: 'ROUTINE' | 'ELEVATED' | 'HIGH' | 'SURGE' = 'ROUTINE'
     let tempoColor = 'text-green-400'
     let tempoBg = 'bg-green-500/10 ring-green-500/30'
@@ -110,7 +110,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
     return { last1h, last24h, reportsPerHour, tempoLevel, tempoColor, tempoBg }
   }, [reports, stats.urgent])
 
-  //  SLA performance gauges
+  // SLA performance gauges
   const sla = useMemo(() => {
     const verifyRate = stats.verifyRate || (stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0)
     const resolveRate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0
@@ -119,7 +119,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
     return { verifyRate, resolveRate, urgentResponseRate, aiCoverage }
   }, [stats])
 
-  //  Severity donut data
+  // Severity donut data
   const severityDonut = useMemo(() => {
     const total = stats.high + stats.medium + stats.low
     if (total === 0) return { high: 0, medium: 0, low: 0, highPct: 0, medPct: 0, lowPct: 0 }
@@ -131,7 +131,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
     }
   }, [stats])
 
-  //  Filtered audit log
+  // Filtered audit log
   const filteredLog = useMemo(() => {
     if (activityFilter === 'all') return auditLog.slice(0, 30)
     return auditLog.filter(e => (e.action_type || '').includes(activityFilter)).slice(0, 30)
@@ -143,7 +143,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
     <div className="space-y-4 animate-fade-in">
 
       {/*
-          SECTION 1 — COMMAND HEADER
+          SECTION 1 -- COMMAND HEADER
            */}
       <div className="bg-gradient-to-r from-gray-900 via-gray-900 to-gray-950 rounded-2xl ring-1 ring-gray-800 shadow-lg overflow-hidden">
         <div className="px-5 py-3 flex items-center justify-between flex-wrap gap-3">
@@ -158,7 +158,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
                   Intelligence & Analytics
                   <span className="text-[9px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 ring-1 ring-green-500/30 font-mono">{t('common.live', lang)}</span>
                 </h1>
-                <p className="text-[9px] text-cyan-400/70 font-mono tracking-wider uppercase">{t('analytics.situationAssessment', lang)} • Data Intelligence • Performance Metrics</p>
+                <p className="text-[9px] text-cyan-400/70 font-mono tracking-wider uppercase">{t('analytics.situationAssessment', lang)} - Data Intelligence - Performance Metrics</p>
               </div>
             </div>
 
@@ -236,7 +236,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
       )}
 
       {/*
-          SECTION 2 — SLA PERFORMANCE + SEVERITY DONUT
+          SECTION 2 -- SLA PERFORMANCE + SEVERITY DONUT
            */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* SLA Performance Gauges */}
@@ -278,7 +278,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
                 <p className="text-[10px] font-bold text-gray-700 dark:text-gray-300">{g.label}</p>
                 <p className="text-[9px] text-gray-400 dark:text-gray-300">Target: {g.target}{g.unit}</p>
                 <span className={`text-[9px] font-bold ${g.value >= g.target ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {g.value >= g.target ? '✓ MEETING' : '✗ BELOW'}
+ {g.value >= g.target ? ' MEETING' : 'x BELOW'}
                 </span>
               </div>
             ))}
@@ -340,14 +340,14 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
       </div>
 
       {/*
-          SECTION 3 — MAIN ANALYTICS DASHBOARD (existing component)
+          SECTION 3 -- MAIN ANALYTICS DASHBOARD (existing component)
            */}
       <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm overflow-hidden">
         <AnalyticsDashboard />
       </div>
 
       {/*
-          SECTION 4 — ENHANCED ACTIVITY LOG
+          SECTION 4 -- ENHANCED ACTIVITY LOG
            */}
       <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm overflow-hidden">
         <button
@@ -456,7 +456,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
       </div>
 
       {/*
-          SECTION 5 — DATA QUALITY SCORECARD
+          SECTION 5 -- DATA QUALITY SCORECARD
            */}
       <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm p-5">
         <div className="flex items-center gap-2 mb-4">

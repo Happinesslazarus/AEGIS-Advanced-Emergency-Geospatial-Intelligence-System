@@ -10,7 +10,7 @@
   * - Run via: npm test -- cacheService
  */
 
-// Mock Redis before any imports
+//Mock Redis before any imports
 
 const mockGet = jest.fn<Promise<string | null>, [string]>()
 const mockSet = jest.fn<Promise<string>, [string, string, string, number]>()
@@ -56,7 +56,7 @@ jest.mock('./cacheMetrics.js', () => ({
   cacheNamespaceMissesTotal: { inc: jest.fn() },
 }))
 
-// Set environment BEFORE importing the module under test
+//Set environment BEFORE importing the module under test
 
 const originalEnv = { ...process.env }
 
@@ -71,7 +71,7 @@ afterAll(() => {
   process.env = originalEnv
 })
 
-// Now import the module (after mocks are in place)
+//Now import the module (after mocks are in place)
 
 import {
   buildCacheKey,
@@ -85,7 +85,7 @@ import {
   CACHE_TTL,
 } from '../services/cacheService.js'
 
-// Tests
+//Tests
 
 describe('cacheService', () => {
   beforeEach(() => {
@@ -96,7 +96,7 @@ describe('cacheService', () => {
     mockScan.mockResolvedValue(['0', []])
   })
 
-  // buildCacheKey
+  //buildCacheKey
 
   describe('buildCacheKey', () => {
     it('builds a simple key without params', () => {
@@ -128,7 +128,7 @@ describe('cacheService', () => {
     })
   })
 
-  // CACHE_TTL
+  //CACHE_TTL
 
   describe('CACHE_TTL', () => {
     it('has expected TTL values', () => {
@@ -144,7 +144,7 @@ describe('cacheService', () => {
     })
   })
 
-  // cacheGet / cacheSet
+  //cacheGet / cacheSet
 
   describe('cacheGet and cacheSet', () => {
     it('returns null on cache miss', async () => {
@@ -185,7 +185,7 @@ describe('cacheService', () => {
         'EX',
         300 + 600, // TTL + STALE_GRACE
       )
-      // Verify envelope structure
+      //Verify envelope structure
       const storedJson = mockSet.mock.calls[0][1]
       const stored = JSON.parse(storedJson)
       expect(stored.data).toEqual({ foo: 'bar' })
@@ -195,7 +195,7 @@ describe('cacheService', () => {
     })
   })
 
-  // cacheDel
+  //cacheDel
 
   describe('cacheDel', () => {
     it('deletes a key from Redis', async () => {
@@ -204,7 +204,7 @@ describe('cacheService', () => {
     })
   })
 
-  // cacheInvalidatePattern
+  //cacheInvalidatePattern
 
   describe('cacheInvalidatePattern', () => {
     it('scans and deletes matching keys', async () => {
@@ -231,7 +231,7 @@ describe('cacheService', () => {
     })
   })
 
-  // remember()
+  //remember()
 
   describe('remember()', () => {
     const key = 'aegis:v1:weather:test:remember'
@@ -275,8 +275,8 @@ describe('cacheService', () => {
         expiresAt: now - 300_000,  // expired 5 min ago
         namespace: 'weather',
       }
-      // First call (cacheGet): miss because expired
-      // Second call (cacheGetStale): returns stale data
+      //First call (cacheGet): miss because expired
+      //Second call (cacheGetStale): returns stale data
       mockGet
         .mockResolvedValueOnce(JSON.stringify(staleEnvelope))  // cacheGet sees expired
         .mockResolvedValueOnce(JSON.stringify(staleEnvelope))  // cacheGetStale sees stale-but-within-grace
@@ -312,7 +312,7 @@ describe('cacheService', () => {
     })
   })
 
-  // Diagnostics
+  //Diagnostics
 
   describe('getCacheStats', () => {
     it('returns stats object', async () => {
@@ -326,7 +326,7 @@ describe('cacheService', () => {
     })
   })
 
-  // Admin endpoints (via adminCacheRoutes.ts)
+  //Admin endpoints (via adminCacheRoutes.ts)
 
   describe('isRedisConnected', () => {
     it('returns a boolean', () => {

@@ -11,17 +11,17 @@
  * - Admin dashboard (client/src/pages/AdminPage.tsx) reads from GET /api/reports
  * - Citizens submit from client/src/pages/CitizenDashboard.tsx or ReportPage
  *
- * POST /api/reports              — Submit a new report (citizen or public)
- * GET  /api/reports              — List reports (operator-filtered view)
- * GET  /api/reports/:id          — Fetch a single report
- * PUT  /api/reports/:id          — Update report status/severity (operator)
- * DELETE /api/reports/:id        — Archive a report (operator)
- * POST /api/reports/:id/reanalyse — Trigger AI re-analysis (operator)
+ * POST /api/reports              -- Submit a new report (citizen or public)
+ * GET  /api/reports              -- List reports (operator-filtered view)
+ * GET  /api/reports/:id          -- Fetch a single report
+ * PUT  /api/reports/:id          -- Update report status/severity (operator)
+ * DELETE /api/reports/:id        -- Archive a report (operator)
+ * POST /api/reports/:id/reanalyse -- Trigger AI re-analysis (operator)
  *
- * - server/src/services/aiAnalysisPipeline.ts  — automated severity scoring
- * - server/src/services/imageAnalysisService.ts — vision model for evidence images
- * - server/src/middleware/upload.ts             — file upload & magic byte validation
- * - server/src/services/socket.ts              — real-time notifications to operators
+ * - server/src/services/aiAnalysisPipeline.ts  -- automated severity scoring
+ * - server/src/services/imageAnalysisService.ts -- vision model for evidence images
+ * - server/src/middleware/upload.ts             -- file upload & magic byte validation
+ * - server/src/services/socket.ts              -- real-time notifications to operators
  * */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -58,7 +58,7 @@ function isOperatorRole(role?: string): boolean {
   return ['admin', 'operator', 'manager'].includes(role || '')
 }
 
-// Rate limiter for public report submission — prevents spam flooding
+//Rate limiter for public report submission -- prevents spam flooding
 const reportSubmitLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,  // 15 minutes
   max: 10,                    // max 10 reports per IP per window
@@ -66,12 +66,12 @@ const reportSubmitLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Skip rate limiting for authenticated operators (bulk submissions)
+    //Skip rate limiting for authenticated operators (bulk submissions)
     return !!(req as AuthRequest).user
   },
 })
 
-// Limit bulk operations: max 5 bulk status updates per operator per 10 minutes
+//Limit bulk operations: max 5 bulk status updates per operator per 10 minutes
 const bulkStatusLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 5,
@@ -83,14 +83,14 @@ const bulkStatusLimiter = rateLimit({
 
 const router = Router()
 
-// Region config resolved once at startup (re-read from config, not env snapshot)
-// Call getActiveCityRegion() per-request if multi-region support is ever added.
+//Region config resolved once at startup (re-read from config, not env snapshot)
+//Call getActiveCityRegion() per-request if multi-region support is ever added.
 const activeRegion = getActiveCityRegion()
 const regionLat = activeRegion.centre.lat
 const regionLng = activeRegion.centre.lng
 const intelligenceCore = new IncidentIntelligenceCore(activeRegion)
-// Half-width of the region bounding box in degrees, used as a fast proximity guard.
-// Does not replace PostGIS spatial queries — just skips obviously out-of-range reports early.
+//Half-width of the region bounding box in degrees, used as a fast proximity guard.
+//Does not replace PostGIS spatial queries -- just skips obviously out-of-range reports early.
 const regionRadiusDeg = Math.max(
   0.1,
   Math.max(
@@ -114,8 +114,8 @@ type SignalFetchResult = {
 }
 
 async function fetchRecentSignals(minutes: number): Promise<SignalFetchResult> {
-  // Modern schema includes deleted_at and fine-grained status values.
-  // Legacy deployments (pre-migration) only have the basic reports columns.
+  //Modern schema includes deleted_at and fine-grained status values.
+  //Legacy deployments (pre-migration) only have the basic reports columns.
   const modernQuery = `SELECT id,
                               COALESCE(NULLIF(incident_subtype, ''), incident_category) AS signal_type,
                               severity,
@@ -146,8 +146,8 @@ async function fetchRecentSignals(minutes: number): Promise<SignalFetchResult> {
     const result = await pool.query(modernQuery, [String(minutes)])
     return { rows: result.rows, warnings: [] }
   } catch (err: any) {
-    // Error 42703 = "column does not exist" — fall back to legacy schema gracefully.
-    // This keeps the intelligence endpoints working on older deployments during migration.
+    //Error 42703 = "column does not exist" -- fall back to legacy schema gracefully.
+    //This keeps the intelligence endpoints working on older deployments during migration.
     if (err?.code === '42703' || /deleted_at|false_report|archived|status/i.test(String(err?.message || ''))) {
       const fallback = await pool.query(legacyQuery, [String(minutes)])
       return {
@@ -182,12 +182,12 @@ router.get('/', validate({ query: paginationSchema }), async (req: Request, res:
     const params: any[] = []
     let idx = 1
 
-    // Apply optional filters
+    //Apply optional filters
     if (status) { whereClause += ` AND status = $${idx++}`; params.push(status) }
     if (severity) { whereClause += ` AND severity = $${idx++}`; params.push(severity) }
     if (category) { whereClause += ` AND incident_category = $${idx++}`; params.push(category) }
 
-    // Get total count for pagination metadata
+    //Get total count for pagination metadata
     const countResult = await pool.query(`SELECT COUNT(*) FROM reports${whereClause}`, params)
     const total = parseInt(countResult.rows[0].count)
 
@@ -205,7 +205,7 @@ router.get('/', validate({ query: paginationSchema }), async (req: Request, res:
     const result = await pool.query(query, params)
 
     if (isOp) {
-      // Operators get full data including media
+      //Operators get full data including media
       const reportIds = result.rows.map((r: any) => r.id)
       let mediaMap: Record<string, any[]> = {}
       if (reportIds.length > 0) {
@@ -239,7 +239,7 @@ router.get('/', validate({ query: paginationSchema }), async (req: Request, res:
       }))
       res.json({ data: reports, total, page, limit })
     } else {
-      // Public/citizen access: include media thumbnails but redact operator-only fields
+      //Public/citizen access: include media thumbnails but redact operator-only fields
       const reportIds = result.rows.map((r: any) => r.id)
       let mediaMap: Record<string, any[]> = {}
       if (reportIds.length > 0) {
@@ -278,7 +278,7 @@ router.get('/', validate({ query: paginationSchema }), async (req: Request, res:
   */
 router.get('/stats', authMiddleware, operatorOnly, async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Run multiple count queries in parallel for performance
+    //Run multiple count queries in parallel for performance
     const [byStatus, bySeverity, byCategory, byHour, totals] = await Promise.all([
       pool.query(`SELECT status, COUNT(*)::int as count FROM reports GROUP BY status`),
       pool.query(`SELECT severity, COUNT(*)::int as count FROM reports GROUP BY severity`),
@@ -339,7 +339,7 @@ router.get('/clusters', authMiddleware, operatorOnly, async (req: AuthRequest, r
     })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Clusters error')
-    res.json({ ok: true, data: [], clusters: [], warnings: ['clusters unavailable — check server logs'] })
+    res.json({ ok: true, data: [], clusters: [], warnings: ['clusters unavailable -- check server logs'] })
   }
 })
 
@@ -368,7 +368,7 @@ router.get('/cascading-insights', authMiddleware, operatorOnly, async (req: Auth
     })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Cascading insights error')
-    res.json({ ok: true, data: [], inferred_cascades: [], warnings: ['cascading insights unavailable — check server logs'] })
+    res.json({ ok: true, data: [], inferred_cascades: [], warnings: ['cascading insights unavailable -- check server logs'] })
   }
 })
 
@@ -427,7 +427,7 @@ router.get('/incident-objects', authMiddleware, operatorOnly, async (req: AuthRe
     })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Incident objects error')
-    res.json({ ok: true, data: [], incidents: [], warnings: ['incident objects unavailable — check server logs'] })
+    res.json({ ok: true, data: [], incidents: [], warnings: ['incident objects unavailable -- check server logs'] })
   }
 })
 
@@ -465,7 +465,7 @@ router.get('/incident-objects/:id/explanation', authMiddleware, operatorOnly, as
     })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Incident explanation error')
-    res.json({ ok: true, data: null, warnings: ['incident explanation unavailable — check server logs'] })
+    res.json({ ok: true, data: null, warnings: ['incident explanation unavailable -- check server logs'] })
   }
 })
 
@@ -548,7 +548,7 @@ router.get('/incident-objects/changes', authMiddleware, operatorOnly, async (req
     )
 
     const stateRank: Record<string, number> = {
-      // Lower rank = less confident. Escalation is movement from a lower to a higher rank.
+      //Lower rank = less confident. Escalation is movement from a lower to a higher rank.
       weak: 1,
       possible: 2,
       probable: 3,
@@ -556,8 +556,8 @@ router.get('/incident-objects/changes', authMiddleware, operatorOnly, async (req
       confirmed: 5,
     }
 
-    // Geospatial key: round to 3dp (≈111m resolution) so incidents at the same location
-    // are recognised as the same incident across time windows.
+    //Geospatial key: round to 3dp (≈111m resolution) so incidents at the same location
+    //are recognised as the same incident across time windows.
     const keyFor = (i: any): string => `${i.incident_type}:${i.center.lat.toFixed(3)}:${i.center.lng.toFixed(3)}`
     const currentMap = new Map(currentIncidents.map((i) => [keyFor(i), i]))
     const previousMap = new Map(previousIncidents.map((i) => [keyFor(i), i]))
@@ -618,7 +618,7 @@ router.get('/incident-objects/changes', authMiddleware, operatorOnly, async (req
     })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Incident object changes error')
-    res.json({ ok: true, data: { new_incidents: [], escalated: [], downgraded: [], resolved: [] }, warnings: ['incident object changes unavailable — check server logs'] })
+    res.json({ ok: true, data: { new_incidents: [], escalated: [], downgraded: [], resolved: [] }, warnings: ['incident object changes unavailable -- check server logs'] })
   }
 })
 
@@ -838,7 +838,7 @@ router.get('/analytics', authMiddleware, operatorOnly, async (req: AuthRequest, 
            previous_month
          FROM weekly, monthly`
       ),
-      // AI Accuracy: % of high-confidence reports that were verified (not flagged)
+      //AI Accuracy: % of high-confidence reports that were verified (not flagged)
       pool.query(
         `SELECT
            COUNT(*) FILTER (WHERE ai_confidence >= 70)::int AS high_confidence_total,
@@ -847,7 +847,7 @@ router.get('/analytics', authMiddleware, operatorOnly, async (req: AuthRequest, 
          FROM reports
          ${whereClause}`
       ),
-      // Geographic Coverage: Max distance between report locations in km
+      //Geographic Coverage: Max distance between report locations in km
       pool.query(
         `WITH locations AS (
            SELECT coordinates::geometry AS geom
@@ -920,27 +920,27 @@ router.get('/analytics', authMiddleware, operatorOnly, async (req: AuthRequest, 
       : 0
     const seriesStdDev = Math.sqrt(seriesVariance)
     const spikeThreshold = Math.max(1, Math.round(seriesMean + (seriesStdDev * 1.5)))
-    // A period is a spike when its count is >1.5 standard deviations above the mean —
-    // a common statistical threshold for anomaly detection.
+    //A period is a spike when its count is >1.5 standard deviations above the mean
+    //a common statistical threshold for anomaly detection.
     const incidentSpikes = series.filter(point => point.count >= spikeThreshold).length
 
     const aiScored = Number(totals.ai_scored || 0)
     const verifiedCount = Number(byStatus.Verified || 0)
 
-    // AI Accuracy Rate
+    //AI Accuracy Rate
     const aiAccuracy = aiAccuracyRes.rows[0] || {}
     const highConfTotal = Number(aiAccuracy.high_confidence_total || 0)
     const highConfVerified = Number(aiAccuracy.high_confidence_verified || 0)
     const aiAccuracyRate = highConfTotal > 0 ? Math.round((highConfVerified / highConfTotal) * 100) : 0
 
-    // Geographic Coverage
+    //Geographic Coverage
     const geoCoverage = geoCoverageRes.rows[0] || {}
     const geoCoverageKm = Number(geoCoverage.max_distance_km || 0)
 
-    // Threat Level Index (0-100): weighted composite of severity, urgency, and weekly trend.
-    // severity:   ≤30pts (high=3x, medium=2x weighted count ratio)
-    // urgency:    ≤40pts (urgent-flagged ratio)
-    // trend:      ≤30pts (week-over-week growth, capped at 100% change = 30pts)
+    //Threat Level Index (0-100): weighted composite of severity, urgency, and weekly trend.
+    //severity:   ≤30pts (high=3x, medium=2x weighted count ratio)
+    //urgency:    ≤40pts (urgent-flagged ratio)
+    //trend:      ≤30pts (week-over-week growth, capped at 100% change = 30pts)
     const highSev = Number(bySeverity.High || 0)
     const medSev = Number(bySeverity.Medium || 0)
     const urgentCount = Number(byStatus.Urgent || 0)
@@ -1322,7 +1322,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction): Prom
     }
 
     if (isOp) {
-      // Operators get full data including media
+      //Operators get full data including media
       const mediaResult = await pool.query(
         `SELECT id, file_url, file_type, file_size, original_filename,
                 ai_processed, ai_classification, ai_water_depth, ai_authenticity_score, ai_reasoning
@@ -1345,7 +1345,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction): Prom
       }))
       res.json({ ...formatReport(result.rows[0]), media })
     } else {
-      // Public access: include media but redact operator-only fields
+      //Public access: include media but redact operator-only fields
       const mediaResult = await pool.query(
         `SELECT id, file_url, file_type, file_size, original_filename
          FROM report_media WHERE report_id = $1 ORDER BY created_at`,
@@ -1380,7 +1380,7 @@ router.post('/:id/reanalyse', authMiddleware, operatorOnly, async (req: AuthRequ
     }
     const result = await reanalyseReport(reportId)
     if (!result) {
-      res.status(500).json({ ok: false, error: 'Re-analysis failed — check server logs.' })
+      res.status(500).json({ ok: false, error: 'Re-analysis failed -- check server logs.' })
       return
     }
     res.json({ ok: true, aiAnalysis: result })
@@ -1406,19 +1406,19 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
       customFields: rawCustomFields,
     } = req.body
 
-    // Safely parse customFields — sent as JSON string from FormData
-    // whitelistfilter prevents nested objects/arrays from being stored unintentionally.
+    //Safely parse customFields -- sent as JSON string from FormData
+    //whitelistfilter prevents nested objects/arrays from being stored unintentionally.
     let customFields: Record<string, unknown> = {}
     if (rawCustomFields) {
       try {
         const parsed = typeof rawCustomFields === 'string' ? JSON.parse(rawCustomFields) : rawCustomFields
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-          // Whitelist: only allow boolean, number, string values (no nested objects)
+          //Whitelist: only allow boolean, number, string values (no nested objects)
           customFields = Object.fromEntries(
             Object.entries(parsed).filter(([, v]) => typeof v === 'boolean' || typeof v === 'number' || typeof v === 'string')
           )
         }
-      } catch { /* malformed JSON — ignore, proceed with empty customFields */ }
+      } catch { /* malformed JSON -- ignore, proceed with empty customFields */ }
     }
 
     let locationMetadata: any = null
@@ -1449,7 +1449,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
           }
         }
       } catch {
-        // Ignore malformed metadata and continue.
+        //Ignore malformed metadata and continue.
       }
     }
 
@@ -1460,7 +1460,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
       }
     }
 
-    // Validate required fields
+    //Validate required fields
     if (
       !incidentCategory ||
       !description ||
@@ -1474,7 +1474,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
       throw AppError.badRequest('Missing required fields.')
     }
 
-    // Input length validation (#29)
+    //Input length validation (#29)
     if (typeof description !== 'string' || description.length > 5000) {
       throw AppError.badRequest('Description must be under 5000 characters.')
     }
@@ -1487,7 +1487,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
       throw AppError.badRequest('Invalid coordinates.')
     }
 
-    // Build media URL if evidence was uploaded (support up to 3 files)
+    //Build media URL if evidence was uploaded (support up to 3 files)
     const files = (req as any).files as Express.Multer.File[] | undefined
     const hasFiles = Array.isArray(files) && files.length > 0
     const mediaUrl = hasFiles ? `/uploads/evidence/${files![0].filename}` : null
@@ -1496,17 +1496,17 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
       ? (files.some(f => f.mimetype.startsWith('video/')) ? 'video' : 'photo')
       : null
 
-    //  Deduplication check: run before INSERT so we can flag the report
-    //    and inform the submitter without blocking them.
+    // Deduplication check: run before INSERT so we can flag the report
+    //   and inform the submitter without blocking them.
     const dupCheck = await checkDuplicate(
       description, parsedLat, parsedLng, incidentCategory,
     )
 
-    // Run basic AI confidence scoring
-    // Calls real HuggingFace ML classifiers with heuristic fallback
+    //Run basic AI confidence scoring
+    //Calls real HuggingFace ML classifiers with heuristic fallback
     const aiResult = await computeAIScore(description, severity, trappedPersons, hasMedia, parseFloat(lat), parseFloat(lng))
 
-    // Attach dedup metadata to ai_analysis so it is visible in the admin dashboard
+    //Attach dedup metadata to ai_analysis so it is visible in the admin dashboard
     if (dupCheck) {
       aiResult.analysis = {
         ...aiResult.analysis,
@@ -1517,7 +1517,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
     const dbSeverity = toDbSeverity(severity)
     const reportNumber = await generateReportNumberSafe()
 
-    // Attempt INSERT with custom_fields; fall back without it if column doesn't exist yet
+    //Attempt INSERT with custom_fields; fall back without it if column doesn't exist yet
     let result: any
     try {
       result = await pool.query(
@@ -1542,7 +1542,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
         ]
       )
     } catch (colErr: any) {
-      // Fallback: custom_fields column may not exist on un-migrated DBs
+      //Fallback: custom_fields column may not exist on un-migrated DBs
       if (colErr.message?.includes('custom_fields') || colErr.code === '42703') {
         result = await pool.query(
             `INSERT INTO reports
@@ -1572,7 +1572,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
     const report = result.rows[0]
     reportSubmissionsTotal.inc()
 
-    // Insert all uploaded files into report_media table
+    //Insert all uploaded files into report_media table
     if (hasFiles && files!.length > 0) {
       for (const file of files!) {
         await pool.query(
@@ -1583,7 +1583,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
       }
     }
 
-    // Broadcast the new report via WebSocket so admin dashboard updates in real time
+    //Broadcast the new report via WebSocket so admin dashboard updates in real time
     try {
       const io = req.app.get('io')
       if (io) {
@@ -1628,9 +1628,9 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
       logger.warn({ err: wsErr }, '[Reports] WebSocket broadcast failed')
     }
 
-    // Run the full AI analysis pipeline in the background (non-blocking).
-    // This calls real HuggingFace classifiers for sentiment, fake detection,
-    // severity, category, language, and urgency on the submitted report.
+    //Run the full AI analysis pipeline in the background (non-blocking).
+    //This calls real HuggingFace classifiers for sentiment, fake detection,
+    //severity, category, language, and urgency on the submitted report.
     analyseReport(
       report.id, description, parseFloat(lat), parseFloat(lng),
       locationText, dbSeverity, hasMedia,
@@ -1638,9 +1638,9 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
       logger.error({ err }, '[Reports] AI pipeline error'),
     )
 
-    // Auto-create a draft deployment zone for urgent/high-severity reports (non-blocking)
-    // This ensures all critical multi-hazard incidents get an immediate resource draft,
-    // not just AI flood predictions.
+    //Auto-create a draft deployment zone for urgent/high-severity reports (non-blocking)
+    //This ensures all critical multi-hazard incidents get an immediate resource draft,
+    //not just AI flood predictions.
     if ((dbSeverity === 'high' || trappedPersons === 'yes') && Number.isFinite(parsedLat) && Number.isFinite(parsedLng)) {
       const category: string = incidentCategory || 'other'
       const subtype: string = incidentSubtype || ''
@@ -1648,7 +1648,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
       const isHighestSeverity = dbSeverity === 'high' && trappedPersons === 'yes'
       const draftPriority = isHighestSeverity ? 'Critical' : 'High'
 
-      // Inline per-hazard resource recommendation (mirrors server helper)
+      //Inline per-hazard resource recommendation (mirrors server helper)
       const h = hazardKey.toLowerCase()
       let amb = draftPriority === 'Critical' ? 3 : 2
       let fire = draftPriority === 'Critical' ? 2 : 1
@@ -1659,7 +1659,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
       else if (['chemical', 'gas_leak', 'hazmat', 'pollution', 'environmental'].some(k => h.includes(k))) { amb = draftPriority === 'Critical' ? 4 : 2; fire = draftPriority === 'Critical' ? 2 : 1; boats = 0 }
       else if (['medical', 'mass_casualty'].some(k => h.includes(k))) { amb = draftPriority === 'Critical' ? 8 : 4; fire = 1; boats = 0 }
 
-      const draftZoneName = `${displayType || category.replace(/_/g, ' ')} — ${locationText.slice(0, 60)}`
+      const draftZoneName = `${displayType || category.replace(/_/g, ' ')} -- ${locationText.slice(0, 60)}`
       const draftAiRec = `Auto-drafted from citizen report ${report.report_number}. ${draftPriority} severity ${hazardKey.replace(/_/g, ' ')} reported. Awaiting operator review.`
       pool.query(
         `INSERT INTO resource_deployments
@@ -1733,13 +1733,13 @@ router.put('/bulk/status', authMiddleware, operatorOnly, bulkStatusLimiter, asyn
 
       let updated = 0
       for (const reportId of reportIds) {
-        // Get old status
+        //Get old status
         const beforeResult = await client.query('SELECT status::text AS status FROM reports WHERE id = $1', [reportId])
         if (beforeResult.rows.length === 0) continue
 
         const oldStatus = beforeResult.rows[0].status
 
-        // Build updates based on status
+        //Build updates based on status
         const updates: string[] = ['status = $1']
         const params: any[] = [dbStatus]
         let idx = 2
@@ -1755,14 +1755,14 @@ router.put('/bulk/status', authMiddleware, operatorOnly, bulkStatusLimiter, asyn
         params.push(reportId)
         await client.query(`UPDATE reports SET ${updates.join(', ')} WHERE id = $${idx}`, params)
 
-        // Log history
+        //Log history
         await client.query(
           `INSERT INTO report_status_history (report_id, old_status, new_status, changed_by, reason)
            VALUES ($1, $2, $3, $4, $5)`,
           [reportId, oldStatus, dbStatus, req.user!.id, reason || `Bulk ${status.toLowerCase()}`]
         )
 
-        // Log activity
+        //Log activity
         await client.query(
           `INSERT INTO activity_log (action, action_type, report_id, operator_id, operator_name)
            VALUES ($1, $2, $3, $4, $5)`,
@@ -1780,12 +1780,12 @@ router.put('/bulk/status', authMiddleware, operatorOnly, bulkStatusLimiter, asyn
 
       res.json({ success: true, status, updated })
 
-      // Broadcast updates via WebSocket
+      //Broadcast updates via WebSocket
       try {
         const io = req.app.get('io')
         if (io) {
           io.emit('report:bulk-updated', { reportIds, status, updatedBy: req.user!.displayName, count: updated })
-          devLog(`[Reports] Broadcast bulk update: ${updated} reports → ${status}`)
+ devLog(`[Reports] Broadcast bulk update: ${updated} reports -> ${status}`)
         }
       } catch (wsErr: any) {
         logger.warn({ err: wsErr }, '[Reports] WebSocket broadcast failed')
@@ -1821,7 +1821,7 @@ router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest,
 
     await client.query('BEGIN')
 
-    // SELECT FOR UPDATE locks the row to prevent concurrent modifications
+    //SELECT FOR UPDATE locks the row to prevent concurrent modifications
     const beforeResult = await client.query(
       'SELECT status::text AS status, verified_by FROM reports WHERE id = $1 FOR UPDATE',
       [req.params.id]
@@ -1834,7 +1834,7 @@ router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest,
     const alreadyDecided = ['verified', 'urgent', 'false_report', 'resolved', 'archived'].includes(oldStatus?.toLowerCase())
     const isSuperAdmin = req.user?.role === 'admin' || req.user?.department === 'Command & Control'
 
-    // Status locking: once a decision is made, only super-admins can override with justification
+    //Status locking: once a decision is made, only super-admins can override with justification
     if (alreadyDecided && !isSuperAdmin) {
       await client.query('ROLLBACK')
       throw AppError.forbidden('This report has already been actioned. Only a super-admin can override the status.')
@@ -1844,7 +1844,7 @@ router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest,
       throw AppError.badRequest('A justification is required to override an already-actioned report.')
     }
 
-    // Build the update based on the new status
+    //Build the update based on the new status
     const updates: string[] = ['status = $1']
     const params: any[] = [dbStatus]
     let idx = 2
@@ -1872,7 +1872,7 @@ router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest,
       [req.params.id, oldStatus, dbStatus, req.user!.id, reason || null]
     )
 
-    // Map status to activity log action type
+    //Map status to activity log action type
     const typeMap: Record<string, string> = {
       Verified: 'verify', Urgent: 'urgent', Flagged: 'flag', Resolved: 'resolve',
       Archived: 'archive', False_Report: 'false_report',
@@ -1889,7 +1889,7 @@ router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest,
 
     await client.query('COMMIT')
 
-    // Store oldStatus for WebSocket broadcast (must happen after commit succeeds)
+    //Store oldStatus for WebSocket broadcast (must happen after commit succeeds)
     const broadcastOldStatus = oldStatus
 
     released = true
@@ -1897,12 +1897,12 @@ router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest,
 
     res.json({ success: true, status })
 
-    // Broadcast status update via WebSocket
+    //Broadcast status update via WebSocket
     try {
       const io = req.app.get('io')
       if (io) {
         io.emit('report:updated', { id: req.params.id, status, oldStatus: toUiStatus(broadcastOldStatus), updatedBy: req.user!.displayName })
-        devLog(`[Reports] Broadcast report:updated ${req.params.id} → ${status}`)
+ devLog(`[Reports] Broadcast report:updated ${req.params.id} -> ${status}`)
       }
     } catch (wsErr: any) {
       logger.warn({ err: wsErr }, '[Reports] WebSocket broadcast failed')
@@ -1962,11 +1962,11 @@ router.get('/export/json', authMiddleware, operatorOnly, async (req: AuthRequest
   }
 })
 
-// REPORT DEDUPLICATION  (Feature #9)
+//REPORT DEDUPLICATION  (Feature #9)
 
  /*
- * Jaccard similarity on word-token sets — fast, no external deps.
- * Returns 0–1 where 1 = identical token sets.
+ * Jaccard similarity on word-token sets -- fast, no external deps.
+ * Returns 0-1 where 1 = identical token sets.
   */
 function jaccardSimilarity(a: string, b: string): number {
   const tokenise = (t: string) =>
@@ -2059,8 +2059,8 @@ async function computeAIScore(
   const modelsUsed: string[] = []
   const hfKeyPresent = !!(process.env.HF_API_KEY)
 
-  // When HuggingFace API key is absent, use local Python AI engine instead
-  // so reports get real ML scoring rather than silent 'unknown' fallbacks.
+  //When HuggingFace API key is absent, use local Python AI engine instead
+  //so reports get real ML scoring rather than silent 'unknown' fallbacks.
   if (!hfKeyPresent) {
     try {
       const [fakeRes, severityRes, classifyRes] = await Promise.allSettled([
@@ -2117,7 +2117,7 @@ async function computeAIScore(
   }
 
   try {
-    // Run 3 ML classifiers in parallel for speed
+    //Run 3 ML classifiers in parallel for speed
     const [sentimentResult, fakeResult, severityResult] = await Promise.allSettled([
       classify({ text: description, task: 'sentiment' }),
       classify({ text: description, task: 'fake_detection' }),
@@ -2132,45 +2132,45 @@ async function computeAIScore(
     if (fake) modelsUsed.push('fake-detector')
     if (severityPred) modelsUsed.push('severity-bart-mnli')
 
-    // Composite confidence formula — components add/subtract from base 50:
-    //   fake probability < 0.3 → +20, < 0.5 → +10, else → -10
-    //   severity match with ML prediction → +10 + (ML confidence × 15)
-    //   photo/video evidence attached → +12
-    //   trapped persons reported → +5
-    //   location within active region → +5
-    //   description ≥30 words → +8, ≥15 words → +4
-    //   hard floor 15, hard cap 95 (never guarantee or discard a report)
+    //Composite confidence formula -- components add/subtract from base 50:
+ // fake probability < 0.3 -> +20, < 0.5 -> +10, else -> -10
+ // severity match with ML prediction -> +10 + (ML confidence × 15)
+ // photo/video evidence attached -> +12
+ // trapped persons reported -> +5
+ // location within active region -> +5
+ // description ≥30 words -> +8, ≥15 words -> +4
+    //  hard floor 15, hard cap 95 (never guarantee or discard a report)
     let confidence = 50 // Base
 
-    // Fake probability inversely affects confidence
+    //Fake probability inversely affects confidence
     const fakeProbability = fake?.score ?? 0.3
     if (fakeProbability < 0.3) confidence += 20
     else if (fakeProbability < 0.5) confidence += 10
     else confidence -= 10
 
-    // Severity alignment boosts confidence
+    //Severity alignment boosts confidence
     if (severityPred) {
       const severityMatch = severityPred.label?.toLowerCase() === severity.toLowerCase()
       if (severityMatch) confidence += 10
       confidence += Math.round(severityPred.score * 15)
     }
 
-    // Media evidence
+    //Media evidence
     if (hasMedia) confidence += 12
 
-    // Trapped persons
+    //Trapped persons
     if (trapped === 'yes') confidence += 5
 
     if (isWithinActiveRegion(lat, lng)) confidence += 5
 
-    // Description quality
+    //Description quality
     const wordCount = description.split(/\s+/).length
     if (wordCount > 30) confidence += 8
     else if (wordCount > 15) confidence += 4
 
     confidence = Math.min(Math.max(confidence, 15), 95)
 
-    // Sentiment-derived panic level
+    //Sentiment-derived panic level
     let panicLevel = 0
     if (sentiment) {
       const negLabels = ['negative', 'NEGATIVE', 'LABEL_0']
@@ -2179,7 +2179,7 @@ async function computeAIScore(
       }
     }
 
-    // Extract key entities
+    //Extract key entities
     const entityPatterns = /\b(River \w+|[A-Z][a-z]+ (?:Street|Road|Drive|Bridge|Park|Green|Walk)|\b[A-Z]{2,3}\d+\b)/g
     const keyEntities = [...new Set((description.match(entityPatterns) || []).slice(0, 5))]
 
@@ -2268,7 +2268,7 @@ function formatReportPublic(row: any): any {
     status: toUiStatus(row.status),
     trappedPersons: row.trapped_persons,
     location: row.location_text,
-    // Round coordinates to ~1km precision for public safety without exact location
+    //Round coordinates to ~1km precision for public safety without exact location
     coordinates: [
       Math.round(parseFloat(row.lat) * 100) / 100,
       Math.round(parseFloat(row.lng) * 100) / 100,
@@ -2279,7 +2279,7 @@ function formatReportPublic(row: any): any {
     confidence: row.ai_confidence,
     timestamp: row.created_at,
     updatedAt: row.updated_at,
-    // Explicitly omitted: reporter, aiAnalysis, operatorNotes
+    //Explicitly omitted: reporter, aiAnalysis, operatorNotes
   }
 }
 
@@ -2317,11 +2317,11 @@ function formatReport(row: any): any {
 
 async function generateReportNumberSafe(): Promise<string> {
   try {
-    // Use the proper sequence for clean RPT-XXXX format
+    //Use the proper sequence for clean RPT-XXXX format
     const result = await pool.query(`SELECT 'RPT-' || LPAD(NEXTVAL('report_num_seq')::TEXT, 4, '0') AS report_number`)
     return result.rows[0]?.report_number
   } catch {
-    // True last-resort fallback using a counter-based approach
+    //True last-resort fallback using a counter-based approach
     try {
       const countResult = await pool.query(`SELECT COUNT(*) + 1 AS next FROM reports`)
       const next = parseInt(countResult.rows[0]?.next || '1', 10)

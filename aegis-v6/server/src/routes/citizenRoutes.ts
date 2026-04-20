@@ -7,11 +7,11 @@
  * - Messages are the citizen half of admin messaging (adminMessagingRoutes.ts)
  * - Real-time message notifications via Socket.IO
  *
- * POST /api/citizen/safety          — Submit safety check-in
- * GET  /api/citizen/safety/history  — Check-in history
- * GET  /api/citizen/threads         — List message threads
- * POST /api/citizen/threads         — Start new conversation
- * POST /api/citizen/threads/:id/messages — Send message
+ * POST /api/citizen/safety          -- Submit safety check-in
+ * GET  /api/citizen/safety/history  -- Check-in history
+ * GET  /api/citizen/threads         -- List message threads
+ * POST /api/citizen/threads         -- Start new conversation
+ * POST /api/citizen/threads/:id/messages -- Send message
  * */
 
 import { Router, Response, NextFunction } from 'express'
@@ -22,10 +22,10 @@ import { logger } from '../services/logger.js'
 
 const router = Router()
 
-// All routes require citizen authentication
+//All routes require citizen authentication
 router.use(authMiddleware, citizenOnly)
 
-// Rate limiters for citizen-facing endpoints
+//Rate limiters for citizen-facing endpoints
 const safetyLimiter = rateLimit({
   windowMs: 60 * 1000, max: 10, // 10 check-ins per minute
   message: { error: 'Too many safety check-ins. Please wait before trying again.' },
@@ -42,14 +42,14 @@ const messageLimiter = rateLimit({
   standardHeaders: true, legacyHeaders: false,
 })
 
-// Input limits
+//Input limits
 const MAX_MESSAGE_LENGTH = 5000
 const MAX_SUBJECT_LENGTH = 200
 const MAX_SAFETY_MESSAGE = 1000
 
-// SAFETY CHECK-IN
+//SAFETY CHECK-IN
 
-// POST /safety — Submit a safety check-in (atomic transaction for help escalation)
+//POST /safety -- Submit a safety check-in (atomic transaction for help escalation)
 router.post('/safety', safetyLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   const client = await pool.connect()
   try {
@@ -59,7 +59,7 @@ router.post('/safety', safetyLimiter, async (req: AuthRequest, res: Response, ne
       throw AppError.badRequest('Valid status required: safe, help, or unsure.')
     }
 
-    // Validate message length
+    //Validate message length
     if (message && typeof message === 'string' && message.length > MAX_SAFETY_MESSAGE) {
       throw AppError.badRequest(`Message must be ${MAX_SAFETY_MESSAGE} characters or less.`)
     }
@@ -82,15 +82,15 @@ router.post('/safety', safetyLimiter, async (req: AuthRequest, res: Response, ne
 
     const checkIn = result.rows[0]
 
-    // If status is 'help', auto-escalate — create a message thread for admin visibility
+    //If status is 'help', auto-escalate -- create a message thread for admin visibility
     if (status === 'help') {
-      // Update escalation timestamp
+      //Update escalation timestamp
       await client.query(
         'UPDATE safety_check_ins SET escalated_at = NOW() WHERE id = $1',
         [checkIn.id]
       )
 
-      // Auto-create a message thread so admin can see & respond
+      //Auto-create a message thread so admin can see & respond
       const threadExists = await client.query(
         `SELECT id FROM message_threads
          WHERE citizen_id = $1 AND status IN ('open', 'in_progress')
@@ -105,10 +105,10 @@ router.post('/safety', safetyLimiter, async (req: AuthRequest, res: Response, ne
           `INSERT INTO message_threads (citizen_id, subject, status, priority)
            VALUES ($1, $2, 'open', 'urgent')
            RETURNING id`,
-          [req.user!.id, `HELP REQUEST — ${req.user!.displayName}`]
+          [req.user!.id, `HELP REQUEST -- ${req.user!.displayName}`]
         )
 
-        // Auto-insert the help message
+        //Auto-insert the help message
         const helpMsg = message || 'I need help. Please respond urgently.'
         await client.query(
           `INSERT INTO messages (thread_id, sender_type, sender_id, content)
@@ -122,18 +122,18 @@ router.post('/safety', safetyLimiter, async (req: AuthRequest, res: Response, ne
         )
       }
 
-      // Auto-notify emergency contacts who opted in
+      //Auto-notify emergency contacts who opted in
       try {
         const contacts = await client.query(
           `SELECT name, phone FROM emergency_contacts WHERE citizen_id = $1 AND notify_on_help = true`,
           [req.user!.id]
         )
         if (contacts.rows.length > 0) {
-          // Log notification for audit (actual SMS/email would require external service)
+          //Log notification for audit (actual SMS/email would require external service)
           for (const contact of contacts.rows) {
             logger.info({ contactName: contact.name, contactPhone: contact.phone, citizen: req.user!.displayName }, '[EmergencyNotify] Would notify contact about help status')
           }
-          // Store notification record for dashboard visibility
+          //Store notification record for dashboard visibility
           await client.query(
             `INSERT INTO safety_check_ins (citizen_id, status, message, escalation_status)
              VALUES ($1, 'notification_sent', $2, 'completed')`,
@@ -155,7 +155,7 @@ router.post('/safety', safetyLimiter, async (req: AuthRequest, res: Response, ne
   }
 })
 
-// GET /safety/history — Get safety check-in history
+//GET /safety/history -- Get safety check-in history
 router.get('/safety/history', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 100)
@@ -174,7 +174,7 @@ router.get('/safety/history', async (req: AuthRequest, res: Response, next: Next
   }
 })
 
-// GET /safety/latest — Get latest safety status
+//GET /safety/latest -- Get latest safety status
 router.get('/safety/latest', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
@@ -192,9 +192,9 @@ router.get('/safety/latest', async (req: AuthRequest, res: Response, next: NextF
   }
 })
 
-// MESSAGING
+//MESSAGING
 
-// GET /threads — List citizen’s message threads (paginated)
+//GET /threads -- List citizen's message threads (paginated)
 router.get('/threads', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 50)
@@ -218,7 +218,7 @@ router.get('/threads', async (req: AuthRequest, res: Response, next: NextFunctio
   }
 })
 
-// POST /threads — Create a new message thread
+//POST /threads -- Create a new message thread
 router.post('/threads', threadLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { subject, message } = req.body
@@ -227,7 +227,7 @@ router.post('/threads', threadLimiter, async (req: AuthRequest, res: Response, n
       throw AppError.badRequest('Subject and message are required.')
     }
 
-    // Validate lengths
+    //Validate lengths
     if (subject.length > MAX_SUBJECT_LENGTH) {
       throw AppError.badRequest(`Subject must be ${MAX_SUBJECT_LENGTH} characters or less.`)
     }
@@ -235,7 +235,7 @@ router.post('/threads', threadLimiter, async (req: AuthRequest, res: Response, n
       throw AppError.badRequest(`Message must be ${MAX_MESSAGE_LENGTH} characters or less.`)
     }
 
-    // Limit active threads per citizen
+    //Limit active threads per citizen
     const activeCount = await pool.query(
       `SELECT COUNT(*) as cnt FROM message_threads
        WHERE citizen_id = $1 AND status IN ('open', 'in_progress')`,
@@ -266,7 +266,7 @@ router.post('/threads', threadLimiter, async (req: AuthRequest, res: Response, n
   }
 })
 
-// GET /threads/:id — Get thread with messages
+//GET /threads/:id -- Get thread with messages
 router.get('/threads/:id', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const threadResult = await pool.query(
@@ -281,7 +281,7 @@ router.get('/threads/:id', async (req: AuthRequest, res: Response, next: NextFun
       throw AppError.notFound('Thread not found.')
     }
 
-    // Pagination (#33): ?limit=50&before=<messageId>
+    //Pagination (#33): ?limit=50&before=<messageId>
     const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 200)
     const before = req.query.before as string | undefined
 
@@ -306,7 +306,7 @@ router.get('/threads/:id', async (req: AuthRequest, res: Response, next: NextFun
     const hasMore = messagesResult.rows.length > limit
     const messages = messagesResult.rows.slice(0, limit).reverse() // chronological order
 
-    // Mark operator messages as read by citizen
+    //Mark operator messages as read by citizen
     await pool.query(
       `UPDATE messages SET status = 'read', read_at = NOW()
        WHERE thread_id = $1 AND sender_type = 'operator' AND (read_at IS NULL OR status != 'read')`,
@@ -328,7 +328,7 @@ router.get('/threads/:id', async (req: AuthRequest, res: Response, next: NextFun
   }
 })
 
-// POST /threads/:id/messages — Send message in thread
+//POST /threads/:id/messages -- Send message in thread
 router.post('/threads/:id/messages', messageLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { content } = req.body
@@ -339,7 +339,7 @@ router.post('/threads/:id/messages', messageLimiter, async (req: AuthRequest, re
       throw AppError.badRequest(`Message must be ${MAX_MESSAGE_LENGTH} characters or less.`)
     }
 
-    // Verify thread belongs to citizen
+    //Verify thread belongs to citizen
     const threadCheck = await pool.query(
       `SELECT id, status FROM message_threads WHERE id = $1 AND citizen_id = $2`,
       [req.params.id, req.user!.id]
@@ -360,7 +360,7 @@ router.post('/threads/:id/messages', messageLimiter, async (req: AuthRequest, re
       [req.params.id, req.user!.id, content]
     )
 
-    // Update thread metadata
+    //Update thread metadata
     await pool.query(
       `UPDATE message_threads
        SET last_message_at = NOW(), updated_at = NOW(), operator_unread = operator_unread + 1, status = 'open'
@@ -374,10 +374,10 @@ router.post('/threads/:id/messages', messageLimiter, async (req: AuthRequest, re
   }
 })
 
-// PUT /threads/:id/read — Mark all messages in thread as read
+//PUT /threads/:id/read -- Mark all messages in thread as read
 router.put('/threads/:id/read', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Verify thread belongs to citizen
+    //Verify thread belongs to citizen
     const threadCheck = await pool.query(
       `SELECT id FROM message_threads WHERE id = $1 AND citizen_id = $2`,
       [req.params.id, req.user!.id]
@@ -387,7 +387,7 @@ router.put('/threads/:id/read', async (req: AuthRequest, res: Response, next: Ne
       throw AppError.notFound('Thread not found.')
     }
 
-    // Mark all unread messages as read for this citizen
+    //Mark all unread messages as read for this citizen
     await pool.query(
       `UPDATE messages
        SET status = 'read', read_at = NOW()
@@ -395,7 +395,7 @@ router.put('/threads/:id/read', async (req: AuthRequest, res: Response, next: Ne
       [req.params.id]
     )
 
-    // Reset citizen's unread count
+    //Reset citizen's unread count
     await pool.query(
       `UPDATE message_threads SET citizen_unread = 0 WHERE id = $1`,
       [req.params.id]
@@ -407,9 +407,9 @@ router.put('/threads/:id/read', async (req: AuthRequest, res: Response, next: Ne
   }
 })
 
-// ALERT HISTORY
+//ALERT HISTORY
 
-// GET /alert-history — Get citizen's alert interaction history
+//GET /alert-history -- Get citizen's alert interaction history
 router.get('/alert-history', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
@@ -427,7 +427,7 @@ router.get('/alert-history', async (req: AuthRequest, res: Response, next: NextF
   }
 })
 
-// POST /alert-history — Record that citizen saw/played an alert
+//POST /alert-history -- Record that citizen saw/played an alert
 router.post('/alert-history', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { alertId, audioPlayed } = req.body
@@ -449,12 +449,12 @@ router.post('/alert-history', async (req: AuthRequest, res: Response, next: Next
   }
 })
 
-// PERSONALIZED DASHBOARD
+//PERSONALIZED DASHBOARD
 
-// GET /dashboard-stats — Get personalized dashboard data
+//GET /dashboard-stats -- Get personalized dashboard data
 router.get('/dashboard-stats', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Run all dashboard queries in parallel for performance
+    //Run all dashboard queries in parallel for performance
     const [citizenResult, alertsResult, criticalResult, reportsResult, safetyResult, unreadResult, recentAlerts, helpResult] = await Promise.all([
       pool.query('SELECT preferred_region, location_lat, location_lng FROM citizens WHERE id = $1', [req.user!.id]),
       pool.query(`SELECT COUNT(*) as count FROM alerts WHERE is_active = true AND deleted_at IS NULL`),
@@ -483,13 +483,13 @@ router.get('/dashboard-stats', async (req: AuthRequest, res: Response, next: Nex
   }
 })
 
-// GDPR Data Export — GET /api/citizen/data-export
+//GDPR Data Export -- GET /api/citizen/data-export
 
 router.get('/data-export', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id
 
-    // Gather all user data from every table in parallel
+    //Gather all user data from every table in parallel
     const catchLog = (table: string) => (err: any) => { logger.error({ err, userId, table }, '[DataExport] Query failed'); return { rows: [] as any[] } }
     const [profile, reports, threads, threadMessages, safetyHistory, emergContacts, prefs, alertHistory] = await Promise.all([
       pool.query(`SELECT id, email, display_name, phone, preferred_region, is_vulnerable, country, city, bio, created_at FROM citizens WHERE id = $1`, [userId]),
@@ -505,7 +505,7 @@ router.get('/data-export', async (req: AuthRequest, res: Response, next: NextFun
     const exportData = {
       exportDate: new Date().toISOString(),
       platform: 'AEGIS Emergency Management v6.9.0',
-      subject: 'GDPR Data Export (Article 20 — Right to Data Portability)',
+      subject: 'GDPR Data Export (Article 20 -- Right to Data Portability)',
       profile: profile.rows[0] || null,
       reports: reports.rows,
       messageThreads: threads.rows,
@@ -523,7 +523,7 @@ router.get('/data-export', async (req: AuthRequest, res: Response, next: NextFun
   }
 })
 
-// GDPR Data Erasure — DELETE /api/citizen/data-erasure
+//GDPR Data Erasure -- DELETE /api/citizen/data-erasure
 
 router.delete('/data-erasure', async (req: AuthRequest, res: Response, next: NextFunction) => {
   const client = await pool.connect()
@@ -532,7 +532,7 @@ router.delete('/data-erasure', async (req: AuthRequest, res: Response, next: Nex
 
     await client.query('BEGIN')
 
-    // Log the erasure request FIRST for GDPR audit trail (kept separately)
+    //Log the erasure request FIRST for GDPR audit trail (kept separately)
     await client.query(
       `INSERT INTO account_deletion_log (citizen_id, citizen_email, citizen_name, action, details)
        SELECT $1, email, display_name, 'data_erasure_executed', '{"method": "immediate"}'
@@ -540,7 +540,7 @@ router.delete('/data-erasure', async (req: AuthRequest, res: Response, next: Nex
       [userId]
     ).catch(() => {}) // best-effort audit
 
-    // Delete user data across all tables (order matters for FK constraints)
+    //Delete user data across all tables (order matters for FK constraints)
     await client.query(`DELETE FROM citizen_alert_history WHERE citizen_id = $1`, [userId])
     await client.query(`DELETE FROM messages WHERE thread_id IN (SELECT id FROM message_threads WHERE citizen_id = $1)`, [userId])
     await client.query(`DELETE FROM message_threads WHERE citizen_id = $1`, [userId])
@@ -548,7 +548,7 @@ router.delete('/data-erasure', async (req: AuthRequest, res: Response, next: Nex
     await client.query(`DELETE FROM emergency_contacts WHERE citizen_id = $1`, [userId])
     await client.query(`DELETE FROM citizen_preferences WHERE citizen_id = $1`, [userId])
 
-    // Hide authored community posts while preserving moderation history.
+    //Hide authored community posts while preserving moderation history.
     await client.query(
       `UPDATE community_posts SET deleted_at = NOW() WHERE author_id = $1`,
       [userId]
@@ -561,7 +561,7 @@ router.delete('/data-erasure', async (req: AuthRequest, res: Response, next: Nex
       [userId]
     ).catch(() => {})
 
-    // Anonymise reports (keep for public safety but remove PII)
+    //Anonymise reports (keep for public safety but remove PII)
     await client.query(
       `UPDATE reports SET
          citizen_id = NULL,
@@ -571,7 +571,7 @@ router.delete('/data-erasure', async (req: AuthRequest, res: Response, next: Nex
       [userId]
     ).catch(() => {})
 
-    // Delete the citizen account
+    //Delete the citizen account
     await client.query(`DELETE FROM citizens WHERE id = $1`, [userId])
 
     await client.query('COMMIT')
@@ -588,14 +588,14 @@ router.delete('/data-erasure', async (req: AuthRequest, res: Response, next: Nex
   }
 })
 
-// ACCOUNT DELETION — 30-day grace period (like Instagram/Facebook)
+//ACCOUNT DELETION -- 30-day grace period (like Instagram/Facebook)
 
-// POST /request-deletion — Request account deletion with 30-day grace period
+//POST /request-deletion -- Request account deletion with 30-day grace period
 router.post('/request-deletion', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
 
-    // Check if already requested
+    //Check if already requested
     const existing = await pool.query(
       'SELECT deletion_requested_at, deletion_scheduled_at FROM citizens WHERE id = $1',
       [userId]
@@ -613,7 +613,7 @@ router.post('/request-deletion', async (req: AuthRequest, res: Response, next: N
       return
     }
 
-    // Set deletion schedule
+    //Set deletion schedule
     const result = await pool.query(
       `UPDATE citizens
        SET deletion_requested_at = NOW(),
@@ -625,7 +625,7 @@ router.post('/request-deletion', async (req: AuthRequest, res: Response, next: N
 
     const citizen = result.rows[0]
 
-    // Log the deletion request
+    //Log the deletion request
     await pool.query(
       `INSERT INTO account_deletion_log (citizen_id, citizen_email, citizen_name, action, details)
        VALUES ($1, $2, $3, 'deletion_requested', $4)`,
@@ -646,7 +646,7 @@ router.post('/request-deletion', async (req: AuthRequest, res: Response, next: N
   }
 })
 
-// POST /cancel-deletion — Cancel pending account deletion
+//POST /cancel-deletion -- Cancel pending account deletion
 router.post('/cancel-deletion', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
@@ -667,7 +667,7 @@ router.post('/cancel-deletion', async (req: AuthRequest, res: Response, next: Ne
 
     const citizen = result.rows[0]
 
-    // Log the cancellation
+    //Log the cancellation
     await pool.query(
       `INSERT INTO account_deletion_log (citizen_id, citizen_email, citizen_name, action)
        VALUES ($1, $2, $3, 'deletion_cancelled')`,
@@ -685,7 +685,7 @@ router.post('/cancel-deletion', async (req: AuthRequest, res: Response, next: Ne
   }
 })
 
-// GET /deletion-status — Check deletion status
+//GET /deletion-status -- Check deletion status
 router.get('/deletion-status', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
@@ -706,12 +706,12 @@ router.get('/deletion-status', async (req: AuthRequest, res: Response, next: Nex
   }
 })
 
-// FAMILY / GROUP SAFETY (#37)
+//FAMILY / GROUP SAFETY (#37)
 
 import crypto from 'crypto'
 import { AppError } from '../utils/AppError.js'
 
-// POST /safety-groups — Create a new safety group
+//POST /safety-groups -- Create a new safety group
 router.post('/safety-groups', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
@@ -725,7 +725,7 @@ router.post('/safety-groups', async (req: AuthRequest, res: Response, next: Next
        VALUES ($1, $2, $3, $4) RETURNING *`,
       [name.trim(), userId, inviteCode, (description || '').slice(0, 500)]
     )
-    // Creator is automatically an admin member
+    //Creator is automatically an admin member
     await pool.query(
       `INSERT INTO safety_group_members (group_id, citizen_id, role) VALUES ($1, $2, 'admin')`,
       [result.rows[0].id, userId]
@@ -736,7 +736,7 @@ router.post('/safety-groups', async (req: AuthRequest, res: Response, next: Next
   }
 })
 
-// GET /safety-groups — List groups the citizen belongs to
+//GET /safety-groups -- List groups the citizen belongs to
 router.get('/safety-groups', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
@@ -754,12 +754,12 @@ router.get('/safety-groups', async (req: AuthRequest, res: Response, next: NextF
   }
 })
 
-// GET /safety-groups/:id/members — Get group members with latest safety status
+//GET /safety-groups/:id/members -- Get group members with latest safety status
 router.get('/safety-groups/:id/members', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
     const groupId = req.params.id
-    // Verify membership
+    //Verify membership
     const membership = await pool.query(
       'SELECT 1 FROM safety_group_members WHERE group_id = $1 AND citizen_id = $2',
       [groupId, userId]
@@ -783,7 +783,7 @@ router.get('/safety-groups/:id/members', async (req: AuthRequest, res: Response,
   }
 })
 
-// POST /safety-groups/join — Join a group via invite code
+//POST /safety-groups/join -- Join a group via invite code
 router.post('/safety-groups/join', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
@@ -798,7 +798,7 @@ router.post('/safety-groups/join', async (req: AuthRequest, res: Response, next:
     if (group.rows.length === 0) {
       throw AppError.notFound('Invalid invite code.')
     }
-    // Check if already a member
+    //Check if already a member
     const existing = await pool.query(
       'SELECT 1 FROM safety_group_members WHERE group_id = $1 AND citizen_id = $2',
       [group.rows[0].id, userId]
@@ -817,7 +817,7 @@ router.post('/safety-groups/join', async (req: AuthRequest, res: Response, next:
   }
 })
 
-// DELETE /safety-groups/:id/leave — Leave a safety group
+//DELETE /safety-groups/:id/leave -- Leave a safety group
 router.delete('/safety-groups/:id/leave', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
@@ -826,7 +826,7 @@ router.delete('/safety-groups/:id/leave', async (req: AuthRequest, res: Response
       'DELETE FROM safety_group_members WHERE group_id = $1 AND citizen_id = $2',
       [groupId, userId]
     )
-    // If no members left, delete the group
+    //If no members left, delete the group
     const remaining = await pool.query(
       'SELECT COUNT(*) FROM safety_group_members WHERE group_id = $1',
       [groupId]

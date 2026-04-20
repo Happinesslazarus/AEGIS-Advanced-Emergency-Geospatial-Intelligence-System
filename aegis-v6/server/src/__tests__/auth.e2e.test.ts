@@ -1,8 +1,8 @@
 ﻿/**
  * What it tests:
  * End-to-end tests for the full authentication flow.
-  * Covers registration → email verification → login → token refresh
-  * → logout using real HTTP requests against the running server.
+ * Covers registration -> email verification -> login -> token refresh
+ * -> logout using real HTTP requests against the running server.
   *
   * How it connects:
   * - Tests server/src/routes/authRoutes.ts end-to-end
@@ -16,7 +16,7 @@ import express from 'express'
 import cookieParser from 'cookie-parser'
 import jwt from 'jsonwebtoken'
 
-// Set test environment before any imports
+//Set test environment before any imports
 process.env.JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-at-least-32-chars'
 process.env.INTERNAL_API_KEY = 'test-internal-api-key-long-enough'
@@ -34,7 +34,7 @@ import {
   AuthRequest,
 } from '../middleware/auth'
 
-// Test fixtures
+//Test fixtures
 
 const ADMIN_USER = {
   id: 'a0000000-0000-0000-0000-000000000001',
@@ -64,32 +64,32 @@ const CITIZEN_USER = {
   displayName: 'E2E Citizen',
 }
 
-// Test Express app
+//Test Express app
 
 function createApp() {
   const app = express()
   app.use(express.json())
   app.use(cookieParser())
 
-  // Public
+  //Public
   app.get('/public', (_req, res) => res.json({ ok: true }))
 
-  // Protected (any authenticated user)
+  //Protected (any authenticated user)
   app.get('/protected', authMiddleware, (req: AuthRequest, res) => {
     res.json({ user: req.user })
   })
 
-  // Admin only
+  //Admin only
   app.get('/admin-only', authMiddleware, requireRole('admin'), (req: AuthRequest, res) => {
     res.json({ role: req.user!.role })
   })
 
-  // Operator + admin
+  //Operator + admin
   app.get('/operator-plus', authMiddleware, requireRole('admin', 'operator'), (req: AuthRequest, res) => {
     res.json({ role: req.user!.role })
   })
 
-  // Simulate login endpoint
+  //Simulate login endpoint
   app.post('/login', (req, res) => {
     const { email } = req.body
     const user = [ADMIN_USER, OPERATOR_USER, VIEWER_USER, CITIZEN_USER].find(u => u.email === email)
@@ -109,7 +109,7 @@ function createApp() {
     res.json({ token: accessToken, user })
   })
 
-  // Simulate refresh endpoint
+  //Simulate refresh endpoint
   app.post('/refresh', (req, res) => {
     const refreshToken = req.cookies?.aegis_refresh
     if (!refreshToken) { res.status(401).json({ error: 'No refresh token' }); return }
@@ -136,7 +136,7 @@ function createApp() {
     }
   })
 
-  // Simulate logout
+  //Simulate logout
   app.post('/logout', (req, res) => {
     res.clearCookie('aegis_refresh', { path: '/' })
     res.json({ ok: true })
@@ -145,7 +145,7 @@ function createApp() {
   return app
 }
 
-// Tests
+//Tests
 
 describe('E2E Auth Flow', () => {
   const app = createApp()
@@ -160,7 +160,7 @@ describe('E2E Auth Flow', () => {
       expect(res.body.token).toBeDefined()
       expect(res.body.user.email).toBe(ADMIN_USER.email)
 
-      // Verify httpOnly cookie is set
+      //Verify httpOnly cookie is set
       const cookies = res.headers['set-cookie']
       expect(cookies).toBeDefined()
       const refreshCookie = Array.isArray(cookies)
@@ -232,7 +232,7 @@ describe('E2E Auth Flow', () => {
         { expiresIn: '0s' },
       )
 
-      // Small delay to ensure token is expired
+      //Small delay to ensure token is expired
       await new Promise(r => setTimeout(r, 100))
 
       const res = await request(app)
@@ -261,7 +261,7 @@ describe('E2E Auth Flow', () => {
       expect(res.status).toBe(200)
       expect(res.body.token).toBeDefined()
 
-      // New token should be valid
+      //New token should be valid
       const decoded = verifyToken(res.body.token) as any
       expect(decoded.email).toBe(OPERATOR_USER.email)
     })
@@ -274,23 +274,23 @@ describe('E2E Auth Flow', () => {
 
   describe('5. Token Rotation', () => {
     it('new refresh token is issued on each refresh call', async () => {
-      // Login
+      //Login
       const loginRes = await request(app)
         .post('/login')
         .send({ email: ADMIN_USER.email })
       const cookies1 = loginRes.headers['set-cookie'] as unknown as string[]
 
-      // First refresh
+      //First refresh
       const refresh1 = await request(app)
         .post('/refresh')
         .set('Cookie', cookies1)
       expect(refresh1.status).toBe(200)
       const cookies2 = refresh1.headers['set-cookie'] as unknown as string[]
 
-      // Cookies should be different (rotated)
+      //Cookies should be different (rotated)
       expect(cookies2).toBeDefined()
 
-      // Second refresh with NEW cookies should work
+      //Second refresh with NEW cookies should work
       const refresh2 = await request(app)
         .post('/refresh')
         .set('Cookie', cookies2)
@@ -370,27 +370,27 @@ describe('E2E Auth Flow', () => {
 
   describe('7. Logout ? Cookie Cleared', () => {
     it('clears refresh cookie on logout', async () => {
-      // Login
+      //Login
       const loginRes = await request(app)
         .post('/login')
         .send({ email: ADMIN_USER.email })
       const cookies = loginRes.headers['set-cookie'] as unknown as string[]
 
-      // Logout
+      //Logout
       const logoutRes = await request(app)
         .post('/logout')
         .set('Cookie', cookies)
 
       expect(logoutRes.status).toBe(200)
 
-      // Verify cookie is cleared
+      //Verify cookie is cleared
       const setCookies = logoutRes.headers['set-cookie']
       if (setCookies) {
         const cleared = Array.isArray(setCookies)
           ? setCookies.find((c: string) => c.startsWith('aegis_refresh='))
           : setCookies
         if (cleared) {
-          // Cookie should be expired or empty
+          //Cookie should be expired or empty
           expect(cleared).toMatch(/expires=.*1970|Max-Age=0|aegis_refresh=;/i)
         }
       }
@@ -403,7 +403,7 @@ describe('E2E Auth Flow', () => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any
       expect(decoded.email).toBe(ADMIN_USER.email)
       expect(decoded.role).toBe('admin')
-      // Token should expire in ~15 minutes
+      //Token should expire in ~15 minutes
       const ttl = decoded.exp - decoded.iat
       expect(ttl).toBe(15 * 60)
     })
@@ -412,7 +412,7 @@ describe('E2E Auth Flow', () => {
       const token = generateRefreshToken({ id: ADMIN_USER.id, role: 'admin' })
       const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET!) as any
       expect(decoded.type).toBe('refresh')
-      // Operator refresh: 30 days
+      //Operator refresh: 30 days
       const ttl = decoded.exp - decoded.iat
       expect(ttl).toBe(30 * 24 * 60 * 60)
     })

@@ -4,11 +4,11 @@ on the 42-image AEGIS internal benchmark and (optionally) the full
 CrisisMMD validation set.
 
 Metrics reported:
-  Top-1 accuracy         — % of images correctly classified
-  Top-3 accuracy         — % of images where correct class is in top 3
-  Per-class F1           — precision/recall balance per hazard category
-  Confusion matrix       — PDF heatmap for dissertation appendix
-  CLIP embedding quality — intra-class cosine similarity (cluster tightness)
+  Top-1 accuracy         -- % of images correctly classified
+  Top-3 accuracy         -- % of images where correct class is in top 3
+  Per-class F1           -- precision/recall balance per hazard category
+  Confusion matrix       -- PDF heatmap for dissertation appendix
+  CLIP embedding quality -- intra-class cosine similarity (cluster tightness)
 
 Baselines compared:
   zero-shot             OpenAI ViT-B-32, no fine-tuning, standard text prompts
@@ -16,13 +16,13 @@ Baselines compared:
   fine-tuned            AEGIS fine-tuned ViT-B-32 (clip_crisis_vit_b32.pt)
 
 Output files:
-  reports/clip_benchmark_v2.csv      — per-model, per-class metrics
-  reports/clip_confusion_matrix.pdf  — confusion matrix chart
+  reports/clip_benchmark_v2.csv      -- per-model, per-class metrics
+  reports/clip_confusion_matrix.pdf  -- confusion matrix chart
 
-  Reads from  ← model_registry/clip/clip_crisis_vit_b32.pt
-              ← data/crisis/crisismmd/  (full val set if --full-eval)
-              ← data/crisis/aegis_benchmark.csv  (42-image internal benchmark)
-  Writes to   → reports/
+  Reads from  <- model_registry/clip/clip_crisis_vit_b32.pt
+              <- data/crisis/crisismmd/  (full val set if --full-eval)
+              <- data/crisis/aegis_benchmark.csv  (42-image internal benchmark)
+  Writes to   -> reports/
 
 Usage:
   python scripts/evaluation/clip_benchmark_v2.py
@@ -103,7 +103,7 @@ CRISIS_PROMPTS = {
 
 
 def load_model(ckpt_path: Path | None) -> tuple:
-    """Load CLIP model + tokenizer + preprocess.  ckpt_path=None → zero-shot."""
+    """Load CLIP model + tokenizer + preprocess.  ckpt_path=None -> zero-shot."""
     model, _, preprocess = open_clip.create_model_and_transforms(
         "ViT-B-32", pretrained="openai"
     )
@@ -163,7 +163,7 @@ def classify_images(
 
 
 def load_benchmark(csv_path: Path) -> tuple[list[str], list[str]]:
-    """Load 42-image AEGIS benchmark → (image_paths, label_strings)."""
+    """Load 42-image AEGIS benchmark -> (image_paths, label_strings)."""
     if not csv_path.exists():
         return [], []
     df = pd.read_csv(str(csv_path))
@@ -202,7 +202,7 @@ def plot_confusion(
     plt.tight_layout()
     plt.savefig(str(out_path), dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"  Confusion matrix → {out_path}")
+    print(f"  Confusion matrix -> {out_path}")
 
 
 def evaluate_model(
@@ -244,7 +244,7 @@ def evaluate_model(
 def main(args: argparse.Namespace) -> None:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # ── Load benchmark images ──────────────────────────────────────────────
+    # Load benchmark images
     benchmark_csv = DATA_ROOT / "aegis_benchmark.csv"
     images, labels = load_benchmark(benchmark_csv)
 
@@ -257,12 +257,12 @@ def main(args: argparse.Namespace) -> None:
         print(f"Internal benchmark: {len(images)} images")
 
     if not images:
-        print("⚠ No images found.  Create data/crisis/aegis_benchmark.csv or "
+        print("! No images found.  Create data/crisis/aegis_benchmark.csv or "
               "run download_crisis_datasets.py first.")
         sys.exit(0)
 
-    # ── Load models ────────────────────────────────────────────────────────
-    print("\nLoading models …")
+    # Load models
+    print("\nLoading models ...")
     # 1. Zero-shot with standard OpenAI prompts
     m_zs, tok, pre = load_model(None)
     # 2. Zero-shot with crisis-specific prompts (same model, different text)
@@ -270,15 +270,15 @@ def main(args: argparse.Namespace) -> None:
     ckpt = REGISTRY / "clip_crisis_vit_b32.pt"
     m_ft, tok_ft, pre_ft = load_model(ckpt if ckpt.exists() else None)
 
-    # ── Run evaluations ────────────────────────────────────────────────────
-    print("\nEvaluating …")
+    # Run evaluations
+    print("\nEvaluating ...")
     results = []
     r1 = evaluate_model("zero-shot",        m_zs, tok,    pre,    CRISIS_LABELS,  images, labels)
     r2 = evaluate_model("zero-shot-crisis", m_zs, tok,    pre,    CRISIS_PROMPTS, images, labels)
     r3 = evaluate_model("fine-tuned",       m_ft, tok_ft, pre_ft, CRISIS_LABELS,  images, labels)
     results = [r1, r2, r3]
 
-    # ── Write summary CSV ──────────────────────────────────────────────────
+    # Write summary CSV
     rows = []
     for r in results:
         row = {"model": r["model"], "top1": r["top1"], "n": r["n"]}
@@ -289,23 +289,23 @@ def main(args: argparse.Namespace) -> None:
         rows.append(row)
     summary = pd.DataFrame(rows)
     summary.to_csv(str(REPORT_DIR / "clip_benchmark_v2.csv"), index=False)
-    print(f"\n  CSV → {REPORT_DIR / 'clip_benchmark_v2.csv'}")
+    print(f"\n  CSV -> {REPORT_DIR / 'clip_benchmark_v2.csv'}")
     print(summary.to_string(index=False))
 
-    # ── Confusion matrix for fine-tuned model ─────────────────────────────
+    # Confusion matrix for fine-tuned model
     if r3.get("preds"):
         plot_confusion(
             r3["labels"], r3["preds"],
             list(CRISIS_LABELS.keys()),
             REPORT_DIR / "clip_confusion_matrix.pdf",
-            "AEGIS Fine-tuned CLIP — Confusion Matrix",
+            "AEGIS Fine-tuned CLIP -- Confusion Matrix",
         )
 
-    # ── Improvement summary ────────────────────────────────────────────────
+    # Improvement summary
     if r1["top1"] > 0 and r3["top1"] > 0:
         delta = (r3["top1"] - r1["top1"]) * 100
-        print(f"\n  𝚫 Zero-shot → Fine-tuned: {delta:+.1f}pp "
-              f"({'✓ target 75%+ met' if r3['top1'] >= 0.75 else '⚠ below 75% target'})")
+        print(f"\n  𝚫 Zero-shot -> Fine-tuned: {delta:+.1f}pp "
+              f"({' target 75%+ met' if r3['top1'] >= 0.75 else '! below 75% target'})")
 
 
 def parse_args() -> argparse.Namespace:

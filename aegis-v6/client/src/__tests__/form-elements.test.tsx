@@ -1,11 +1,11 @@
 /**
  * Tests for the shared form UI components used throughout the AEGIS client:
- *   - FormField         — label + children wrapper with error / hint / required support
- *   - Input             — styled text input with icon slots and size variants
- *   - Textarea          — multi-line text input with optional auto-resize
- *   - Select            — dropdown powered by a static options array
- *   - Checkbox          — labelled checkbox with description and error state
- *   - CharacterCounter  — live "N/Max" character count display for text inputs
+ *   - FormField         -- label + children wrapper with error / hint / required support
+ *   - Input             -- styled text input with icon slots and size variants
+ *   - Textarea          -- multi-line text input with optional auto-resize
+ *   - Select            -- dropdown powered by a static options array
+ *   - Checkbox          -- labelled checkbox with description and error state
+ *   - CharacterCounter  -- live "N/Max" character count display for text inputs
  *
  * Also includes an integration test verifying FormField + Input work together correctly.
  *
@@ -41,7 +41,7 @@
  *                             hasError, fullWidth
  *   leftIcon / rightIcon    = icon elements rendered inside the Input; add padding to the input
  *                             text so it doesn't overlap the icon (pl-10 / pr-10)
- *   Textarea                = styled <textarea>; autoResize prop switches resize-y → resize-none
+ * Textarea = styled <textarea>; autoResize prop switches resize-y -> resize-none
  *   Select                  = styled <select>; receives options:[{value,label,disabled?}]
  *   combobox role           = ARIA role for a <select> element
  *   placeholder option      = an initial disabled <option> that shows default "Select..." text
@@ -70,7 +70,7 @@ import {
   CharacterCounter,
 } from '../components/ui/FormElements'
 
-// react-i18next — return raw keys so assertions are language-independent
+//react-i18next -- return raw keys so assertions are language-independent
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
@@ -78,9 +78,7 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-// ---------------------------------------------------------------------------
-// FormField — label/error/hint wrapper
-// ---------------------------------------------------------------------------
+//FormField -- label/error/hint wrapper
 describe('FormField', () => {
   test('renders label and children', () => {
     render(
@@ -88,7 +86,7 @@ describe('FormField', () => {
         <input type="email" />
       </FormField>
     )
-    // The label text and the child input must both be in the DOM
+    //The label text and the child input must both be in the DOM
     expect(screen.getByText('Email')).toBeInTheDocument()
     expect(screen.getByRole('textbox')).toBeInTheDocument()
   })
@@ -99,7 +97,7 @@ describe('FormField', () => {
         <input type="text" />
       </FormField>
     )
-    // Visible "*" for sighted users and screen-reader "(required)" for assistive tech
+    //Visible "*" for sighted users and screen-reader "(required)" for assistive tech
     expect(screen.getByText('*')).toBeInTheDocument()
     expect(screen.getByText('(required)')).toBeInTheDocument()
   })
@@ -110,7 +108,7 @@ describe('FormField', () => {
         <input type="password" />
       </FormField>
     )
-    // Error text must be visible below the field
+    //Error text must be visible below the field
     expect(screen.getByText('Password is required')).toBeInTheDocument()
   })
 
@@ -120,7 +118,7 @@ describe('FormField', () => {
         <textarea />
       </FormField>
     )
-    // Hint text is the helper/placeholder description shown when the field is valid
+    //Hint text is the helper/placeholder description shown when the field is valid
     expect(screen.getByText('Tell us about yourself')).toBeInTheDocument()
   })
 
@@ -130,7 +128,7 @@ describe('FormField', () => {
         <textarea />
       </FormField>
     )
-    // Error takes visual priority over hint; both must not appear simultaneously
+    //Error takes visual priority over hint; both must not appear simultaneously
     expect(screen.queryByText('Tell us about yourself')).not.toBeInTheDocument()
     expect(screen.getByText('Required')).toBeInTheDocument()
   })
@@ -141,7 +139,7 @@ describe('FormField', () => {
         <input type="text" />
       </FormField>
     )
-    // FormField passes the disabled prop down to its child element
+    //FormField passes the disabled prop down to its child element
     expect(screen.getByRole('textbox')).toBeDisabled()
   })
 
@@ -151,7 +149,7 @@ describe('FormField', () => {
         <input type="email" />
       </FormField>
     )
-    // aria-invalid='true' tells screen readers the field has a validation error
+    //aria-invalid='true' tells screen readers the field has a validation error
     expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true')
   })
 
@@ -161,14 +159,12 @@ describe('FormField', () => {
         <input />
       </FormField>
     )
-    // className is applied to the outer wrapper, not the child input
+    //className is applied to the outer wrapper, not the child input
     expect(container.firstChild).toHaveClass('custom-class')
   })
 })
 
-// ---------------------------------------------------------------------------
-// Input — styled text input with icon slots and size variants
-// ---------------------------------------------------------------------------
+//Input -- styled text input with icon slots and size variants
 describe('Input', () => {
   test('renders basic input', () => {
     render(<Input placeholder="Enter text" />)
@@ -188,7 +184,7 @@ describe('Input', () => {
 
   test('shows error state', () => {
     render(<Input hasError data-testid="input" />)
-    // Red border communicates an invalid field state to sighted users
+    //Red border communicates an invalid field state to sighted users
     expect(screen.getByTestId('input')).toHaveClass('border-red-500')
   })
 
@@ -200,19 +196,19 @@ describe('Input', () => {
       />
     )
     expect(screen.getByTestId('left-icon')).toBeInTheDocument()
-    // pl-10 = left padding 2.5rem so text starts after the icon, not behind it
+    //pl-10 = left padding 2.5rem so text starts after the icon, not behind it
     expect(screen.getByPlaceholderText('Search')).toHaveClass('pl-10')
   })
 
   test('renders with right icon', () => {
     render(
       <Input
-        rightIcon={<span data-testid="right-icon">✓</span>}
+        rightIcon={<span data-testid="right-icon"></span>}
         placeholder="Enter"
       />
     )
     expect(screen.getByTestId('right-icon')).toBeInTheDocument()
-    // pr-10 = right padding 2.5rem so text doesn't overlap the right icon
+    //pr-10 = right padding 2.5rem so text doesn't overlap the right icon
     expect(screen.getByPlaceholderText('Enter')).toHaveClass('pr-10')
   })
 
@@ -223,7 +219,7 @@ describe('Input', () => {
 
   test('passes through aria-invalid', () => {
     render(<Input aria-invalid="true" data-testid="input" />)
-    // The attribute must be forwarded to the underlying <input> element
+    //The attribute must be forwarded to the underlying <input> element
     expect(screen.getByTestId('input')).toHaveAttribute('aria-invalid', 'true')
   })
 
@@ -234,7 +230,7 @@ describe('Input', () => {
     render(<Input onChange={onChange} placeholder="Type here" />)
 
     await user.type(screen.getByPlaceholderText('Type here'), 'hello')
-    // user.type fires one change event per character → onChange called at least once
+ //user.type fires one change event per character -> onChange called at least once
     expect(onChange).toHaveBeenCalled()
   })
 
@@ -247,9 +243,7 @@ describe('Input', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Textarea — multi-line text input
-// ---------------------------------------------------------------------------
+//Textarea -- multi-line text input
 describe('Textarea', () => {
   test('renders basic textarea', () => {
     render(<Textarea placeholder="Enter description" />)
@@ -258,19 +252,19 @@ describe('Textarea', () => {
 
   test('has default resize-y class', () => {
     render(<Textarea data-testid="textarea" />)
-    // resize-y = user can drag the bottom edge to change height (default behaviour)
+    //resize-y = user can drag the bottom edge to change height (default behaviour)
     expect(screen.getByTestId('textarea')).toHaveClass('resize-y')
   })
 
   test('applies resize-none when autoResize is true', () => {
     render(<Textarea autoResize data-testid="textarea" />)
-    // autoResize means JavaScript manages the height; the manual resize handle is removed
+    //autoResize means JavaScript manages the height; the manual resize handle is removed
     expect(screen.getByTestId('textarea')).toHaveClass('resize-none')
   })
 
   test('shows error state', () => {
     render(<Textarea hasError data-testid="textarea" />)
-    // Red border matches the same error styling as Input
+    //Red border matches the same error styling as Input
     expect(screen.getByTestId('textarea')).toHaveClass('border-red-500')
   })
 
@@ -281,14 +275,12 @@ describe('Textarea', () => {
 
   test('sets rows attribute', () => {
     render(<Textarea rows={5} data-testid="textarea" />)
-    // rows=5 sets the visible height (5 text lines) for the initial render
+    //rows=5 sets the visible height (5 text lines) for the initial render
     expect(screen.getByTestId('textarea')).toHaveAttribute('rows', '5')
   })
 })
 
-// ---------------------------------------------------------------------------
-// Select — dropdown from a static options list
-// ---------------------------------------------------------------------------
+//Select -- dropdown from a static options list
 describe('Select', () => {
   const options = [
     { value: 'opt1', label: 'Option 1' },
@@ -307,7 +299,7 @@ describe('Select', () => {
 
   test('shows placeholder option', () => {
     render(<Select options={options} placeholder="Select..." />)
-    // Placeholder is an initial disabled option that prompts the user to choose
+    //Placeholder is an initial disabled option that prompts the user to choose
     expect(screen.getByText('Select...')).toBeInTheDocument()
   })
 
@@ -353,9 +345,7 @@ describe('Select', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Checkbox — labelled toggle with description and error state
-// ---------------------------------------------------------------------------
+//Checkbox -- labelled toggle with description and error state
 describe('Checkbox', () => {
   test('renders checkbox with label', () => {
     render(<Checkbox label="Accept terms" />)
@@ -370,13 +360,13 @@ describe('Checkbox', () => {
 
   test('shows description', () => {
     render(<Checkbox label="Newsletter" description="Receive weekly updates" />)
-    // description appears below the label — extra context for the user's decision
+    //description appears below the label -- extra context for the user's decision
     expect(screen.getByText('Receive weekly updates')).toBeInTheDocument()
   })
 
   test('handles checked state', () => {
     render(<Checkbox label="Option" defaultChecked />)
-    // defaultChecked = pre-ticked checkbox (uncontrolled); checked = controlled
+    //defaultChecked = pre-ticked checkbox (uncontrolled); checked = controlled
     expect(screen.getByRole('checkbox')).toBeChecked()
   })
 
@@ -387,7 +377,7 @@ describe('Checkbox', () => {
 
   test('shows error state', () => {
     render(<Checkbox label="Required" hasError />)
-    // Red border on the checkbox communicates a validation error
+    //Red border on the checkbox communicates a validation error
     expect(screen.getByRole('checkbox')).toHaveClass('border-red-500')
   })
 
@@ -403,9 +393,7 @@ describe('Checkbox', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// CharacterCounter — live "N/Max" counter with colour-coded warning levels
-// ---------------------------------------------------------------------------
+//CharacterCounter -- live "N/Max" counter with colour-coded warning levels
 describe('CharacterCounter', () => {
   test('displays current and max count', () => {
     render(<CharacterCounter current={50} max={200} />)
@@ -413,28 +401,28 @@ describe('CharacterCounter', () => {
   })
 
   test('shows warning color when approaching limit (80%+)', () => {
-    // 180/200 = 90% — within the warning threshold
+    //180/200 = 90% -- within the warning threshold
     render(<CharacterCounter current={180} max={200} />)
     const span = screen.getByText('180/200')
     expect(span).toHaveClass('text-amber-600') // amber = "you're getting close"
   })
 
   test('shows error color when at limit (100%)', () => {
-    // 200/200 = 100% — at the limit; user cannot type more characters
+    //200/200 = 100% -- at the limit; user cannot type more characters
     render(<CharacterCounter current={200} max={200} />)
     const span = screen.getByText('200/200')
     expect(span).toHaveClass('text-red-600') // red = "you've hit the limit"
   })
 
   test('shows error color when over limit', () => {
-    // 250/200 = 125% — over limit; submission should be blocked
+    //250/200 = 125% -- over limit; submission should be blocked
     render(<CharacterCounter current={250} max={200} />)
     const span = screen.getByText('250/200')
     expect(span).toHaveClass('text-red-600')
   })
 
   test('normal gray color when well under limit', () => {
-    // 10/200 = 5% — well within limit; neutral colour, no warning
+    //10/200 = 5% -- well within limit; neutral colour, no warning
     render(<CharacterCounter current={10} max={200} />)
     const span = screen.getByText('10/200')
     expect(span).toHaveClass('text-gray-500') // gray = neutral / no concern
@@ -448,16 +436,14 @@ describe('CharacterCounter', () => {
   })
 
   test('has aria-live polite for accessibility', () => {
-    // aria-live='polite' makes screen readers re-announce the count on each change
-    // without interrupting current speech
+    //aria-live='polite' makes screen readers re-announce the count on each change
+    //without interrupting current speech
     const { container } = render(<CharacterCounter current={50} max={200} />)
     expect(container.firstChild).toHaveAttribute('aria-live', 'polite')
   })
 })
 
-// ---------------------------------------------------------------------------
-// Integration: FormField + Input working together
-// ---------------------------------------------------------------------------
+//Integration: FormField + Input working together
 describe('FormField + Input integration', () => {
   test('full form field with input works correctly', async () => {
     const user = userEvent.setup()
@@ -478,7 +464,7 @@ describe('FormField + Input integration', () => {
     )
 
     const input = screen.getByPlaceholderText('Enter username')
-    // FormField with required=true must propagate aria-required to the Input
+    //FormField with required=true must propagate aria-required to the Input
     expect(input).toHaveAttribute('aria-required', 'true')
 
     await user.type(input, 'testuser')            // type a value
@@ -495,11 +481,11 @@ describe('FormField + Input integration', () => {
     )
 
     const input = screen.getByRole('textbox')
-    // FormField detects error and sets aria-invalid on the child Input
+    //FormField detects error and sets aria-invalid on the child Input
     expect(input).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByText('Invalid email format')).toBeInTheDocument()
   })
 })
 
-// FormField Tests
+//FormField Tests
 

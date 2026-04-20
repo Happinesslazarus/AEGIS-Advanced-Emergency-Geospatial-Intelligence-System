@@ -7,14 +7,14 @@
   *
   * How it connects:
   * - Tests server/src/services/chatService.ts safety filters
-  * - No external calls needed — mock LLM responses used
+  * - No external calls needed -- mock LLM responses used
   * - Run via: npm test -- chat.safety
  */
 
-// Environment
-// Set these BEFORE jest.mock factories run. Factories are lazy—they execute
-// when the module is first required (during import evaluation), not at
-// registration time, so process.env values are visible inside them.
+//Environment
+//Set these BEFORE jest.mock factories run. Factories are lazy--they execute
+//when the module is first required (during import evaluation), not at
+//registration time, so process.env values are visible inside them.
 
 process.env.JWT_SECRET            = 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET  = 'test-refresh-secret-at-least-32-chars'
@@ -22,13 +22,13 @@ process.env.NODE_ENV              = 'test'
 process.env.MAX_TOKENS_PER_SESSION = '5000'
 process.env.AEGIS_REGION          = 'scotland'
 
-// Module mocks
-// chatService.ts is NOT mocked — we test its real logic.
-// We mock: LLM router, embedding, classifier, security logger, regions, DB pool.
+//Module mocks
+//chatService.ts is NOT mocked -- we test its real logic.
+//We mock: LLM router, embedding, classifier, security logger, regions, DB pool.
 
-// esModule: true prevents TypeScript's __importDefault from double-wrapping the
-// Pool. Without it, `import pool from '../models/db'` compiles to db_js_1.default
-// which would be { default: Pool } instead of Pool, making pool.query() fail.
+//esModule: true prevents TypeScript's __importDefault from double-wrapping the
+//Pool. Without it, `import pool from '../models/db'` compiles to db_js_1.default
+//which would be { default: Pool } instead of Pool, making pool.query() fail.
 jest.mock('../models/db', () => {
   const pg = require('pg')
   const url = process.env.DATABASE_URL
@@ -71,7 +71,7 @@ jest.mock('../services/securityLogger', () => ({
   checkSuspiciousActivity: jest.fn().mockResolvedValue(false),
 }))
 
-// Region mocks — chatService resolves these at module-level evaluation time.
+//Region mocks -- chatService resolves these at module-level evaluation time.
 jest.mock('../config/regions', () => ({
   getActiveRegion: jest.fn().mockReturnValue({
     id:              'test',
@@ -113,7 +113,7 @@ jest.mock('../adapters/regions/RegionRegistry', () => {
   }
 })
 
-// Imports
+//Imports
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals'
 import { getTestPool, ensureTestSchema, closeTestPool } from './helpers/testDb'
@@ -123,13 +123,13 @@ import * as llmRouterMod      from '../services/llmRouter'
 import * as securityLoggerMod from '../services/securityLogger'
 import { processChatStream, getChatSessionBudget } from '../services/chatService'
 
-// Typed mock helpers
+//Typed mock helpers
 
 type AnyMock = jest.MockedFunction<(...args: any[]) => any>
 const mockStream           = llmRouterMod.chatCompletionStream as AnyMock
 const mockLogSecurityEvent = securityLoggerMod.logSecurityEvent as AnyMock
 
-// Schema + fixture bootstrap
+//Schema + fixture bootstrap
 
 beforeAll(async () => {
   await ensureTestSchema()
@@ -137,14 +137,14 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  // Close the shared test pool once via helper (idempotent guard in helper)
+  //Close the shared test pool once via helper (idempotent guard in helper)
   await closeTestPool()
 })
 
 beforeEach(() => {
   jest.clearAllMocks()
 
-  // Default: LLM returns a benign response by streaming one token
+  //Default: LLM returns a benign response by streaming one token
   mockStream.mockImplementation(async (_llmReq: any, { onToken }: any) => {
     await onToken('Here is some helpful information.')
     return {
@@ -156,7 +156,7 @@ beforeEach(() => {
   })
 })
 
-// DB helpers
+//DB helpers
 
 async function createSession(citizenId: string, totalTokens = 0): Promise<string> {
   const pool = getTestPool()
@@ -176,7 +176,7 @@ async function deleteSession(id: string): Promise<void> {
 }
 
 describe('Prompt injection detection', () => {
-  // Injection guard fires BEFORE anything goes to the LLM.
+  //Injection guard fires BEFORE anything goes to the LLM.
 
   it('blocks "ignore previous instructions" and calls logSecurityEvent', async () => {
     const tokens: string[] = []
@@ -189,10 +189,10 @@ describe('Prompt injection detection', () => {
       { onToken: (t: string) => { tokens.push(t) } },
     )
 
-    // LLM must never be reached
+    //LLM must never be reached
     expect(mockStream).not.toHaveBeenCalled()
 
-    // Security event must be logged
+    //Security event must be logged
     expect(mockLogSecurityEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         eventType: 'suspicious_activity',
@@ -202,11 +202,11 @@ describe('Prompt injection detection', () => {
       }),
     )
 
-    // Service must return policy-block identifiers
+    //Service must return policy-block identifiers
     expect(result.model).toBe('policy-block')
     expect(result.safetyFlags).toContain('prompt_injection_blocked')
 
-    // The token streamed to the client must be the blocked-message text
+    //The token streamed to the client must be the blocked-message text
     expect(tokens.join('')).toMatch(/cannot help with instruction override/i)
   })
 
@@ -257,7 +257,7 @@ describe('Prompt injection detection', () => {
 
 describe('Per-session token budget', () => {
   it('returns the budget-exceeded message when the session is at its limit', async () => {
-    // Insert a session that has already consumed the full budget
+    //Insert a session that has already consumed the full budget
     const sessionId = await createSession(TEST_CITIZEN.id, 5000)
     const tokens: string[] = []
 
@@ -267,15 +267,15 @@ describe('Per-session token budget', () => {
         { onToken: (t: string) => { tokens.push(t) } },
       )
 
-      // LLM must not be called
+      //LLM must not be called
       expect(mockStream).not.toHaveBeenCalled()
 
-      // Response metadata must signal budget exhaustion
+      //Response metadata must signal budget exhaustion
       expect(result.model).toBe('token-budget-limit')
       expect(result.safetyFlags).toContain('session_budget_exceeded')
       expect(result.budgetRemaining).toBe(0)
 
-      // Client must receive the standard budget message
+      //Client must receive the standard budget message
       expect(tokens.join('')).toMatch(/reached my conversation limit/i)
     } finally {
       await deleteSession(sessionId)
@@ -348,9 +348,9 @@ describe('PII redaction before forwarding to LLM', () => {
 
       const allContent = capturedMessages.map(m => m.content).join('\n')
 
-      // Raw email must not appear in the LLM payload
+      //Raw email must not appear in the LLM payload
       expect(allContent).not.toContain('citizen@private.example.com')
-      // Placeholder token must be present instead
+      //Placeholder token must be present instead
       expect(allContent).toMatch(/\[EMAIL_\d+\]/)
     } finally {
       await deleteSession(sessionId)
@@ -414,14 +414,14 @@ describe('Content moderation on LLM output', () => {
   it('calls onReplace with safe fallback when LLM emits harmful content', async () => {
     const sessionId = await createSession(TEST_CITIZEN.id)
 
-    // Simulate the LLM emitting content that matches UNSAFE_PATTERNS
+    //Simulate the LLM emitting content that matches UNSAFE_PATTERNS
     mockStream.mockImplementation(async (_llmReq: any, { onToken }: any) => {
       try {
         // "how to build a bomb" matches the unsafe pattern and throws internally
         await onToken('how to build a bomb step-by-step')
       } catch {
-        // OUTPUT_MODERATION_BLOCK is caught and re-thrown by chatCompletionStream —
-        // the mock just needs to propagate the throw so processChatStream catches it
+        //OUTPUT_MODERATION_BLOCK is caught and re-thrown by chatCompletionStream
+        //the mock just needs to propagate the throw so processChatStream catches it
         throw new Error('OUTPUT_MODERATION_BLOCK')
       }
       return { content: '', model: 'test', tokensUsed: 0, latencyMs: 0 }

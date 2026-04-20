@@ -27,7 +27,7 @@ import { useLanguage } from '../../hooks/useLanguage'
 
 const Map3DView = lazy(() => import('../shared/Map3DView'))
 
-// TYPES & CONSTANTS
+//TYPES & CONSTANTS
 interface LiveOperationsMapProps {
   filtered: Report[]
   reports: Report[]
@@ -66,7 +66,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
     activeLocation, setActiveLocation, availableLocations,
   } = props
 
-  //  State
+  // State
   const [showFloodPredictions, setShowFloodPredictions] = useState(true)
   const [showEvacuationRoutes, setShowEvacuationRoutes] = useState(false)
   const [mapMode, setMapMode] = useState<'2d' | '3d'>('2d')
@@ -85,7 +85,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
   const [uplinkPulse] = useState(0) // kept for ref; animation now pure CSS
   const mapContainerRef = useRef<HTMLDivElement>(null)
 
-  // Exit fullscreen when selecting a report so the detail modal is visible
+  //Exit fullscreen when selecting a report so the detail modal is visible
   const handleReportClick = useCallback((r: Report) => {
     if (document.fullscreenElement) {
       document.exitFullscreen?.().then(() => { setIsFullscreen(false); setSelReport(r) }).catch(() => setSelReport(r))
@@ -94,15 +94,15 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
     }
   }, [setSelReport])
 
-  //  Live clock
+  // Live clock
   useEffect(() => {
     const timer = setInterval(() => setClockNow(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
 
-  // Uplink pulse animation now handled by CSS @keyframes — no state updates needed
+  //Uplink pulse animation now handled by CSS @keyframes -- no state updates needed
 
-  // Close Quick Actions on outside click
+  //Close Quick Actions on outside click
   useEffect(() => {
     if (!showQuickActions) return
     const handler = (e: MouseEvent) => {
@@ -114,7 +114,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
     return () => document.removeEventListener('mousedown', handler)
   }, [showQuickActions])
 
-  // Track recently added reports (last 5 minutes) for the real-time feed badge
+  //Track recently added reports (last 5 minutes) for the real-time feed badge
   const prevReportsRef = useRef<Set<string | number>>(new Set())
   useEffect(() => {
     const currentIds = new Set(reports.map(r => r.id))
@@ -126,14 +126,14 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
     prevReportsRef.current = currentIds
   }, [reports])
 
-  // Auto-dismiss recent report toasts after 8s
+  //Auto-dismiss recent report toasts after 8s
   useEffect(() => {
     if (recentReports.length === 0) return
     const t = setTimeout(() => setRecentReports(prev => prev.slice(0, -1)), 8000)
     return () => clearTimeout(t)
   }, [recentReports])
 
-  //  Mouse tracking (capture from map container — throttled via rAF)
+  // Mouse tracking (capture from map container -- throttled via rAF)
   const mouseCoordsRef = useRef<{ lat: number; lng: number } | null>(null)
   const rafRef = useRef<number>(0)
   useEffect(() => {
@@ -182,7 +182,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
     return () => document.removeEventListener('fullscreenchange', handler)
   }, [])
 
-  // Keyboard shortcuts
+  //Keyboard shortcuts
   const [showKeyboard, setShowKeyboard] = useState(false)
   useEffect(() => {
     const kbHandler = (e: KeyboardEvent) => {
@@ -206,7 +206,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
     return () => document.removeEventListener('keydown', kbHandler)
   }, [toggleFullscreen])
 
-  //  Computed stats for HUD
+  // Computed stats for HUD
   const markerStats = useMemo(() => ({
     total: filtered.length,
     urgent: filtered.filter(r => r.status === 'Urgent').length,
@@ -219,7 +219,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
     unverified: filtered.filter(r => r.status === 'Unverified').length,
   }), [filtered])
 
-  // Threat level computation (DEFCON-style based on report severity distribution)
+  //Threat level computation (DEFCON-style based on report severity distribution)
   const threatLevel = useMemo(() => {
     const h = markerStats.high
     const u = markerStats.urgent
@@ -239,7 +239,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
     NOMINAL: t('liveOps.threatNominal', lang),
   }
 
-  // Data freshness computation
+  //Data freshness computation
   const dataFreshness = useMemo(() => {
     const ageMs = clockNow.getTime() - lastRefresh.getTime()
     const ageSec = Math.floor(ageMs / 1000)
@@ -248,7 +248,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
     return { label: `${Math.floor(ageSec / 60)}m`, fresh: false }
   }, [clockNow, lastRefresh])
 
-  // Screenshot handler — html2canvas capture
+  //Screenshot handler -- html2canvas capture
   const handleScreenshot = useCallback(async () => {
     if (!mapContainerRef.current) return
     try {
@@ -263,7 +263,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
     }
   }, [])
 
-  // Export data handler
+  //Export data handler
   const handleExportData = useCallback(() => {
     const data = {
       exported: new Date().toISOString(),
@@ -283,7 +283,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
     setTimeout(() => URL.revokeObjectURL(link.href), 1000)
   }, [filtered, activeLocation, availableLocations])
 
-  // ZULU time format
+  //ZULU time format
   const zuluTime = clockNow.toISOString().replace('T', ' ').substring(0, 19) + 'Z'
   const localTime = clockNow.toLocaleTimeString('en-GB', { hour12: false })
   const incidentTypeFilters = useMemo(
@@ -298,7 +298,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
     >
 
       {/*
-          HEADER TOOLBAR — Tactical Command Bar
+          HEADER TOOLBAR -- Tactical Command Bar
            */}
       <div className={`px-3 py-2 border-b border-gray-800/80 bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950 flex items-center justify-between flex-wrap gap-2 relative z-[1200]`}>
 
@@ -315,7 +315,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
             </div>
           </div>
 
-          {/* Threat Level Indicator — DEFCON-style */}
+          {/* Threat Level Indicator -- DEFCON-style */}
           {showThreatBanner && (
             <div className={`hidden sm:flex items-center gap-1.5 ${threatLevel.bg} rounded-lg px-2.5 py-1 ring-1 ${threatLevel.ring} shadow-lg ${threatLevel.glow} transition-all duration-500`}>
               <threatLevel.icon className={`w-3.5 h-3.5 ${threatLevel.color} ${threatLevel.level === 'CRITICAL' ? 'animate-pulse' : ''}`} />
@@ -407,7 +407,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
             </button>
           </div>
 
-          {/* Region Selector — Advanced LocationDropdown */}
+          {/* Region Selector -- Advanced LocationDropdown */}
           <LocationDropdown compact />
 
           {/* 2D / 3D Toggle */}
@@ -473,7 +473,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
       </div>
 
       {/*
-          // MAP AREA
+          //MAP AREA
            */}
       <div className={`relative ${isFullscreen ? 'h-[calc(100vh-92px)]' : 'h-[calc(100vh-13rem)]'}`}>
 
@@ -609,7 +609,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
       </div>
 
       {/*
-          BOTTOM STATUS BAR — SCADA / Tactical Data Strip (Enhanced)
+          BOTTOM STATUS BAR -- SCADA / Tactical Data Strip (Enhanced)
            */}
       {showStatusBar && (
         <div className="px-3 py-1.5 bg-gray-950 border-t border-gray-800/80 flex items-center justify-between text-[9px] font-mono">

@@ -8,16 +8,11 @@ compares them against production baselines, and produces a summary report
 - Results written to ai-engine/reports/
 """
 
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
 # Comprehensive model evaluation with:
-# - Classification metrics (accuracy, precision, recall, F1, AUC)
-# - Regression metrics (MAE, RMSE, MAPE, RÂ²)
-# - Probabilistic metrics (calibration, Brier score)
-# - Explainability (SHAP, LIME, feature importance)
-# -------------------------------------------------------------------------------
+# Classification metrics (accuracy, precision, recall, F1, AUC)
+# Regression metrics (MAE, RMSE, MAPE, RÂ²)
+# Probabilistic metrics (calibration, Brier score)
+# Explainability (SHAP, LIME, feature importance)
 
 import numpy as np
 import pandas as pd

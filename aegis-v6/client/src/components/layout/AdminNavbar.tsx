@@ -43,7 +43,7 @@ interface AdminNavbarProps {
   activeView?: string
 }
 
-/* Isolated live clock — ticks every second without re-rendering the whole navbar */
+/* Isolated live clock -- ticks every second without re-rendering the whole navbar */
 function LiveClock() {
   const [now, setNow] = useState(new Date())
   useEffect(() => {
@@ -76,7 +76,7 @@ export default function AdminNavbar({
   const notifRef = useRef<HTMLDivElement>(null)
   const mobileSearchRef = useRef<HTMLInputElement>(null)
 
-  // Close dropdowns on outside click
+  //Close dropdowns on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (portalRef.current && !portalRef.current.contains(e.target as Node)) setPortalOpen(false)
@@ -86,7 +86,7 @@ export default function AdminNavbar({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Ctrl+K / Cmd+K keyboard shortcut to focus search
+  //Ctrl+K / Cmd+K keyboard shortcut to focus search
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -108,19 +108,19 @@ export default function AdminNavbar({
     return () => document.removeEventListener('keydown', handler)
   }, [searchRef])
 
-  // Auto-focus mobile search when opened
+  //Auto-focus mobile search when opened
   useEffect(() => {
     if (mobileSearchOpen && mobileSearchRef.current) {
       mobileSearchRef.current.focus()
     }
   }, [mobileSearchOpen])
 
-  // Recent alerts for notification bell
+  //Recent alerts for notification bell
   const recentAlerts = alerts.slice(0, 5)
   const activeAlertCount = alerts.filter(a => a.active).length
   const totalBellCount = activeAlertCount + communityUnread + messagingUnread
 
-  // Bell shake when urgentCount increases
+  //Bell shake when urgentCount increases
   const [bellShaking, setBellShaking] = useState(false)
   const prevUrgentRef = useRef(urgentCount)
   useEffect(() => {
@@ -131,7 +131,7 @@ export default function AdminNavbar({
     prevUrgentRef.current = urgentCount
   }, [urgentCount])
 
-  // Active view label for breadcrumb
+  //Active view label for breadcrumb
   const activeViewLabel = navItems.find(item => item.id === activeView)?.label || ''
 
   return (
@@ -180,7 +180,7 @@ export default function AdminNavbar({
           {/* Live clock */}
           <LiveClock />
 
-          {/* Breadcrumb — show current view on larger screens */}
+          {/* Breadcrumb -- show current view on larger screens */}
           {activeViewLabel && (
             <div className="hidden 2xl:flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-400">
               <ChevronDown className="w-3 h-3 -rotate-90" aria-hidden="true" />
@@ -229,7 +229,7 @@ export default function AdminNavbar({
             </button>
           )}
 
-          {/* Send Alert — always visible, icon-only on small screens */}
+          {/* Send Alert -- always visible, icon-only on small screens */}
           <button
             onClick={() => onViewChange('alert_send')}
             className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 text-white min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 justify-center sm:justify-start px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-red-600/30 hover:shadow-red-500/40 active:scale-95"
@@ -359,7 +359,7 @@ export default function AdminNavbar({
             <ChevronDown className="w-3 h-3 text-gray-400 dark:text-gray-300 group-hover:text-aegis-500 transition-all" />
           </button>
 
-          {/* Portal Switch — second to last */}
+          {/* Portal Switch -- second to last */}
           <div ref={portalRef} className="relative hidden md:block">
             <button
               onClick={() => setPortalOpen(!portalOpen)}

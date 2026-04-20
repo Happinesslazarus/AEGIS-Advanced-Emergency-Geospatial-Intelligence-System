@@ -1,5 +1,5 @@
 ﻿/**
- * HuggingFace text classifier — routes classification requests (sentiment,
+ * HuggingFace text classifier -- routes classification requests (sentiment,
  * severity, fake-detection, language, urgency) to HF Inference API models.
  * Implements a circuit-breaker pattern: 3 consecutive failures disable a
  * model for 60 seconds.
@@ -14,7 +14,7 @@ import type { ClassifierRequest, ClassifierResponse } from '../types/index.js'
 import { fetchWithTimeout } from '../utils/fetchWithTimeout.js'
 import { logger } from './logger.js'
 
-// Task ? HuggingFace model mapping
+//Task ? HuggingFace model mapping
 
 const TASK_MODELS: Record<string, string> = {
   sentiment: process.env.HF_SENTIMENT_MODEL || 'cardiffnlp/twitter-roberta-base-sentiment-latest',
@@ -28,7 +28,7 @@ const TASK_MODELS: Record<string, string> = {
 const HF_API_KEY = process.env.HF_API_KEY || ''
 const HF_BASE_URL = 'https://router.huggingface.co/hf-inference'
 
-// Model Health Tracking (Circuit Breaker Pattern)
+//Model Health Tracking (Circuit Breaker Pattern)
 
 interface ModelHealth {
   totalCalls: number
@@ -96,7 +96,7 @@ export function getClassifierHealth(): Record<string, { successRate: number; cir
   return health
 }
 
-// Retry with Exponential Backoff
+//Retry with Exponential Backoff
 
 async function fetchWithRetry(
   url: string,
@@ -128,7 +128,7 @@ async function fetchWithRetry(
   throw lastError || new Error('Max retries exceeded')
 }
 
-// Rate-limit tracking
+//Rate-limit tracking
 let requestCount = 0
 let windowStart = Date.now()
 const MAX_REQUESTS_PER_MINUTE = 30
@@ -165,7 +165,7 @@ async function classifySentiment(text: string): Promise<ClassifierResponse> {
     if (!res.ok) throw new Error(`HF Sentiment ${res.status}: ${await res.text()}`)
     const data = await res.json() as any[]
 
-    // Response format: [[{label, score}, ...]]
+    //Response format: [[{label, score}, ...]]
     const scores = (Array.isArray(data[0]) ? data[0] : data) as Array<{ label: string; score: number }>
     const best = scores.reduce((a, b) => (a.score > b.score ? a : b))
     const allScores: Record<string, number> = {}
@@ -442,7 +442,7 @@ export async function classifyWithCache(req: ClassifierRequest): Promise<Classif
     return cached.result
   }
 
-  // Cache miss or expired - remove stale entry if any
+  //Cache miss or expired - remove stale entry if any
   if (cached) classificationCache.delete(key)
 
   const result = await classify(req)
@@ -458,7 +458,7 @@ export async function classifyEnsemble(
   const SECONDARY_WEIGHT = 0.3
 
   if (req.task === 'sentiment') {
-    // Run both sentiment and urgency models, combine scores
+    //Run both sentiment and urgency models, combine scores
     const [primary, secondary] = await Promise.all([
       classify({ text: req.text, task: 'sentiment' }),
       classify({ text: req.text, task: 'urgency' }),
@@ -476,7 +476,7 @@ export async function classifyEnsemble(
   if (req.task === 'fake_detection') {
     const primary = await classify({ text: req.text, task: 'fake_detection' })
 
-    // If borderline (0.4-0.6), run sentiment as secondary signal
+    //If borderline (0.4-0.6), run sentiment as secondary signal
     if (primary.score >= 0.4 && primary.score <= 0.6) {
       const secondary = await classify({ text: req.text, task: 'sentiment' })
       const combinedScore = primary.score * PRIMARY_WEIGHT + secondary.score * SECONDARY_WEIGHT
@@ -491,29 +491,29 @@ export async function classifyEnsemble(
     return { ...primary, ensembleSize: 1 }
   }
 
-  // For all other tasks, just run the single model
+  //For all other tasks, just run the single model
   const result = await classify(req)
   return { ...result, ensembleSize: 1 }
 }
 
 
 export function calibrateConfidence(rawScore: number, task: ClassifierRequest['task']): number {
-  // Calibration curves derived from empirical observation of HuggingFace model outputs:
-  // Sentiment models (RoBERTa): tend ~10% overconfident on disaster text (trained on Twitter)
-  // Fake detection (BERT): highly variable, needs sigmoid centering
-  // Zero-shot (BART-MNLI): systematically underconfident due to label space size
-  // Language detection (XLM-R): well-calibrated, no adjustment needed
+  //Calibration curves derived from empirical observation of HuggingFace model outputs:
+  //Sentiment models (RoBERTa): tend ~10% overconfident on disaster text (trained on Twitter)
+  //Fake detection (BERT): highly variable, needs sigmoid centering
+  //Zero-shot (BART-MNLI): systematically underconfident due to label space size
+  //Language detection (XLM-R): well-calibrated, no adjustment needed
 
   switch (task) {
     case 'sentiment':
       return Math.min(1, rawScore * 0.88) // 12% reduction for domain shift
     case 'fake_detection':
-      // Sigmoid normalization: pushes borderline scores toward extremes
+      //Sigmoid normalization: pushes borderline scores toward extremes
       return 1 / (1 + Math.exp(-8 * (rawScore - 0.5)))
     case 'severity':
     case 'category':
     case 'urgency':
-      // Zero-shot underestimates with >10 candidate labels, scale up 18%
+      //Zero-shot underestimates with >10 candidate labels, scale up 18%
       return Math.min(0.99, rawScore * 1.18)
     case 'language':
       return rawScore // XLM-RoBERTa is well-calibrated

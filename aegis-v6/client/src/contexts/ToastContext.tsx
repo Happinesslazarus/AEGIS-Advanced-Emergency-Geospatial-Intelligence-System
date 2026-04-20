@@ -1,5 +1,5 @@
 /**
- * ToastContext — global non-blocking notification toasts.
+ * ToastContext -- global non-blocking notification toasts.
  * Renders in a fixed portal (#toast-root).
  * Usage: const { toast } = useToast()
  *        toast({ title: 'New urgent report', type: 'error' })
@@ -95,12 +95,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     return id
   }, [dismiss])
 
-  // Cleanup timers on unmount
+  //Cleanup timers on unmount
   useEffect(() => {
     return () => { timerRefs.current.forEach(t => clearTimeout(t)) }
   }, [])
 
-  // Ensure portal root exists
+  //Ensure portal root exists
   useEffect(() => {
     if (!document.getElementById('toast-root')) {
       const el = document.createElement('div')

@@ -72,7 +72,7 @@ class FeatureStore:
         - land_use, impervious_surface_ratio, vegetation_class
         """
         
-        # Regional defaults — overridden by live API data (elevation, SEPA, etc.)
+        # Regional defaults -- overridden by live API data (elevation, SEPA, etc.)
         # via get_all_features() which calls fetch_live_features() from data_providers.py.
         # These values are only used when live APIs are unreachable.
         features = {
@@ -123,24 +123,24 @@ class FeatureStore:
         if timestamp is None:
             timestamp = datetime.utcnow()
 
-        # Base features — conservative regional defaults
+        # Base features -- conservative regional defaults
         features = {
-            "rainfall_1h": 0.5,   # mm — light drizzle baseline for Scotland
+            "rainfall_1h": 0.5,   # mm -- light drizzle baseline for Scotland
             "rainfall_6h": 2.0,   # mm
             "rainfall_24h": 5.0,  # mm
             "rainfall_7d": 18.0,  # mm
             "rainfall_30d": 80.0, # mm
-            "river_level": 1.2,   # meters — typical low-flow level
+            "river_level": 1.2,   # meters -- typical low-flow level
             "river_discharge": 20.0,  # m³/s
             "soil_moisture": 0.55,    # volumetric fraction
-            "temperature": 8.0,       # °C — Scottish average
+            "temperature": 8.0,       # °C -- Scottish average
             "evapotranspiration": 1.0, # mm/day
             "vegetation_index_ndvi": 0.45,
             "wind_speed": 5.0,    # m/s
             "humidity": 0.80,     # 0-1 scale
         }
 
-        # Apply real observed values when provided — these override defaults
+        # Apply real observed values when provided -- these override defaults
         if overrides:
             for key, value in overrides.items():
                 if key in features and value is not None:
@@ -177,7 +177,7 @@ class FeatureStore:
             timestamp = datetime.utcnow()
         
         # seasonal_anomaly: sine of the month fraction captures the cyclical
-        # nature of seasons — Jan=0, Apr≈+1, Jul=0, Oct≈-1 — without requiring
+        # nature of seasons -- Jan=0, Apr≈+1, Jul=0, Oct≈-1 -- without requiring
         # the model to learn that month 12 and month 1 are adjacent.
         month = timestamp.month
         seasonal_anomaly = np.sin(2 * np.pi * month / 12)
@@ -185,7 +185,7 @@ class FeatureStore:
         features = {
             "seasonal_anomaly": seasonal_anomaly,
             "climate_zone_encoding": self._get_climate_zone(latitude),
-            "enso_index": 0.2,  # Default — overwritten by live NOAA data when available
+            "enso_index": 0.2,  # Default -- overwritten by live NOAA data when available
             "long_term_rainfall_anomaly": 0.15,  # Deviation from 30-year average
         }
 
@@ -279,7 +279,7 @@ class FeatureStore:
         Simplified Köppen classification: only latitude bands are used here
         because longitude/continent context is not available at this call site.
         The full Köppen Cfb (temperate oceanic) zone for Scotland is captured
-        by the 50–60° bucket (returns 1).
+        by the 50-60° bucket (returns 1).
         """
         if latitude > 60:
             return 0  # Subarctic

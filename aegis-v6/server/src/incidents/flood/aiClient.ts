@@ -16,7 +16,7 @@ export class FloodAIClient {
    */
   static async getPredictions(region: string, features: Record<string, unknown>): Promise<IncidentPrediction[]> {
     try {
-      // Uses the central /api/predict endpoint with hazard_type=flood
+      //Uses the central /api/predict endpoint with hazard_type=flood
       const response = await fetch(`${AI_ENGINE_URL}/api/predict`, {
         method: 'POST',
         headers: {
@@ -58,7 +58,7 @@ export class FloodAIClient {
       }]
     } catch (error) {
       logger.error({ err: error }, '[Flood/AIClient] Prediction failed')
-      // Return fallback prediction
+      //Return fallback prediction
       return [{
         incidentType: 'flood',
         severity: 'Low',

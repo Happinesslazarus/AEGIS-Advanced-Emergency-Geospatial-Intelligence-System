@@ -1,5 +1,5 @@
 ﻿/**
- * Login risk scorer — evaluates each login attempt on a 0–100 scale using
+ * Login risk scorer -- evaluates each login attempt on a 0-100 scale using
  * known IPs, recent failures, User-Agent history, and time-of-day heuristics.
  *
  * - Called by auth routes before issuing tokens
@@ -31,7 +31,7 @@ export async function assessLoginRisk(
   const factors: string[] = []
   let score = 0
 
-  // 1. Check if this is a known IP for this operator
+  //1. Check if this is a known IP for this operator
   const knownIpResult = await pool.query(
     `SELECT COUNT(*) as cnt
      FROM security_events
@@ -48,7 +48,7 @@ export async function assessLoginRisk(
     factors.push('new_ip_address')
   }
 
-  // 2. Check recent failed login attempts for this user
+  //2. Check recent failed login attempts for this user
   const recentFailures = await pool.query(
     `SELECT COUNT(*) as cnt
      FROM security_events
@@ -68,7 +68,7 @@ export async function assessLoginRisk(
     factors.push('excessive_failures')
   }
 
-  // 3. Check for suspicious activity from this IP
+  //3. Check for suspicious activity from this IP
   const suspiciousIp = await pool.query(
     `SELECT COUNT(*) as cnt
      FROM security_events
@@ -83,7 +83,7 @@ export async function assessLoginRisk(
     factors.push('suspicious_ip')
   }
 
-  // 4. Check if this User-Agent has been seen before
+  //4. Check if this User-Agent has been seen before
   const knownUaResult = await pool.query(
     `SELECT COUNT(*) as cnt
      FROM security_events
@@ -99,14 +99,14 @@ export async function assessLoginRisk(
     factors.push('new_user_agent')
   }
 
-  // 5. Check for logins outside business hours (local time approximation)
+  //5. Check for logins outside business hours (local time approximation)
   const hour = new Date().getUTCHours()
   if (hour < 5 || hour > 23) {
     score += 10
     factors.push('unusual_hours')
   }
 
-  // Clamp to 0-100
+  //Clamp to 0-100
   score = Math.min(100, Math.max(0, score))
 
   const level: RiskLevel = score <= 30 ? 'low' : score <= 60 ? 'medium' : 'high'

@@ -169,7 +169,7 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
         const data: PredictionRecord[] = await res.json()
         setRawRecords(data)
 
-        // Group by region_id
+        //Group by region_id
         const byRegion = new Map<string, PredictionRecord[]>()
         for (const rec of data) {
           const group = byRegion.get(rec.region_id) || []
@@ -199,7 +199,7 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
           }
         })
 
-        // Sort by risk level (highest first)
+        //Sort by risk level (highest first)
         mapped.sort((a, b) => (RISK_ORDER[b.currentRisk?.toUpperCase()] || 0) - (RISK_ORDER[a.currentRisk?.toUpperCase()] || 0))
         setPredictions(mapped)
         setLastRefresh(new Date())
@@ -215,7 +215,7 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
 
   useEffect(() => {
     fetchPredictions()
-    // Auto-refresh every 60s
+    //Auto-refresh every 60s
     const refreshInterval = setInterval(() => fetchPredictions(), 60000)
     return () => {
       abortRef.current?.abort()
@@ -298,7 +298,7 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
             {predictions.length} {config.regionLabel.toLowerCase()} {t('hazardPred.monitored', lang)}
             {stats.highestRisk !== 'LOW' && stats.highestRisk !== 'MINIMAL' && (
               <span className="ml-1.5 font-bold" style={{ color: riskColour(stats.highestRisk) }}>
-                — {stats.highestRisk}
+                -- {stats.highestRisk}
               </span>
             )}
           </p>
@@ -465,7 +465,7 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
             <div className="px-4 py-1.5 border-t border-gray-100 dark:border-gray-700/30">
               <p className="text-[8px] text-gray-400 dark:text-gray-500 text-right">
                 {t('hazardPred.updated', lang)} {lastRefresh.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                {rawRecords.length > 0 && ` — ${rawRecords[0]?.model_version || ''}`}
+                {rawRecords.length > 0 && ` -- ${rawRecords[0]?.model_version || ''}`}
               </p>
             </div>
           )}

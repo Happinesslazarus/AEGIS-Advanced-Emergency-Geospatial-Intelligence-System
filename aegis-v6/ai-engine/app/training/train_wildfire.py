@@ -117,7 +117,7 @@ class WildfirePipeline(BaseHazardPipeline):
         return df
 
     def generate_labels(self, df: pd.DataFrame) -> pd.Series:
-        """FWI > 25 → fire risk = 1"""
+        """FWI > 25 -> fire risk = 1"""
         labels = (df["fwi"] > 25.0).astype(int)
         logger.info(f"Label distribution: {labels.value_counts().to_dict()}")
         return labels

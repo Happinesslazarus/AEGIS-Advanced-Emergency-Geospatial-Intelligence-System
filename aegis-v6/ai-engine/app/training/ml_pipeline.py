@@ -364,13 +364,13 @@ class ProductionMLPipeline:
         # Train models
         try:
             report_results = await self.train_report_classifier(df)
-            logger.success("✓ Report classifier trained")
+            logger.success(" Report classifier trained")
         except Exception as e:
             logger.error(f"Report classifier training failed: {e}")
         
         try:
             severity_results = await self.train_severity_predictor(df)
-            logger.success("✓ Severity predictor trained")
+            logger.success(" Severity predictor trained")
         except Exception as e:
             logger.error(f"Severity predictor training failed: {e}")
         

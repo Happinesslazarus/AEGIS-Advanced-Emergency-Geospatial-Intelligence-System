@@ -37,7 +37,7 @@ export function usePullToRefresh({
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (!enabled || refreshing) return
     const el = containerRef.current
-    // Only trigger when scrolled to top
+    //Only trigger when scrolled to top
     if (el && el.scrollTop <= 0) {
       startY.current = e.touches[0].clientY
       pulling.current = true
@@ -48,10 +48,10 @@ export function usePullToRefresh({
     if (!pulling.current || refreshing) return
     const delta = e.touches[0].clientY - startY.current
     if (delta > 0) {
-      // Square-root dampening: applying Math.sqrt gives a rubber-band feel —
-      // the first few pixels of pull move the indicator quickly (responsive),
-      // but large pulls slow down (prevents over-shooting the spinner).
-      // Multiplying by 4 scales the low sqrt values back to a visible range.
+      //Square-root dampening: applying Math.sqrt gives a rubber-band feel
+      //the first few pixels of pull move the indicator quickly (responsive),
+      //but large pulls slow down (prevents over-shooting the spinner).
+      //Multiplying by 4 scales the low sqrt values back to a visible range.
       const dampened = Math.min(Math.sqrt(delta) * 4, maxPull)
       setPullDistance(dampened)
       if (delta > 10) e.preventDefault() // prevent scroll-bounce

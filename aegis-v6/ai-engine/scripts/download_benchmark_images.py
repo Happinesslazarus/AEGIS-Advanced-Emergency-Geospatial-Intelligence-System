@@ -33,14 +33,14 @@ def download_image(url: str, dest: Path, retries: int = MAX_RETRIES) -> bool:
 
             # Verify it's actually an image
             if b"<!DO" in data[:10] or b"<html" in data[:20]:
-                print(f"    ⚠ Got HTML instead of image (attempt {attempt}/{retries})")
+                print(f"    ! Got HTML instead of image (attempt {attempt}/{retries})")
                 if attempt < retries:
                     time.sleep(RETRY_DELAY * attempt)
                     continue
                 return False
 
             if len(data) < 1000:
-                print(f"    ⚠ Suspiciously small ({len(data)} bytes), attempt {attempt}/{retries}")
+                print(f"    ! Suspiciously small ({len(data)} bytes), attempt {attempt}/{retries}")
                 if attempt < retries:
                     time.sleep(RETRY_DELAY * attempt)
                     continue
@@ -52,11 +52,11 @@ def download_image(url: str, dest: Path, retries: int = MAX_RETRIES) -> bool:
             return True
 
         except HTTPError as e:
-            print(f"    ⚠ HTTP {e.code} (attempt {attempt}/{retries})")
+            print(f"    ! HTTP {e.code} (attempt {attempt}/{retries})")
             if attempt < retries:
                 time.sleep(RETRY_DELAY * attempt)
         except (URLError, TimeoutError, Exception) as e:
-            print(f"    ⚠ {str(e)[:60]} (attempt {attempt}/{retries})")
+            print(f"    ! {str(e)[:60]} (attempt {attempt}/{retries})")
             if attempt < retries:
                 time.sleep(RETRY_DELAY * attempt)
 
@@ -131,7 +131,7 @@ def main():
     print(f"{'='*50}")
 
     if failed:
-        print(f"\n⚠ {len(failed)} images failed. You may need to find alternative URLs.")
+        print(f"\n! {len(failed)} images failed. You may need to find alternative URLs.")
         sys.exit(1)
 
 if __name__ == "__main__":

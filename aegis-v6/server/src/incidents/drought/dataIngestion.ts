@@ -9,7 +9,7 @@ export interface DroughtIngestionResult {
   avgTempC: number
   maxTempC: number
   riverLevelNormal: boolean   // false = critically low
-  droughtIndexScore: number   // 0 (no drought) — 100 (severe)
+  droughtIndexScore: number   // 0 (no drought) -- 100 (severe)
   dataSource: string
   fetchedAt: string
 }
@@ -44,10 +44,10 @@ export async function ingestDroughtData(
   const avgTemp     = meanTemps.length ? meanTemps.reduce((s, v) => s + (v ?? 0), 0) / meanTemps.length : 12
   const maxTemp     = maxTemps.length  ? Math.max(...maxTemps)  : 15
 
-  // SPI-inspired proxy: how far below normal is rainfall?
+  //SPI-inspired proxy: how far below normal is rainfall?
   const deficit     = Math.max(0, UK_RAINFALL_30D_NORMAL - rainfall30d)
   let droughtScore  = Math.min(100, (deficit / UK_RAINFALL_30D_NORMAL) * 80)
-  // Temperature uplift: every 5—C above 15—C adds 5 points
+  //Temperature uplift: every 5--C above 15--C adds 5 points
   if (avgTemp > 15) droughtScore = Math.min(100, droughtScore + ((avgTemp - 15) / 5) * 5)
 
   return {

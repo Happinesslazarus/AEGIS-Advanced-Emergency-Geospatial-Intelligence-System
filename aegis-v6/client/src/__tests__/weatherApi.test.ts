@@ -18,8 +18,8 @@
  *   relative_humidity_2m    = % humidity at 2 m height
  *   pressure_msl            = air pressure at Mean Sea Level in hPa (hectopascals)
  *   wind_speed_10m          = wind speed at 10 m height (m/s or km/h depending on config)
- *   PrecipitationRate       = mm of rainfall per hour; 0–2 mm/h = light, 2–10 = moderate,
- *                             >10 = heavy — key thresholds for flood risk scoring
+ *   PrecipitationRate       = mm of rainfall per hour; 0-2 mm/h = light, 2-10 = moderate,
+ *                             >10 = heavy -- key thresholds for flood risk scoring
  *   WeatherData             = TypeScript interface describing current weather snapshot
  *   WeatherForecast         = TypeScript interface for a single hourly forecast entry
  *   FloodWeatherRisk        = TypeScript interface for the result of assessFloodRisk();
@@ -34,15 +34,13 @@
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// ---------------------------------------------------------------------------
-// Global mocks — set up BEFORE any module imports so fetch is intercepted
-// ---------------------------------------------------------------------------
+//Global mocks -- set up BEFORE any module imports so fetch is intercepted
 
-// Replace the browser's native fetch with a controllable mock
+//Replace the browser's native fetch with a controllable mock
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
-// Replace localStorage with an in-memory object so tests don't touch real storage
+//Replace localStorage with an in-memory object so tests don't touch real storage
 const mockLocalStorage: Record<string, string> = {}
 const localStorageMock = {
   getItem: vi.fn((key: string) => mockLocalStorage[key] || null),
@@ -52,7 +50,7 @@ const localStorageMock = {
 }
 Object.defineProperty(global, 'localStorage', { value: localStorageMock })
 
-// Import after mocking so the modules pick up our fakes
+//Import after mocking so the modules pick up our fakes
 import {
   fetchCurrentWeather,
   fetchForecast,
@@ -64,9 +62,7 @@ import {
   type FloodWeatherRisk,
 } from '../utils/weatherApi'
 
-// ---------------------------------------------------------------------------
-// Main weatherApi tests
-// ---------------------------------------------------------------------------
+//Main weatherApi tests
 describe('weatherApi', () => {
   beforeEach(() => {
     vi.clearAllMocks()    // reset call counts
@@ -78,37 +74,33 @@ describe('weatherApi', () => {
     vi.restoreAllMocks()
   })
 
-  // -------------------------------------------------------------------------
-  // API key management — optional paid key stored in localStorage
-  // -------------------------------------------------------------------------
+  //API key management -- optional paid key stored in localStorage
   describe('API key management', () => {
     test('setWeatherApiKey stores key in localStorage', () => {
-      // setWeatherApiKey('my-key') should persist the key under 'aegis-weather-key'
+      //setWeatherApiKey('my-key') should persist the key under 'aegis-weather-key'
       setWeatherApiKey('test-api-key-123')
       
       expect(localStorageMock.setItem).toHaveBeenCalledWith('aegis-weather-key', 'test-api-key-123')
     })
 
     test('hasWeatherApiKey returns false when no key set', () => {
-      // If no key has been stored, the function returns false (falls back to free Open-Meteo API)
+      //If no key has been stored, the function returns false (falls back to free Open-Meteo API)
       localStorageMock.getItem.mockReturnValue(null)
       
       expect(hasWeatherApiKey()).toBe(false)
     })
 
     test('hasWeatherApiKey returns true when key is set', () => {
-      // A non-null value in localStorage means a key exists → use the paid API if available
+ //A non-null value in localStorage means a key exists -> use the paid API if available
       localStorageMock.getItem.mockReturnValue('test-key')
       
       expect(hasWeatherApiKey()).toBe(true)
     })
   })
 
-  // -------------------------------------------------------------------------
-  // fetchCurrentWeather — fetches live weather for a lat/lng from Open-Meteo
-  // -------------------------------------------------------------------------
+  //fetchCurrentWeather -- fetches live weather for a lat/lng from Open-Meteo
   describe('fetchCurrentWeather', () => {
-    // Minimal Open-Meteo JSON response shape (all fields our parser reads)
+    //Minimal Open-Meteo JSON response shape (all fields our parser reads)
     const mockOpenMeteoResponse = {
       current: {
         temperature_2m: 15.5,         // raw degrees Celsius (rounded to 16 in result)
@@ -125,7 +117,7 @@ describe('weatherApi', () => {
     }
 
     test('fetches weather from Open-Meteo primary provider', async () => {
-      // Happy path: API returns 200 OK with current weather data
+      //Happy path: API returns 200 OK with current weather data
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockOpenMeteoResponse),
@@ -133,7 +125,7 @@ describe('weatherApi', () => {
       
       const result = await fetchCurrentWeather(51.5, -0.1) // London approximate
       
-      // Verify URL targets Open-Meteo; check required fields are present in result
+      //Verify URL targets Open-Meteo; check required fields are present in result
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('api.open-meteo.com'))
       expect(result).toHaveProperty('temp')
       expect(result).toHaveProperty('humidity')
@@ -142,8 +134,8 @@ describe('weatherApi', () => {
     })
 
     test('handles Open-Meteo failure gracefully', async () => {
-      // Server error (5xx): function should throw or return a defined error,
-      // not silently return undefined
+      //Server error (5xx): function should throw or return a defined error,
+      //not silently return undefined
       mockFetch.mockResolvedValue({
         ok: false,
         status: 500,
@@ -157,7 +149,7 @@ describe('weatherApi', () => {
     })
 
     test('parses weather data correctly', async () => {
-      // Verify numeric rounding: Open-Meteo returns floats; we display integers
+      //Verify numeric rounding: Open-Meteo returns floats; we display integers
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockOpenMeteoResponse),
@@ -173,11 +165,9 @@ describe('weatherApi', () => {
     })
   })
 
-  // -------------------------------------------------------------------------
-  // fetchForecast — returns an array of hourly WeatherForecast objects
-  // -------------------------------------------------------------------------
+  //fetchForecast -- returns an array of hourly WeatherForecast objects
   describe('fetchForecast', () => {
-    // Minimal hourly forecast response covering 3 hours
+    //Minimal hourly forecast response covering 3 hours
     const mockForecastResponse = {
       hourly: {
         time: ['2024-01-15T00:00', '2024-01-15T01:00', '2024-01-15T02:00'],
@@ -189,7 +179,7 @@ describe('weatherApi', () => {
     }
 
     test('fetches hourly forecast data', async () => {
-      // Happy path: should return an array of forecast objects, one per hour
+      //Happy path: should return an array of forecast objects, one per hour
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockForecastResponse),
@@ -202,7 +192,7 @@ describe('weatherApi', () => {
     })
 
     test('throws on fetch failure', async () => {
-      // Network failure (total loss of connectivity): must throw a user-readable error
+      //Network failure (total loss of connectivity): must throw a user-readable error
       mockFetch.mockRejectedValue(new Error('Network error'))
       
       await expect(fetchForecast(51.5, -0.1)).rejects.toThrow(
@@ -211,13 +201,11 @@ describe('weatherApi', () => {
     })
   })
 
-  // -------------------------------------------------------------------------
-  // assessFloodRisk — scores current + forecast data to produce a risk level
-  // Thresholds: 0–1mm/h low, 2–9mm/h moderate, 10–24mm/h high, 25+mm/h severe
-  // -------------------------------------------------------------------------
+  //assessFloodRisk -- scores current + forecast data to produce a risk level
+  //Thresholds: 0-1mm/h low, 2-9mm/h moderate, 10-24mm/h high, 25+mm/h severe
   describe('assessFloodRisk', () => {
     test('returns low risk for clear weather', () => {
-      // Dry, mild conditions → no flood risk
+ //Dry, mild conditions -> no flood risk
       const weather: WeatherData = {
         temp: 15, feelsLike: 14, humidity: 60, pressure: 1013,
         windSpeed: 10, windDir: 'S', description: 'clear', icon: '01d',
@@ -225,7 +213,7 @@ describe('weatherApi', () => {
         updatedAt: new Date().toISOString(), source: 'live',
       }
       const forecast: WeatherForecast[] = [
-        // Single clear-sky forecast hour; zero rainfall
+        //Single clear-sky forecast hour; zero rainfall
         { time: '2024-01-15T12:00', temp: 15, rainfall: 0, windSpeed: 10, description: 'clear', icon: '01d' },
       ]
       
@@ -235,7 +223,7 @@ describe('weatherApi', () => {
     })
 
     test('returns moderate risk for moderate rainfall', () => {
-      // Steady rainfall, high humidity, low pressure → moderate/high flood risk
+ //Steady rainfall, high humidity, low pressure -> moderate/high flood risk
       const weather: WeatherData = {
         temp: 12, feelsLike: 10, humidity: 88, pressure: 1005,
         windSpeed: 20, windDir: 'W', description: 'rain', icon: '10d',
@@ -251,12 +239,12 @@ describe('weatherApi', () => {
       
       const result = assessFloodRisk(weather, forecast)
       
-      // Risk scoring may produce 'moderate' or 'high' depending on cumulative totals
+      //Risk scoring may produce 'moderate' or 'high' depending on cumulative totals
       expect(['moderate', 'high']).toContain(result.level)
     })
 
     test('returns severe risk for heavy rainfall', () => {
-      // Very heavy rain (10+ mm/h), 95% humidity, low pressure, strong wind
+      //Very heavy rain (10+ mm/h), 95% humidity, low pressure, strong wind
       const weather: WeatherData = {
         temp: 10, feelsLike: 8, humidity: 95, pressure: 990, // 990 hPa = storm pressure
         windSpeed: 50, windDir: 'SW', description: 'heavy rain', icon: '10d',
@@ -266,7 +254,7 @@ describe('weatherApi', () => {
         updatedAt: new Date().toISOString(), source: 'live',
       }
       const forecast: WeatherForecast[] = [
-        // Two hours of heavy rain ahead → cumulative totals cross the 'severe' threshold
+ //Two hours of heavy rain ahead -> cumulative totals cross the 'severe' threshold
         { time: '2024-01-15T12:00', temp: 10, rainfall: 15, windSpeed: 60, description: 'heavy rain', icon: '10d' },
         { time: '2024-01-15T15:00', temp: 9, rainfall: 12, windSpeed: 55, description: 'heavy rain', icon: '10d' },
       ]
@@ -278,14 +266,12 @@ describe('weatherApi', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Interface shape tests — verify TypeScript types map to the expected fields
-// These are compile-time checks that also serve as living documentation of
-// the data shape coming back from Open-Meteo
-// ---------------------------------------------------------------------------
+//Interface shape tests -- verify TypeScript types map to the expected fields
+//These are compile-time checks that also serve as living documentation of
+//the data shape coming back from Open-Meteo
 describe('WeatherData interface', () => {
   test('validates WeatherData structure', () => {
-    // Create a WeatherData object with all required fields to confirm the shape
+    //Create a WeatherData object with all required fields to confirm the shape
     const weather: WeatherData = {
       temp: 15,
       feelsLike: 14,
@@ -311,7 +297,7 @@ describe('WeatherData interface', () => {
 
 describe('WeatherForecast interface', () => {
   test('validates WeatherForecast structure', () => {
-    // One entry in the hourly forecast array
+    //One entry in the hourly forecast array
     const forecast: WeatherForecast = {
       time: '2024-01-15T12:00:00Z', // ISO 8601; one entry per hour
       temp: 18,
@@ -328,7 +314,7 @@ describe('WeatherForecast interface', () => {
 
 describe('FloodWeatherRisk interface', () => {
   test('validates FloodWeatherRisk structure', () => {
-    // Result shape from assessFloodRisk()
+    //Result shape from assessFloodRisk()
     const risk: FloodWeatherRisk = {
       level: 'moderate',
       reason: 'Heavy rainfall expected', // human-readable explanation for the risk level
@@ -341,7 +327,7 @@ describe('FloodWeatherRisk interface', () => {
   })
 
   test('validates all risk levels', () => {
-    // All four risk levels must be valid values of the FloodWeatherRisk.level union type
+    //All four risk levels must be valid values of the FloodWeatherRisk.level union type
     const levels: Array<'low' | 'moderate' | 'high' | 'severe'> = 
       ['low', 'moderate', 'high', 'severe']
     

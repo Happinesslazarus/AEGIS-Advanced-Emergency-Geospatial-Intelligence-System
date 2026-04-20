@@ -41,20 +41,20 @@ interface ProviderState {
   lastErrorAt: number | null
 }
 
-// Providers are initialised lazily on first call to generateEmbeddings().
-// Using a module-level array as a simple registry (no class needed).
+//Providers are initialised lazily on first call to generateEmbeddings().
+//Using a module-level array as a simple registry (no class needed).
 const providers: ProviderState[] = []
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
 
-// Build the provider list from environment variables.
-// Called once and returns early if already populated.
+//Build the provider list from environment variables.
+//Called once and returns early if already populated.
 function initProviders(): void {
   if (providers.length > 0) return
 
   const defs: EmbeddingProvider[] = []
 
-  // Ollama local embedding — zero cost, highest priority; disabled via OLLAMA_ENABLED=false
+  //Ollama local embedding -- zero cost, highest priority; disabled via OLLAMA_ENABLED=false
   const ollamaEmbModel = process.env.OLLAMA_EMBEDDING_MODEL || 'nomic-embed-text'
   const ollamaEnabled = process.env.OLLAMA_ENABLED !== 'false'
   if (ollamaEnabled) {
@@ -108,8 +108,8 @@ function initProviders(): void {
   }
 }
 
-// Ollama API uses a different request shape: one text per call, no batch endpoint.
-// We loop rather than batch because Ollama's /api/embeddings only accepts a single 'prompt'.
+//Ollama API uses a different request shape: one text per call, no batch endpoint.
+//We loop rather than batch because Ollama's /api/embeddings only accepts a single 'prompt'.
 async function callOllamaEmbedding(config: EmbeddingProvider, texts: string[]): Promise<number[][]> {
   const results: number[][] = []
   for (const text of texts) {
@@ -125,9 +125,9 @@ async function callOllamaEmbedding(config: EmbeddingProvider, texts: string[]): 
   return results
 }
 
-// HuggingFace returns a 3D tensor [batch_size][token_count][dimensions].
-// We mean-pool across the token dimension to get a single fixed-size vector per text.
-// This matches how sentence-transformers compute sentence embeddings.
+//HuggingFace returns a 3D tensor [batch_size][token_count][dimensions].
+//We mean-pool across the token dimension to get a single fixed-size vector per text.
+//This matches how sentence-transformers compute sentence embeddings.
 async function callHuggingFace(config: EmbeddingProvider, texts: string[]): Promise<number[][]> {
   const res = await fetch(`${config.baseUrl}/pipeline/feature-extraction/${config.model}`, {
     method: 'POST',
@@ -141,7 +141,7 @@ async function callHuggingFace(config: EmbeddingProvider, texts: string[]): Prom
   if (!res.ok) throw new Error(`HF Embedding ${res.status}: ${await res.text()}`)
   const data = await res.json() as number[][][]
 
-  // HF returns [batch][tokens][dims] — mean-pool across the token axis to get [batch][dims]
+  //HF returns [batch][tokens][dims] -- mean-pool across the token axis to get [batch][dims]
   return data.map((tokenEmbeddings) => {
     if (!Array.isArray(tokenEmbeddings[0])) return tokenEmbeddings as unknown as number[]
     const dims = (tokenEmbeddings[0] as number[]).length
@@ -185,15 +185,15 @@ export async function generateEmbeddings(req: EmbeddingRequest): Promise<Embeddi
   }
 
   for (const state of providers) {
-    // Reset the per-minute request counter when the window has expired
+    //Reset the per-minute request counter when the window has expired
     const now = Date.now()
     if (now - state.windowStart >= 60_000) {
       state.requestCount = 0
       state.windowStart = now
     }
-    // Skip if this provider has hit its rate limit (10 req/min per provider)
+    //Skip if this provider has hit its rate limit (10 req/min per provider)
     if (state.requestCount >= 10) continue
-    // Exponential back-off: 2^errors seconds, capped at 2 minutes
+    //Exponential back-off: 2^errors seconds, capped at 2 minutes
     if (state.consecutiveErrors > 0) {
       const backoff = Math.min(2 ** state.consecutiveErrors * 1000, 120_000)
       if (now - (state.lastErrorAt || 0) < backoff) continue

@@ -1,5 +1,5 @@
 ﻿/**
- * Core Prometheus metrics — defines histograms and counters for HTTP requests,
+ * Core Prometheus metrics -- defines histograms and counters for HTTP requests,
  * WebSocket connections, distress events, alert delivery, AI predictions, and
  * report submissions. Also collects default Node.js process metrics.
  *
@@ -11,10 +11,10 @@
 import { Request, Response, NextFunction } from 'express'
 import client from 'prom-client'
 
-// Collect default Node.js process metrics (CPU, memory, event loop, GC)
+//Collect default Node.js process metrics (CPU, memory, event loop, GC)
 client.collectDefaultMetrics({ prefix: 'aegis_' })
 
-// HTTP Metrics
+//HTTP Metrics
 
 export const httpRequestDuration = new client.Histogram({
   name: 'http_request_duration_seconds',
@@ -29,14 +29,14 @@ export const httpRequestsTotal = new client.Counter({
   labelNames: ['method', 'route', 'status'] as const,
 })
 
-// WebSocket Metrics
+//WebSocket Metrics
 
 export const activeWebsocketConnections = new client.Gauge({
   name: 'active_websocket_connections',
   help: 'Number of active WebSocket connections',
 })
 
-// Distress Metrics
+//Distress Metrics
 
 export const distressEventsTotal = new client.Counter({
   name: 'distress_events_total',
@@ -55,7 +55,7 @@ export const distressResponseLatency = new client.Histogram({
   buckets: [5, 15, 30, 60, 120, 300, 600],
 })
 
-// Alert Delivery Metrics
+//Alert Delivery Metrics
 
 export const alertBroadcastsTotal = new client.Counter({
   name: 'alert_broadcasts_total',
@@ -75,7 +75,7 @@ export const alertDeliveryLatency = new client.Histogram({
   buckets: [0.1, 0.5, 1, 2, 5, 10, 30],
 })
 
-// AI Prediction Metrics
+//AI Prediction Metrics
 
 export const reportSubmissionsTotal = new client.Counter({
   name: 'report_submissions_total',
@@ -131,7 +131,7 @@ export const aegisModelFallbackTotal = new client.Counter({
   labelNames: ['hazard', 'region'] as const,
 })
 
-// SSE / Chat Metrics
+//SSE / Chat Metrics
 
 export const sseConnectionsActive = new client.Gauge({
   name: 'sse_connections_active',
@@ -150,7 +150,7 @@ export const chatStreamLatency = new client.Histogram({
   buckets: [0.5, 1, 2, 5, 10, 30, 60],
 })
 
-// Security Metrics
+//Security Metrics
 
 export const securityEventsTotal = new client.Counter({
   name: 'security_events_total',
@@ -187,7 +187,7 @@ export const riskAssessmentTotal = new client.Counter({
   labelNames: ['level'] as const, // low, medium, high
 })
 
-// DB Metrics
+//DB Metrics
 
 export const dbPoolActiveConnections = new client.Gauge({
   name: 'db_pool_active_connections',
@@ -204,7 +204,7 @@ export const dbPoolWaitingCount = new client.Gauge({
   help: 'Number of requests waiting for a DB connection',
 })
 
-// Cron Job Metrics
+//Cron Job Metrics
 
 export const cronJobDuration = new client.Histogram({
   name: 'cron_job_duration_seconds',
@@ -225,22 +225,22 @@ export const cronJobLastSuccess = new client.Gauge({
   labelNames: ['job'] as const,
 })
 
-// Helpers
+//Helpers
 
 /**
  * Normalize an Express request path into a low-cardinality route label.
  * Replaces UUID-like segments and numeric IDs with placeholders.
  */
 function normalizeRoute(req: Request): string {
-  // Use the matched Express route pattern if available (best option)
+  //Use the matched Express route pattern if available (best option)
   if (req.route?.path) {
     return req.baseUrl + req.route.path
   }
-  // Fallback: collapse dynamic segments in the raw path
+  //Fallback: collapse dynamic segments in the raw path
   let route = req.path || '/'
-  // Replace UUIDs
+  //Replace UUIDs
   route = route.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, ':id')
-  // Replace numeric IDs
+  //Replace numeric IDs
   route = route.replace(/\/\d+/g, '/:id')
   return route
 }
@@ -250,7 +250,7 @@ function normalizeRoute(req: Request): string {
  * Mount early in the middleware chain (after security, before routes).
  */
 export function metricsMiddleware(req: Request, res: Response, next: NextFunction): void {
-  // Skip metrics endpoint itself to avoid self-referential noise
+  //Skip metrics endpoint itself to avoid self-referential noise
   if (req.path === '/metrics') return next()
 
   const end = httpRequestDuration.startTimer()

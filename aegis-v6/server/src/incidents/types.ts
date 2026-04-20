@@ -10,7 +10,7 @@
 
 import type { Router } from 'express'
 
-// Operational Status
+//Operational Status
 
 export type IncidentOperationalStatus =
   | 'fully_operational'
@@ -18,11 +18,11 @@ export type IncidentOperationalStatus =
   | 'configured_only'
   | 'disabled'
 
-// AI Tier Strategy
+//AI Tier Strategy
 
 export type AITier = 'rule_based' | 'statistical' | 'ml'
 
-// Incident Prediction
+//Incident Prediction
 
 export interface IncidentPrediction {
   incidentType: string
@@ -40,7 +40,7 @@ export interface IncidentPrediction {
   modelVersion?: string
 }
 
-// Incident Alert
+//Incident Alert
 
 export interface IncidentAlert {
   id: string
@@ -56,7 +56,7 @@ export interface IncidentAlert {
   acknowledged: boolean
 }
 
-// Incident Map Data
+//Incident Map Data
 
 export interface IncidentMapMarker {
   id: string
@@ -77,7 +77,7 @@ export interface IncidentMapData {
   heatmapPoints?: Array<{ lat: number; lng: number; intensity: number }>
 }
 
-// Incident Registry Entry (metadata)
+//Incident Registry Entry (metadata)
 
 export interface IncidentRegistryEntry {
   id: string
@@ -102,7 +102,7 @@ export interface IncidentRegistryEntry {
   alertThresholds: { advisory: number; warning: number; critical: number }
 }
 
-// Alert Rules — evaluates conditions to generate alerts
+//Alert Rules -- evaluates conditions to generate alerts
 
 export interface AlertRuleContext {
   incidentType: string
@@ -127,7 +127,7 @@ export interface AlertRuleResult {
   description: string
 }
 
-// Incident Module Interface — every incident plugin must implement this
+//Incident Module Interface -- every incident plugin must implement this
 
 export interface IncidentModule {
   /* Unique incident type identifier */

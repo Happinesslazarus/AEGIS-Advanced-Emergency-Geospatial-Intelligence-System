@@ -22,14 +22,14 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useDistress } from '../hooks/useDistress'
 
-// Mock geolocation
+//Mock geolocation
 const mockGeolocation = {
   getCurrentPosition: vi.fn(),
   watchPosition: vi.fn(),
   clearWatch: vi.fn(),
 }
 
-// Mock socket
+//Mock socket
 const createMockSocket = () => ({
   emit: vi.fn(),
   on: vi.fn(),
@@ -40,20 +40,20 @@ describe('useDistress', () => {
   let mockSocket: ReturnType<typeof createMockSocket>
   
   beforeEach(() => {
-    // Fake timers allow tests to control the 5-second countdown without
-    // real wait time.  Advance with vi.advanceTimersByTime(1000) etc.
+    //Fake timers allow tests to control the 5-second countdown without
+    //real wait time.  Advance with vi.advanceTimersByTime(1000) etc.
     vi.useFakeTimers()
     mockSocket = createMockSocket()
     
-    // Inject mock GPS into navigator.geolocation.
-    // configurable: true lets us redefine the property in subsequent tests.
+    //Inject mock GPS into navigator.geolocation.
+    //configurable: true lets us redefine the property in subsequent tests.
     Object.defineProperty(navigator, 'geolocation', {
       value: mockGeolocation,
       writable: true,
       configurable: true,
     })
     
-    // Reset all mocks
+    //Reset all mocks
     vi.clearAllMocks()
   })
 
@@ -70,7 +70,7 @@ describe('useDistress', () => {
       })
     )
 
-    // Hook spreads state into return value
+    //Hook spreads state into return value
     expect(result.current.isActive).toBe(false)
     expect(result.current.status).toBe('idle')
     expect(result.current.distressId).toBeNull()
@@ -96,7 +96,7 @@ describe('useDistress', () => {
   })
 
   test('startCountdown initiates 5-second countdown', () => {
-    // Mock successful GPS position
+    //Mock successful GPS position
     mockGeolocation.getCurrentPosition.mockImplementation((success) => {
       success({
         coords: {
@@ -198,7 +198,7 @@ describe('useDistress', () => {
       })
     })
     
-    // Mock successful activation
+    //Mock successful activation
     mockSocket.emit.mockImplementation((event, data, callback) => {
       if (event === 'distress:activate' && callback) {
         callback({
@@ -224,7 +224,7 @@ describe('useDistress', () => {
       result.current.startCountdown()
     })
 
-    // Advance through entire countdown
+    //Advance through entire countdown
     act(() => {
       vi.advanceTimersByTime(5000)
     })
@@ -352,7 +352,7 @@ describe('useDistress', () => {
       })
     )
 
-    // Activate SOS
+    //Activate SOS
     act(() => {
       result.current.startCountdown()
     })
@@ -362,7 +362,7 @@ describe('useDistress', () => {
 
     expect(result.current.isActive).toBe(true)
 
-    // Cancel SOS
+    //Cancel SOS
     act(() => {
       result.current.cancelSOS()
     })
@@ -399,7 +399,7 @@ describe('useDistress', () => {
       })
     )
 
-    // Should not do anything when not in error state
+    //Should not do anything when not in error state
     act(() => {
       result.current.retryActivation()
     })
@@ -512,7 +512,7 @@ describe('useDistress GPS tracking', () => {
       vi.advanceTimersByTime(5000)
     })
 
-    // Simulate location update
+    //Simulate location update
     act(() => {
       const mockCoords = {
         latitude: 51.5080,

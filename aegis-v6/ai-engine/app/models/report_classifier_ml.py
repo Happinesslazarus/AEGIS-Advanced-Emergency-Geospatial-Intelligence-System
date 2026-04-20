@@ -142,7 +142,7 @@ class ReportClassifierTrainable:
         if self.model is not None and self.vectorizer is not None:
             return self._ml_classify(full_text)
         else:
-            logger.warning("No trained model — using keyword fallback")
+            logger.warning("No trained model -- using keyword fallback")
             return self._keyword_classify(full_text)
 
     @staticmethod
@@ -197,7 +197,7 @@ class ReportClassifierTrainable:
     def _ml_classify(self, text: str) -> Dict[str, Any]:
         """ML-based classification using trained XGBoost."""
         if self.model is None or self.vectorizer is None:
-            logger.warning("Model or vectorizer is None — falling back to keyword classifier")
+            logger.warning("Model or vectorizer is None -- falling back to keyword classifier")
             return self._keyword_classify(text)
         try:
             X_text = self.vectorizer.transform([text]).toarray()
@@ -252,7 +252,7 @@ class ReportClassifierTrainable:
             return self._keyword_classify(text)
 
     def _keyword_classify(self, text: str) -> Dict[str, Any]:
-        """Keyword fallback — clearly marked as heuristic."""
+        """Keyword fallback -- clearly marked as heuristic."""
         keywords = {
             'flood': ['flood', 'flooding', 'water level', 'river', 'inundation', 'submerged', 'waterlogged'],
             'drought': ['drought', 'dry', 'water shortage', 'crop failure', 'arid'],
@@ -288,17 +288,17 @@ class ReportClassifierTrainable:
         import asyncio
         try:
             loop = asyncio.get_running_loop()
-            # Already inside an async loop (e.g. FastAPI) — use nest_asyncio or thread
+            # Already inside an async loop (e.g. FastAPI) -- use nest_asyncio or thread
             import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(asyncio.run, self._train_async(db_url))
                 return future.result(timeout=300)
         except RuntimeError:
-            # No running loop — safe to create one
+            # No running loop -- safe to create one
             return asyncio.run(self._train_async(db_url))
 
     async def async_train(self, db_url: str = DB_URL) -> Dict[str, Any]:
-        """Train classifier (async — call from within running event loop)."""
+        """Train classifier (async -- call from within running event loop)."""
         return await self._train_async(db_url)
 
     async def _train_async(self, db_url: str) -> Dict[str, Any]:
@@ -311,7 +311,7 @@ class ReportClassifierTrainable:
         )
         from sklearn.preprocessing import StandardScaler
 
-        logger.info("Starting report classifier training (v3.0 — multi-hazard)...")
+        logger.info("Starting report classifier training (v3.0 -- multi-hazard)...")
         conn = await asyncpg.connect(db_url)
 
         try:
@@ -333,7 +333,7 @@ class ReportClassifierTrainable:
             # Hazard resolution: prefer display_type (e.g. "Flood", "Severe Storm")
             # because it is explicitly chosen from a controlled vocabulary, whereas
             # incident_category is a broader bucket (e.g. "natural_disaster" covers
-            # flood/storm/heatwave/wildfire — not specific enough for classification).
+            # flood/storm/heatwave/wildfire -- not specific enough for classification).
             display_map = {
                 'flood': 'flood', 'severe storm': 'storm', 'storm': 'storm',
                 'wildfire': 'wildfire', 'heatwave': 'heatwave', 'heat wave': 'heatwave',
@@ -385,7 +385,7 @@ class ReportClassifierTrainable:
             class_counts = df['label'].value_counts()
             logger.info(f"Hazard distribution ({len(present_names)} classes):\n{class_counts}")
             for idx, name in enumerate(present_names):
-                logger.info(f"  {idx} → {name}: {class_counts.get(idx, 0)} samples")
+                logger.info(f"  {idx} -> {name}: {class_counts.get(idx, 0)} samples")
 
             # Drop classes with < 3 samples
             valid_classes = class_counts[class_counts >= 3].index.tolist()
@@ -597,7 +597,7 @@ class ReportClassifierTrainable:
                 self.training_metrics = metrics
                 logger.info(f"Active model updated to {version}")
             else:
-                logger.info(f"Keeping previous model — candidate {version} not promoted")
+                logger.info(f"Keeping previous model -- candidate {version} not promoted")
 
             return metrics
 

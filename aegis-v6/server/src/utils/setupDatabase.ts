@@ -17,19 +17,19 @@ async function setup(): Promise<void> {
   console.log('[Setup] Starting database initialisation...')
 
   try {
-    // Test the database connection
+    //Test the database connection
     const client = await pool.connect()
     console.log('[Setup] Connected to PostgreSQL successfully')
     client.release()
 
-    // Read and execute schema SQL
+    //Read and execute schema SQL
     const schemaPath = path.join(process.cwd(), 'sql', 'schema.sql')
     const schemaSQL = fs.readFileSync(schemaPath, 'utf-8')
     console.log('[Setup] Executing schema.sql...')
     await pool.query(schemaSQL)
     console.log('[Setup] Schema created successfully')
 
-    // Read and execute seed SQL
+    //Read and execute seed SQL
     const seedPath = path.join(process.cwd(), 'sql', 'seed.sql')
     const seedSQL = fs.readFileSync(seedPath, 'utf-8')
     console.log('[Setup] Resetting seeded tables...')
@@ -52,10 +52,10 @@ async function setup(): Promise<void> {
     await pool.query(seedSQL)
     console.log('[Setup] Seed data inserted successfully')
 
-    // Ensure the default admin has a properly hashed password and admin privileges
-    // This runs last to guarantee credentials/role are correct regardless of seed history
+    //Ensure the default admin has a properly hashed password and admin privileges
+    //This runs last to guarantee credentials/role are correct regardless of seed history
 
-    // Verify the setup
+    //Verify the setup
     const reportCount = await pool.query('SELECT COUNT(*)::int as count FROM reports')
     const operatorCount = await pool.query('SELECT COUNT(*)::int as count FROM operators')
     const alertCount = await pool.query('SELECT COUNT(*)::int as count FROM alerts')

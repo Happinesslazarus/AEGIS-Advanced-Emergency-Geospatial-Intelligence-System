@@ -9,14 +9,14 @@
  * - Both public and authenticated endpoints
  *
  * Key endpoint groups:
- * - /departments — Department listings
- * - /subscriptions — Alert subscription management
- * - /audit — Audit log query (admin)
- * - /community — Community help coordination
- * - /predictions — Flood predictions and pre-alerts
- * - /notifications — Notification channel management
- * - /governance — AI governance dashboard
- * - /fusion — Multi-source data fusion
+ * - /departments -- Department listings
+ * - /subscriptions -- Alert subscription management
+ * - /audit -- Audit log query (admin)
+ * - /community -- Community help coordination
+ * - /predictions -- Flood predictions and pre-alerts
+ * - /notifications -- Notification channel management
+ * - /governance -- AI governance dashboard
+ * - /fusion -- Multi-source data fusion
  * */
 import { Router, Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
@@ -45,7 +45,7 @@ import { broadcastAlert } from '../services/socket.js'
 
 const router = Router()
 
-// Rate limiter for public subscription endpoints (prevent abuse)
+//Rate limiter for public subscription endpoints (prevent abuse)
 const subscriptionLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
@@ -54,52 +54,52 @@ const subscriptionLimiter = rateLimit({
   legacyHeaders: false,
 })
 
-// Maps hazard type + priority to recommended resource counts per deployment zone
+//Maps hazard type + priority to recommended resource counts per deployment zone
 function getResourceRecommendation(hazardType: string, priority: 'Critical' | 'High'): { ambulances: number; fire_engines: number; rescue_boats: number } {
   const isCritical = priority === 'Critical'
   const h = (hazardType || '').toLowerCase()
 
-  // Water/coastal - rescue boats are the priority
+  //Water/coastal - rescue boats are the priority
   if (['flood', 'tsunami', 'coastal', 'flash_flood'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 4 : 2, fire_engines: isCritical ? 2 : 1, rescue_boats: isCritical ? 6 : 3 }
   }
-  // Wildfire - fire engines dominant
+  //Wildfire - fire engines dominant
   if (['wildfire', 'fire', 'burn'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 4 : 2, fire_engines: isCritical ? 8 : 4, rescue_boats: 0 }
   }
-  // Volcanic - hazmat + structural + evacuation mix
+  //Volcanic - hazmat + structural + evacuation mix
   if (['volcanic', 'volcano', 'lava', 'ash'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 5 : 3, fire_engines: isCritical ? 3 : 2, rescue_boats: isCritical ? 1 : 0 }
   }
-  // Structural/seismic - heavy search & rescue
+  //Structural/seismic - heavy search & rescue
   if (['earthquake', 'seismic', 'building_collapse', 'structural', 'landslide', 'avalanche', 'sinkhole', 'debris', 'bridge_damage', 'road_damage'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 6 : 3, fire_engines: isCritical ? 4 : 2, rescue_boats: 0 }
   }
-  // Hazmat/chemical/environmental
+  //Hazmat/chemical/environmental
   if (['chemical', 'gas_leak', 'hazmat', 'pollution', 'contamination', 'environmental_hazard', 'environmental', 'radiation'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 5 : 3, fire_engines: isCritical ? 3 : 2, rescue_boats: 0 }
   }
-  // Medical/mass casualty - ambulances are the priority
+  //Medical/mass casualty - ambulances are the priority
   if (['medical', 'mass_casualty', 'casualty'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 10 : 5, fire_engines: isCritical ? 2 : 1, rescue_boats: 0 }
   }
-  // Storm/wind/tornado/hurricane
+  //Storm/wind/tornado/hurricane
   if (['storm', 'tornado', 'hurricane', 'typhoon', 'cyclone', 'severe_storm'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 4 : 2, fire_engines: isCritical ? 3 : 2, rescue_boats: isCritical ? 3 : 1 }
   }
-  // Extreme weather - heatwave/drought
+  //Extreme weather - heatwave/drought
   if (['heatwave', 'heat', 'drought'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 6 : 3, fire_engines: isCritical ? 2 : 1, rescue_boats: 0 }
   }
-  // Infrastructure - power/water/road
+  //Infrastructure - power/water/road
   if (['infrastructure', 'power_line', 'power_outage', 'water_main', 'water_supply'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 2 : 1, fire_engines: isCritical ? 2 : 1, rescue_boats: 0 }
   }
-  // Public safety - trapped/missing/evacuation
+  //Public safety - trapped/missing/evacuation
   if (['public_safety', 'person_trapped', 'missing', 'evacuation', 'hazardous_area'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 4 : 2, fire_engines: isCritical ? 2 : 1, rescue_boats: isCritical ? 1 : 0 }
   }
-  // Fallback for unknown hazard types
+  //Fallback for unknown hazard types
   return { ambulances: isCritical ? 3 : 2, fire_engines: isCritical ? 2 : 1, rescue_boats: isCritical ? 1 : 0 }
 }
 router.get('/departments', async (_req: Request, res: Response, next: NextFunction) => {
@@ -111,17 +111,17 @@ router.get('/departments', async (_req: Request, res: Response, next: NextFuncti
   }
 })
 
-// ALERT SUBSCRIPTIONS
+//ALERT SUBSCRIPTIONS
 
-// Subscribe to alerts
+//Subscribe to alerts
 router.post('/subscriptions', subscriptionLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, phone, telegram_id, whatsapp, channels, location_lat, location_lng, radius_km, severity_filter, topic_filter, subscriber_name } = req.body
     const normalizedChannels = normalizeChannels(channels)
 
-    // Detect if the request comes from a signed-in citizen (vs anonymous visitor).
-    // Citizens carry a Bearer JWT with role='citizen'.  Operators are excluded so
-    // their staff tokens never accidentally claim a citizen subscription.
+    //Detect if the request comes from a signed-in citizen (vs anonymous visitor).
+    //Citizens carry a Bearer JWT with role='citizen'.  Operators are excluded so
+    //their staff tokens never accidentally claim a citizen subscription.
     let citizenId: string | null = null
     const authHeader = req.headers.authorization
     if (authHeader?.startsWith('Bearer ')) {
@@ -131,7 +131,7 @@ router.post('/subscriptions', subscriptionLimiter, async (req: Request, res: Res
           citizenId = decoded.id
         }
       } catch {
-        // Invalid / expired token — treat as anonymous subscription
+        //Invalid / expired token -- treat as anonymous subscription
       }
     }
 
@@ -147,18 +147,18 @@ router.post('/subscriptions', subscriptionLimiter, async (req: Request, res: Res
       throw AppError.badRequest('WhatsApp number must be in E.164 format (e.g. +447700900123).')
     }
 
-    // Validate required contact info for channels (more flexible)
+    //Validate required contact info for channels (more flexible)
     if (normalizedChannels.includes('email') && !email) {
       throw AppError.badRequest('Email is required for email notifications.')
     }
     if (normalizedChannels.includes('sms') && !phone) {
       throw AppError.badRequest('Phone number is required for SMS.')
     }
-    // WhatsApp can use either whatsapp or phone field
+    //WhatsApp can use either whatsapp or phone field
     if (normalizedChannels.includes('whatsapp') && !whatsapp && !phone) {
       throw AppError.badRequest('Phone/WhatsApp number is required for WhatsApp.')
     }
-    // Telegram requires telegram_id but we'll allow empty for now to let users subscribe first
+    //Telegram requires telegram_id but we'll allow empty for now to let users subscribe first
     // (they can update it later)
 
     const verificationToken = crypto.randomBytes(32).toString('hex')
@@ -167,9 +167,9 @@ router.post('/subscriptions', subscriptionLimiter, async (req: Request, res: Res
       ? topic_filter.map((t: string) => t.toLowerCase().trim()).filter(Boolean)
       : ['flood', 'fire', 'storm', 'earthquake', 'heatwave', 'tsunami', 'general']
 
-    // Auto-verify all subscriptions immediately so alerts work right away.
-    // Email verification is a nice-to-have but must not block other channels.
-    // Use UPSERT on email to avoid duplicate subscriptions.
+    //Auto-verify all subscriptions immediately so alerts work right away.
+    //Email verification is a nice-to-have but must not block other channels.
+    //Use UPSERT on email to avoid duplicate subscriptions.
     const { rows } = await pool.query(
       `INSERT INTO alert_subscriptions (citizen_id, email, phone, telegram_id, whatsapp, channels, location_lat, location_lng, radius_km, severity_filter, topic_filter, verification_token, verified, consent_given, consent_timestamp, subscriber_name)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, true, true, NOW(), $13)
@@ -179,7 +179,7 @@ router.post('/subscriptions', subscriptionLimiter, async (req: Request, res: Res
       [citizenId, email || null, phone || null, telegram_id || null, whatsapp || phone || null, normalizedChannels, location_lat || null, location_lng || null, radius_km || 50, severity_filter || ['critical', 'warning', 'info'], normalizedTopics, verificationToken, subscriber_name || null]
     )
 
-    // Send verification email if email channel is selected (optional, subscription already verified)
+    //Send verification email if email channel is selected (optional, subscription already verified)
     const needsEmailVerification = normalizedChannels.includes('email') && !!email
     if (needsEmailVerification) {
       let emailVerified = false
@@ -207,8 +207,8 @@ router.post('/subscriptions', subscriptionLimiter, async (req: Request, res: Res
         logger.error({ err: emailError }, 'Failed to send verification email')
       }
 
-      // If email couldn't be sent (SMTP not configured), auto-verify so the subscriber
-      // still receives alerts via their other channels (SMS, WhatsApp, etc.)
+      //If email couldn't be sent (SMTP not configured), auto-verify so the subscriber
+      //still receives alerts via their other channels (SMS, WhatsApp, etc.)
       if (!emailVerified) {
         await pool.query(
           `UPDATE alert_subscriptions SET verified = true, verification_token = NULL WHERE id = $1`,
@@ -224,7 +224,7 @@ router.post('/subscriptions', subscriptionLimiter, async (req: Request, res: Res
   }
 })
 
-// Verify subscription
+//Verify subscription
 router.post('/subscriptions/verify', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { token } = req.body
@@ -250,7 +250,7 @@ router.post('/subscriptions/verify', async (req: Request, res: Response, next: N
   }
 })
 
-// Get subscriptions by email
+//Get subscriptions by email
 router.get('/subscriptions', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email } = req.query
@@ -264,7 +264,7 @@ router.get('/subscriptions', async (req: Request, res: Response, next: NextFunct
   }
 })
 
-// Unsubscribe (requires auth to prevent IDOR)
+//Unsubscribe (requires auth to prevent IDOR)
 router.delete('/subscriptions/:id', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     await pool.query('DELETE FROM alert_subscriptions WHERE id = $1', [req.params.id])
@@ -274,9 +274,9 @@ router.delete('/subscriptions/:id', authMiddleware, async (req: AuthRequest, res
   }
 })
 
-// AUDIT LOG
+//AUDIT LOG
 
-// Log an action
+//Log an action
 router.post('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { operator_id, operator_name, action, action_type, target_type, target_id, before_state, after_state } = req.body
@@ -294,7 +294,7 @@ router.post('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res
   }
 })
 
-// Get audit log with filtering
+//Get audit log with filtering
 router.get('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { action_type, operator_id, limit, offset, date_from, date_to, search } = req.query
@@ -321,9 +321,9 @@ router.get('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res:
   }
 })
 
-// COMMUNITY HELP
+//COMMUNITY HELP
 
-// List all active help offers/requests
+//List all active help offers/requests
 router.get('/community', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { type, category, status } = req.query
@@ -343,7 +343,7 @@ router.get('/community', async (req: Request, res: Response, next: NextFunction)
   }
 })
 
-// Create a help offer or request (requires authentication)
+//Create a help offer or request (requires authentication)
 router.post('/community', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { type, category, title, description, location_text, location_lat, location_lng, contact_info, capacity, consent_given } = req.body
@@ -369,14 +369,14 @@ router.post('/community', authMiddleware, async (req: AuthRequest, res: Response
   }
 })
 
-// Update status (fulfil, cancel, expire)
+//Update status (fulfil, cancel, expire)
 router.put('/community/:id/status', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status } = req.body
     if (!status || !['fulfilled', 'cancelled', 'expired', 'active'].includes(status)) {
       throw AppError.badRequest('Invalid status.')
     }
-    // Only the creator (or an operator) can update status
+    //Only the creator (or an operator) can update status
     const userId = req.user?.id
     const userRole = req.user?.role || ''
     const isOperator = ['admin', 'operator', 'manager'].includes(userRole)
@@ -395,11 +395,11 @@ router.put('/community/:id/status', authMiddleware, async (req: AuthRequest, res
   }
 })
 
-// FLOOD PREDICTIONS
+//FLOOD PREDICTIONS
 
-// Get all active flood predictions, deduplicated to latest per area
+//Get all active flood predictions, deduplicated to latest per area
 router.get('/predictions', async (_req: Request, res: Response, next: NextFunction) => {
-  // Reusable SQL fragment: DISTINCT ON (area) keeps the most recent run per area
+  //Reusable SQL fragment: DISTINCT ON (area) keeps the most recent run per area
   const latestPerAreaSQL = `
     SELECT id, area, probability, time_to_flood, matched_pattern, next_areas,
            severity, confidence, data_sources, model_version,
@@ -421,7 +421,7 @@ router.get('/predictions', async (_req: Request, res: Response, next: NextFuncti
   try {
     const { rows } = await pool.query(latestPerAreaSQL)
 
-    // If no recent predictions, trigger a fresh calculation
+    //If no recent predictions, trigger a fresh calculation
     if (rows.length === 0) {
       try {
         const { getFloodPredictions } = await import('../services/floodPredictionService.js')
@@ -431,7 +431,7 @@ router.get('/predictions', async (_req: Request, res: Response, next: NextFuncti
         return
       } catch (genErr: any) {
         logger.warn({ err: genErr }, '[Predictions] Auto-regeneration failed')
-        // Fall back to absolute latest regardless of age, still deduplicated
+        //Fall back to absolute latest regardless of age, still deduplicated
         const fallback = await pool.query(
           `SELECT id, area, probability, time_to_flood, matched_pattern, next_areas,
                   severity, confidence, data_sources, model_version,
@@ -460,12 +460,12 @@ router.get('/predictions', async (_req: Request, res: Response, next: NextFuncti
   }
 })
 
-// Send pre-alert for a prediction
+//Send pre-alert for a prediction
 router.post('/predictions/:id/pre-alert', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { operator_id, operator_name } = req.body
 
-    // Get prediction details
+    //Get prediction details
     const predictionResult = await pool.query(
       `SELECT *,
               ST_Y(coordinates::geometry) as lat,
@@ -481,7 +481,7 @@ router.post('/predictions/:id/pre-alert', authMiddleware, requireOperator, async
 
     const prediction = predictionResult.rows[0]
 
-    // Update prediction as alert sent
+    //Update prediction as alert sent
     await pool.query(
       `UPDATE flood_predictions SET pre_alert_sent = true, pre_alert_sent_at = NOW(), pre_alert_sent_by = $1
        WHERE id = $2`,
@@ -497,9 +497,9 @@ router.post('/predictions/:id/pre-alert', authMiddleware, requireOperator, async
           ? ['medium', 'warning', 'info']
           : ['low', 'info']
 
-    // Geospatial + severity matching.
-    // If prediction has coordinates, notify only subscribers within their own radius_km.
-    // If no coordinates exist, gracefully fall back to severity-only matching.
+    //Geospatial + severity matching.
+    //If prediction has coordinates, notify only subscribers within their own radius_km.
+    //If no coordinates exist, gracefully fall back to severity-only matching.
     const subscriptions = await pool.query(
       `SELECT id, email, phone, telegram_id, whatsapp, channels, verified,
               location_lat, location_lng, radius_km
@@ -529,7 +529,7 @@ router.post('/predictions/:id/pre-alert', authMiddleware, requireOperator, async
       return
     }
 
-    // Build alert object
+    //Build alert object
     const alert: notificationService.Alert = {
       id: req.params.id,
       type: 'flood',
@@ -546,13 +546,13 @@ router.post('/predictions/:id/pre-alert', authMiddleware, requireOperator, async
       },
     }
 
-    // Send to all subscribers (email, SMS, WhatsApp, Telegram)
+    //Send to all subscribers (email, SMS, WhatsApp, Telegram)
     const deliveryResults = await notificationService.sendAlertToSubscribers(
       alert,
       subscriptions.rows
     )
 
-    // Also send Web Push to all active push subscriptions
+    //Also send Web Push to all active push subscriptions
     try {
       const pushSubs = await pool.query(
         `SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE active = true`
@@ -584,7 +584,7 @@ router.post('/predictions/:id/pre-alert', authMiddleware, requireOperator, async
       logger.warn({ err: pushErr }, 'Web Push flood pre-alert error')
     }
 
-    // Log audit trail
+    //Log audit trail
     await pool.query(
       `INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, after_state)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
@@ -619,7 +619,7 @@ router.post('/predictions/:id/pre-alert', authMiddleware, requireOperator, async
   }
 })
 
-// Test notification service (admin only)
+//Test notification service (admin only)
 router.post('/notifications/test', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { channel, recipient } = req.body
@@ -628,7 +628,7 @@ router.post('/notifications/test', authMiddleware, requireAdmin, async (req: Aut
       throw AppError.badRequest('channel and recipient are required')
     }
 
-    // Create test alert
+    //Create test alert
     const testAlert: notificationService.Alert = {
       id: 'test-' + Date.now(),
       type: 'general',
@@ -641,7 +641,7 @@ router.post('/notifications/test', authMiddleware, requireAdmin, async (req: Aut
 
     let result: notificationService.DeliveryResult
 
-    // Send based on channel
+    //Send based on channel
     switch (channel) {
       case 'email':
         result = await notificationService.sendEmailAlert(recipient, testAlert)
@@ -670,14 +670,14 @@ router.post('/notifications/test', authMiddleware, requireAdmin, async (req: Aut
   }
 })
 
-// Get notification service status
+//Get notification service status
 router.get('/notifications/status', (_req: Request, res: Response) => {
   const status = notificationService.getNotificationServiceStatus()
   res.json(status)
 })
 
-// Verify that a Web Push endpoint is still active in the database.
-// Called by the client on load to detect stale FCM subscriptions.
+//Verify that a Web Push endpoint is still active in the database.
+//Called by the client on load to detect stale FCM subscriptions.
 router.get('/notifications/verify-subscription', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { endpoint } = req.query
@@ -699,12 +699,12 @@ router.get('/notifications/verify-subscription', async (req: Request, res: Respo
   }
 })
 
-// Subscribe to Web Push notifications
+//Subscribe to Web Push notifications
 router.post('/notifications/subscribe', subscriptionLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { subscription, email } = req.body
 
-    // Derive user_id from auth token if present - never trust the body
+    //Derive user_id from auth token if present - never trust the body
     let user_id: number | null = null
     const authHeader = req.headers.authorization
     if (authHeader?.startsWith('Bearer ')) {
@@ -718,7 +718,7 @@ router.post('/notifications/subscribe', subscriptionLimiter, async (req: Request
       throw AppError.badRequest('Invalid push subscription object')
     }
 
-    // Check if table exists, if not create it
+    //Check if table exists, if not create it
     try {
       const checkTable = await pool.query(`
         SELECT EXISTS (
@@ -728,7 +728,7 @@ router.post('/notifications/subscribe', subscriptionLimiter, async (req: Request
       `)
 
       if (!checkTable.rows[0].exists) {
-        // Create table if it doesn't exist
+        //Create table if it doesn't exist
         await pool.query(`
           CREATE TABLE IF NOT EXISTS push_subscriptions (
             id SERIAL PRIMARY KEY,
@@ -750,7 +750,7 @@ router.post('/notifications/subscribe', subscriptionLimiter, async (req: Request
       logger.warn({ err: tableErr }, 'Table check failed, attempting to use existing table')
     }
 
-    // Store push subscription in database
+    //Store push subscription in database
     const { rows } = await pool.query(
       `INSERT INTO push_subscriptions (user_id, email, endpoint, p256dh, auth, subscription_data, active)
        VALUES ($1, $2, $3, $4, $5, $6, true)
@@ -778,7 +778,7 @@ router.post('/notifications/subscribe', subscriptionLimiter, async (req: Request
   }
 })
 
-// Unsubscribe from Web Push
+//Unsubscribe from Web Push
 router.post('/notifications/unsubscribe', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { endpoint } = req.body
@@ -798,7 +798,7 @@ router.post('/notifications/unsubscribe', async (req: Request, res: Response, ne
   }
 })
 
-// Broadcast custom alert (admin only)
+//Broadcast custom alert (admin only)
 router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const {
@@ -815,7 +815,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
       topic_filter: broadcast_topic
     } = req.body
 
-    // Validation
+    //Validation
     if (!title || !message || !severity || !area) {
       throw AppError.badRequest('title, message, severity, and area are required')
     }
@@ -824,7 +824,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
       throw AppError.badRequest('severity must be: critical, warning, or info')
     }
 
-    // Get matching subscriptions (filter by severity AND topic if specified)
+    //Get matching subscriptions (filter by severity AND topic if specified)
     const filterCriteria = severity_filter || ['critical', 'warning', 'info']
     const topicCriteria = broadcast_topic || alert_type || 'general'
     const subscriptions = await pool.query(
@@ -844,7 +844,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
       return
     }
 
-    // Persist alert to `alerts` table so delivery logs can reference a valid UUID
+    //Persist alert to `alerts` table so delivery logs can reference a valid UUID
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     const safeOperatorId = operator_id && UUID_RE.test(operator_id) ? operator_id : null
     let alertId: string
@@ -884,13 +884,13 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
       },
     }
 
-    // Send to all matching subscribers (email, SMS, WhatsApp, Telegram)
+    //Send to all matching subscribers (email, SMS, WhatsApp, Telegram)
     const deliveryResults = await notificationService.sendAlertToSubscribers(
       alert,
       subscriptions.rows
     )
 
-    // Also send Web Push to all active push subscriptions
+    //Also send Web Push to all active push subscriptions
     try {
       const pushSubs = await pool.query(
         `SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE active = true`
@@ -907,12 +907,12 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
           if (pushResult.success) deliveryResults.successful++
           else {
             deliveryResults.failed++
-            // 410 Gone / 404 Not Found means the endpoint is permanently gone
+            //410 Gone / 404 Not Found means the endpoint is permanently gone
             if (pushResult.expired) expiredEndpoints.push(ps.endpoint)
           }
         }
       }
-      // Bulk-deactivate expired endpoints so they don't accumulate
+      //Bulk-deactivate expired endpoints so they don't accumulate
       if (expiredEndpoints.length > 0) {
         await pool.query(
           `UPDATE push_subscriptions SET active = false WHERE endpoint = ANY($1::text[])`,
@@ -924,7 +924,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
       logger.warn({ err: pushErr }, 'Web Push broadcast error')
     }
 
-    // Log each delivery result to alert_delivery_log
+    //Log each delivery result to alert_delivery_log
     for (const dr of deliveryResults.results) {
       try {
         await pool.query(
@@ -935,7 +935,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
       } catch { /* best effort logging */ }
     }
 
-    // Log audit trail
+    //Log audit trail
     await pool.query(
       `INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, after_state)
        VALUES ($1::uuid, $2, $3, $4, $5, $6, $7)`,
@@ -956,7 +956,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
       ]
     )
 
-    // Real-time Socket.IO push to all connected clients (fastest path)
+    //Real-time Socket.IO push to all connected clients (fastest path)
     broadcastAlert({
       id: alertId,
       type: alert_type || 'general',
@@ -984,7 +984,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
   }
 })
 
-// ALERT DELIVERY LOG
+//ALERT DELIVERY LOG
 
 function buildDeliveryWhere(q: Record<string, any>): { where: string; params: any[]; nextIdx: number } {
   const clauses: string[] = []
@@ -1001,7 +1001,7 @@ function buildDeliveryWhere(q: Record<string, any>): { where: string; params: an
   return { where: clauses.length ? 'WHERE ' + clauses.join(' AND ') : '', params, nextIdx: idx }
 }
 
-// GET /api/alerts/delivery - paginated, filtered, joined with alert title
+//GET /api/alerts/delivery - paginated, filtered, joined with alert title
 router.get('/alerts/delivery', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
@@ -1026,7 +1026,7 @@ router.get('/alerts/delivery', authMiddleware, async (req: AuthRequest, res: Res
   }
 })
 
-// GET /api/alerts/delivery/stats - analytics dashboard data
+//GET /api/alerts/delivery/stats - analytics dashboard data
 router.get('/alerts/delivery/stats', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
@@ -1074,7 +1074,7 @@ router.get('/alerts/delivery/stats', authMiddleware, async (req: AuthRequest, re
   }
 })
 
-// GET /api/alerts/delivery/grouped - per-alert summary with all channel deliveries
+//GET /api/alerts/delivery/grouped - per-alert summary with all channel deliveries
 router.get('/alerts/delivery/grouped', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
@@ -1112,7 +1112,7 @@ router.get('/alerts/delivery/grouped', authMiddleware, async (req: AuthRequest, 
   }
 })
 
-// POST /api/alerts/delivery/:id/retry - retry a single failed delivery
+//POST /api/alerts/delivery/:id/retry - retry a single failed delivery
 router.post('/alerts/delivery/:id/retry', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
@@ -1136,7 +1136,7 @@ router.post('/alerts/delivery/:id/retry', authMiddleware, async (req: AuthReques
   }
 })
 
-// POST /api/alerts/delivery/retry-failed - bulk retry failed deliveries
+//POST /api/alerts/delivery/retry-failed - bulk retry failed deliveries
 router.post('/alerts/delivery/retry-failed', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
@@ -1168,7 +1168,7 @@ router.post('/alerts/delivery/retry-failed', authMiddleware, async (req: AuthReq
   }
 })
 
-// GET /api/alerts/delivery/export.csv - stream CSV download
+//GET /api/alerts/delivery/export.csv - stream CSV download
 router.get('/alerts/delivery/export.csv', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
@@ -1190,9 +1190,9 @@ router.get('/alerts/delivery/export.csv', authMiddleware, async (req: AuthReques
   }
 })
 
-// RESOURCE DEPLOYMENTS
+//RESOURCE DEPLOYMENTS
 
-// Get all resource deployments
+//Get all resource deployments
 router.get('/deployments', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) {
     throw AppError.forbidden('Insufficient permissions.')
@@ -1218,7 +1218,7 @@ router.get('/deployments', authMiddleware, async (req: AuthRequest, res: Respons
   }
 })
 
-// Deploy resources to a zone
+//Deploy resources to a zone
 router.post('/deployments/:id/deploy', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) {
     throw AppError.forbidden('Insufficient permissions for deployment operations.')
@@ -1260,7 +1260,7 @@ router.post('/deployments/:id/deploy', authMiddleware, async (req: AuthRequest, 
   }
 })
 
-// Recall resources
+//Recall resources
 router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) {
     throw AppError.forbidden('Insufficient permissions for deployment operations.')
@@ -1287,7 +1287,7 @@ router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, 
     if (!rows.length) throw AppError.notFound('Deployment zone not found.')
     const zone = rows[0]
 
-    // Module 5a: Auto-resolve linked report on recall
+    //Module 5a: Auto-resolve linked report on recall
     let reportResolved = false
     if (zone.report_id) {
       try {
@@ -1301,7 +1301,7 @@ router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, 
       } catch { /* non-critical */ }
     }
 
-    // Module 5b: Submit AI prediction feedback signal + log
+    //Module 5b: Submit AI prediction feedback signal + log
     const validFeedbacks = ['correct', 'incorrect', 'uncertain']
     const feedback = validFeedbacks.includes(ai_feedback) ? ai_feedback : 'correct'
     let feedbackLogged = false
@@ -1336,7 +1336,7 @@ router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, 
   }
 })
 
-// Create a new deployment zone
+//Create a new deployment zone
 router.post('/deployments', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) {
     throw AppError.forbidden('Insufficient permissions.')
@@ -1362,7 +1362,7 @@ router.post('/deployments', authMiddleware, async (req: AuthRequest, res: Respon
                       parsedLat >= -90 && parsedLat <= 90 &&
                       parsedLng >= -180 && parsedLng <= 180
 
-    // Validate optional FK UUIDs to prevent injection
+    //Validate optional FK UUIDs to prevent injection
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     const safeReportId = (report_id && UUID_RE.test(report_id)) ? report_id : null
     const safePredictionId = (prediction_id && UUID_RE.test(prediction_id)) ? prediction_id : null
@@ -1413,7 +1413,7 @@ router.post('/deployments', authMiddleware, async (req: AuthRequest, res: Respon
       ]
     )
 
-    // Critical zone escalation - notify all active admin/operator staff
+    //Critical zone escalation - notify all active admin/operator staff
     if (zonePriority === 'Critical') {
       try {
         const { rows: staffRows } = await pool.query(
@@ -1447,7 +1447,7 @@ router.post('/deployments', authMiddleware, async (req: AuthRequest, res: Respon
   }
 })
 
-// Delete a deployment zone
+//Delete a deployment zone
 router.delete('/deployments/:id', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (req.user?.role !== 'admin') {
     throw AppError.forbidden('Only admins can delete deployment zones.')
@@ -1478,7 +1478,7 @@ router.delete('/deployments/:id', authMiddleware, async (req: AuthRequest, res: 
   }
 })
 
-// Update a deployment zone (inline edit)
+//Update a deployment zone (inline edit)
 router.patch('/deployments/:id', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) {
     throw AppError.forbidden('Insufficient permissions.')
@@ -1554,7 +1554,7 @@ router.patch('/deployments/:id', authMiddleware, async (req: AuthRequest, res: R
   }
 })
 
-// Acknowledge an AI draft deployment zone (operator review step)
+//Acknowledge an AI draft deployment zone (operator review step)
 router.patch('/deployments/:id/acknowledge', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
   try {
@@ -1577,7 +1577,7 @@ router.patch('/deployments/:id/acknowledge', authMiddleware, async (req: AuthReq
   } catch (err) { next(err) }
 })
 
-// Add an ICS ops-log entry to a deployment zone
+//Add an ICS ops-log entry to a deployment zone
 router.patch('/deployments/:id/ops-log', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
   try {
@@ -1597,7 +1597,7 @@ router.patch('/deployments/:id/ops-log', authMiddleware, async (req: AuthRequest
   } catch (err) { next(err) }
 })
 
-// Toggle mutual aid flag on a deployment zone
+//Toggle mutual aid flag on a deployment zone
 router.patch('/deployments/:id/mutual-aid', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
   try {
@@ -1622,9 +1622,9 @@ router.patch('/deployments/:id/mutual-aid', authMiddleware, async (req: AuthRequ
   } catch (err) { next(err) }
 })
 
-// DEPLOYMENT ASSETS (per-vehicle GPS tracking)
+//DEPLOYMENT ASSETS (per-vehicle GPS tracking)
 
-// List assets for a zone
+//List assets for a zone
 router.get('/deployments/:id/assets', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
   try {
@@ -1638,7 +1638,7 @@ router.get('/deployments/:id/assets', authMiddleware, async (req: AuthRequest, r
   } catch (err) { next(err) }
 })
 
-// Add asset to a zone
+//Add asset to a zone
 router.post('/deployments/:id/assets', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
   try {
@@ -1661,7 +1661,7 @@ router.post('/deployments/:id/assets', authMiddleware, async (req: AuthRequest, 
   } catch (err) { next(err) }
 })
 
-// Update asset status / GPS - must precede /:id routes to avoid conflicts
+//Update asset status / GPS - must precede /:id routes to avoid conflicts
 router.patch('/deployments/assets/:assetId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
   try {
@@ -1691,7 +1691,7 @@ router.patch('/deployments/assets/:assetId', authMiddleware, async (req: AuthReq
   } catch (err) { next(err) }
 })
 
-// Delete an asset
+//Delete an asset
 router.delete('/deployments/assets/:assetId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
   try {
@@ -1704,9 +1704,9 @@ router.delete('/deployments/assets/:assetId', authMiddleware, async (req: AuthRe
   } catch (err) { next(err) }
 })
 
-// REPORT MEDIA
+//REPORT MEDIA
 
-// Get media for a specific report
+//Get media for a specific report
 router.get('/reports/:id/media', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(
@@ -1722,7 +1722,7 @@ router.get('/reports/:id/media', async (req: Request, res: Response, next: NextF
   }
 })
 
-// AI MODEL STATUS (detailed model endpoints moved to aiRoutes.ts)
+//AI MODEL STATUS (detailed model endpoints moved to aiRoutes.ts)
 
 router.get('/ai/status', async (_req: Request, res: Response, next: NextFunction) => {
   try {
@@ -1739,9 +1739,9 @@ router.get('/ai/status', async (_req: Request, res: Response, next: NextFunction
   }
 })
 
-// AI GOVERNANCE ENDPOINTS
+//AI GOVERNANCE ENDPOINTS
 
-// GET /api/ai/governance/models - used by AITransparencyDashboard for accuracy, F1, etc.
+//GET /api/ai/governance/models - used by AITransparencyDashboard for accuracy, F1, etc.
 router.get('/ai/governance/models', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const metrics = await getModelMetrics()
@@ -1751,7 +1751,7 @@ router.get('/ai/governance/models', authMiddleware, requireOperator, async (_req
   }
 })
 
-// GET /api/ai/governance/drift - model drift detection
+//GET /api/ai/governance/drift - model drift detection
 router.get('/ai/governance/drift', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const drift = await checkModelDrift()
@@ -1761,7 +1761,7 @@ router.get('/ai/governance/drift', authMiddleware, requireOperator, async (_req:
   }
 })
 
-// GET /api/ai/governance/bias - bias report (location, severity, temporal, language)
+//GET /api/ai/governance/bias - bias report (location, severity, temporal, language)
 router.get('/ai/governance/bias', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const report = await generateBiasReport()
@@ -1771,7 +1771,7 @@ router.get('/ai/governance/bias', authMiddleware, requireOperator, async (_req: 
   }
 })
 
-// GET /api/ai/governance/health - auto-verifications, flagging rates, backlog
+//GET /api/ai/governance/health - auto-verifications, flagging rates, backlog
 router.get('/ai/governance/health', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const health = await checkGovernanceHealth()
@@ -1781,7 +1781,7 @@ router.get('/ai/governance/health', authMiddleware, requireOperator, async (_req
   }
 })
 
-// GET /api/ai/classifier/health - circuit breaker status for HF classifiers
+//GET /api/ai/classifier/health - circuit breaker status for HF classifiers
 router.get('/ai/classifier/health', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const health = getClassifierHealth()
@@ -1791,7 +1791,7 @@ router.get('/ai/classifier/health', authMiddleware, requireOperator, async (_req
   }
 })
 
-// GET /api/ai/confidence-distribution - computed from real predictions
+//GET /api/ai/confidence-distribution - computed from real predictions
 router.get('/ai/confidence-distribution', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { model } = req.query
@@ -1802,7 +1802,7 @@ router.get('/ai/confidence-distribution', authMiddleware, requireOperator, async
   }
 })
 
-// GET /api/ai/audit - AI execution audit log
+//GET /api/ai/audit - AI execution audit log
 router.get('/ai/audit', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const limit = parseInt(req.query.limit as string) || 50
@@ -1815,7 +1815,7 @@ router.get('/ai/audit', authMiddleware, requireOperator, async (req: AuthRequest
   }
 })
 
-// ─── Safe Zone / Shelter Capacity Alerts ─────────────────────────────────────
+//Safe Zone / Shelter Capacity Alerts
 
 /**
  * PATCH /api/shelters/:id/occupancy
@@ -1853,7 +1853,7 @@ router.patch('/shelters/:id/occupancy', authMiddleware, requireOperator, async (
       ? (shelter.current_occupancy / shelter.capacity) * 100
       : 0
 
-    // Trigger alert when shelter is ≥ 90% full or at capacity
+    //Trigger alert when shelter is ≥ 90% full or at capacity
     let alertSent = false
     if (shelter.capacity > 0 && occupancyPct >= 90) {
       const isFull = current_occupancy >= shelter.capacity
@@ -1865,7 +1865,7 @@ router.patch('/shelters/:id/occupancy', authMiddleware, requireOperator, async (
         ? `${shelter.name} has reached maximum capacity (${shelter.capacity} people). Please proceed to an alternative shelter.`
         : `${shelter.name} is ${Math.round(occupancyPct)}% full (${shelter.current_occupancy}/${shelter.capacity}). Limited spaces remaining.`
 
-      // Notify subscribers near the shelter
+      //Notify subscribers near the shelter
       const subResult = await pool.query(
         `SELECT id, email, phone, telegram_id, whatsapp, channels, verified
          FROM alert_subscriptions
@@ -1895,7 +1895,7 @@ router.patch('/shelters/:id/occupancy', authMiddleware, requireOperator, async (
 
         await notificationService.sendAlertToSubscribers(alert, subResult.rows)
 
-        // Also send web push
+        //Also send web push
         const pushSubs = await pool.query(
           `SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE active = true`
         )
@@ -1917,7 +1917,7 @@ router.patch('/shelters/:id/occupancy', authMiddleware, requireOperator, async (
         }
         alertSent = true
 
-        // Real-time Socket.IO push
+        //Real-time Socket.IO push
         broadcastAlert({
           id: alert.id,
           type: 'safe_zone',
@@ -2001,7 +2001,7 @@ router.post('/shelters/:id/close', authMiddleware, requireOperator, async (req: 
   }
 })
 
-// ─── Metro / Transit Disruption Alerts ───────────────────────────────────────
+//Metro / Transit Disruption Alerts
 
 /**
  * POST /api/alerts/transit
@@ -2034,7 +2034,7 @@ router.post('/alerts/transit', authMiddleware, requireOperator, async (req: Auth
     const validTypes = ['metro', 'bus', 'train', 'ferry', 'tram', 'general']
     const type = validTypes.includes(transit_type) ? transit_type : 'general'
 
-    // Persist to alerts table
+    //Persist to alerts table
     const { rows: alertRows } = await pool.query(
       `INSERT INTO alerts (title, message, severity, alert_type, location_text, expires_at)
        VALUES ($1, $2, $3, $4, $5, $6::timestamptz)
@@ -2061,7 +2061,7 @@ router.post('/alerts/transit', authMiddleware, requireOperator, async (req: Auth
       metadata: { transit_type: type, line: line || null },
     }
 
-    // Get all verified subscribers who include transit topics or haven't filtered it out
+    //Get all verified subscribers who include transit topics or haven't filtered it out
     const subResult = await pool.query(
       `SELECT id, email, phone, telegram_id, whatsapp, channels
        FROM alert_subscriptions
@@ -2076,7 +2076,7 @@ router.post('/alerts/transit', authMiddleware, requireOperator, async (req: Auth
       deliveryResults = await notificationService.sendAlertToSubscribers(alert, subResult.rows)
     }
 
-    // Web Push broadcast
+    //Web Push broadcast
     const pushSubs = await pool.query(`SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE active = true`)
     const expiredEndpoints: string[] = []
     for (const ps of pushSubs.rows) {
@@ -2097,7 +2097,7 @@ router.post('/alerts/transit', authMiddleware, requireOperator, async (req: Auth
       await pool.query(`UPDATE push_subscriptions SET active = false WHERE endpoint = ANY($1::text[])`, [expiredEndpoints])
     }
 
-    // Audit log
+    //Audit log
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     const safeOpId = operator_id && UUID_RE.test(operator_id) ? operator_id : null
     await pool.query(
@@ -2114,7 +2114,7 @@ router.post('/alerts/transit', authMiddleware, requireOperator, async (req: Auth
       ]
     )
 
-    // Real-time Socket.IO push to all connected clients
+    //Real-time Socket.IO push to all connected clients
     broadcastAlert({
       id: alertId,
       type: `transit_${type}`,
@@ -2174,11 +2174,11 @@ function normalizeChannels(channels: unknown): string[] {
   ))
 }
 
-// Phone validation is now imported from utils/phoneValidation.ts
+//Phone validation is now imported from utils/phoneValidation.ts
 
-//  ACCOUNT GOVERNANCE ENDPOINTS
+// ACCOUNT GOVERNANCE ENDPOINTS
 
-// Deactivate operator account
+//Deactivate operator account
 router.post('/operators/:id/deactivate', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params
@@ -2188,7 +2188,7 @@ router.post('/operators/:id/deactivate', authMiddleware, requireAdmin, async (re
     await pool.query(
       `UPDATE operators SET is_active = false, updated_at = NOW() WHERE id = $1`, [id]
     )
-    // Log to audit
+    //Log to audit
     await pool.query(
       `INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, before_state, after_state)
        VALUES ($1, $2, $3, 'deactivate', 'operator', $4, $5, $6)`,
@@ -2207,7 +2207,7 @@ router.post('/operators/:id/deactivate', authMiddleware, requireAdmin, async (re
   }
 })
 
-// Reactivate operator account
+//Reactivate operator account
 router.post('/operators/:id/reactivate', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params
@@ -2226,7 +2226,7 @@ router.post('/operators/:id/reactivate', authMiddleware, requireAdmin, async (re
   }
 })
 
-// Suspend operator temporarily
+//Suspend operator temporarily
 router.post('/operators/:id/suspend', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params
@@ -2247,7 +2247,7 @@ router.post('/operators/:id/suspend', authMiddleware, requireAdmin, async (req: 
   }
 })
 
-// GDPR-safe anonymise operator (preferred over hard delete)
+//GDPR-safe anonymise operator (preferred over hard delete)
 router.post('/operators/:id/anonymise', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params
@@ -2281,7 +2281,7 @@ router.post('/operators/:id/anonymise', authMiddleware, requireAdmin, async (req
   }
 })
 
-// List all operators (for admin management)
+//List all operators (for admin management)
 router.get('/operators', authMiddleware, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const result = await pool.query(
@@ -2294,7 +2294,7 @@ router.get('/operators', authMiddleware, requireAdmin, async (_req: AuthRequest,
   }
 })
 
-// Update operator profile
+//Update operator profile
 router.put('/operators/:id/profile', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params
@@ -2313,9 +2313,9 @@ router.put('/operators/:id/profile', authMiddleware, requireAdmin, async (req: A
   }
 })
 
-//  AI PREDICTION ENGINE - Plug & Play Architecture
+// AI PREDICTION ENGINE - Plug & Play Architecture
 
-// POST /api/predictions/run - Runs a hazard prediction via the AI engine
+//POST /api/predictions/run - Runs a hazard prediction via the AI engine
 router.post('/predictions/run', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { area, latitude, longitude, weather_data, historical_indicators, region_id } = req.body
@@ -2341,7 +2341,7 @@ router.post('/predictions/run', authMiddleware, requireOperator, async (req: Aut
 
     const executionMs = Date.now() - startTime
 
-    // Log AI execution
+    //Log AI execution
     await pool.query(
       `INSERT INTO ai_executions (model_name, model_version, input_payload, raw_response, status, execution_time_ms, target_type)
        VALUES ('flood-predictor', $1, $2, $3, 'success', $4, 'prediction')`,
@@ -2349,8 +2349,8 @@ router.post('/predictions/run', authMiddleware, requireOperator, async (req: Aut
        JSON.stringify(predictionResponse), executionMs]
     ).catch(() => {})
 
-    // Store prediction record
-    // Compute affected_radius_km from probability (0-100% ? 0.5-15 km range)
+    //Store prediction record
+    //Compute affected_radius_km from probability (0-100% ? 0.5-15 km range)
     const affectedRadiusKm = Math.max(0.5, Math.round(((predictionResponse.probability || 0.1) * 15) * 100) / 100)
 
     await pool.query(
@@ -2403,7 +2403,7 @@ router.post('/predictions/run', authMiddleware, requireOperator, async (req: Aut
       ]
     ).catch(() => null)
 
-    // Module 1: Auto-create draft deployment zone for high-probability predictions (=70%)
+    //Module 1: Auto-create draft deployment zone for high-probability predictions (=70%)
     if (fpResult?.rows?.[0]?.id && probability01 >= 0.7) {
       const fpId = fpResult.rows[0].id
       const draftPriority = probability01 >= 0.85 ? 'Critical' : 'High'
@@ -2441,9 +2441,9 @@ router.post('/predictions/run', authMiddleware, requireOperator, async (req: Aut
   }
 })
 
-//  SPATIAL INTELLIGENCE - GeoJSON endpoints for QGIS + Heatmaps
+// SPATIAL INTELLIGENCE - GeoJSON endpoints for QGIS + Heatmaps
 
-// GET /api/map/risk-layer - Returns structured GeoJSON risk layer
+//GET /api/map/risk-layer - Returns structured GeoJSON risk layer
 router.get('/map/risk-layer', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await pool.query(
@@ -2462,10 +2462,10 @@ router.get('/map/risk-layer', async (_req: Request, res: Response, next: NextFun
   }
 })
 
-// GET /api/map/heatmap-data - Returns dynamically computed heatmap intensity data
+//GET /api/map/heatmap-data - Returns dynamically computed heatmap intensity data
 router.get('/map/heatmap-data', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    // First try live computation from historical + report data
+    //First try live computation from historical + report data
     const computed = await computeRiskHeatmap()
     if (computed.length > 0) {
       res.json({
@@ -2476,7 +2476,7 @@ router.get('/map/heatmap-data', async (_req: Request, res: Response, next: NextF
       return
     }
 
-    // Fallback to stored heatmap layers
+    //Fallback to stored heatmap layers
     const result = await pool.query(
       `SELECT id, name, source, intensity_data, model_version, generated_at
        FROM heatmap_layers ORDER BY generated_at DESC LIMIT 1`
@@ -2491,7 +2491,7 @@ router.get('/map/heatmap-data', async (_req: Request, res: Response, next: NextF
   }
 })
 
-// GET /api/ai/status/detail - Returns detailed DB execution analytics
+//GET /api/ai/status/detail - Returns detailed DB execution analytics
 router.get('/ai/status/detail', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const models = await pool.query(
@@ -2507,10 +2507,10 @@ router.get('/ai/status/detail', authMiddleware, requireOperator, async (_req: Au
   }
 })
 
-// GET /api/ai/drift - MOVED to aiRoutes.ts (Phase 5 Governance)
-// Now served by aiRoutes with live AI engine drift detection
+//GET /api/ai/drift - MOVED to aiRoutes.ts (Phase 5 Governance)
+//Now served by aiRoutes with live AI engine drift detection
 
-// POST /api/ai/labels - Add training label (human-in-the-loop)
+//POST /api/ai/labels - Add training label (human-in-the-loop)
 router.post('/ai/labels', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { report_id, label_type, label_value, operator_id, confidence } = req.body
@@ -2524,7 +2524,7 @@ router.post('/ai/labels', authMiddleware, requireOperator, async (req: AuthReque
   }
 })
 
-// POST /api/ai/damage-estimate - Economic damage estimation model
+//POST /api/ai/damage-estimate - Economic damage estimation model
 router.post('/ai/damage-estimate', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { severity, affected_area_km2, population_density, duration_hours, water_depth_m } = req.body
@@ -2541,9 +2541,9 @@ router.post('/ai/damage-estimate', authMiddleware, requireOperator, async (req: 
   }
 })
 
-//  MULTI-SOURCE FUSION ENGINE (Features #16-25)
+// MULTI-SOURCE FUSION ENGINE (Features #16-25)
 
-// POST /api/fusion/run - Run full 10-source fusion analysis (ADMIN ONLY)
+//POST /api/fusion/run - Run full 10-source fusion analysis (ADMIN ONLY)
 router.post('/fusion/run', requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { region_id, latitude, longitude } = req.body
@@ -2551,9 +2551,9 @@ router.post('/fusion/run', requireAdmin, async (req: Request, res: Response, nex
       throw AppError.badRequest('region_id, latitude, and longitude are required')
     }
 
-    // Gather live data from all sources
+    //Gather live data from all sources
     const fusionInput = await gatherFusionData(region_id, latitude, longitude)
-    // Run weighted fusion algorithm
+    //Run weighted fusion algorithm
     const result = await runFusion(fusionInput)
     res.json(result)
   } catch (err) {
@@ -2561,9 +2561,9 @@ router.post('/fusion/run', requireAdmin, async (req: Request, res: Response, nex
   }
 })
 
-//  FLOOD FINGERPRINTING ENGINE (Features #26-27)
+// FLOOD FINGERPRINTING ENGINE (Features #26-27)
 
-// POST /api/fingerprint/run - Run cosine-similarity flood fingerprinting (OPERATOR ONLY)
+//POST /api/fingerprint/run - Run cosine-similarity flood fingerprinting (OPERATOR ONLY)
 router.post('/fingerprint/run', requireOperator, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { region_id, latitude, longitude, area } = req.body
@@ -2580,9 +2580,9 @@ router.post('/fingerprint/run', requireOperator, async (req: Request, res: Respo
   }
 })
 
-//  DATA INGESTION PIPELINE (ADMIN ONLY)
+// DATA INGESTION PIPELINE (ADMIN ONLY)
 
-// POST /api/ingestion/run - Run full data ingestion from all sources (ADMIN ONLY)
+//POST /api/ingestion/run - Run full data ingestion from all sources (ADMIN ONLY)
 router.post('/ingestion/run', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await runFullIngestion()
@@ -2592,7 +2592,7 @@ router.post('/ingestion/run', requireAdmin, async (_req: Request, res: Response,
   }
 })
 
-// POST /api/ingestion/source/:source - Run single source ingestion (ADMIN ONLY)
+//POST /api/ingestion/source/:source - Run single source ingestion (ADMIN ONLY)
 router.post('/ingestion/source/:source', requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const source = req.params.source
@@ -2612,7 +2612,7 @@ router.post('/ingestion/source/:source', requireAdmin, async (req: Request, res:
   }
 })
 
-// GET /api/ingestion/status - Get ingestion history and table counts (OPERATOR ONLY)
+//GET /api/ingestion/status - Get ingestion history and table counts (OPERATOR ONLY)
 router.get('/ingestion/status', authMiddleware, requireOperator, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     await ensureIngestionSchema()
@@ -2634,7 +2634,7 @@ router.get('/ingestion/status', authMiddleware, requireOperator, async (_req: Re
       } catch { counts[t] = 0 }
     }
 
-    // Recent ingestion logs
+    //Recent ingestion logs
     let logs: any[] = []
     try {
       const r = await pool.query(`
@@ -2652,9 +2652,9 @@ router.get('/ingestion/status', authMiddleware, requireOperator, async (_req: Re
   }
 })
 
-//  ML TRAINING PIPELINE (ADMIN ONLY)
+// ML TRAINING PIPELINE (ADMIN ONLY)
 
-// POST /api/training/run - Train all ML models (ADMIN ONLY)
+//POST /api/training/run - Train all ML models (ADMIN ONLY)
 router.post('/training/run', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await trainAllModels()
@@ -2664,7 +2664,7 @@ router.post('/training/run', requireAdmin, async (_req: Request, res: Response, 
   }
 })
 
-// POST /api/training/fusion-weights - Train fusion weight optimizer (ADMIN ONLY)
+//POST /api/training/fusion-weights - Train fusion weight optimizer (ADMIN ONLY)
 router.post('/training/fusion-weights', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await trainFusionWeights()
@@ -2674,9 +2674,9 @@ router.post('/training/fusion-weights', requireAdmin, async (_req: Request, res:
   }
 })
 
-//  RAG KNOWLEDGE BASE (ADMIN ONLY)
+// RAG KNOWLEDGE BASE (ADMIN ONLY)
 
-// POST /api/rag/expand - Expand RAG knowledge base (ADMIN ONLY)
+//POST /api/rag/expand - Expand RAG knowledge base (ADMIN ONLY)
 router.post('/rag/expand', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await expandRAGKnowledgeBase()
@@ -2686,7 +2686,7 @@ router.post('/rag/expand', requireAdmin, async (_req: Request, res: Response, ne
   }
 })
 
-// POST /api/rag/query - Query RAG knowledge base (OPERATOR ONLY)
+//POST /api/rag/query - Query RAG knowledge base (OPERATOR ONLY)
 router.post('/rag/query', authMiddleware, requireOperator, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { query, limit } = req.body
@@ -2699,9 +2699,9 @@ router.post('/rag/query', authMiddleware, requireOperator, async (req: Request, 
   }
 })
 
-//  RESILIENCE MONITORING (OPERATOR ONLY)
+// RESILIENCE MONITORING (OPERATOR ONLY)
 
-// GET /api/resilience/status - Get cache, rate limit, circuit breaker status (OPERATOR ONLY)
+//GET /api/resilience/status - Get cache, rate limit, circuit breaker status (OPERATOR ONLY)
 router.get('/resilience/status', requireOperator, (_req: Request, res: Response, next: NextFunction) => {
   try {
     res.json(getResilienceStatus())
@@ -2710,12 +2710,12 @@ router.get('/resilience/status', requireOperator, (_req: Request, res: Response,
   }
 })
 
-//  SYSTEM REPORT (OPERATOR ONLY)
+// SYSTEM REPORT (OPERATOR ONLY)
 
-// GET /api/system/report - Generate comprehensive system status report (OPERATOR ONLY)
+//GET /api/system/report - Generate comprehensive system status report (OPERATOR ONLY)
 router.get('/system/report', requireOperator, async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    // Table row counts
+    //Table row counts
     const tables = [
       'reports', 'river_gauge_readings', 'climate_observations',
       'weather_observations', 'flood_archives', 'news_articles',
@@ -2733,7 +2733,7 @@ router.get('/system/report', requireOperator, async (_req: Request, res: Respons
       } catch { tableCounts[t] = 0 }
     }
 
-    // Model metrics
+    //Model metrics
     let modelMetrics: any[] = []
     try {
       const r = await pool.query(`
@@ -2745,7 +2745,7 @@ router.get('/system/report', requireOperator, async (_req: Request, res: Respons
       modelMetrics = r.rows
     } catch { /* ignore */ }
 
-    // API key status
+    //API key status
     const apiKeys = {
       GEMINI_API_KEY: !!process.env.GEMINI_API_KEY,
       GROQ_API_KEY: !!process.env.GROQ_API_KEY,
@@ -2755,10 +2755,10 @@ router.get('/system/report', requireOperator, async (_req: Request, res: Respons
       DATABASE_URL: !!process.env.DATABASE_URL,
     }
 
-    // Resilience status
+    //Resilience status
     const resilience = getResilienceStatus()
 
-    // Recent ingestion
+    //Recent ingestion
     let lastIngestion: any = null
     try {
       const r = await pool.query(`SELECT id, status, source, records_processed, errors, created_at FROM ingestion_log ORDER BY created_at DESC LIMIT 1`)

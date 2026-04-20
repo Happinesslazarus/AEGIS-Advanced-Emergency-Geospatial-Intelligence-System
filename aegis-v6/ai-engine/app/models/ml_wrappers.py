@@ -58,9 +58,9 @@ class TrainedModelLoader:
                     model_data = safe_pickle_load(model_path, self.registry_path)
                     self.models[model_type] = model_data['model']
                     self.metadata[model_type] = model_data.get('metadata', {})
-                    logger.success(f"✓ Loaded {model_type}")
+                    logger.success(f" Loaded {model_type}")
                 else:
-                    logger.warning(f"⚠ No trained model found for {model_type}")
+                    logger.warning(f"! No trained model found for {model_type}")
             except Exception as e:
                 logger.warning(f"Failed to load {model_type}: {e}")
     

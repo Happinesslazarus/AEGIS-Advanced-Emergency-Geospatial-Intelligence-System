@@ -15,12 +15,12 @@
 import { describe, test, expect } from 'vitest'
 import { validateReport, validateEmail, sanitizeInput, type ReportValidationInput } from '../utils/validation'
 
-// validateReport Tests
+//validateReport Tests
 
 describe('validateReport', () => {
-  // validReport is a known-good baseline; individual tests modify one field
-  // at a time using the object spread-override pattern:  { ...validReport, field: badValue }.
-  // This way each test is focused on exactly one validation rule.
+  //validReport is a known-good baseline; individual tests modify one field
+  //at a time using the object spread-override pattern:  { ...validReport, field: badValue }.
+  //This way each test is focused on exactly one validation rule.
   const validReport = {
     description: 'This is a valid description with enough characters.',
     location: 'City Center',
@@ -190,7 +190,7 @@ describe('validateReport', () => {
   })
 })
 
-// validateEmail Tests
+//validateEmail Tests
 
 describe('validateEmail', () => {
   describe('valid emails', () => {
@@ -262,7 +262,7 @@ describe('validateEmail', () => {
   })
 })
 
-// sanitizeInput Tests
+//sanitizeInput Tests
 
 describe('sanitizeInput', () => {
   describe('removes dangerous characters', () => {

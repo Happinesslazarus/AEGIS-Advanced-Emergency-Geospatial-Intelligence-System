@@ -384,7 +384,7 @@ class RealDatasetIngestion:
             
             for location in uk_locations:
                 try:
-                    # Open-Meteo historical hourly API — real weather data, no key needed
+                    # Open-Meteo historical hourly API -- real weather data, no key needed
                     url = (
                         f"https://archive-api.open-meteo.com/v1/archive"
                         f"?latitude={location['lat']}&longitude={location['lon']}"
@@ -508,7 +508,7 @@ class RealDatasetIngestion:
             logger.error(error_msg)
             raise ValueError(error_msg)
         
-        logger.success(f"✓ Validation passed: {total_reports} rows available (>= {self.MINIMUM_REQUIRED_ROWS} required)")
+        logger.success(f" Validation passed: {total_reports} rows available (>= {self.MINIMUM_REQUIRED_ROWS} required)")
         
         stats = {
             'total_reports': total_reports,
@@ -549,7 +549,7 @@ async def main():
         print("=" * 80)
         print(f"Total reports: {stats['total_reports']}")
         print(f"Total weather observations: {stats['total_weather_obs']}")
-        print(f"Validation: {'PASSED ✓' if stats['validation_passed'] else 'FAILED ✗'}")
+        print(f"Validation: {'PASSED ' if stats['validation_passed'] else 'FAILED x'}")
         print("=" * 80)
     
     finally:

@@ -14,7 +14,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/glob
 import request from 'supertest'
 import express, { type Request, type Response, type NextFunction } from 'express'
 
-// Test environment
+//Test environment
 process.env.JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-at-least-32-chars'
 process.env.NODE_ENV = 'test'
@@ -32,7 +32,7 @@ import {
 } from './helpers/testFixtures'
 import { AppError } from '../utils/AppError'
 
-// Build test app
+//Build test app
 
 let app: express.Express
 let emittedEvents: Array<{ event: string; args: unknown[] }>
@@ -43,7 +43,7 @@ function buildReportTestApp() {
   _app.use(express.json())
 
   emittedEvents = []
-  // Mock io
+  //Mock io
   _app.set('io', {
     emit(event: string, ...args: unknown[]) {
       emittedEvents.push({ event, args })
@@ -54,7 +54,7 @@ function buildReportTestApp() {
   const { authMiddleware, operatorOnly } = require('../middleware/auth')
   const router = express.Router()
 
-  // GET / — list reports with filters
+  //GET / -- list reports with filters
   router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { status, severity, category, limit = '100' } = req.query
@@ -77,7 +77,7 @@ function buildReportTestApp() {
     } catch (err) { next(err) }
   })
 
-  // GET /stats — aggregate statistics
+  //GET /stats -- aggregate statistics
   router.get('/stats', async (_req: Request, res: Response, next: NextFunction) => {
     try {
       const total = await pool.query('SELECT COUNT(*) as count FROM reports WHERE deleted_at IS NULL')
@@ -95,7 +95,7 @@ function buildReportTestApp() {
     } catch (err) { next(err) }
   })
 
-  // GET /:id — single report
+  //GET /:id -- single report
   router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { rows } = await pool.query(
@@ -110,7 +110,7 @@ function buildReportTestApp() {
     } catch (err) { next(err) }
   })
 
-  // POST / — submit report (authenticated or anonymous)
+  //POST / -- submit report (authenticated or anonymous)
   router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const {
@@ -159,7 +159,7 @@ function buildReportTestApp() {
     } catch (err) { next(err) }
   })
 
-  // PUT /bulk/status — bulk status update (operator only)
+  //PUT /bulk/status -- bulk status update (operator only)
   router.put('/bulk/status', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { ids, status: newStatus } = req.body
@@ -179,7 +179,7 @@ function buildReportTestApp() {
     } catch (err) { next(err) }
   })
 
-  // PUT /:id/status — update status (operator only)
+  //PUT /:id/status -- update status (operator only)
   router.put('/:id/status', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { status: newStatus } = req.body
@@ -201,7 +201,7 @@ function buildReportTestApp() {
     } catch (err) { next(err) }
   })
 
-  // PUT /:id/notes — add operator notes
+  //PUT /:id/notes -- add operator notes
   router.put('/:id/notes', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { notes } = req.body
@@ -224,7 +224,7 @@ function buildReportTestApp() {
   return _app
 }
 
-// Lifecycle
+//Lifecycle
 
 beforeAll(async () => {
   app = buildReportTestApp()
@@ -246,7 +246,7 @@ afterAll(async () => {
 
 describe('Reports Integration Tests', () => {
 
-  // Report submission
+  //Report submission
 
   describe('Submit Report', () => {
     it('should submit a report with all fields', async () => {
@@ -310,7 +310,7 @@ describe('Reports Integration Tests', () => {
     })
   })
 
-  // Report listing & filtering
+  //Report listing & filtering
 
   describe('List & Filter Reports', () => {
     beforeEach(async () => {
@@ -351,7 +351,7 @@ describe('Reports Integration Tests', () => {
     })
   })
 
-  // Single report retrieval
+  //Single report retrieval
 
   describe('Get Single Report', () => {
     it('should fetch a report by id', async () => {
@@ -368,7 +368,7 @@ describe('Reports Integration Tests', () => {
     })
   })
 
-  // Status updates
+  //Status updates
 
   describe('Update Report Status', () => {
     it('should update status as operator', async () => {
@@ -427,7 +427,7 @@ describe('Reports Integration Tests', () => {
     })
   })
 
-  // Bulk operations
+  //Bulk operations
 
   describe('Bulk Status Update', () => {
     it('should update multiple reports at once', async () => {
@@ -465,7 +465,7 @@ describe('Reports Integration Tests', () => {
     })
   })
 
-  // Operator notes
+  //Operator notes
 
   describe('Operator Notes', () => {
     it('should add notes to a report', async () => {
@@ -481,7 +481,7 @@ describe('Reports Integration Tests', () => {
     })
   })
 
-  // Statistics
+  //Statistics
 
   describe('Report Statistics', () => {
     it('should return aggregate stats', async () => {
@@ -497,7 +497,7 @@ describe('Reports Integration Tests', () => {
     })
   })
 
-  // Edge cases
+  //Edge cases
 
   describe('Edge Cases', () => {
     it('should handle very long description', async () => {

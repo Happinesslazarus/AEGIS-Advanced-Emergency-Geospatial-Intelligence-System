@@ -24,7 +24,7 @@ interface AlertsContextType {
 
 const AlertsContext = createContext<AlertsContextType | null>(null)
 
-// Helper to format relative time
+//Helper to format relative time
 function formatDisplayTime(timestamp: string): string {
   const now = new Date()
   const then = new Date(timestamp)
@@ -46,17 +46,17 @@ export function AlertsProvider({ children }: { children: ReactNode }): JSX.Eleme
   const [error, setError] = useState<string | null>(null)
   const notifTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
 
-  // Fetch alerts from API.
+  //Fetch alerts from API.
   const refreshAlerts = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
       const response = await apiGetAlerts()
       
-      // Server may return paginated { data: [...], total, page, limit } or a flat array
+      //Server may return paginated { data: [...], total, page, limit } or a flat array
       // (the API was updated to paginate, but older clients may receive a plain array).
       const alertList = Array.isArray(response) ? response : ((response as any)?.data ?? [])
-      // Map API response to Alert type
+      //Map API response to Alert type
       const fetchedAlerts: Alert[] = alertList.map((a: any) => ({
           id: a.id || `ALT-${Date.now()}-${Math.random().toString(36).slice(2)}`,
           title: a.title || 'Alert',
@@ -80,17 +80,17 @@ export function AlertsProvider({ children }: { children: ReactNode }): JSX.Eleme
     }
   }, [])
 
-  // Load alerts on mount and refresh periodically
+  //Load alerts on mount and refresh periodically
   useEffect(() => {
     refreshAlerts()
     
-    // Auto-refresh every 60 seconds
+    //Auto-refresh every 60 seconds
     const interval = setInterval(refreshAlerts, 60000)
     return () => clearInterval(interval)
   }, [refreshAlerts])
 
-  // Real-time Socket.IO listener — receives operator-issued alerts instantly
-  // without waiting for the 60-second polling cycle.
+  //Real-time Socket.IO listener -- receives operator-issued alerts instantly
+  //without waiting for the 60-second polling cycle.
   useEffect(() => {
     const socket = ioConnect(SOCKET_URL, { transports: ['websocket'], autoConnect: true, reconnectionAttempts: 5 })
 
@@ -99,7 +99,7 @@ export function AlertsProvider({ children }: { children: ReactNode }): JSX.Eleme
       title: string; message: string; area: string;
       actionRequired?: string; issuedAt: string
     }) => {
-      // Map server severity ('warning'/'info') to client AlertSeverity type
+      //Map server severity ('warning'/'info') to client AlertSeverity type
       const severityMap: Record<string, Alert['severity']> = {
         critical: 'critical', warning: 'medium', info: 'low',
       }
@@ -118,11 +118,11 @@ export function AlertsProvider({ children }: { children: ReactNode }): JSX.Eleme
         active: true,
       }
       setAlerts(prev => {
-        // Avoid duplicates if polling also picked it up
+        //Avoid duplicates if polling also picked it up
         if (prev.some(a => a.id === payload.id)) return prev
         return [newAlert, ...prev]
       })
-      // Haptic feedback on mobile for critical alerts
+      //Haptic feedback on mobile for critical alerts
       if (navigator.vibrate && payload.severity === 'critical') {
         navigator.vibrate([100, 50, 100])
       }
@@ -134,7 +134,7 @@ export function AlertsProvider({ children }: { children: ReactNode }): JSX.Eleme
   const addAlert = useCallback((input: Omit<Alert, 'id' | 'timestamp' | 'displayTime' | 'active'>): Alert => {
     const a: Alert = { ...input, id: `ALT-${Date.now()}`, timestamp: new Date().toISOString(), displayTime: 'Just now', active: true }
     setAlerts(prev => [a, ...prev])
-    // Haptic feedback for critical/high alerts on supported devices
+    //Haptic feedback for critical/high alerts on supported devices
     if (navigator.vibrate && (input.severity === 'critical' || input.severity === 'high')) {
       navigator.vibrate(input.severity === 'critical' ? [100, 50, 100] : [80])
     }
@@ -153,7 +153,7 @@ export function AlertsProvider({ children }: { children: ReactNode }): JSX.Eleme
     return id
   }, [])
 
-  // Clear all pending notification timers on unmount
+  //Clear all pending notification timers on unmount
   useEffect(() => () => { notifTimersRef.current.forEach(clearTimeout) }, [])
 
   const dismissNotification = useCallback((id: number) => setNotifications(p => p.filter(n => n.id !== id)), [])
@@ -173,9 +173,9 @@ export function AlertsProvider({ children }: { children: ReactNode }): JSX.Eleme
   )
 }
 
-// ALERTS_DEFAULTS: safe no-op values returned when the hook is called outside
-// a provider (e.g. in Storybook or isolated unit tests that don't wrap with
-// AlertsProvider).  Without this, the missing context would throw an error.
+//ALERTS_DEFAULTS: safe no-op values returned when the hook is called outside
+//a provider (e.g. in Storybook or isolated unit tests that don't wrap with
+//AlertsProvider).  Without this, the missing context would throw an error.
 const ALERTS_DEFAULTS: AlertsContextType = {
   alerts: [], activeAlerts: [], notifications: [], loading: false, error: null,
   addAlert: (a) => ({ ...a, id: '', timestamp: '', displayTime: '', active: false } as any),
@@ -186,7 +186,7 @@ const ALERTS_DEFAULTS: AlertsContextType = {
 export function useAlerts(): AlertsContextType {
   const ctx = useContext(AlertsContext)
   if (!ctx) {
-    if (import.meta.env.DEV) console.warn('[Alerts] Context unavailable — returning safe defaults.')
+    if (import.meta.env.DEV) console.warn('[Alerts] Context unavailable -- returning safe defaults.')
     return ALERTS_DEFAULTS
   }
   return ctx

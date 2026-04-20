@@ -18,7 +18,7 @@ import { t } from '../../utils/i18n'
 import type { Report } from '../../types'
 import { useLanguage } from '../../hooks/useLanguage'
 
-/* Isolated clock component — ticks every second without re-rendering the entire CommandCenter tree. */
+/* Isolated clock component -- ticks every second without re-rendering the entire CommandCenter tree. */
 const MissionClock = memo(function MissionClock({ dateLocale, lang }: { dateLocale: string; lang: string }) {
   const [clock, setClock] = useState(new Date())
   useEffect(() => {
@@ -37,13 +37,13 @@ const MissionClock = memo(function MissionClock({ dateLocale, lang }: { dateLoca
   )
 })
 
-// THREAT LEVEL CONFIGURATION
+//THREAT LEVEL CONFIGURATION
 const THREAT_LEVELS = {
-  NORMAL:   { label: 'NORMAL',   color: 'from-emerald-600 to-green-700',  text: 'text-emerald-100', dot: 'bg-emerald-400', desc: 'No significant threats — all systems nominal' },
+  NORMAL:   { label: 'NORMAL',   color: 'from-emerald-600 to-green-700',  text: 'text-emerald-100', dot: 'bg-emerald-400', desc: 'No significant threats -- all systems nominal' },
   ELEVATED: { label: 'ELEVATED', color: 'from-blue-600 to-cyan-700',      text: 'text-blue-100',    dot: 'bg-blue-400',    desc: 'Increased monitoring recommended' },
   HIGH:     { label: 'HIGH',     color: 'from-amber-500 to-orange-600',   text: 'text-amber-100',   dot: 'bg-amber-400',   desc: 'Active incidents require coordinated response' },
-  SEVERE:   { label: 'SEVERE',   color: 'from-orange-600 to-red-600',     text: 'text-orange-100',  dot: 'bg-orange-300',  desc: 'Multiple critical incidents — elevated response posture' },
-  CRITICAL: { label: 'CRITICAL', color: 'from-red-600 to-red-800',        text: 'text-red-100',     dot: 'bg-red-300',     desc: 'Maximum response posture — immediate action required' },
+  SEVERE:   { label: 'SEVERE',   color: 'from-orange-600 to-red-600',     text: 'text-orange-100',  dot: 'bg-orange-300',  desc: 'Multiple critical incidents -- elevated response posture' },
+  CRITICAL: { label: 'CRITICAL', color: 'from-red-600 to-red-800',        text: 'text-red-100',     dot: 'bg-red-300',     desc: 'Maximum response posture -- immediate action required' },
 } as const
 
 type ThreatLevel = keyof typeof THREAT_LEVELS
@@ -108,7 +108,7 @@ export default function CommandCenter({
   pushNotification, exportCommandCenter,
   recentSort, setRecentSort, activityShowAll, setActivityShowAll,
 }: CommandCenterProps) {
-  const lang = useLanguage() // authoritative source — ignores lang prop
+  const lang = useLanguage() // authoritative source -- ignores lang prop
 
   const [sitrepOpen, setSitrepOpen] = useState(true)
   const [sitrepCopied, setSitrepCopied] = useState(false)
@@ -120,7 +120,7 @@ export default function CommandCenter({
     return map[lang] || 'en-GB'
   }, [lang])
 
-  //  Auto-calculate threat level
+  // Auto-calculate threat level
   const threatLevel: ThreatLevel = useMemo(() => {
     if (stats.urgent >= 5 || (stats.urgent >= 3 && stats.trapped > 0)) return 'CRITICAL'
     if (stats.urgent >= 3 || stats.trapped > 0) return 'SEVERE'
@@ -131,7 +131,7 @@ export default function CommandCenter({
 
   const threat = getLocalizedThreatLevels(lang)[threatLevel]
 
-  //  Threat matrix: incident types × severity
+  // Threat matrix: incident types × severity
   const threatMatrix = useMemo(() => {
     const matrix: Record<string, { high: number; medium: number; low: number; total: number }> = {}
     reports.forEach(r => {
@@ -147,7 +147,7 @@ export default function CommandCenter({
       .slice(0, 8)
   }, [reports, lang])
 
-  //  Auto-generated SitRep — Advanced Intelligence Briefing
+  // Auto-generated SitRep -- Advanced Intelligence Briefing
   const sitrepLines = useMemo(() => {
     const lines: Array<{ text: string; alert?: boolean; section?: string }> = []
     const resRate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0
@@ -157,25 +157,25 @@ export default function CommandCenter({
     const yesterday = commandCenter?.comparative?.yesterday ?? 0
     const backlogPct = stats.total > 0 ? Math.round((stats.unverified / stats.total) * 100) : 0
 
-    // — SECTION: EXECUTIVE SUMMARY —
+    // SECTION: EXECUTIVE SUMMARY
     lines.push({ text: 'EXECUTIVE SUMMARY', section: 'header' })
     lines.push({ text: `${stats.total} incident${stats.total !== 1 ? 's' : ''} currently under management across all monitored regions. Operational readiness: ${resRate >= 80 ? 'OPTIMAL' : resRate >= 50 ? 'DEGRADED' : 'CRITICAL'}.` })
 
-    // — SECTION: CRITICAL ALERTS —
+    // SECTION: CRITICAL ALERTS
     if (stats.urgent > 0 || stats.trapped > 0) {
       lines.push({ text: 'PRIORITY ALERTS', section: 'header' })
-      if (stats.urgent > 0) lines.push({ text: `${stats.urgent} incident${stats.urgent !== 1 ? 's' : ''} classified URGENT — immediate operator action required.`, alert: true })
-      if (stats.trapped > 0) lines.push({ text: `SEARCH AND RESCUE: ${stats.trapped} person${stats.trapped !== 1 ? 's' : ''} reported trapped — life-safety operations in progress.`, alert: true })
+      if (stats.urgent > 0) lines.push({ text: `${stats.urgent} incident${stats.urgent !== 1 ? 's' : ''} classified URGENT -- immediate operator action required.`, alert: true })
+      if (stats.trapped > 0) lines.push({ text: `SEARCH AND RESCUE: ${stats.trapped} person${stats.trapped !== 1 ? 's' : ''} reported trapped -- life-safety operations in progress.`, alert: true })
     }
 
-    // — SECTION: OPERATIONAL METRICS —
+    // SECTION: OPERATIONAL METRICS
     lines.push({ text: 'OPERATIONAL METRICS', section: 'header' })
     lines.push({ text: `Verification pipeline: ${stats.verified} verified, ${stats.unverified} pending (${backlogPct}% backlog). Clearance rate: ${resRate}%.` })
-    if (stats.flagged > 0) lines.push({ text: `${stats.flagged} report${stats.flagged !== 1 ? 's' : ''} flagged for priority review — elevated scrutiny recommended.` })
+    if (stats.flagged > 0) lines.push({ text: `${stats.flagged} report${stats.flagged !== 1 ? 's' : ''} flagged for priority review -- elevated scrutiny recommended.` })
     lines.push({ text: `AI triage engine confidence: ${stats.avgConf}% average accuracy across all classifications.` })
     if (stats.withMedia > 0) lines.push({ text: `Evidence base: ${stats.withMedia} report${stats.withMedia !== 1 ? 's' : ''} include media attachments (${stats.total > 0 ? Math.round((stats.withMedia / stats.total) * 100) : 0}% coverage).` })
 
-    // — SECTION: SEVERITY DISTRIBUTION —
+    // SECTION: SEVERITY DISTRIBUTION
     lines.push({ text: 'SEVERITY DISTRIBUTION', section: 'header' })
     const sevTotal = stats.high + stats.medium + stats.low
     if (sevTotal > 0) {
@@ -183,12 +183,12 @@ export default function CommandCenter({
       const medPct = Math.round((stats.medium / sevTotal) * 100)
       const lowPct = Math.round((stats.low / sevTotal) * 100)
       lines.push({ text: `HIGH: ${stats.high} (${highPct}%) | MEDIUM: ${stats.medium} (${medPct}%) | LOW: ${stats.low} (${lowPct}%)` })
-      if (highPct > 40) lines.push({ text: 'WARNING: High-severity incidents exceed 40% threshold — additional resources may be required.', alert: true })
+      if (highPct > 40) lines.push({ text: 'WARNING: High-severity incidents exceed 40% threshold -- additional resources may be required.', alert: true })
     } else {
       lines.push({ text: 'No severity data available.' })
     }
 
-    // — SECTION: DISASTER TYPE ANALYSIS —
+    // SECTION: DISASTER TYPE ANALYSIS
     if (threatMatrix.length > 0) {
       lines.push({ text: 'DISASTER TYPE ANALYSIS', section: 'header' })
       const topType = threatMatrix[0]
@@ -197,14 +197,14 @@ export default function CommandCenter({
         const activeTypes = threatMatrix.filter(([, c]) => c.total > 0).map(([t]) => t)
         lines.push({ text: `Active disaster categories (${activeTypes.length}): ${activeTypes.slice(0, 5).join(', ')}${activeTypes.length > 5 ? ` +${activeTypes.length - 5} more` : ''}.` })
       }
-      // Multi-hazard warning
+      //Multi-hazard warning
       const multiHigh = threatMatrix.filter(([, c]) => c.high >= 2)
       if (multiHigh.length >= 2) {
-        lines.push({ text: `MULTI-HAZARD CONDITION: ${multiHigh.length} disaster types with 2+ high-severity incidents simultaneously — compound risk elevated.`, alert: true })
+        lines.push({ text: `MULTI-HAZARD CONDITION: ${multiHigh.length} disaster types with 2+ high-severity incidents simultaneously -- compound risk elevated.`, alert: true })
       }
     }
 
-    // — SECTION: GEOGRAPHIC INTELLIGENCE —
+    // SECTION: GEOGRAPHIC INTELLIGENCE
     if (reports.length > 0) {
       lines.push({ text: 'GEOGRAPHIC INTELLIGENCE', section: 'header' })
       const locationCounts: Record<string, number> = {}
@@ -224,35 +224,35 @@ export default function CommandCenter({
       }
     }
 
-    // — SECTION: TREND ANALYSIS —
+    // SECTION: TREND ANALYSIS
     lines.push({ text: 'TREND ANALYSIS', section: 'header' })
     if (dayDelta !== 0) {
-      lines.push({ text: `24h trend: ${dayDelta > 0 ? 'ESCALATING' : 'DE-ESCALATING'} — ${Math.abs(dayDelta)}% ${dayDelta > 0 ? 'increase' : 'decrease'} vs. yesterday (${today} today vs. ${yesterday} yesterday).` })
+      lines.push({ text: `24h trend: ${dayDelta > 0 ? 'ESCALATING' : 'DE-ESCALATING'} -- ${Math.abs(dayDelta)}% ${dayDelta > 0 ? 'increase' : 'decrease'} vs. yesterday (${today} today vs. ${yesterday} yesterday).` })
     } else if (today > 0) {
-      lines.push({ text: `24h trend: STABLE — incident volume unchanged from previous day (${today} incidents).` })
+      lines.push({ text: `24h trend: STABLE -- incident volume unchanged from previous day (${today} incidents).` })
     }
     if (delta !== 0) {
-      lines.push({ text: `7-day trend: ${delta > 0 ? 'RISING' : 'DECLINING'} — weekly volume ${delta > 0 ? 'up' : 'down'} ${Math.abs(delta)}% vs. prior period.` })
-      if (delta > 50) lines.push({ text: 'ALERT: Weekly incident volume surge exceeds 50% — potential emerging crisis pattern.', alert: true })
+      lines.push({ text: `7-day trend: ${delta > 0 ? 'RISING' : 'DECLINING'} -- weekly volume ${delta > 0 ? 'up' : 'down'} ${Math.abs(delta)}% vs. prior period.` })
+      if (delta > 50) lines.push({ text: 'ALERT: Weekly incident volume surge exceeds 50% -- potential emerging crisis pattern.', alert: true })
     }
 
-    // — SECTION: RESPONSE EFFECTIVENESS —
+    // SECTION: RESPONSE EFFECTIVENESS
     lines.push({ text: 'RESPONSE EFFECTIVENESS', section: 'header' })
     if (resRate >= 80) {
-      lines.push({ text: `Resolution rate at ${resRate}% — exceeds 80% operational benchmark. Response posture: EFFECTIVE.` })
+      lines.push({ text: `Resolution rate at ${resRate}% -- exceeds 80% operational benchmark. Response posture: EFFECTIVE.` })
     } else if (resRate >= 50) {
-      lines.push({ text: `Resolution rate at ${resRate}% — below 80% benchmark. Recommend: increase operator allocation or escalate to mutual aid.` })
+      lines.push({ text: `Resolution rate at ${resRate}% -- below 80% benchmark. Recommend: increase operator allocation or escalate to mutual aid.` })
     } else {
-      lines.push({ text: `Resolution rate at ${resRate}% — CRITICAL. Significant backlog accumulating. Immediate resource reinforcement required.`, alert: true })
+      lines.push({ text: `Resolution rate at ${resRate}% -- CRITICAL. Significant backlog accumulating. Immediate resource reinforcement required.`, alert: true })
     }
     const leaderboard = commandCenter?.leaderboard || []
     if (leaderboard.length > 0) {
       const totalHandled = leaderboard.reduce((s, r) => s + r.handled, 0)
       const avgResp = leaderboard.length > 0 ? Math.round(leaderboard.reduce((s, r) => s + r.avgResponseMinutes, 0) / leaderboard.length) : 0
-      lines.push({ text: `${leaderboard.length} operator${leaderboard.length !== 1 ? 's' : ''} active — ${totalHandled} incidents handled, avg. response: ${fmtMinsLocalized(avgResp, lang)}.` })
+      lines.push({ text: `${leaderboard.length} operator${leaderboard.length !== 1 ? 's' : ''} active -- ${totalHandled} incidents handled, avg. response: ${fmtMinsLocalized(avgResp, lang)}.` })
     }
 
-    // — SECTION: AI RECOMMENDATIONS —
+    // SECTION: AI RECOMMENDATIONS
     const recs = commandCenter?.recommendations || []
     if (recs.length > 0) {
       lines.push({ text: 'AI RECOMMENDATIONS', section: 'header' })
@@ -262,13 +262,13 @@ export default function CommandCenter({
       critRecs.slice(0, 2).forEach(r => lines.push({ text: `[CRITICAL] ${r.message}`, alert: true }))
     }
 
-    // — FOOTER —
+    // FOOTER
     lines.push({ text: 'END OF BRIEFING', section: 'header' })
 
     return lines
   }, [stats, commandCenter, reports, threatMatrix, lang])
 
-  //  Systems status — derived from available data
+  // Systems status -- derived from available data
   const systems = useMemo(() => [
     { name: t('command.aiEngine', lang),  icon: Brain,    ok: stats.avgConf > 0 },
     { name: t('command.workflows', lang), icon: Zap,      ok: commandCenter !== null && stats.total > 0 },
@@ -277,7 +277,7 @@ export default function CommandCenter({
     { name: t('command.comms', lang),     icon: Mail,     ok: Array.isArray(alerts) },
   ], [stats.avgConf, stats.total, commandCenter, socketConnected, alerts, lang])
 
-  //  Sorted recent reports
+  // Sorted recent reports
   const sortedReports = useMemo(() => {
     const sorted = [...reports].sort((a, b) => {
       if (recentSort === 'newest') return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -292,7 +292,7 @@ export default function CommandCenter({
 
   const severityLabel = (v: string) => v === 'High' ? t('admin.filters.severity.high', lang) : v === 'Medium' ? t('admin.filters.severity.medium', lang) : t('admin.filters.severity.low', lang)
 
-  // Keyboard shortcuts
+  //Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
@@ -301,7 +301,7 @@ export default function CommandCenter({
       if (key === 'r' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); onRefresh() }
       else if (key === 'c' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
-        const text = `${t('command.opBrief', lang)} — ${now.toLocaleDateString(dateLocale)}\n${t('command.threatPosture', lang)}: ${threat.label}\n${sitrepLines.map(l => l.text).join('\n')}`
+        const text = `${t('command.opBrief', lang)} -- ${now.toLocaleDateString(dateLocale)}\n${t('command.threatPosture', lang)}: ${threat.label}\n${sitrepLines.map(l => l.text).join('\n')}`
         navigator.clipboard.writeText(text).then(() => { setSitrepCopied(true); setTimeout(() => setSitrepCopied(false), 2000) }).catch(() => {})
       }
       else if (key === 'e') { e.preventDefault(); exportCommandCenter('csv') }
@@ -318,7 +318,7 @@ export default function CommandCenter({
     <div className="space-y-4 animate-fade-in">
 
       {/*
-          SECTION 1 — THREAT LEVEL BANNER
+          SECTION 1 -- THREAT LEVEL BANNER
            */}
       <div role="alert" aria-live="assertive" className={`relative overflow-hidden bg-gradient-to-r ${threat.color} rounded-2xl p-4 shadow-lg animate-scale-in`}>
         {/* Subtle grid overlay for tactical feel */}
@@ -363,10 +363,10 @@ export default function CommandCenter({
       </div>
 
       {/*
-          SECTION 2 — MISSION CLOCK + SYSTEMS STATUS BAR
+          SECTION 2 -- MISSION CLOCK + SYSTEMS STATUS BAR
            */}
       <div className="flex items-center justify-between flex-wrap gap-2 bg-gray-900 dark:bg-gray-950 rounded-xl px-4 py-2.5 ring-1 ring-gray-800">
-        {/* Live Clock — isolated component to prevent 1/sec re-render of entire tree */}
+        {/* Live Clock -- isolated component to prevent 1/sec re-render of entire tree */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -398,7 +398,7 @@ export default function CommandCenter({
       </div>
 
       {/*
-          SECTION 3 — KPI METRICS (8 cards)
+          SECTION 3 -- KPI METRICS (8 cards)
            */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2">
         {([
@@ -430,11 +430,11 @@ export default function CommandCenter({
       </div>
 
       {/*
-          SECTION 4 — SITUATION BRIEFING + THREAT MATRIX + ASSESSMENT
+          SECTION 4 -- SITUATION BRIEFING + THREAT MATRIX + ASSESSMENT
            */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
 
-        {/*  SITREP — Advanced Situation Intelligence Brief  */}
+        {/*  SITREP -- Advanced Situation Intelligence Brief  */}
         <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm overflow-hidden">
           {/* Header bar */}
           <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-gray-900 dark:to-gray-900/50">
@@ -451,7 +451,7 @@ export default function CommandCenter({
             </div>
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => { const text = `${t('command.opBrief', lang)} — ${now.toLocaleDateString(dateLocale)}\n${t('command.threatPosture', lang)}: ${threat.label}\n${sitrepLines.map(l => l.text).join('\n')}`; navigator.clipboard.writeText(text).then(() => { setSitrepCopied(true); setTimeout(() => setSitrepCopied(false), 2000) }).catch(() => {}) }}
+                onClick={() => { const text = `${t('command.opBrief', lang)} -- ${now.toLocaleDateString(dateLocale)}\n${t('command.threatPosture', lang)}: ${threat.label}\n${sitrepLines.map(l => l.text).join('\n')}`; navigator.clipboard.writeText(text).then(() => { setSitrepCopied(true); setTimeout(() => setSitrepCopied(false), 2000) }).catch(() => {}) }}
                 className="flex items-center gap-1 text-[9px] font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-white dark:bg-gray-700 px-2 py-1 rounded-lg ring-1 ring-gray-200 dark:ring-gray-600 transition-all hover:shadow-sm"
                 title={t('command.copySitrep', lang)}
               >
@@ -481,7 +481,7 @@ export default function CommandCenter({
             </div>
           </div>
 
-          {/* Collapsible brief body — fixed height, internal scroll */}
+          {/* Collapsible brief body -- fixed height, internal scroll */}
           {sitrepOpen && (
             <div className="overflow-y-auto max-h-[280px] p-4 space-y-3 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
               {/* Quick summary badges row */}
@@ -544,7 +544,7 @@ export default function CommandCenter({
           )}
         </div>
 
-        {/*  THREAT MATRIX — Incident Type × Severity  */}
+        {/*  THREAT MATRIX -- Incident Type × Severity  */}
         <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/10 dark:to-orange-950/10">
             <div className="flex items-center gap-2">
@@ -596,21 +596,21 @@ export default function CommandCenter({
                         {counts.high > 0 ? (
                           <span className="w-7 h-5 rounded bg-red-500/20 text-red-700 dark:text-red-300 text-[10px] font-bold flex items-center justify-center">{counts.high}</span>
                         ) : (
-                          <span className="text-[10px] text-gray-300 dark:text-gray-700">—</span>
+                          <span className="text-[10px] text-gray-300 dark:text-gray-700">--</span>
                         )}
                       </div>
                       <div className="flex justify-center">
                         {counts.medium > 0 ? (
                           <span className="w-7 h-5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-bold flex items-center justify-center">{counts.medium}</span>
                         ) : (
-                          <span className="text-[10px] text-gray-300 dark:text-gray-700">—</span>
+                          <span className="text-[10px] text-gray-300 dark:text-gray-700">--</span>
                         )}
                       </div>
                       <div className="flex justify-center">
                         {counts.low > 0 ? (
                           <span className="w-7 h-5 rounded bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[10px] font-bold flex items-center justify-center">{counts.low}</span>
                         ) : (
-                          <span className="text-[10px] text-gray-300 dark:text-gray-700">—</span>
+                          <span className="text-[10px] text-gray-300 dark:text-gray-700">--</span>
                         )}
                       </div>
                       <div className="flex justify-center">
@@ -632,9 +632,9 @@ export default function CommandCenter({
           </div>
         </div>
 
-        {/*  OPERATIONAL ASSESSMENT — Donut + Gauge + Trends  */}
+        {/*  OPERATIONAL ASSESSMENT -- Donut + Gauge + Trends  */}
         <div className="space-y-3">
-          {/* Severity Breakdown — Donut */}
+          {/* Severity Breakdown -- Donut */}
           <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 p-4 shadow-sm">
             <span className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{t('admin.severityDistribution', lang)}</span>
             <div className="flex items-center gap-4 mt-3">
@@ -721,7 +721,7 @@ export default function CommandCenter({
             </div>
           </div>
 
-          {/* Trend Deltas — Enhanced */}
+          {/* Trend Deltas -- Enhanced */}
           <div className="grid grid-cols-2 gap-2">
             {/* Daily */}
             <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-xl ring-1 ring-gray-200 dark:ring-gray-800 p-3 shadow-sm">
@@ -734,7 +734,7 @@ export default function CommandCenter({
                 const maxBar = Math.max(today, yesterday, 1)
                 return <>
                   <p className={`text-xl font-black tabular-nums mt-1 ${delta > 0 ? 'text-red-600 dark:text-red-400' : delta < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-600 dark:text-gray-300'}`}>
-                    {isNew ? t('command.new', lang) : `${delta > 0 ? '↑+' : delta < 0 ? '↓' : ''}${delta}%`}
+ {isNew ? t('command.new', lang) : `${delta > 0 ? '^+' : delta < 0 ? 'v' : ''}${delta}%`}
                   </p>
                   <div className="mt-2 space-y-1">
                     <div className="flex items-center gap-1.5">
@@ -766,7 +766,7 @@ export default function CommandCenter({
                 const maxBar = Math.max(thisW, prevW, 1)
                 return <>
                   <p className={`text-xl font-black tabular-nums mt-1 ${delta > 0 ? 'text-red-600 dark:text-red-400' : delta < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-600 dark:text-gray-300'}`}>
-                    {isNew ? t('command.new', lang) : `${delta > 0 ? '↑+' : delta < 0 ? '↓' : ''}${delta}%`}
+ {isNew ? t('command.new', lang) : `${delta > 0 ? '^+' : delta < 0 ? 'v' : ''}${delta}%`}
                   </p>
                   <div className="mt-2 space-y-1">
                     <div className="flex items-center gap-1.5">
@@ -792,10 +792,10 @@ export default function CommandCenter({
       </div>
 
       {/*
-          SECTION 5 — RECENT REPORTS + AI RECS + QUICK ACTIONS
+          SECTION 5 -- RECENT REPORTS + AI RECS + QUICK ACTIONS
            */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-slide-up" style={{ animationDelay: '0.15s' }}>
-        {/* Recent Reports — 2 col span */}
+        {/* Recent Reports -- 2 col span */}
         <div className="lg:col-span-2 bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm overflow-hidden">
           <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between flex-wrap gap-2 bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-900/50">
             <div className="flex items-center gap-2.5">
@@ -810,7 +810,7 @@ export default function CommandCenter({
                 <option value="ai-high">{t('command.aiHighLow', lang)}</option>
                 <option value="ai-low">{t('command.aiLowHigh', lang)}</option>
               </select>
-              <button onClick={() => onViewChange('reports')} className="text-[10px] font-semibold text-aegis-600 hover:text-aegis-700 bg-aegis-50 dark:bg-aegis-950/30 px-2.5 py-1 rounded-lg transition-colors">{t('reports.all', lang)} {'→'}</button>
+ <button onClick={() => onViewChange('reports')} className="text-[10px] font-semibold text-aegis-600 hover:text-aegis-700 bg-aegis-50 dark:bg-aegis-950/30 px-2.5 py-1 rounded-lg transition-colors">{t('reports.all', lang)} {'->'}</button>
               <button onClick={onRefresh} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"><RefreshCw className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" /></button>
             </div>
           </div>
@@ -929,7 +929,7 @@ export default function CommandCenter({
       </div>
 
       {/*
-          SECTION 6 — LEADERBOARD + LIVE ACTIVITY STREAM
+          SECTION 6 -- LEADERBOARD + LIVE ACTIVITY STREAM
            */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
         {/* Officer Leaderboard */}
@@ -1050,7 +1050,7 @@ export default function CommandCenter({
       </div>
 
       {/*
-          SECTION 8 — INCIDENT QUEUE
+          SECTION 8 -- INCIDENT QUEUE
            */}
       <ErrorBoundary name="IncidentQueue">
         <IncidentQueue
@@ -1061,7 +1061,7 @@ export default function CommandCenter({
       </ErrorBoundary>
 
       {/*
-          SECTION 9 — REPORT PIPELINE
+          SECTION 9 -- REPORT PIPELINE
            */}
       <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 p-5 shadow-sm animate-slide-up" style={{ animationDelay: '0.25s' }}>
         <span className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{t('command.reportPipeline', lang)}</span>
@@ -1091,7 +1091,7 @@ export default function CommandCenter({
       </div>
 
       {/*
-          SECTION 10 — CLIMATE RISK DASHBOARD
+          SECTION 10 -- CLIMATE RISK DASHBOARD
            */}
       <ErrorBoundary name="ClimateRiskDashboard">
         <ClimateRiskDashboard />

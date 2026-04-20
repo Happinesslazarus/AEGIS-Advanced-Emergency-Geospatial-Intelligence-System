@@ -1,5 +1,5 @@
 /**
- * Tests for the client-side chatbot engine — a keyword/pattern matching NLP
+ * Tests for the client-side chatbot engine -- a keyword/pattern matching NLP
  * (Natural Language Processing) engine that maps user messages to known intents
  * and returns pre-written safety advice. Because the engine runs entirely in the
  * browser (no server round-trip), it works offline during disasters when network
@@ -10,16 +10,16 @@
  *   test()                  = a single scenario with one expected outcome
  *   expect()                = makes an assertion about a value
  *   generateChatResponse()  = main function: takes a user message string and returns
- *                             {text, intent, confidence} — the best matching response
+ *                             {text, intent, confidence} -- the best matching response
  *   getSuggestions()        = returns an array of suggested quick-reply buttons in the
  *                             given language (ISO 639-1 language code)
  *   intent                  = the topic category the engine assigned to the message
  *                             (e.g. 'flood', 'quake', 'greet', 'unknown')
- *   confidence              = a 0–1 number expressing how certain the engine is that
+ *   confidence              = a 0-1 number expressing how certain the engine is that
  *                             the message belongs to the assigned intent
  *                             (1.0 = perfectly sure, 0 = no idea)
  *   text                    = the pre-written safety advice response string
- *   NLP                     = Natural Language Processing — understanding human text
+ *   NLP                     = Natural Language Processing -- understanding human text
  *   keyword matching        = simple NLP approach: scan the message for known words
  *                             and map them to intents (faster and more reliable offline
  *                             than a neural model, but less flexible)
@@ -39,7 +39,7 @@
  *   mental intent           = triggered by 'mental health', 'depression', 'support'
  *   child_support intent    = triggered by 'my child is scared', 'kids frightened'
  *   unknown intent          = fallback when no keyword matches; confidence < 0.2
- *   vuln intent             = vulnerable populations — children, elderly, disabled
+ *   vuln intent             = vulnerable populations -- children, elderly, disabled
  *   pets intent             = pet safety during evacuation
  *   heatwave intent         = extreme heat safety advice
  *   water intent            = wading in floodwater safety (distinct from 'flood' intent)
@@ -64,13 +64,9 @@
 import { describe, test, expect } from 'vitest'
 import { generateChatResponse, getSuggestions } from '../utils/chatbotEngine'
 
-// ---------------------------------------------------------------------------
-// generateChatResponse — intent detection and response generation
-// ---------------------------------------------------------------------------
+//generateChatResponse -- intent detection and response generation
 describe('generateChatResponse', () => {
-  // -------------------------------------------------------------------------
-  // Greeting intents — opening messages / help requests
-  // -------------------------------------------------------------------------
+  //Greeting intents -- opening messages / help requests
   describe('greeting intents', () => {
     test('detects hello greeting', () => {
       // 'hello' is the most basic trigger; response should introduce AEGIS
@@ -81,7 +77,7 @@ describe('generateChatResponse', () => {
     })
 
     test('detects hi greeting', () => {
-      // Multi-word input containing 'hi' must still resolve to the greet intent
+      //Multi-word input containing 'hi' must still resolve to the greet intent
       const response = generateChatResponse('hi there')
       expect(response.intent).toBe('greet')
     })
@@ -93,12 +89,10 @@ describe('generateChatResponse', () => {
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Disaster intents — natural-hazard event-specific advice
-  // -------------------------------------------------------------------------
+  //Disaster intents -- natural-hazard event-specific advice
   describe('disaster intents', () => {
     test('detects flood queries', () => {
-      // Full question with 'flood' keyword; safety advice must contain 'Flood Safety'
+      //Full question with 'flood' keyword; safety advice must contain 'Flood Safety'
       const response = generateChatResponse('what should I do in a flood')
       expect(response.intent).toBe('flood')
       expect(response.text).toContain('Flood Safety')
@@ -106,13 +100,13 @@ describe('generateChatResponse', () => {
     })
 
     test('detects water rising', () => {
-      // Indirect flood description without the word 'flood' must still be detected
+      //Indirect flood description without the word 'flood' must still be detected
       const response = generateChatResponse('water rising in my house')
       expect(response.intent).toBe('flood')
     })
 
     test('detects earthquake queries', () => {
-      // Classic DROP, COVER, HOLD ON advice must appear for earthquake intent
+      //Classic DROP, COVER, HOLD ON advice must appear for earthquake intent
       const response = generateChatResponse('earthquake')
       expect(response.intent).toBe('quake')
       expect(response.text).toContain('DROP, COVER, HOLD ON')
@@ -148,7 +142,7 @@ describe('generateChatResponse', () => {
     })
 
     test('detects tsunami', () => {
-      // Tsunami advice must urgently mention getting to high ground
+      //Tsunami advice must urgently mention getting to high ground
       const response = generateChatResponse('tsunami warning')
       expect(response.intent).toBe('tsunami')
       expect(response.text).toContain('HIGH GROUND')
@@ -165,9 +159,7 @@ describe('generateChatResponse', () => {
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Emergency intents — evacuation, first aid, contacts, reporting
-  // -------------------------------------------------------------------------
+  //Emergency intents -- evacuation, first aid, contacts, reporting
   describe('emergency intents', () => {
     test('detects evacuation queries', () => {
       const response = generateChatResponse('how to evacuate')
@@ -182,7 +174,7 @@ describe('generateChatResponse', () => {
     })
 
     test('detects emergency contacts queries', () => {
-      // Must include the UK emergency number 999
+      //Must include the UK emergency number 999
       const response = generateChatResponse('emergency number')
       expect(response.intent).toBe('contacts')
       expect(response.text).toContain('999')
@@ -195,18 +187,16 @@ describe('generateChatResponse', () => {
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Safety intents — specific hazard-behaviour questions
-  // -------------------------------------------------------------------------
+  //Safety intents -- specific hazard-behaviour questions
   describe('safety intents', () => {
     test('detects flood water safety', () => {
-      // When the message contains both 'flood' and 'water', 'flood' takes priority
+      //When the message contains both 'flood' and 'water', 'flood' takes priority
       const response = generateChatResponse('walking through flood water')
       expect(response.intent).toBe('flood')
     })
 
     test('detects walking through water query', () => {
-      // Without 'flood', the 'water' intent triggers the "NEVER enter floodwater" advice
+      //Without 'flood', the 'water' intent triggers the "NEVER enter floodwater" advice
       const response = generateChatResponse('is it safe to wade through water')
       expect(response.intent).toBe('water')
       expect(response.text).toContain('NEVER enter')
@@ -240,9 +230,7 @@ describe('generateChatResponse', () => {
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Vulnerable populations — children, elderly, pets
-  // -------------------------------------------------------------------------
+  //Vulnerable populations -- children, elderly, pets
   describe('vulnerable populations', () => {
     test('detects children queries', () => {
       const response = generateChatResponse('protecting my children')
@@ -255,19 +243,17 @@ describe('generateChatResponse', () => {
     })
 
     test('detects pet queries', () => {
-      // Pet safety during evacuation is its own intent (distinct from general vuln)
+      //Pet safety during evacuation is its own intent (distinct from general vuln)
       const response = generateChatResponse('evacuating with my dog')
       expect(response.intent).toBe('pets')
       expect(response.text).toContain('Pet Safety')
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Mental health intents — emotional support and crisis resources
-  // -------------------------------------------------------------------------
+  //Mental health intents -- emotional support and crisis resources
   describe('mental health intents', () => {
     test('detects anxiety', () => {
-      // Response must acknowledge feelings AND provide the Samaritans helpline number
+      //Response must acknowledge feelings AND provide the Samaritans helpline number
       const response = generateChatResponse('I feel scared and anxious')
       expect(response.intent).toBe('anxiety')
       expect(response.text).toContain("It's okay to feel scared")
@@ -288,7 +274,7 @@ describe('generateChatResponse', () => {
     })
 
     test('detects grief', () => {
-      // Losing one's home is a major grief trigger after a disaster
+      //Losing one's home is a major grief trigger after a disaster
       const response = generateChatResponse('I lost my home')
       expect(response.intent).toBe('grief')
     })
@@ -299,16 +285,14 @@ describe('generateChatResponse', () => {
     })
 
     test('detects child trauma', () => {
-      // Children's distress needs age-appropriate advice in a separate intent
+      //Children's distress needs age-appropriate advice in a separate intent
       const response = generateChatResponse('my child is scared')
       expect(response.intent).toBe('child_support')
       expect(response.text).toContain('Helping a scared child')
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Climate-related intents — heatwave, drought
-  // -------------------------------------------------------------------------
+  //Climate-related intents -- heatwave, drought
   describe('climate-related intents', () => {
     test('detects heatwave', () => {
       const response = generateChatResponse('heatwave safety')
@@ -329,9 +313,7 @@ describe('generateChatResponse', () => {
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Other intents — thanks, status, after-disaster recovery
-  // -------------------------------------------------------------------------
+  //Other intents -- thanks, status, after-disaster recovery
   describe('other intents', () => {
     test('detects thanks', () => {
       const response = generateChatResponse('thank you')
@@ -345,18 +327,16 @@ describe('generateChatResponse', () => {
     })
 
     test('detects after disaster queries', () => {
-      // Post-flood clean-up advice is a common need during recovery phase
+      //Post-flood clean-up advice is a common need during recovery phase
       const response = generateChatResponse('cleanup after flood')
       expect(response.intent).toBe('after')
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Unknown intents — graceful fallback for unrecognised input
-  // -------------------------------------------------------------------------
+  //Unknown intents -- graceful fallback for unrecognised input
   describe('unknown intents', () => {
     test('handles unknown queries gracefully', () => {
-      // No matching keyword → unknown intent with near-zero confidence
+ //No matching keyword -> unknown intent with near-zero confidence
       const response = generateChatResponse('xyzabc random gibberish')
       expect(response.intent).toBe('unknown')
       expect(response.text).toContain('I can help with') // generic helper message
@@ -364,15 +344,13 @@ describe('generateChatResponse', () => {
     })
 
     test('handles empty input', () => {
-      // Empty string must not crash; returns unknown intent
+      //Empty string must not crash; returns unknown intent
       const response = generateChatResponse('')
       expect(response.intent).toBe('unknown')
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Multilingual support — core keywords detected in multiple languages
-  // -------------------------------------------------------------------------
+  //Multilingual support -- core keywords detected in multiple languages
   describe('multilingual support', () => {
     test('detects Spanish greeting', () => {
       // 'hola' = Spanish for 'hello'
@@ -399,13 +377,11 @@ describe('generateChatResponse', () => {
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Confidence scoring — relative certainty of the matched intent
-  // -------------------------------------------------------------------------
+  //Confidence scoring -- relative certainty of the matched intent
   describe('confidence scoring', () => {
     test('higher confidence for specific matches', () => {
-      // 'flooding in my area' has multiple flood keywords → higher confidence
-      // than 'random text' which matches nothing
+ // 'flooding in my area' has multiple flood keywords -> higher confidence
+      //than 'random text' which matches nothing
       const floodResponse = generateChatResponse('flooding in my area')
       const unknownResponse = generateChatResponse('random text')
       
@@ -418,18 +394,16 @@ describe('generateChatResponse', () => {
     })
 
     test('known intent has reasonable confidence', () => {
-      // A direct keyword match like 'earthquake' must have confidence ≥ 0.6
+      //A direct keyword match like 'earthquake' must have confidence ≥ 0.6
       const response = generateChatResponse('earthquake')
       expect(response.confidence).toBeGreaterThanOrEqual(0.6)
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Response structure — shape of the returned object
-  // -------------------------------------------------------------------------
+  //Response structure -- shape of the returned object
   describe('response structure', () => {
     test('returns expected shape', () => {
-      // All three fields must always be present and of the correct types
+      //All three fields must always be present and of the correct types
       const response = generateChatResponse('hello')
       
       expect(response).toHaveProperty('text')
@@ -442,13 +416,13 @@ describe('generateChatResponse', () => {
     })
 
     test('response text is not empty', () => {
-      // Every intent must produce at least some response text
+      //Every intent must produce at least some response text
       const response = generateChatResponse('flood')
       expect(response.text.length).toBeGreaterThan(0)
     })
 
     test('confidence is within valid range', () => {
-      // Confidence must always be between 0 (impossible) and 1 (certain)
+      //Confidence must always be between 0 (impossible) and 1 (certain)
       const response = generateChatResponse('earthquake')
       expect(response.confidence).toBeGreaterThanOrEqual(0)
       expect(response.confidence).toBeLessThanOrEqual(1)
@@ -456,12 +430,10 @@ describe('generateChatResponse', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// getSuggestions — quick-reply button labels per language
-// ---------------------------------------------------------------------------
+//getSuggestions -- quick-reply button labels per language
 describe('getSuggestions', () => {
   test('returns English suggestions by default', () => {
-    // No language arg → falls back to English
+ //No language arg -> falls back to English
     const suggestions = getSuggestions()
     expect(Array.isArray(suggestions)).toBe(true)
     expect(suggestions.length).toBeGreaterThan(0)
@@ -469,7 +441,7 @@ describe('getSuggestions', () => {
   })
 
   test('returns English suggestions for en', () => {
-    // Explicit 'en' code
+    //Explicit 'en' code
     const suggestions = getSuggestions('en')
     expect(suggestions).toContain('What do I do in a flood?')
     expect(suggestions).toContain('Emergency contacts')
@@ -488,7 +460,7 @@ describe('getSuggestions', () => {
   })
 
   test('returns Arabic suggestions', () => {
-    // 'ar' = Arabic (RTL language — Right To Left script)
+    // 'ar' = Arabic (RTL language -- Right To Left script)
     const suggestions = getSuggestions('ar')
     expect(suggestions).toContain('ماذا أفعل في الفيضان؟')
   })
@@ -530,7 +502,7 @@ describe('getSuggestions', () => {
   })
 
   test('returns array of strings', () => {
-    // Every suggestion must be a non-empty string (no null entries)
+    //Every suggestion must be a non-empty string (no null entries)
     const suggestions = getSuggestions('en')
     suggestions.forEach(s => {
       expect(typeof s).toBe('string')

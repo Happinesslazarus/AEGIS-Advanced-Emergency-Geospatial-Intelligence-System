@@ -25,40 +25,40 @@ import {
 } from '../utils/api'
 import type { Report, Alert } from '../types'
 
-// Query Keys: stable references used by React Query to identify cache entries.
-// Each unique key points to one cached result.  Components elsewhere can call
-// queryClient.invalidateQueries({ queryKey: queryKeys.reports }) to force a
-// re-fetch after a mutation (e.g. after submitting a new report).
+//Query Keys: stable references used by React Query to identify cache entries.
+//Each unique key points to one cached result.  Components elsewhere can call
+//queryClient.invalidateQueries({ queryKey: queryKeys.reports }) to force a
+//re-fetch after a mutation (e.g. after submitting a new report).
 export const queryKeys = {
   reports: ['reports'] as const,
   alerts: ['alerts'] as const,
   predictions: ['predictions'] as const,
   users: ['users'] as const,
-  // Audit log includes filters in the key so different filter combinations
-  // get their own separate cache entry instead of sharing one.
+  //Audit log includes filters in the key so different filter combinations
+  //get their own separate cache entry instead of sharing one.
   auditLog: (filters?: Record<string, string>) => ['auditLog', filters] as const,
   heatmap: ['heatmap'] as const,
   deployments: ['deployments'] as const,
   analytics: ['analytics'] as const,
-  // News key includes the includeArchived flag so archived vs live lists are
-  // cached separately.
+  //News key includes the includeArchived flag so archived vs live lists are
+  //cached separately.
   news: (includeArchived?: boolean) => ['news', includeArchived] as const,
 }
 
-// Reports
+//Reports
 export function useReportsQuery(enabled = true) {
   return useQuery({
     queryKey: queryKeys.reports,
     queryFn: apiGetReports,
     enabled,
-    // staleTime = how long the cached data is considered fresh (milliseconds).
-    // 10 000 ms = 10 seconds: components that mount within 10s of the last
-    // fetch reuse the cached data instead of hitting the server again.
+    //staleTime = how long the cached data is considered fresh (milliseconds).
+    //10 000 ms = 10 seconds: components that mount within 10s of the last
+    //fetch reuse the cached data instead of hitting the server again.
     staleTime: 10 * 1000, // Reports refresh more frequently
   })
 }
 
-// Alerts
+//Alerts
 export function useAlertsQuery(enabled = true) {
   return useQuery({
     queryKey: queryKeys.alerts,
@@ -68,7 +68,7 @@ export function useAlertsQuery(enabled = true) {
   })
 }
 
-// AI Predictions
+//AI Predictions
 export function usePredictionsQuery(enabled = true) {
   return useQuery<Prediction[]>({
     queryKey: queryKeys.predictions,
@@ -78,7 +78,7 @@ export function usePredictionsQuery(enabled = true) {
   })
 }
 
-// Users (Admin)
+//Users (Admin)
 export function useUsersQuery(enabled = true) {
   return useQuery({
     queryKey: queryKeys.users,
@@ -87,7 +87,7 @@ export function useUsersQuery(enabled = true) {
   })
 }
 
-// Audit Log
+//Audit Log
 export function useAuditLogQuery(filters?: Record<string, string>, enabled = true) {
   return useQuery<AuditEntry[]>({
     queryKey: queryKeys.auditLog(filters),
@@ -96,7 +96,7 @@ export function useAuditLogQuery(filters?: Record<string, string>, enabled = tru
   })
 }
 
-// Heatmap Data
+//Heatmap Data
 export function useHeatmapQuery(enabled = true) {
   return useQuery({
     queryKey: queryKeys.heatmap,
@@ -106,7 +106,7 @@ export function useHeatmapQuery(enabled = true) {
   })
 }
 
-// Deployments
+//Deployments
 export function useDeploymentsQuery(enabled = true) {
   return useQuery<Deployment[]>({
     queryKey: queryKeys.deployments,
@@ -116,7 +116,7 @@ export function useDeploymentsQuery(enabled = true) {
   })
 }
 
-// Command Center Analytics
+//Command Center Analytics
 export function useAnalyticsQuery(enabled = true) {
   return useQuery({
     queryKey: queryKeys.analytics,
@@ -126,7 +126,7 @@ export function useAnalyticsQuery(enabled = true) {
   })
 }
 
-// News
+//News
 export function useNewsQuery(includeArchived?: boolean, enabled = true) {
   return useQuery({
     queryKey: queryKeys.news(includeArchived),
@@ -136,7 +136,7 @@ export function useNewsQuery(includeArchived?: boolean, enabled = true) {
   })
 }
 
-// Mutations
+//Mutations
 
 export function useCreateAlertMutation() {
   const queryClient = useQueryClient()
@@ -144,7 +144,7 @@ export function useCreateAlertMutation() {
   return useMutation({
     mutationFn: apiCreateAlert,
     onSuccess: () => {
-      // Invalidate alerts cache to refetch
+      //Invalidate alerts cache to refetch
       queryClient.invalidateQueries({ queryKey: queryKeys.alerts })
     },
   })

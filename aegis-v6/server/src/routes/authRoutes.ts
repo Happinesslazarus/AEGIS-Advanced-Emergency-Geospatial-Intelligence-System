@@ -10,13 +10,13 @@
  * - Security events logged to securityLogger for audit trail
  *
  * Endpoints:
- * POST /api/auth/invite    — Create operator account (admin-only)
- * POST /api/auth/login     — Authenticate and get JWT + refresh token
- * POST /api/auth/refresh   — Rotate refresh token
- * GET  /api/auth/me        — Current operator profile
- * PUT  /api/auth/profile   — Update profile
- * POST /api/auth/forgot-password   — Request password reset email
- * POST /api/auth/reset-password    — Reset password with token
+ * POST /api/auth/invite    -- Create operator account (admin-only)
+ * POST /api/auth/login     -- Authenticate and get JWT + refresh token
+ * POST /api/auth/refresh   -- Rotate refresh token
+ * GET  /api/auth/me        -- Current operator profile
+ * PUT  /api/auth/profile   -- Update profile
+ * POST /api/auth/forgot-password   -- Request password reset email
+ * POST /api/auth/reset-password    -- Reset password with token
  * */
 
 import { Router, Response, NextFunction } from 'express'
@@ -44,7 +44,7 @@ import { authFailuresTotal, accountLockoutsTotal, riskAssessmentTotal } from '..
 
 const router = Router()
 
-// Rate limiter for login attempts only (brute-force protection)
+//Rate limiter for login attempts only (brute-force protection)
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // 5 login attempts per 15 minutes per IP
@@ -82,19 +82,19 @@ router.post('/invite', authMiddleware, adminOnly, registerLimiter, uploadAvatar,
     const { email, password, displayName, department, phone, role } = req.body
     const normalizedEmail = String(email || '').trim().toLowerCase()
 
-    // Validate required fields
+    //Validate required fields
     if (!email || !password || !displayName) {
       throw AppError.badRequest('Email, password, and display name are required.')
     }
 
-    // Check password strength (enterprise policy: 12 chars, complexity)
+    //Check password strength (enterprise policy: 12 chars, complexity)
     const pwResult = validatePasswordStrength(password, email)
     if (!pwResult.valid) {
       res.status(400).json({ error: pwResult.errors[0] })
       return
     }
 
-    // Check if email is already registered
+    //Check if email is already registered
     const exists = await pool.query(
       `SELECT id FROM operators WHERE LOWER(email) = LOWER($1) AND deleted_at IS NULL
        UNION ALL
@@ -105,24 +105,24 @@ router.post('/invite', authMiddleware, adminOnly, registerLimiter, uploadAvatar,
       throw AppError.conflict('An account with this email already exists.')
     }
 
-    // Hash password with bcrypt (12 rounds for strong security)
+    //Hash password with bcrypt (12 rounds for strong security)
     const passwordHash = await bcrypt.hash(password, 12)
 
-    // Build avatar URL if a file was uploaded
+    //Build avatar URL if a file was uploaded
     const avatarUrl = req.file ? `/uploads/avatars/${req.file.filename}` : null
 
-    // Only allow 'operator' or 'manager' roles via invite. Admin promotion is a separate action.
+    //Only allow 'operator' or 'manager' roles via invite. Admin promotion is a separate action.
     const allowedRoles = ['operator', 'manager']
     const assignedRole = allowedRoles.includes(String(role || '').trim().toLowerCase())
       ? String(role).trim().toLowerCase()
       : 'operator'
 
-    // Generate email verification token (store HASH, send raw)
+    //Generate email verification token (store HASH, send raw)
     const rawVerificationToken = generateSecureToken()
     const verificationTokenHash = hashToken(rawVerificationToken)
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
-    // Insert new operator into the database
+    //Insert new operator into the database
     const result = await pool.query(
       `INSERT INTO operators (email, password_hash, display_name, role, department, phone, avatar_url,
                               verification_token_hash, verification_expires, password_changed_at)
@@ -134,24 +134,24 @@ router.post('/invite', authMiddleware, adminOnly, registerLimiter, uploadAvatar,
 
     const user = result.rows[0]
 
-    // Log the registration in the activity log
+    //Log the registration in the activity log
     await pool.query(
       `INSERT INTO activity_log (action, action_type, operator_id, operator_name)
        VALUES ($1, $2, $3, $4)`,
       [`New operator invited by ${req.user!.displayName}: ${displayName} (${assignedRole})`, 'register', user.id, displayName]
     )
 
-    // Record initial password in history
+    //Record initial password in history
     await recordPasswordHistory(user.id, 'operator', passwordHash)
 
-    // Send verification email
+    //Send verification email
     try {
       await sendVerificationEmail(normalizedEmail, rawVerificationToken, 'operator')
     } catch (emailErr: any) {
       logger.error({ err: emailErr }, '[Auth] Failed to send verification email')
     }
 
-    // Log security event
+    //Log security event
     const clientIp = getClientIp(req)
     await logSecurityEvent({
       userId: user.id, userType: 'operator', eventType: 'register',
@@ -188,7 +188,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       throw AppError.badRequest('Email and password are required.')
     }
 
-    // Look up the operator by email (include 2FA status)
+    //Look up the operator by email (include 2FA status)
     const result = await pool.query(
       `SELECT id, email, password_hash, display_name, role, avatar_url, department,
               is_active, is_suspended, suspended_until, failed_login_attempts, locked_until,
@@ -205,7 +205,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
 
     const user = result.rows[0]
 
-    // Check account lockout
+    //Check account lockout
     const lockoutStatus = checkLockout(user.failed_login_attempts, user.locked_until)
     if (lockoutStatus.locked) {
       await logSecurityEvent({
@@ -221,7 +221,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       return
     }
 
-    // Check if account is suspended
+    //Check if account is suspended
     if (user.is_suspended) {
       if (!user.suspended_until) {
         throw AppError.forbidden('Account is suspended indefinitely. Contact system administrator.')
@@ -229,16 +229,16 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       if (new Date(user.suspended_until) > new Date()) {
         throw AppError.forbidden(`Account is suspended until ${new Date(user.suspended_until).toUTCString()}. Contact system administrator.`)
       }
-      // Suspension expired - auto-lift it
+      //Suspension expired - auto-lift it
       await pool.query('UPDATE operators SET is_suspended = false, suspended_until = NULL WHERE id = $1', [user.id])
     }
 
-    // Check if account is active
+    //Check if account is active
     if (!user.is_active) {
       throw AppError.forbidden('Account is deactivated. Contact system administrator.')
     }
 
-    // Verify password against stored hash
+    //Verify password against stored hash
     const valid = await bcrypt.compare(password, user.password_hash)
     if (!valid) {
       const newLockout = await recordFailedLogin('operators', user.id)
@@ -267,7 +267,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
         return
       }
 
-      // Alert on repeated failures (5+ attempts)
+      //Alert on repeated failures (5+ attempts)
       if (newLockout.attempts >= 5) {
         alertRepeatedFailures(user.id, newLockout.attempts, clientIp).catch(() => {})
       }
@@ -275,18 +275,18 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       throw AppError.unauthorized('Invalid email or password.')
     }
 
-    // Successful password verification - reset failed attempts
+    //Successful password verification - reset failed attempts
     await resetFailedLogins('operators', user.id)
 
-    // 2FA Gate
-    // If operator has 2FA enabled, check trusted device first.
-    // Trusted device ? skip 2FA challenge. Otherwise issue a temp token.
+    //2FA Gate
+    //If operator has 2FA enabled, check trusted device first.
+    //Trusted device ? skip 2FA challenge. Otherwise issue a temp token.
     if (user.two_factor_enabled) {
-      // Check if this device is already trusted (30-day remember-me)
+      //Check if this device is already trusted (30-day remember-me)
       const trustedDevice = await isDeviceTrusted(user.id, userAgent || '', clientIp).catch(() => null)
 
       if (trustedDevice) {
-        // Trusted device - skip 2FA, issue full JWT
+        //Trusted device - skip 2FA, issue full JWT
         await pool.query('UPDATE operators SET last_login = NOW() WHERE id = $1', [user.id])
 
         await logSecurityEvent({
@@ -332,24 +332,24 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
         return
       }
 
-      // Not a trusted device - issue temp token for 2FA challenge
+      //Not a trusted device - issue temp token for 2FA challenge
       const tempTokenRaw = generateTempToken()
       const tempTokenHash = hashTempToken(tempTokenRaw)
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
 
-      // Use a transaction to atomically invalidate old tokens and create new one
+      //Use a transaction to atomically invalidate old tokens and create new one
       const client = await pool.connect()
       try {
         await client.query('BEGIN')
 
-        // Invalidate any existing unconsumed temp tokens for this user
+        //Invalidate any existing unconsumed temp tokens for this user
         await client.query(
           `UPDATE two_factor_temp_tokens SET consumed = true
            WHERE user_id = $1 AND consumed = false`,
           [user.id]
         )
 
-        // Store new temp token bound to IP + User-Agent (anti-hijacking)
+        //Store new temp token bound to IP + User-Agent (anti-hijacking)
         await client.query(
           `INSERT INTO two_factor_temp_tokens (user_id, token_hash, expires_at, ip_address, user_agent)
            VALUES ($1, $2, $3, $4, $5)`,
@@ -364,7 +364,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
         client.release()
       }
 
-      // Assess login risk for the dashboard
+      //Assess login risk for the dashboard
       const risk = await assessLoginRisk(user.id, clientIp, userAgent || '').catch(() => null)
       if (risk) {
         riskAssessmentTotal.inc({ level: risk.level })
@@ -385,19 +385,19 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       return
     }
 
-    // Standard login (no 2FA)
+    //Standard login (no 2FA)
 
-    // Update last login timestamp
+    //Update last login timestamp
     await pool.query('UPDATE operators SET last_login = NOW() WHERE id = $1', [user.id])
 
-    // Log the login event
+    //Log the login event
     await pool.query(
       `INSERT INTO activity_log (action, action_type, operator_id, operator_name)
        VALUES ($1, $2, $3, $4)`,
       ['Logged in to AEGIS Admin', 'login', user.id, user.display_name]
     )
 
-    // Generate access token (15min) + refresh token (30d)
+    //Generate access token (15min) + refresh token (30d)
     const token = generateToken({
       id: user.id, email: user.email,
       role: user.role, displayName: user.display_name,
@@ -405,19 +405,19 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
     })
     const refreshToken = generateRefreshToken({ id: user.id, role: user.role })
 
-    // Create session
+    //Create session
     await createSession({
       userId: user.id, userType: 'operator', refreshToken,
       ipAddress: clientIp, userAgent, ttlDays: 30,
     }).catch(() => {})
 
-    // Log successful login
+    //Log successful login
     await logSecurityEvent({
       userId: user.id, userType: 'operator', eventType: 'login_success',
       ipAddress: clientIp, userAgent,
     })
 
-    // Refresh token lives in an httpOnly cookie - JS cannot read or steal it
+    //Refresh token lives in an httpOnly cookie - JS cannot read or steal it
     res.cookie('aegis_refresh', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -473,7 +473,7 @@ router.post('/forgot-password', async (req: AuthRequest, res: Response, next: Ne
       ).catch(() => {})
 
       const resetBase = process.env.RESET_PASSWORD_URL || `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password`
-      // Enforce HTTPS for password reset links in production to prevent token interception
+      //Enforce HTTPS for password reset links in production to prevent token interception
       if (process.env.NODE_ENV === 'production' && !resetBase.startsWith('https://')) {
         logger.error('[SECURITY] RESET_PASSWORD_URL or CLIENT_URL must use HTTPS in production. Set RESET_PASSWORD_URL env var.')
         res.status(500).json({ error: 'The password reset service is not properly configured. Please contact your system administrator.' })
@@ -481,7 +481,7 @@ router.post('/forgot-password', async (req: AuthRequest, res: Response, next: Ne
       }
       const resetLink = `${resetBase}?token=${rawToken}`
 
-      // SECURITY: Send reset link via email only, never return it in the response
+      //SECURITY: Send reset link via email only, never return it in the response
       try {
         await notificationService.sendEmailAlert(user.email, {
           id: `reset-${Date.now()}`,
@@ -494,10 +494,10 @@ router.post('/forgot-password', async (req: AuthRequest, res: Response, next: Ne
         logger.info({ email: user.email }, '[Auth] Password reset email sent')
       } catch (emailErr: any) {
         logger.error({ err: emailErr, email: user.email }, '[Auth] Failed to send reset email')
-        // Don't fail the request - user will see generic success message
+        //Don't fail the request - user will see generic success message
       }
 
-      // Return generic success message (never expose token or link)
+      //Return generic success message (never expose token or link)
       res.json({
         success: true,
         message: 'If the email exists in our system, a password reset link has been sent.'
@@ -505,7 +505,7 @@ router.post('/forgot-password', async (req: AuthRequest, res: Response, next: Ne
       return
     }
 
-    // Same response for non-existent accounts (prevents user enumeration)
+    //Same response for non-existent accounts (prevents user enumeration)
     res.json({ success: true, message: 'If the email exists in our system, a password reset link has been sent.' })
   } catch (err) {
     next(err)
@@ -547,7 +547,7 @@ router.post('/reset-password', resetPasswordLimiter, async (req: AuthRequest, re
 
     const resetToken = tokenResult.rows[0]
 
-    // Check if the operator is banned (permanently suspended)
+    //Check if the operator is banned (permanently suspended)
     const opCheck = await pool.query(
       `SELECT is_active, is_suspended, suspended_until, banned_at FROM operators WHERE id = $1`,
       [resetToken.operator_id]
@@ -562,7 +562,7 @@ router.post('/reset-password', resetPasswordLimiter, async (req: AuthRequest, re
       }
     }
 
-    // Prevent reuse of last 5 passwords
+    //Prevent reuse of last 5 passwords
     const reused = await isPasswordReused(password, resetToken.operator_id, 'operator')
     if (reused) {
       throw AppError.badRequest('You cannot reuse any of your last 5 passwords.')
@@ -573,7 +573,7 @@ router.post('/reset-password', resetPasswordLimiter, async (req: AuthRequest, re
     await pool.query('UPDATE operators SET password_hash = $1, updated_at = NOW(), password_changed_at = NOW() WHERE id = $2', [passwordHash, resetToken.operator_id])
     await pool.query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1', [resetToken.id])
 
-    // Record in password history & revoke all sessions
+    //Record in password history & revoke all sessions
     await recordPasswordHistory(resetToken.operator_id, 'operator', passwordHash)
     await revokeAllSessions(resetToken.operator_id, 'password_reset')
 
@@ -630,7 +630,7 @@ router.put('/profile', authMiddleware, uploadAvatar, validateMagicBytes, async (
     const { displayName, department, phone } = req.body
     const avatarUrl = req.file ? `/uploads/avatars/${req.file.filename}` : undefined
 
-    // Build dynamic update query based on which fields were provided
+    //Build dynamic update query based on which fields were provided
     const sets: string[] = []
     const vals: any[] = []
     let idx = 1
@@ -681,14 +681,14 @@ router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFuncti
       throw AppError.unauthorized('Invalid or expired refresh token. Please log in again.')
     }
 
-    // Validate session exists in DB and is not revoked
+    //Validate session exists in DB and is not revoked
     const session = await validateSession(refreshCookie)
     if (!session) {
       res.clearCookie('aegis_refresh', { path: '/api/auth' })
       throw AppError.unauthorized('Session expired or revoked. Please log in again.')
     }
 
-    // Fetch fresh user data
+    //Fetch fresh user data
     const result = await pool.query(
       `SELECT id, email, display_name, role, avatar_url, department, is_active, is_suspended
        FROM operators WHERE id = $1 AND deleted_at IS NULL`,
@@ -706,7 +706,7 @@ router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFuncti
       department: user.department,
     })
 
-    // Rotate refresh token (revoke old, issue new)
+    //Rotate refresh token (revoke old, issue new)
     const newRefreshToken = generateRefreshToken({ id: user.id, role: user.role })
     const clientIp = getClientIp(req)
     await rotateRefreshToken({
@@ -840,10 +840,10 @@ router.post('/resend-verification', authMiddleware, operatorResendLimiter, async
   }
 })
 
-// POST /api/auth/bootstrap
-// Creates the very first admin account on fresh installs — no auth required.
-// Self-locking: returns 403 the instant any admin exists in the database.
-// Rate-limited aggressively to prevent brute-force on first-boot window.
+//POST /api/auth/bootstrap
+//Creates the very first admin account on fresh installs -- no auth required.
+//Self-locking: returns 403 the instant any admin exists in the database.
+//Rate-limited aggressively to prevent brute-force on first-boot window.
 const bootstrapLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5,
@@ -854,7 +854,7 @@ const bootstrapLimiter = rateLimit({
 
 router.post('/bootstrap', bootstrapLimiter, async (req: any, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Hard gate: only works when zero admins exist
+    //Hard gate: only works when zero admins exist
     const { rows } = await pool.query(
       `SELECT COUNT(*)::int AS c FROM operators WHERE role = 'admin' AND deleted_at IS NULL`,
     )
@@ -892,7 +892,7 @@ router.post('/bootstrap', bootstrapLimiter, async (req: any, res: Response, next
     )
     const newAdmin = insert.rows[0]
 
-    // Log the bootstrap event
+    //Log the bootstrap event
     try {
       await pool.query(
         `INSERT INTO activity_log (action, action_type, operator_name)
@@ -901,7 +901,7 @@ router.post('/bootstrap', bootstrapLimiter, async (req: any, res: Response, next
       )
     } catch { /* activity_log not critical */ }
 
-    // Issue a JWT so the user is immediately logged in
+    //Issue a JWT so the user is immediately logged in
     const token = generateToken({
       id: newAdmin.id,
       email: newAdmin.email,
@@ -921,7 +921,7 @@ router.post('/bootstrap', bootstrapLimiter, async (req: any, res: Response, next
 
     logger.info(`[bootstrap] First admin created: ${newAdmin.email}`)
 
-    // Set refresh token as httpOnly cookie (matches the login endpoint)
+    //Set refresh token as httpOnly cookie (matches the login endpoint)
     res.cookie('aegis_refresh', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

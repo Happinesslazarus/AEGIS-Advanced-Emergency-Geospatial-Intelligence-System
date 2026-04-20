@@ -1,5 +1,5 @@
 ﻿/**
- * Have I Been Pwned password checker — uses the HIBP Pwned Passwords API
+ * Have I Been Pwned password checker -- uses the HIBP Pwned Passwords API
  * with k-Anonymity (only sends the first 5 chars of the SHA-1 hash).
  * Caches results for 24 hours and gracefully degrades if HIBP is unavailable.
  *
@@ -39,7 +39,7 @@ export async function checkPasswordBreached(password: string): Promise<HIBPResul
     const prefix = sha1Hash.substring(0, 5)
     const suffix = sha1Hash.substring(5)
     
-    // Check cache first
+    //Check cache first
     const cacheKey = prefix + suffix
     const cached = pwnedCache.get(cacheKey)
     if (cached && cached.expires > Date.now()) {
@@ -49,7 +49,7 @@ export async function checkPasswordBreached(password: string): Promise<HIBPResul
       }
     }
     
-    // Query HIBP API with k-Anonymity (only send prefix)
+    //Query HIBP API with k-Anonymity (only send prefix)
     const response = await fetch(`${HIBP_API_URL}/${prefix}`, {
       headers: {
         'User-Agent': 'AEGIS-Emergency-Management-System',
@@ -59,7 +59,7 @@ export async function checkPasswordBreached(password: string): Promise<HIBPResul
     })
     
     if (!response.ok) {
-      // Don't block registration if HIBP is down
+      //Don't block registration if HIBP is down
       console.warn(`[HIBP] API returned ${response.status}`)
       return { isPwned: false, count: 0, message: 'HIBP check unavailable' }
     }
@@ -67,7 +67,7 @@ export async function checkPasswordBreached(password: string): Promise<HIBPResul
     const text = await response.text()
     const lines = text.split('\n')
     
-    // Find matching suffix
+    //Find matching suffix
     let breachCount = 0
     for (const line of lines) {
       const [hashSuffix, count] = line.split(':')
@@ -77,19 +77,19 @@ export async function checkPasswordBreached(password: string): Promise<HIBPResul
       }
     }
     
-    // Cache result
+    //Cache result
     pwnedCache.set(cacheKey, {
       count: breachCount,
       expires: Date.now() + CACHE_TTL_MS,
     })
     
-    // Clean old cache entries and enforce hard cap to prevent unbounded growth
+    //Clean old cache entries and enforce hard cap to prevent unbounded growth
     if (pwnedCache.size > 10000) {
       const now = Date.now()
       for (const [key, value] of pwnedCache) {
         if (value.expires < now) pwnedCache.delete(key)
       }
-      // If still over limit after expiry sweep, evict oldest entries (FIFO)
+      //If still over limit after expiry sweep, evict oldest entries (FIFO)
       if (pwnedCache.size > 10000) {
         const excess = pwnedCache.size - 8000 // evict down to 8k for headroom
         let removed = 0
@@ -110,7 +110,7 @@ export async function checkPasswordBreached(password: string): Promise<HIBPResul
     }
   } catch (error: any) {
     console.error('[HIBP] Error checking password:', error.message)
-    // Don't block on HIBP failures - graceful degradation
+    //Don't block on HIBP failures - graceful degradation
     return { isPwned: false, count: 0, message: 'HIBP check unavailable' }
   }
 }

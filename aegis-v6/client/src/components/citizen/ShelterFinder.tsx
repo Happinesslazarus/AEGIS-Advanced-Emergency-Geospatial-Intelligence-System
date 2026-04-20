@@ -117,7 +117,7 @@ function safetyScore(s: Shelter): number {
   return Math.min(score, 100)
 }
 
-// Keyed by ISO 3166-1 alpha-2 code (uppercase). Falls back to universal links.
+//Keyed by ISO 3166-1 alpha-2 code (uppercase). Falls back to universal links.
 const COUNTRY_RESOURCES: Record<string, { name: string; url: string; desc: string }[]> = {
   GB: [
     { name: 'UK GOV - Emergency Alerts', url: 'https://www.gov.uk/alerts', desc: 'Official UK government emergency guidance' },
@@ -533,7 +533,7 @@ const COUNTRY_RESOURCES: Record<string, { name: string; url: string; desc: strin
     { name: 'NEMA Mongolia', url: 'http://www.nema.gov.mn/', desc: 'National Emergency Management Agency Mongolia' },
     { name: 'Mongolian Red Cross', url: 'https://www.redcross.mn/', desc: 'Mongolian Red Cross emergency services' },
   ],
-  // Universal fallback used for any country not explicitly listed
+  //Universal fallback used for any country not explicitly listed
   '__DEFAULT__': [
     { name: 'IFRC - Find Your Red Cross', url: 'https://www.ifrc.org/national-societies-overview', desc: 'International Federation of Red Cross - find your national society' },
     { name: 'UNOCHA Relief Web', url: 'https://reliefweb.int/', desc: 'UN humanitarian aid & disaster resource hub' },
@@ -546,7 +546,7 @@ function getCountryResources(countryCode?: string): { name: string; url: string;
   return COUNTRY_RESOURCES[countryCode.toUpperCase()] || COUNTRY_RESOURCES['__DEFAULT__']
 }
 
-/*  Shelter data — all fetched via server, browser NEVER calls Overpass      */
+/*  Shelter data -- all fetched via server, browser NEVER calls Overpass      */
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
@@ -559,7 +559,7 @@ interface FetchSheltersOptions {
 
 /**
  * Call the server's smart /shelters/near endpoint.
- * The server handles: PostgreSQL cache → Overpass proxy → stale cache → PostGIS DB.
+ * The server handles: PostgreSQL cache -> Overpass proxy -> stale cache -> PostGIS DB.
  * Returns normalised shelters ready for the component, or null on network error.
  */
 async function queryServerNear(
@@ -588,7 +588,7 @@ async function fetchRealShelters(opts: FetchSheltersOptions): Promise<{ items: O
   const { lat, lng, bbox, isArea } = opts
 
   if (isArea) {
-    // Progressive bbox window: ~55 km → ~165 km → ~330 km
+ //Progressive bbox window: ~55 km -> ~165 km -> ~330 km
     const halfDegs = [0.5, 1.5, 3.0]
     for (const halfDeg of halfDegs) {
       const s = lat - halfDeg, n = lat + halfDeg, w = lng - halfDeg, e = lng + halfDeg
@@ -608,7 +608,7 @@ async function fetchRealShelters(opts: FetchSheltersOptions): Promise<{ items: O
     return { items: [], sourceAvailable: true, radiusUsed: 330000 }
   }
 
-  // Point-level: progressive radius 20 km → 50 km
+ //Point-level: progressive radius 20 km -> 50 km
   const radii = [20000, 50000]
   for (const radius of radii) {
     const result = await queryServerNear(lat, lng, radius)
@@ -771,7 +771,7 @@ export default function ShelterFinder(): JSX.Element {
     }
   }
 
-  // Auto-trigger GPS on mount so safe zones load immediately for the user's current location
+  //Auto-trigger GPS on mount so safe zones load immediately for the user's current location
   useEffect(() => { requestGPS() }, [requestGPS])
 
   const nearest = shelters[0]
@@ -782,7 +782,7 @@ export default function ShelterFinder(): JSX.Element {
   return (
     <div className="animate-fade-in space-y-3">
 
-      {/* â”€â”€â”€ COMMAND BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â"€â"€â"€ COMMAND BAR â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
       <div className="glass-card rounded-2xl p-4 space-y-3">
         {/* Title row */}
         <div className="flex items-center justify-between">
@@ -870,7 +870,7 @@ export default function ShelterFinder(): JSX.Element {
             <div>
               <label className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 block">Sort By</label>
               <div className="flex flex-wrap gap-1">
-                {([['distance', 'Nearest'], ['score', 'Safety Score'], ['capacity', 'Capacity'], ['name', 'A–Z']] as [SortMode, string][]).map(([k, lbl]) => (
+                {([['distance', 'Nearest'], ['score', 'Safety Score'], ['capacity', 'Capacity'], ['name', 'A-Z']] as [SortMode, string][]).map(([k, lbl]) => (
                   <button key={k} onClick={() => setSortMode(k)} className={`px-2 py-1 rounded-lg text-[9px] font-bold transition-all ${sortMode === k ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>{lbl}</button>
                 ))}
               </div>
@@ -901,7 +901,7 @@ export default function ShelterFinder(): JSX.Element {
         )}
       </div>
 
-      {/* â”€â”€â”€ LIVE THREAT ASSESSMENT BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â"€â"€â"€ LIVE THREAT ASSESSMENT BANNER â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
       {hasData && (
         <div className={`rounded-2xl px-4 py-3 flex items-center gap-3 border ${
           threat.level === 'HIGH' ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/40' :
@@ -922,7 +922,7 @@ export default function ShelterFinder(): JSX.Element {
             <p className={`text-[10px] mt-0.5 ${
               threat.level === 'HIGH' ? 'text-red-600/80 dark:text-red-400/80' :
               threat.level === 'MODERATE' ? 'text-amber-600/80 dark:text-amber-400/80' : 'text-emerald-600/80 dark:text-emerald-400/80'}`}>
-              {threat.desc} · {stats.open}/{stats.total} zones operational · Avg safety score {stats.avgScore}/100
+              {threat.desc} - {stats.open}/{stats.total} zones operational - Avg safety score {stats.avgScore}/100
             </p>
           </div>
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -932,7 +932,7 @@ export default function ShelterFinder(): JSX.Element {
         </div>
       )}
 
-      {/* â”€â”€â”€ NEAREST ZONE HERO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â"€â"€â"€ NEAREST ZONE HERO â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
       {nearest && nearest.distance != null && (
         <div className="relative glass-card rounded-2xl overflow-hidden border border-emerald-200/60 dark:border-emerald-800/40">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 pointer-events-none" />
@@ -996,7 +996,7 @@ export default function ShelterFinder(): JSX.Element {
         </div>
       )}
 
-      {/* â”€â”€â”€ ANALYTICS STATS GRID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â"€â"€â"€ ANALYTICS STATS GRID â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
       {hasData && (
         <div className="grid grid-cols-4 sm:grid-cols-4 gap-2">
           {[
@@ -1014,12 +1014,12 @@ export default function ShelterFinder(): JSX.Element {
         </div>
       )}
 
-      {/* â”€â”€â”€ TYPE DISTRIBUTION BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â"€â"€â"€ TYPE DISTRIBUTION BAR â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
       {hasData && (
         <div className="glass-card rounded-xl px-3 py-2.5">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><BarChart2 className="w-3 h-3" /> Zone Breakdown</span>
-            <span className="text-[9px] text-gray-400 dark:text-gray-500">{stats.total} locations · search radius {formatRadius(radiusUsed)}</span>
+            <span className="text-[9px] text-gray-400 dark:text-gray-500">{stats.total} locations - search radius {formatRadius(radiusUsed)}</span>
           </div>
           <div className="flex h-3 rounded-full overflow-hidden bg-gray-200/60 dark:bg-gray-700/40">
             {(Object.entries(TYPE_CONFIG) as [string, typeof TYPE_CONFIG[keyof typeof TYPE_CONFIG]][]).map(([key, cfg]) => {
@@ -1047,7 +1047,7 @@ export default function ShelterFinder(): JSX.Element {
         </div>
       )}
 
-      {/* â”€â”€â”€ VIEW / FILTER BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â"€â"€â"€ VIEW / FILTER BAR â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
       <div className="flex items-center gap-2">
         {/* View toggle */}
         <div className="flex items-center bg-gray-100 dark:bg-gray-800/60 rounded-lg p-0.5 flex-shrink-0">
@@ -1075,7 +1075,7 @@ export default function ShelterFinder(): JSX.Element {
         </div>
       </div>
 
-      {/* â”€â”€â”€ SPLIT / MAP PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â"€â"€â"€ SPLIT / MAP PANEL â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
       {(viewMode === 'map' || viewMode === 'split') && origin && shelters.length > 0 && (
         <div className="glass-card rounded-2xl overflow-hidden shadow-xl border border-emerald-200/30 dark:border-emerald-800/20" style={{ height: viewMode === 'map' ? 480 : 300 }}>
           <Suspense fallback={<div className="h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800"><Loader2 className="w-6 h-6 animate-spin text-emerald-500" /></div>}>
@@ -1084,7 +1084,7 @@ export default function ShelterFinder(): JSX.Element {
         </div>
       )}
 
-      {/* â”€â”€â”€ SHELTER LIST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â"€â"€â"€ SHELTER LIST â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
       {viewMode !== 'map' && (
         <div className="glass-card rounded-2xl overflow-hidden shadow-lg border border-gray-200/40 dark:border-gray-700/30">
           <div className="divide-y divide-gray-100/80 dark:divide-gray-800/60 max-h-[540px] overflow-y-auto custom-scrollbar">
@@ -1244,7 +1244,7 @@ export default function ShelterFinder(): JSX.Element {
           {hasData && (
             <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 dark:border-gray-800/50 bg-gray-50/50 dark:bg-gray-900/30">
               <div className="flex items-center gap-3 text-[9px] font-medium">
-                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live · OpenStreetMap</span>
+                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live - OpenStreetMap</span>
                 {radiusUsed > 5000 && <span className="text-amber-600 dark:text-amber-400 font-bold">Radius expanded to {formatRadius(radiusUsed)}</span>}
                 {lastRefreshed && <span className="text-gray-400 dark:text-gray-500 hidden sm:inline">Updated {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
               </div>
@@ -1254,7 +1254,7 @@ export default function ShelterFinder(): JSX.Element {
         </div>
       )}
 
-      {/* â”€â”€â”€ OFFICIAL COUNTRY RESOURCES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â"€â"€â"€ OFFICIAL COUNTRY RESOURCES â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
       {(countryCode || origin) && (
         <div className="glass-card rounded-2xl overflow-hidden border border-gray-200/50 dark:border-gray-700/40">
           <button onClick={() => setResourcesExpanded(!resourcesExpanded)} className="w-full flex items-center gap-3 p-4 hover:bg-gray-50/60 dark:hover:bg-gray-800/30 transition-colors">

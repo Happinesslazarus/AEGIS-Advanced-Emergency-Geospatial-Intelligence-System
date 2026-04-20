@@ -166,7 +166,7 @@ class DataLoader:
             start_date: Start date
             end_date: End date
             location: (latitude, longitude)
-            variables: List of weather variables (ignored — we fetch all available)
+            variables: List of weather variables (ignored -- we fetch all available)
 
         Returns:
             DataFrame with hourly weather observations from real API data.

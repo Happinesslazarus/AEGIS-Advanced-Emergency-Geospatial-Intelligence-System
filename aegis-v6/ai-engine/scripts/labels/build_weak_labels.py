@@ -10,11 +10,11 @@ lack clean ground-truth datasets:
 Because no fine-grained UK spatial time-series exists for these hazards, we
 use three complementary weak-supervision strategies and combine them:
 
-  1. EM-DAT (CRED) — international disaster database with country/county-level
+  1. EM-DAT (CRED) -- international disaster database with country/county-level
      impact records; provides coarse temporal presence/absence.
-  2. DesInventar Sendai — UN Sendai Framework aligned event catalogue;
+  2. DesInventar Sendai -- UN Sendai Framework aligned event catalogue;
      stronger granularity than EM-DAT for some event types.
-  3. GDELT — Global Database of Events, Language, and Tone; extracts
+  3. GDELT -- Global Database of Events, Language, and Tone; extracts
      infrastructure/utility news events from global media, geolocated.
 
 All four label columns are written to separate Parquet files AND to a single
@@ -36,20 +36,20 @@ Glossary:
   label noise      = the expected inaccuracy rate of weak labels; disclosed in
                      dissertation as a methodological limitation
 
-  Input  ← data/processed/master_features_uk_2000_2024.parquet
-  Input  ← data/raw/labels/emdat_uk.csv
-  Input  ← data/raw/labels/desinventar_uk.csv
-  Input  ← data/raw/labels/gdelt_uk.csv
-  Output → data/labels/weak_labels.parquet
-         → data/labels/power_outage_labels.parquet
-         → data/labels/water_supply_labels.parquet
-         → data/labels/infrastructure_labels.parquet
-         → data/labels/public_safety_labels.parquet
+  Input  <- data/processed/master_features_uk_2000_2024.parquet
+  Input  <- data/raw/labels/emdat_uk.csv
+  Input  <- data/raw/labels/desinventar_uk.csv
+  Input  <- data/raw/labels/gdelt_uk.csv
+  Output -> data/labels/weak_labels.parquet
+         -> data/labels/power_outage_labels.parquet
+         -> data/labels/water_supply_labels.parquet
+         -> data/labels/infrastructure_labels.parquet
+         -> data/labels/public_safety_labels.parquet
 
 Download:
-  EM-DAT  : https://public.emdat.be → query UK events → CSV export (free account)
-  DesInventar: https://www.desinventar.net → UK → download CSV
-  GDELT   : https://www.gdeltproject.org → Master file list or BigQuery
+  EM-DAT  : https://public.emdat.be -> query UK events -> CSV export (free account)
+  DesInventar: https://www.desinventar.net -> UK -> download CSV
+  GDELT   : https://www.gdeltproject.org -> Master file list or BigQuery
 """
 
 from __future__ import annotations
@@ -87,9 +87,7 @@ GDELT_CAMEO_ROOTS: dict[str, list[str]] = {
 }
 
 
-# ---------------------------------------------------------------------------
 # EM-DAT loading
-# ---------------------------------------------------------------------------
 
 def load_emdat(path: Path) -> pd.DataFrame:
     """Parse EM-DAT CSV into a normalised DataFrame."""
@@ -106,9 +104,7 @@ def load_emdat(path: Path) -> pd.DataFrame:
     return df.dropna(subset=["event_date"])
 
 
-# ---------------------------------------------------------------------------
 # DesInventar loading
-# ---------------------------------------------------------------------------
 
 def load_desinventar(path: Path) -> pd.DataFrame:
     """Parse DesInventar CSV."""
@@ -125,13 +121,11 @@ def load_desinventar(path: Path) -> pd.DataFrame:
     return df.dropna(subset=["event_date"])
 
 
-# ---------------------------------------------------------------------------
 # GDELT loading
-# ---------------------------------------------------------------------------
 
 def load_gdelt(path: Path) -> pd.DataFrame:
     """
-    Load a GDELT CSV subset.  GDELT columns (25 fields) — we use:
+    Load a GDELT CSV subset.  GDELT columns (25 fields) -- we use:
       EventCode (column 27), EventGeo_Lat, EventGeo_Long, SQLDATE (col 1)
     """
     if not path.exists():
@@ -150,9 +144,7 @@ def load_gdelt(path: Path) -> pd.DataFrame:
     return df.dropna(subset=["event_date", "lat", "lon"])
 
 
-# ---------------------------------------------------------------------------
 # Label builder per hazard
-# ---------------------------------------------------------------------------
 
 def build_labels_for_hazard(
     master: pd.DataFrame,
@@ -166,7 +158,7 @@ def build_labels_for_hazard(
 
     Strategy:
       - A master row is labelled 1 if EM-DAT or DesInventar records a relevant
-        event type in the UK in the same calendar month (no spatial precision —
+        event type in the UK in the same calendar month (no spatial precision --
         these are country-level records).
       - Additionally labelled 1 if GDELT records a matching CAMEO event within
         100 km and 7 days of the master row.
@@ -174,7 +166,7 @@ def build_labels_for_hazard(
     labels = pd.Series(0, index=master.index, dtype=int)
     master_dates = pd.to_datetime(master["date"])
 
-    # ── EM-DAT monthly flag ────────────────────────────────────────────────
+    # EM-DAT monthly flag
     if not emdat.empty and "disaster_type" in emdat.columns:
         kws    = [k.lower() for k in EMDAT_KEYWORDS.get(hazard, [])]
         emdat_mask = emdat["disaster_type"].str.lower().apply(
@@ -186,7 +178,7 @@ def build_labels_for_hazard(
         ym_match = master_dates.apply(lambda d: (d.year, d.month) in emdat_ym)
         labels |= ym_match.astype(int).values
 
-    # ── DesInventar monthly flag ───────────────────────────────────────────
+    # DesInventar monthly flag
     if not desinventar.empty and "event_type" in desinventar.columns:
         kws = [k.lower() for k in EMDAT_KEYWORDS.get(hazard, [])]
         di_mask = desinventar["event_type"].apply(
@@ -199,7 +191,7 @@ def build_labels_for_hazard(
         ym_match2 = master_dates.apply(lambda d: (d.year, d.month) in di_ym)
         labels |= ym_match2.astype(int).values
 
-    # ── GDELT spatial-temporal proximity (vectorised event-driven) ───────
+    # GDELT spatial-temporal proximity (vectorised event-driven)
     if not gdelt.empty and "event_code" in gdelt.columns:
         root_codes = GDELT_CAMEO_ROOTS.get(hazard, [])
         gdelt_h = gdelt[gdelt["event_code"].astype(str).apply(
@@ -228,18 +220,16 @@ def build_labels_for_hazard(
     return labels
 
 
-# ---------------------------------------------------------------------------
 # Orchestrator
-# ---------------------------------------------------------------------------
 
 def build_weak_labels(args: argparse.Namespace) -> None:
     _LABEL_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("[1/5] Loading master features …")
+    print("[1/5] Loading master features ...")
     master = pd.read_parquet(str(args.master))
     print(f"  {len(master):,} rows")
 
-    print("[2/5] Loading external sources …")
+    print("[2/5] Loading external sources ...")
     emdat       = load_emdat(_RAW_LDIR / "emdat_uk.csv")
     desinventar = load_desinventar(_RAW_LDIR / "desinventar_uk.csv")
     gdelt       = load_gdelt(_RAW_LDIR / "gdelt_uk.csv")
@@ -255,7 +245,7 @@ def build_weak_labels(args: argparse.Namespace) -> None:
     combined = master[["lat", "lon", "date"]].copy()
 
     for hazard in hazards:
-        print(f"[3-5/{hazard}] Building weak labels for {hazard} …")
+        print(f"[3-5/{hazard}] Building weak labels for {hazard} ...")
         col = f"{hazard}_label"
         labels = build_labels_for_hazard(master, hazard, emdat, desinventar, gdelt)
         combined[col] = labels.values
@@ -266,11 +256,11 @@ def build_weak_labels(args: argparse.Namespace) -> None:
         individual_path = _LABEL_DIR / f"{hazard}_labels.parquet"
         per_hazard.to_parquet(str(individual_path), index=False, compression="snappy")
         pos_rate = labels.mean() * 100
-        print(f"  {hazard}: positive rate {pos_rate:.2f}%  → {individual_path}")
+        print(f"  {hazard}: positive rate {pos_rate:.2f}%  -> {individual_path}")
 
     combined_path = args.output or (_LABEL_DIR / "weak_labels.parquet")
     combined.to_parquet(str(combined_path), index=False, compression="snappy")
-    print(f"\n  Combined weak labels → {combined_path}")
+    print(f"\n  Combined weak labels -> {combined_path}")
     print(
         "\n  NOTE: These are WEAK labels derived from coarse national/regional data.\n"
         "  Expect ~15-25% label noise.  Document this limitation in your dissertation.\n"

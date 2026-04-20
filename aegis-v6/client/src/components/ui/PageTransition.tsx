@@ -1,5 +1,5 @@
 /**
- * PageTransition — CSS-only animated route wrapper.
+ * PageTransition -- CSS-only animated route wrapper.
  * Applies a fade + slide-up entrance when a route mounts.
  * Respects prefers-reduced-motion for accessibility.
  */
@@ -24,7 +24,7 @@ export default function PageTransition({ children, className = '' }: Props): JSX
       setVisible(true)
       return
     }
-    // Reset on route change
+    //Reset on route change
     if (pathname !== prevPath.current) {
       setVisible(false)
       prevPath.current = pathname

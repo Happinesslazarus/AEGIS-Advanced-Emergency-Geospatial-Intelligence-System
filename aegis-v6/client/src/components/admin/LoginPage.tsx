@@ -1,9 +1,9 @@
 ﻿/**
  * Operator login page with three auth flows:
- * 1. Standard email/password → calls apiLogin(), stores JWT on success
- * 2. Two-factor auth → if the API returns requires2FA=true, swaps in TwoFactorChallenge
+ * 1. Standard email/password -> calls apiLogin(), stores JWT on success
+ * 2. Two-factor auth -> if the API returns requires2FA=true, swaps in TwoFactorChallenge
  *    with the tempToken from the initial response
- * 3. Google OAuth → hard link to /api/auth/google (server-side redirect flow)
+ * 3. Google OAuth -> hard link to /api/auth/google (server-side redirect flow)
  * Also has an inline "forgot password" handler that triggers a reset email.
  *
  * - onLogin(user) callback passed in from AdminPage.tsx updates parent auth state
@@ -32,8 +32,8 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
   const lang = useLanguage()
   const { dark } = useTheme()
   const [searchParams, setSearchParams] = useSearchParams()
-  // session=expired is appended to the URL by the API interceptor when a 401 fires.
-  // We read it once on mount and clear it from the URL after showing the banner.
+  //session=expired is appended to the URL by the API interceptor when a 401 fires.
+  //We read it once on mount and clear it from the URL after showing the banner.
   const sessionExpired = searchParams.get('session') === 'expired'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -89,9 +89,9 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
     try {
       const res = await apiLogin(email, password)
       if (res.requires2FA && res.tempToken) {
-        // 2FA required: server returned a short-lived tempToken instead of a full JWT.
-        // Swap to the TwoFactorChallenge screen. The tempToken is exchanged for a
-        // real JWT after the user enters their OTP code.
+        //2FA required: server returned a short-lived tempToken instead of a full JWT.
+        //Swap to the TwoFactorChallenge screen. The tempToken is exchanged for a
+        //real JWT after the user enters their OTP code.
         setTwoFactorRequired(true)
         setTempToken(res.tempToken)
         setLoading(false)
@@ -202,7 +202,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
                 <div className="px-4 py-2.5 border-t border-gray-100 dark:border-white/5 flex items-center gap-2">
                   <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" /></span>
                   <span className="text-[9px] font-bold text-green-600/70 dark:text-green-400/60">ONLINE</span>
-                  <span className="text-gray-200 dark:text-white/10">·</span>
+                  <span className="text-gray-200 dark:text-white/10">-</span>
                   <Lock className="w-2.5 h-2.5 text-aegis-400/50" />
                   <span className="text-[9px] font-bold text-aegis-500/50 dark:text-aegis-400/40">ENCRYPTED</span>
                 </div>
@@ -234,7 +234,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
         />
       ) : (
       <div className="w-full max-w-6xl flex lg:flex-row flex-col gap-6 sm:gap-12 items-center">
-        {/* Left — Branding Hero */}
+        {/* Left -- Branding Hero */}
         <div className="hidden lg:flex flex-col flex-1 max-w-md">
           <div className="mb-8">
             <div className="w-20 h-20 bg-gradient-to-br from-aegis-500 to-aegis-700 rounded-2xl flex items-center justify-center mb-6 shadow-2xl shadow-aegis-600/30">
@@ -265,7 +265,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
           </div>
         </div>
 
-        {/* Right — Auth Form */}
+        {/* Right -- Auth Form */}
         <div className="w-full max-w-lg mx-auto lg:mx-0 flex-1">
         {/* Mobile/Tablet: compact branding + feature highlights */}
         <div className="mb-6 lg:hidden">
@@ -353,7 +353,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
             </button>
           </form>
 
-          {/*  ─── Alternative Sign-In Methods ─── */}
+          {/*  --- Alternative Sign-In Methods --- */}
           <div className="relative my-3">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700" /></div>
             <div className="relative flex justify-center text-xs">
@@ -451,7 +451,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
                 </div>
                 <div className="text-left min-w-0">
                   <p className="font-medium text-sm">Emergency QR</p>
-                  <p className="text-[11px] text-red-500/70 dark:text-red-400/60">Scan from kiosk or phone — no password needed</p>
+                  <p className="text-[11px] text-red-500/70 dark:text-red-400/60">Scan from kiosk or phone -- no password needed</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-red-300 dark:text-red-600 ml-auto flex-shrink-0" />
               </Link>
@@ -462,9 +462,9 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
 
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
             <span className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-300 whitespace-nowrap"><Lock className="w-3 h-3 flex-shrink-0"/>{t('admin.login.secureConnection', lang)}</span>
-            <span className="text-gray-300 dark:text-gray-700 hidden sm:inline">·</span>
+            <span className="text-gray-300 dark:text-gray-700 hidden sm:inline">-</span>
             <span className="text-[10px] text-gray-400 dark:text-gray-300 whitespace-nowrap">{t('users.sessions', lang)}</span>
-            <span className="text-gray-300 dark:text-gray-700 hidden sm:inline">·</span>
+            <span className="text-gray-300 dark:text-gray-700 hidden sm:inline">-</span>
             <span className="text-[10px] text-gray-400 dark:text-gray-300 whitespace-nowrap text-center">{t('admin.login.protectedSystem', lang)}</span>
           </div>
         </div>

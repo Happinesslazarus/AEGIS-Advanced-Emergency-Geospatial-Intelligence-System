@@ -5,40 +5,38 @@ disruption training labels.
 WHY GRDC
 --------
 Water supply disruption is caused by two distinct mechanisms:
-  1. DROUGHT   — river/reservoir levels fall below supply threshold (Q10 or
+  1. DROUGHT   -- river/reservoir levels fall below supply threshold (Q10 or
                  below 10th percentile of monthly flow)
-  2. FLOODING  — turbidity and infrastructure damage interrupt treatment works
+  2. FLOODING  -- turbidity and infrastructure damage interrupt treatment works
 
 Both can be detected using observed discharge (Q) records.  GRDC provides
 daily mean discharge (m³/s) at ~10,000 stations globally, measured by
 national hydrological agencies and aggregated under WMO auspices.
 
 This is independent of ERA5 because:
-  - GRDC records measured river flow — a CONSEQUENCE of weather, not a
+  - GRDC records measured river flow -- a CONSEQUENCE of weather, not a
     weather variable itself
   - GRDC data comes from direct stream-gauge telemetry submitted by national
     agencies (USGS, EA, BfG, NWIS, etc.)
-  - ERA5 features include precipitation, temperature, humidity — not streamflow
+  - ERA5 features include precipitation, temperature, humidity -- not streamflow
 
 LABEL DEFINITION
-----------------
 Two-sided label:
   DROUGHT mode  : station-month POSITIVE when mean monthly Q < Q10
                   (10th percentile of the station's long-term record)
   FLOOD mode    : station-day POSITIVE when daily Q > Q90
-                  (90th percentile — flood-risk turbidity / infrastructure)
+                  (90th percentile -- flood-risk turbidity / infrastructure)
   COMBINED mode : union of drought and flood positives (default)
 
 The monthly/daily label is broadcast to all hours within that period.
 
 DATA ACCESS
------------
 GRDC data requires a FREE registration at:
   https://www.bafg.de/GRDC/EN/02_srvcs/21_tmsrs/210_prtl/prtl_node.html
 
 After registration, you can download station data in two ways:
 
-  A. Web portal (manual) — select stations, download as ZIP with CSV files
+  A. Web portal (manual) -- select stations, download as ZIP with CSV files
      Save CSV files to: {ai-engine}/data/grdc/
 
   B. GRDC REST API (programmatic, rate-limited):
@@ -46,7 +44,6 @@ After registration, you can download station data in two ways:
      download_grdc_station(station_id=6122100)  # Rhine at Cologne
 
 EMBEDDED FALLBACK
------------------
 Rather than require a GRDC account for basic operation, this module also
 contains a curated static list of documented water supply disruption events
 from official sources (WHO/PAHO water crises reports, EA Drought Plans,
@@ -80,7 +77,7 @@ _AI_ROOT   = Path(__file__).resolve().parent.parent.parent
 _GRDC_DIR  = _AI_ROOT / "data" / "grdc"
 _GRDC_DIR.mkdir(parents=True, exist_ok=True)
 
-# GRDC API base — access requires registration (free)
+# GRDC API base -- access requires registration (free)
 _GRDC_API_BASE = "https://grdc.bafg.de/GRDC/api/v1"
 
 # Key GRDC station IDs for global water-supply disruption training coverage
@@ -90,7 +87,7 @@ _GRDC_API_BASE = "https://grdc.bafg.de/GRDC/api/v1"
 # Stations removed due to no GRDC daily data: White Nile/Malakal (1673600),
 #   Tigris/Mosul (2595600), Indus/Attock (2335200), Ganges/Paksey (2646100).
 GRDC_TRAINING_STATIONS: dict[int, tuple[str, str, str, float, float]] = {
-    # Europe — IDs from GRDC catalog; Rhine/Elbe/Danube/Glomma all have 100+ yr records
+    # Europe -- IDs from GRDC catalog; Rhine/Elbe/Danube/Glomma all have 100+ yr records
     6335060: ("Cologne",        "Rhine",   "DE",  50.94,  6.96),   # 1816-2024
     6340110: ("Neu Darchau",    "Elbe",    "DE",  53.23, 10.89),   # 1874-2023
     6142200: ("Bratislava",     "Danube",  "SK",  48.14, 17.11),   # 1900-2024
@@ -117,125 +114,122 @@ GRDC_TRAINING_STATIONS: dict[int, tuple[str, str, str, float, float]] = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Curated static water supply disruption events (fallback — always available)
-# ---------------------------------------------------------------------------
+# Curated static water supply disruption events (fallback -- always available)
 # Sources: WHO/PAHO water emergency bulletins, EA Drought Exceptional Circumstance
 # declarations, USGS WaterWatch drought advisories, EU drought observatory reports,
 # ReliefWeb water crises, local water authority press releases.
 #
 # Each record: start, end, lat, lon, description, source
-# These are events where water supply to human populations was DISRUPTED —
+# These are events where water supply to human populations was DISRUPTED --
 # not just meteorological drought, but actual service interruption or restriction.
-# ---------------------------------------------------------------------------
 
 WATER_SUPPLY_DISRUPTION_EVENTS: list[dict] = [
     # UK / Europe
     {
         "start": datetime(2018, 6, 1),   "end": datetime(2018, 9, 30),
         "lat": 51.5, "lon": -0.1,
-        "description": "UK 2018 summer drought — Thames Water hosepipe ban, reservoir levels <20% in SE England",
+        "description": "UK 2018 summer drought -- Thames Water hosepipe ban, reservoir levels <20% in SE England",
         "source": "Environment Agency Drought Situation Reports 2018",
     },
     {
         "start": datetime(2022, 7, 1),   "end": datetime(2022, 9, 30),
         "lat": 51.5, "lon": -0.5,
-        "description": "UK 2022 drought — driest July since 1935; Wessex Water, Southern Water drought orders",
+        "description": "UK 2022 drought -- driest July since 1935; Wessex Water, Southern Water drought orders",
         "source": "Environment Agency National Drought Group 2022; Met Office",
     },
     {
         "start": datetime(2019, 7, 1),   "end": datetime(2019, 8, 31),
         "lat": 48.9, "lon": 8.7,
-        "description": "Central European heat-drought 2019 — Rhine low-flow; industrial and drinking water concerns",
+        "description": "Central European heat-drought 2019 -- Rhine low-flow; industrial and drinking water concerns",
         "source": "EU Drought Observatory bulletin Aug 2019",
     },
     {
         "start": datetime(2022, 7, 1),   "end": datetime(2022, 10, 31),
         "lat": 44.0, "lon": 11.0,
-        "description": "Italy 2022 mega-drought — Po basin at historic lows; agricultural and municipal supply disruption",
+        "description": "Italy 2022 mega-drought -- Po basin at historic lows; agricultural and municipal supply disruption",
         "source": "ReliefWeb Italy drought report July 2022 / EU DJF",
     },
     {
         "start": datetime(2017, 6, 1),   "end": datetime(2017, 9, 30),
         "lat": 39.5, "lon": -8.0,
-        "description": "Iberian Peninsula drought 2017 — dam levels <30%; municipal restrictions Portugal",
+        "description": "Iberian Peninsula drought 2017 -- dam levels <30%; municipal restrictions Portugal",
         "source": "SNIRH Portugal drought bulletin; AEMET drought report",
     },
     # North America
     {
         "start": datetime(2021, 7, 1),   "end": datetime(2022, 3, 31),
         "lat": 36.2, "lon": -115.1,
-        "description": "Lake Mead drought emergency 2021-22 — Tier 1 then Tier 2 shortage declared by USBR; Arizona/Nevada supply cuts",
+        "description": "Lake Mead drought emergency 2021-22 -- Tier 1 then Tier 2 shortage declared by USBR; Arizona/Nevada supply cuts",
         "source": "USBR Colorado River Basin Forecast Aug 2021; Arizona Dept Water Resources",
     },
     {
         "start": datetime(2022, 8, 1),   "end": datetime(2023, 5, 31),
         "lat": 37.0, "lon": -119.4,
-        "description": "California drought 2022-23 — Governor emergency; groundwater-dependent communities ran dry",
+        "description": "California drought 2022-23 -- Governor emergency; groundwater-dependent communities ran dry",
         "source": "CA DWR Water Conditions Report 2022; USGS WaterWatch",
     },
     {
         "start": datetime(2016, 1, 1),   "end": datetime(2016, 6, 30),
         "lat": 29.9, "lon": -90.1,
-        "description": "Louisiana/Mississippi River low-flow saltwater intrusion 2016 — threatened New Orleans water supply",
+        "description": "Louisiana/Mississippi River low-flow saltwater intrusion 2016 -- threatened New Orleans water supply",
         "source": "USGS current water conditions / Army Corps of Engineers advisory",
     },
     # South America
     {
         "start": datetime(2021, 9, 1),   "end": datetime(2022, 3, 31),
         "lat": -23.5, "lon": -46.6,
-        "description": "Brazil drought 2021 — worst in 91 years; São Paulo System Cantareira <20%",
+        "description": "Brazil drought 2021 -- worst in 91 years; São Paulo System Cantareira <20%",
         "source": "ANA Brazil National Water Agency report 2021",
     },
     {
         "start": datetime(2015, 2, 1),   "end": datetime(2015, 5, 31),
         "lat": -23.5, "lon": -46.6,
-        "description": "São Paulo water crisis 2015 — Cantareira system near dead pool; 22M people under restrictions",
+        "description": "São Paulo water crisis 2015 -- Cantareira system near dead pool; 22M people under restrictions",
         "source": "SABESP water level bulletins Q1 2015",
     },
     # Africa
     {
         "start": datetime(2017, 11, 1),  "end": datetime(2018, 5, 31),
         "lat": -33.9, "lon": 18.4,
-        "description": "Cape Town Day Zero crisis 2017-18 — dam levels <20%; Level 6 restrictions; global attention",
+        "description": "Cape Town Day Zero crisis 2017-18 -- dam levels <20%; Level 6 restrictions; global attention",
         "source": "City of Cape Town dam reports; DWS drought bulletin",
     },
     {
         "start": datetime(2021, 1, 1),   "end": datetime(2021, 6, 30),
         "lat": -17.8, "lon": 31.0,
-        "description": "Zimbabwe 2021 drought — Harare lake Chivero near dead pool; 24hr/week supply schedule",
+        "description": "Zimbabwe 2021 drought -- Harare lake Chivero near dead pool; 24hr/week supply schedule",
         "source": "ReliefWeb Zimbabwe humanitarian report Jan 2021",
     },
     # Middle East / Asia
     {
         "start": datetime(2018, 3, 1),   "end": datetime(2018, 9, 30),
         "lat": 31.9, "lon": 35.9,
-        "description": "Jordan water crisis 2018 — Zarqa Basin and King Talal Reservoir at critically low levels",
+        "description": "Jordan water crisis 2018 -- Zarqa Basin and King Talal Reservoir at critically low levels",
         "source": "MWI Jordan water resources annual report 2018",
     },
     {
         "start": datetime(2015, 4, 1),   "end": datetime(2016, 1, 31),
         "lat": 29.4, "lon": 52.5,
-        "description": "Iran Khuzestan water crisis 2015-16 — Karun river near zero flow; industrial shut-downs",
+        "description": "Iran Khuzestan water crisis 2015-16 -- Karun river near zero flow; industrial shut-downs",
         "source": "WRMA Iran water report 2015",
     },
     # NOTE on Iraq events and ERA5 predictability:
     # Tigris-Euphrates low-flow crises have TWO drivers:
-    #   1. Upstream Turkish/Syrian dam operations (Atatürk, Tabqa, Mosul dams) —
+    #   1. Upstream Turkish/Syrian dam operations (Atatürk, Tabqa, Mosul dams) --
     #      NOT predictable from local ERA5 meteorology at the Baghdad grid point.
-    #   2. Below-normal winter rainfall in the headwaters (Taurus/Zagros mountains) —
+    #   2. Below-normal winter rainfall in the headwaters (Taurus/Zagros mountains) --
     #      IS partially predictable from antecedent_rainfall and soil_moisture features.
     # Model prediction quality for these events depends on which driver dominates.
     # The events are retained because they represent documented real-world disruptions,
     # but their contribution to training AUC may be limited where dam-release policy
     # (not weather) is the primary cause.  Geographic holdout evaluation (see
     # geographic_holdout.json) will reveal whether Middle East cluster AUC is lower
-    # than Europe/Americas — which is the expected and scientifically honest result.
+    # than Europe/Americas -- which is the expected and scientifically honest result.
     {
         "start": datetime(2018, 5, 1),   "end": datetime(2018, 11, 30),
         "lat": 33.34, "lon": 44.40,
         "description": (
-            "Iraq 2018 water crisis — Tigris and Euphrates at historic low flows "
+            "Iraq 2018 water crisis -- Tigris and Euphrates at historic low flows "
             "due to upstream Turkish/Syrian dams and below-normal winter rainfall; "
             "Basra protests over water contamination and shortages; agricultural "
             "collapse in southern Iraq.  Driver: mixed (dam operations + rainfall "
@@ -247,7 +241,7 @@ WATER_SUPPLY_DISRUPTION_EVENTS: list[dict] = [
         "start": datetime(2019, 5, 1),   "end": datetime(2019, 10, 31),
         "lat": 33.34, "lon": 44.40,
         "description": (
-            "Iraq 2019 water stress — second consecutive year of critically low "
+            "Iraq 2019 water stress -- second consecutive year of critically low "
             "Tigris-Euphrates discharge; government declared Euphrates water emergency; "
             "agricultural irrigation cuts in Anbar and Diyala.  Driver: predominantly "
             "upstream dam operations and reduced Taurus-Zagros snowpack; local ERA5 "
@@ -259,10 +253,10 @@ WATER_SUPPLY_DISRUPTION_EVENTS: list[dict] = [
         "start": datetime(2022, 3, 1),   "end": datetime(2022, 8, 31),
         "lat": 33.3, "lon": 44.4,
         "description": (
-            "Iraq water crisis 2022 — Tigris/Euphrates at historic lows; agricultural "
-            "and domestic shortages.  Driver: compound — upstream dam policy and "
+            "Iraq water crisis 2022 -- Tigris/Euphrates at historic lows; agricultural "
+            "and domestic shortages.  Driver: compound -- upstream dam policy and "
             "severe 2021-22 winter rainfall deficit across headwaters.  In test period "
-            "(Apr 2022 – May 2023) so model must predict this without seeing it in training."
+            "(Apr 2022 - May 2023) so model must predict this without seeing it in training."
         ),
         "source": "FAO Iraq water situation report June 2022",
     },
@@ -270,67 +264,65 @@ WATER_SUPPLY_DISRUPTION_EVENTS: list[dict] = [
     {
         "start": datetime(2019, 1, 1),   "end": datetime(2020, 2, 28),
         "lat": -33.9, "lon": 151.2,
-        "description": "Millennium Drought successor — NSW storage <50%; Stanthorpe (QLD) nearly ran out of water entirely",
+        "description": "Millennium Drought successor -- NSW storage <50%; Stanthorpe (QLD) nearly ran out of water entirely",
         "source": "NSW DPIE water situation report 2019; BOM Drought monitor",
     },
     {
         "start": datetime(2019, 3, 1),   "end": datetime(2020, 2, 28),
         "lat": -34.92, "lon": 138.6,
-        "description": "South Australia 2019-20 drought — Murray-Darling inflows at record lows; Adelaide desalination plant at full capacity",
+        "description": "South Australia 2019-20 drought -- Murray-Darling inflows at record lows; Adelaide desalination plant at full capacity",
         "source": "SA Water annual report 2019-20; MDBA drought monitoring bulletin",
     },
     {
         "start": datetime(2019, 3, 1),   "end": datetime(2019, 12, 31),
         "lat": -31.95, "lon": 115.86,
-        "description": "Western Australia 2019 drought — Perth dam storage below 20% of capacity; level 1-2 restrictions",
+        "description": "Western Australia 2019 drought -- Perth dam storage below 20% of capacity; level 1-2 restrictions",
         "source": "Water Corporation Perth water storage dashboard 2019; BOM drought monitor",
     },
-    # Middle East — recurring crises (fill temporal gap)
+    # Middle East -- recurring crises (fill temporal gap)
     {
         "start": datetime(2021, 4, 1),   "end": datetime(2021, 10, 31),
         "lat": 31.95, "lon": 35.93,
-        "description": "Jordan 2021 water crisis — Zarqa and Yarmouk River flows at historic lows; severe urban rationing in Amman",
+        "description": "Jordan 2021 water crisis -- Zarqa and Yarmouk River flows at historic lows; severe urban rationing in Amman",
         "source": "MWI Jordan Annual Report 2021; ReliefWeb Jordan water shortages Jul 2021",
     },
     # Peru / South America
     {
         "start": datetime(2016, 4, 1),   "end": datetime(2016, 11, 30),
         "lat": -12.04, "lon": -77.04,
-        "description": "Peru Lima water crisis 2016 — El Niño mudslides contaminated Chillón/Rímac intakes; 1.5M without supply",
+        "description": "Peru Lima water crisis 2016 -- El Niño mudslides contaminated Chillón/Rímac intakes; 1.5M without supply",
         "source": "SEDAPAL Lima emergency report Apr 2016; INDECI disaster bulletin",
     },
     {
         "start": datetime(2017, 1, 1),   "end": datetime(2017, 5, 31),
         "lat": -12.04, "lon": -77.04,
-        "description": "Peru Lima 2017 huaico floods — Niño Costero event contaminated all three Lima water intakes; 5-day supply interruption",
+        "description": "Peru Lima 2017 huaico floods -- Niño Costero event contaminated all three Lima water intakes; 5-day supply interruption",
         "source": "SEDAPAL emergency report Mar 2017; ANA Peru flood bulletin",
     },
     # Germany / Rhine drought (fills 2018 gap in Central Europe)
     {
         "start": datetime(2018, 6, 1),   "end": datetime(2018, 10, 31),
         "lat": 51.5, "lon": 7.5,
-        "description": "Rhine/Elbe low flow 2018 — driest summer since records; industrial water use restricted; drinking water concerns in NRW",
+        "description": "Rhine/Elbe low flow 2018 -- driest summer since records; industrial water use restricted; drinking water concerns in NRW",
         "source": "BfG Rhine hydrological drought report 2018; DWD summer 2018 analysis",
     },
     {
         "start": datetime(2019, 6, 1),   "end": datetime(2019, 10, 31),
         "lat": 48.87, "lon": 2.35,
-        "description": "France drought 2019 — lowest river levels since 1959 in places; prefectural water restrictions in 77 departments",
+        "description": "France drought 2019 -- lowest river levels since 1959 in places; prefectural water restrictions in 77 departments",
         "source": "Météo-France summer 2019 review; French government drought decree bulletins",
     },
     # Additional African event
     {
         "start": datetime(2019, 1, 1),   "end": datetime(2019, 9, 30),
         "lat": -1.29, "lon": 36.82,
-        "description": "Kenya 2019 drought — Nairobi dams (Sasumua, Ruiru) at <20%; NCWSC rationing across the capital",
+        "description": "Kenya 2019 drought -- Nairobi dams (Sasumua, Ruiru) at <20%; NCWSC rationing across the capital",
         "source": "NCWSC Nairobi water levels 2019; Kenya Meteorological Dept drought advisory",
     },
 ]
 
 
-# ---------------------------------------------------------------------------
 # GRDC download helpers
-# ---------------------------------------------------------------------------
 
 def download_grdc_station(
     station_id: int,
@@ -343,12 +335,11 @@ def download_grdc_station(
       {ai-engine}/data/grdc/grdc_{station_id}.csv
 
     Parameters
-    ----------
     station_id : GRDC station ID
     force      : re-download if file exists
 
     Returns
-    -------
+
     Path to downloaded CSV, or None on failure.
     """
     dest = _GRDC_DIR / f"grdc_{station_id}.csv"
@@ -393,9 +384,7 @@ def download_grdc_station_list(force: bool = False) -> Optional[Path]:
         return None
 
 
-# ---------------------------------------------------------------------------
 # GRDC data loading
-# ---------------------------------------------------------------------------
 
 def load_grdc_station(station_id: int) -> pd.DataFrame:
     """Load a GRDC station daily discharge CSV.
@@ -449,14 +438,13 @@ def compute_flow_percentiles(
     """Compute Q10 (low-flow drought threshold) and Q90 (high-flow flood threshold).
 
     Parameters
-    ----------
     df               : discharge DataFrame from load_grdc_station()
     low_percentile   : percentile for drought threshold (default 10)
     high_percentile  : percentile for flood threshold (default 90)
 
     Returns
-    -------
-    (q_low, q_high) — discharge thresholds in m³/s
+
+    (q_low, q_high) -- discharge thresholds in m³/s
     """
     if df.empty or "discharge_m3s" not in df.columns:
         return float("nan"), float("nan")
@@ -478,7 +466,6 @@ def build_grdc_labels_for_station(
     """Build daily drought/flood labels (0/1) for a GRDC station.
 
     Parameters
-    ----------
     station_id       : GRDC station ID
     start_date       : "YYYY-MM-DD"
     end_date         : "YYYY-MM-DD"
@@ -487,7 +474,7 @@ def build_grdc_labels_for_station(
     high_percentile  : Q threshold for flood   (default Q90)
 
     Returns
-    -------
+
     pd.Series indexed by date (daily), values 0/1.  Empty on failure.
     """
     df = load_grdc_station(station_id)
@@ -515,9 +502,7 @@ def build_grdc_labels_for_station(
     return label
 
 
-# ---------------------------------------------------------------------------
 # Haversine helper
-# ---------------------------------------------------------------------------
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     r = 6371.0
@@ -532,9 +517,7 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return r * 2 * math.asin(math.sqrt(min(a, 1.0)))
 
 
-# ---------------------------------------------------------------------------
 # Main label builder
-# ---------------------------------------------------------------------------
 
 def build_water_label_df(
     station_locations: list[dict],
@@ -552,7 +535,6 @@ def build_water_label_df(
       - A documented water supply disruption event overlaps that station-hour
 
     Parameters
-    ----------
     station_locations : list of {"id", "lat", "lon"} dicts
     start_date        : "YYYY-MM-DD"
     end_date          : "YYYY-MM-DD"
@@ -562,7 +544,7 @@ def build_water_label_df(
     high_percentile   : Q percentile for flood threshold
 
     Returns
-    -------
+
     pd.DataFrame with columns: timestamp (hourly), station_id, label (0/1)
     """
     dt_start = datetime.strptime(start_date, "%Y-%m-%d")
@@ -571,7 +553,7 @@ def build_water_label_df(
 
     positive_station_hours: dict[str, set] = {loc["id"]: set() for loc in station_locations}
 
-    # --- Source 1: GRDC gauge stations ---
+    # Source 1: GRDC gauge stations
     n_grdc_gauges_used = 0
     for grdc_sid, (name, river, country, g_lat, g_lon) in GRDC_TRAINING_STATIONS.items():
         # Find which training stations are within radius of this gauge
@@ -599,7 +581,7 @@ def build_water_label_df(
     if n_grdc_gauges_used:
         logger.info(f"  GRDC: {n_grdc_gauges_used} gauge stations contributed labels")
 
-    # --- Source 2: Curated static disruption events ---
+    # Source 2: Curated static disruption events
     n_static = 0
     for ev in WATER_SUPPLY_DISRUPTION_EVENTS:
         ev_start = pd.Timestamp(ev["start"])
@@ -622,13 +604,13 @@ def build_water_label_df(
     if not any(positive_station_hours.values()):
         logger.warning(
             "No water disruption data contributed any positive labels.\n"
-            "Static disruption events should always fire — check date range and radius.\n"
+            "Static disruption events should always fire -- check date range and radius.\n"
             "For GRDC gauge data: from app.training.data_fetch_grdc import "
             "download_grdc_station; download_grdc_station(6122100)"
         )
         return pd.DataFrame(columns=["timestamp", "station_id", "label"])
 
-    # --- Build hourly output ---
+    # Build hourly output
     rows: list[pd.DataFrame] = []
     n_positive_total = 0
     for loc in station_locations:
@@ -654,7 +636,7 @@ def build_water_label_df(
 
 
 def water_supply_data_available() -> bool:
-    """Return True — static disruption events are always embedded.
+    """Return True -- static disruption events are always embedded.
     GRDC files are optional (add gauge-based precision).
     """
     has_grdc = bool(list(_GRDC_DIR.glob("grdc_*.csv")))

@@ -7,9 +7,9 @@ A row is labelled 1 if a landslide occurred within 2 km of the point
 in the 14-day window following the row's date.
 
 Glossary:
-  NASA COOLR  = Cooperative Open Online Landslide Repository — the largest
+  NASA COOLR  = Cooperative Open Online Landslide Repository -- the largest
                 open landslide catalogue, maintained by NASA GSFC
-  BGS NLD     = British Geological Survey National Landslide Database —
+  BGS NLD     = British Geological Survey National Landslide Database --
                 over 17,000 UK events with precise lat/lon; the gold standard
                 for UK landslide modelling
   2 km radius = conservative spatial tolerance; BGS events are location-precise
@@ -20,17 +20,17 @@ Glossary:
 
 Download:
   NASA COOLR  : https://pmm.nasa.gov/data-access/downloads/global-landslide-catalog
-                → "Global Landslide Catalog" CSV
-                → save as data/raw/labels/nasa_coolr.csv
+                -> "Global Landslide Catalog" CSV
+                -> save as data/raw/labels/nasa_coolr.csv
   BGS NLD     : email records@bgs.ac.uk with academic institution details;
                 usually approved within 1-2 weeks
-                → save as data/raw/labels/bgs_nld.csv
+                -> save as data/raw/labels/bgs_nld.csv
 
-  Input  ← data/processed/master_features_uk_2000_2024.parquet
-  Input  ← data/raw/labels/nasa_coolr.csv
-  Input  ← data/raw/labels/bgs_nld.csv   (optional — more accurate)
-  Output → data/labels/landslide_labels.parquet
-  Used by← ai-engine/training/train_all_hazards_v2.py
+  Input  <- data/processed/master_features_uk_2000_2024.parquet
+  Input  <- data/raw/labels/nasa_coolr.csv
+  Input  <- data/raw/labels/bgs_nld.csv   (optional -- more accurate)
+  Output -> data/labels/landslide_labels.parquet
+  Used by<- ai-engine/training/train_all_hazards_v2.py
 """
 
 from __future__ import annotations
@@ -93,7 +93,7 @@ def load_coolr(path: Path) -> pd.DataFrame:
 
 
 def load_bgs(path: Path) -> pd.DataFrame:
-    """Load BGS NLD CSV.  Column names vary — we attempt to auto-detect."""
+    """Load BGS NLD CSV.  Column names vary -- we attempt to auto-detect."""
     if not path.exists():
         return pd.DataFrame()
     df = pd.read_csv(str(path))
@@ -102,7 +102,7 @@ def load_bgs(path: Path) -> pd.DataFrame:
     lon_c = next((c for c in df.columns if "lon" in c or "long" in c), None)
     dt_c  = next((c for c in df.columns if "date" in c), None)
     if not all([lat_c, lon_c, dt_c]):
-        print("  BGS columns not detected — skipping.")
+        print("  BGS columns not detected -- skipping.")
         return pd.DataFrame()
     df = df.rename(columns={lat_c: "lat", lon_c: "lon", dt_c: "event_date"})
     df["event_date"] = pd.to_datetime(df["event_date"], errors="coerce")
@@ -113,12 +113,12 @@ def load_bgs(path: Path) -> pd.DataFrame:
 def build_landslide_labels(args: argparse.Namespace) -> None:
     _LABEL_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("[1/4] Loading master features …")
+    print("[1/4] Loading master features ...")
     master = pd.read_parquet(str(args.master))
     master["date_dt"] = pd.to_datetime(master["date"])
     print(f"  {len(master):,} rows")
 
-    print("[2/4] Loading landslide catalogues …")
+    print("[2/4] Loading landslide catalogues ...")
     coolr = load_coolr(_RAW_LDIR / "nasa_coolr.csv")
     bgs   = load_bgs(_RAW_LDIR / "bgs_nld.csv")
     events = pd.concat([coolr, bgs], ignore_index=True) if not bgs.empty else coolr
@@ -133,13 +133,13 @@ def build_landslide_labels(args: argparse.Namespace) -> None:
 
     print(f"  Combined events: {len(events):,}")
 
-    print("[3/4] Labelling master rows (vectorised event-driven) …")
+    print("[3/4] Labelling master rows (vectorised event-driven) ...")
     labels = pd.Series(0, index=master.index, dtype=int)
     master_dates = master["date_dt"]
 
     # Process event-by-event (thousands) instead of row-by-row (millions)
     events = events.sort_values("event_date").reset_index(drop=True)
-    print(f"  Labelling from {len(events)} events …")
+    print(f"  Labelling from {len(events)} events ...")
 
     for _, ev in tqdm(events.iterrows(), total=len(events), desc="Landslide events"):
         # Master rows whose date is 0-14 days BEFORE event (model should predict)
@@ -154,13 +154,13 @@ def build_landslide_labels(args: argparse.Namespace) -> None:
         hit_idx = candidates.index[dists <= RADIUS_KM]
         labels.iloc[labels.index.get_indexer(hit_idx)] = 1
 
-    print("[4/4] Saving …")
+    print("[4/4] Saving ...")
     out = master[["lat", "lon", "date"]].copy()
     out["landslide_label"] = labels
     out_path = args.output or (_LABEL_DIR / "landslide_labels.parquet")
     out.to_parquet(str(out_path), index=False, compression="snappy")
     pos_rate = labels.mean() * 100
-    print(f"\n  Saved → {out_path}")
+    print(f"\n  Saved -> {out_path}")
     print(f"  Positive rate: {pos_rate:.2f}%")
 
 

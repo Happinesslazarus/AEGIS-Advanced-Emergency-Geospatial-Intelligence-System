@@ -34,10 +34,10 @@ export default function LanguagePreferenceDialog(): JSX.Element | null {
   const [selected, setSelected] = useState(getLanguage())
 
   useEffect(() => {
-    // Show dialog if user hasn't chosen a language yet
+    //Show dialog if user hasn't chosen a language yet
     const alreadyChosen = localStorage.getItem(LS_KEY)
     if (!alreadyChosen) {
-      // Small delay so the page loads first
+      //Small delay so the page loads first
       const timer = setTimeout(() => setVisible(true), 800)
       return () => clearTimeout(timer)
     }
@@ -52,7 +52,7 @@ export default function LanguagePreferenceDialog(): JSX.Element | null {
   }
 
   const handleDismiss = () => {
-    // Default to English
+    //Default to English
     localStorage.setItem(LS_KEY, 'en')
     setVisible(false)
   }

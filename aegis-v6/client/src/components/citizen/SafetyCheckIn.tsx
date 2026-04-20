@@ -32,7 +32,7 @@ export default function SafetyCheckIn(): JSX.Element {
   const undoTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const { pushNotification } = useAlerts()
 
-  // Cleanup timer on unmount
+  //Cleanup timer on unmount
   useEffect(() => {
     return () => { if (undoTimer.current) clearInterval(undoTimer.current) }
   }, [])
@@ -59,7 +59,7 @@ export default function SafetyCheckIn(): JSX.Element {
   }, [notifyFamily, pushNotification])
 
   const handleSelect = (s: SafetyStatus): void => {
-    // If clicking same pending status, cancel
+    //If clicking same pending status, cancel
     if (pendingStatus === s) {
       setPendingStatus(null)
       setUndoCountdown(0)
@@ -67,7 +67,7 @@ export default function SafetyCheckIn(): JSX.Element {
       return
     }
 
-    // Start confirmation countdown
+    //Start confirmation countdown
     setPendingStatus(s)
     setUndoCountdown(UNDO_SECONDS)
     if (undoTimer.current) clearInterval(undoTimer.current)
@@ -153,7 +153,7 @@ export default function SafetyCheckIn(): JSX.Element {
                 <Icon className="w-4 h-4" />
                 {label}
                 {isConfirmed && (
-                  <span className="ml-1 text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded-full">✓</span>
+                  <span className="ml-1 text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded-full"></span>
                 )}
               </button>
             )
@@ -206,13 +206,13 @@ export default function SafetyCheckIn(): JSX.Element {
             <confirmedItem.icon className="w-3.5 h-3.5" />
             <span>
               Status: <strong className="text-white">{confirmedItem.label}</strong>
-              {' · '}
+              {' - '}
               {history[0] && (
                 <span className="text-white/40">
                   {history[0].timestamp.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                 </span>
               )}
-              {notifyFamily && <span className="text-white/40"> · Family notified</span>}
+              {notifyFamily && <span className="text-white/40"> - Family notified</span>}
             </span>
           </div>
         )}

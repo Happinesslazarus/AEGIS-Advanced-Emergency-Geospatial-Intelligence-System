@@ -1,5 +1,5 @@
 ﻿/**
- * Instrumented PostgreSQL query wrapper — wraps pg Pool to detect slow
+ * Instrumented PostgreSQL query wrapper -- wraps pg Pool to detect slow
  * queries, extract SQL operation/table names, fingerprint queries for
  * aggregation, and record Prometheus histograms for duration and pool usage.
  *
@@ -12,12 +12,12 @@ import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg'
 import client from 'prom-client'
 import { logger } from './logger.js'
 
-// Thresholds
+//Thresholds
 const SLOW_QUERY_MS = parseInt(process.env.SLOW_QUERY_THRESHOLD_MS || '500', 10)
 const VERY_SLOW_QUERY_MS = parseInt(process.env.VERY_SLOW_QUERY_THRESHOLD_MS || '2000', 10)
 const EXPLAIN_IN_DEV = process.env.NODE_ENV !== 'production'
 
-// Prometheus metrics
+//Prometheus metrics
 export const dbQueryDuration = new client.Histogram({
   name: 'aegis_db_query_duration_seconds',
   help: 'Database query duration in seconds',
@@ -96,7 +96,7 @@ function fingerprintQuery(sql: string): string {
 export function wrapPoolWithQueryLogging(pool: Pool): Pool {
   const originalQuery = pool.query.bind(pool)
 
-  // Override query method with logging
+  //Override query method with logging
   pool.query = async function <T extends QueryResultRow>(
     text: string | { text: string; values?: unknown[] },
     values?: unknown[],
@@ -109,17 +109,17 @@ export function wrapPoolWithQueryLogging(pool: Pool): Pool {
     const table = extractTable(sql)
 
     try {
-      // Execute original query
+      //Execute original query
       const result = await (originalQuery as any)(text, values) as QueryResult<T>
 
       const durationNs = Number(process.hrtime.bigint() - start)
       const durationMs = durationNs / 1_000_000
       const durationSec = durationMs / 1000
 
-      // Record metrics
+      //Record metrics
       dbQueryDuration.labels(operation, table).observe(durationSec)
 
-      // Log slow queries
+      //Log slow queries
       if (durationMs >= VERY_SLOW_QUERY_MS) {
         dbSlowQueriesTotal.labels(operation, table).inc()
         logger.warn({
@@ -131,7 +131,7 @@ export function wrapPoolWithQueryLogging(pool: Pool): Pool {
           paramCount: params?.length || 0,
         }, `[DB] VERY SLOW QUERY (${Math.round(durationMs)}ms)`)
 
-        // In dev mode, run EXPLAIN ANALYZE for SELECTs
+        //In dev mode, run EXPLAIN ANALYZE for SELECTs
         if (EXPLAIN_IN_DEV && operation === 'SELECT') {
           try {
             const explainResult = await originalQuery(`EXPLAIN ANALYZE ${sql}`, params)
@@ -139,7 +139,7 @@ export function wrapPoolWithQueryLogging(pool: Pool): Pool {
               explain: explainResult.rows.map((r: any) => r['QUERY PLAN']).join('\n'),
             }, '[DB] EXPLAIN ANALYZE for slow query')
           } catch {
-            // Ignore EXPLAIN errors
+            //Ignore EXPLAIN errors
           }
         }
       } else if (durationMs >= SLOW_QUERY_MS) {
@@ -158,7 +158,7 @@ export function wrapPoolWithQueryLogging(pool: Pool): Pool {
       const durationNs = Number(process.hrtime.bigint() - start)
       const durationMs = durationNs / 1_000_000
 
-      // Record error metrics
+      //Record error metrics
       const errorCode = err.code || 'UNKNOWN'
       dbQueryErrorsTotal.labels(operation, errorCode).inc()
 

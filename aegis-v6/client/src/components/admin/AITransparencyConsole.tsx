@@ -32,7 +32,7 @@ import {
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
-// PROPS
+//PROPS
 interface AITransparencyConsoleProps {
   predictions: any[]
   setPredictions: React.Dispatch<React.SetStateAction<any[]>>
@@ -53,10 +53,10 @@ interface AITransparencyConsoleProps {
   onRefresh?: () => void
 }
 
-// HELPERS
+//HELPERS
 const pct = (v: number): string => `${(v * 100).toFixed(1)}%`
 
-/** Strip technical region suffixes from area names: "River Dee (aberdeen_scotland_uk)" → "River Dee" */
+/** Strip technical region suffixes from area names: "River Dee (aberdeen_scotland_uk)" -> "River Dee" */
 const cleanAreaName = (area: string): string => {
   if (!area) return area
   return area.replace(/\s*\([a-z0-9_]+\)\s*$/i, '').trim()
@@ -91,11 +91,11 @@ const humanizeName = (name: string): string => {
 const fixEncoding = (text: string): string => {
   if (!text) return text
   return text
-    .replace(/\?/g, '→')         // corrupted right arrow
-    .replace(/â†'/g, '→')
+ .replace(/\?/g, '->') // corrupted right arrow
+ .replace(/â†'/g, '->')
     .replace(/Â/g, '')
-    .replace(/â€"/g, '—')
-    .replace(/â€"/g, '–')
+    .replace(/â€"/g, '--')
+    .replace(/â€"/g, '-')
 }
 
 /** Derive human-readable risk status from severity or probability */
@@ -105,7 +105,7 @@ const deriveRiskStatus = (severity: string | undefined, probPct: number): string
   if (sev === 'high') return 'Elevated risk'
   if (sev === 'medium') return 'Monitor conditions'
   if (sev === 'low') return 'No immediate risk'
-  // Fallback: derive from probability
+  //Fallback: derive from probability
   if (probPct >= 80) return 'Immediate action needed'
   if (probPct >= 60) return 'Elevated risk'
   if (probPct >= 35) return 'Monitor conditions'
@@ -136,7 +136,7 @@ const isRealPattern = (pattern: string): boolean => {
   return !['low', 'medium', 'high', 'critical', 'unknown', 'n/a', 'on-demand model inference'].includes(normalized)
 }
 
-// COMPONENT
+//COMPONENT
 export default function AITransparencyConsole(props: AITransparencyConsoleProps) {
   const lang = useLanguage()
   const {
@@ -150,7 +150,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
   const [consoleTab, setConsoleTab] = useState<'feed' | 'analysis' | 'models' | 'drift' | 'audit'>('feed')
   const [showKeyboard, setShowKeyboard] = useState(false)
 
-  // Model lifecycle state
+  //Model lifecycle state
   const [selectedHazard, setSelectedHazard] = useState('flood')
   const defaultRegionId = activeLocation === 'scotland' ? 'uk-default' : `${activeLocation}-default`
   const [selectedRegion, setSelectedRegion] = useState(defaultRegionId)
@@ -162,35 +162,35 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
   const [driftSnapshot, setDriftSnapshot] = useState<any | null>(null)
   const [rollbackHint, setRollbackHint] = useState<any | null>(null)
 
-  // Interactive Model Explorer state
+  //Interactive Model Explorer state
   const [explorerModels, setExplorerModels] = useState<any[]>([])
   const [explorerLoading, setExplorerLoading] = useState(false)
   const [selectedExplorerModel, setSelectedExplorerModel] = useState<any | null>(null)
 
-  // Drift Monitoring Panel state
+  //Drift Monitoring Panel state
   const [driftEntries, setDriftEntries] = useState<any[]>([])
   const [driftLoading, setDriftLoading] = useState(false)
   const [retrainingDrift, setRetrainingDrift] = useState<string | null>(null)
 
-  // Enhanced Audit Trail state
+  //Enhanced Audit Trail state
   const [auditEntries, setAuditEntries] = useState<any[]>([])
   const [auditLoading, setAuditLoading] = useState(false)
   const [auditFilter, setAuditFilter] = useState<'All' | 'Governance' | 'Analysis' | 'Classification'>('All')
   const [auditDateFrom, setAuditDateFrom] = useState('')
   const [auditDateTo, setAuditDateTo] = useState('')
 
-  // Live clock
+  //Live clock
   useEffect(() => {
     const iv = setInterval(() => setClockNow(new Date()), 1000)
     return () => clearInterval(iv)
   }, [])
 
-  // Sync region when activeLocation changes
+  //Sync region when activeLocation changes
   useEffect(() => {
     setSelectedRegion(activeLocation === 'scotland' ? 'uk-default' : `${activeLocation}-default`)
   }, [activeLocation])
 
-  // Keyboard shortcuts
+  //Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
@@ -250,7 +250,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
     if (consoleTab === 'models') fetchVersions()
   }, [consoleTab, fetchVersions])
 
-  // Fetch explorer models
+  //Fetch explorer models
   const fetchExplorerModels = useCallback(async () => {
     setExplorerLoading(true)
     try {
@@ -264,7 +264,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
 
   useEffect(() => { if (consoleTab === 'models') fetchExplorerModels() }, [consoleTab, fetchExplorerModels])
 
-  // Fetch drift data
+  //Fetch drift data
   const fetchDriftData = useCallback(async () => {
     setDriftLoading(true)
     try {
@@ -276,7 +276,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
 
   useEffect(() => { if (consoleTab === 'drift') fetchDriftData() }, [consoleTab, fetchDriftData])
 
-  // Fetch audit data
+  //Fetch audit data
   const fetchAuditData = useCallback(async () => {
     setAuditLoading(true)
     try {
@@ -288,7 +288,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
 
   useEffect(() => { if (consoleTab === 'audit') fetchAuditData() }, [consoleTab, fetchAuditData])
 
-  // Audit filter + date range logic
+  //Audit filter + date range logic
   const filteredAuditEntries = useMemo(() => {
     let entries = auditEntries
     if (auditFilter !== 'All') {
@@ -317,7 +317,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
     return entries
   }, [auditEntries, auditFilter, auditDateFrom, auditDateTo])
 
-  // Audit aggregate stats
+  //Audit aggregate stats
   const auditStats = useMemo(() => {
     const total = filteredAuditEntries.length
     const avgLatency = total > 0
@@ -328,7 +328,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
     return { total, avgLatency, errorCount, errorRate }
   }, [filteredAuditEntries])
 
-  // CSV export for audit entries
+  //CSV export for audit entries
   const exportAuditCSV = useCallback(() => {
     if (filteredAuditEntries.length === 0) return
     const headers = ['Model', 'Action', 'Target', 'Status', 'Latency (ms)', 'Timestamp']
@@ -365,7 +365,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
     setLifecycleAction('demote')
     try {
       await apiDemoteModel(selectedHazard, selectedRegion)
-      pushNotification(`${t('ai.overrideRemoved', lang)} — ${humanizeName(selectedHazard)}`, 'success')
+      pushNotification(`${t('ai.overrideRemoved', lang)} -- ${humanizeName(selectedHazard)}`, 'success')
       await fetchVersions()
     } catch (err: any) {
       pushNotification(err?.message || t('ai.demotionFailed', lang), 'error')
@@ -390,8 +390,8 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
     }
   }
 
-  //  Filter predictions to those matching the current location's configured areas
-  //  Falls back to all predictions if no match (e.g., on initial load before options are set)
+  // Filter predictions to those matching the current location's configured areas
+  // Falls back to all predictions if no match (e.g., on initial load before options are set)
   const localPredictions = useMemo(() => {
     if (!predictions.length) return predictions
     if (!predictionAreaOptions.length) return predictions
@@ -400,7 +400,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
     return filtered.length > 0 ? filtered : predictions
   }, [predictions, predictionAreaOptions])
 
-  //  Prediction computations (moved from inline)
+  // Prediction computations (moved from inline)
   const predMetrics = useMemo(() => {
     const highRisk = localPredictions.filter((p: any) => {
       const prob = typeof p.probability === 'number' ? p.probability : parseFloat(String(p.probability)) || 0
@@ -416,7 +416,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
     return { highRisk, avgConf, dataSources }
   }, [localPredictions])
 
-  //  Run prediction handler
+  // Run prediction handler
   const runPrediction = async () => {
     try {
       setPredictionRunning(true)
@@ -448,7 +448,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
   return (
     <div className="space-y-4 animate-fade-in">
 
-      {/* Unified AI Command Console — dark header + KPI strip + 5 horizontal tabs */}
+      {/* Unified AI Command Console -- dark header + KPI strip + 5 horizontal tabs */}
       <div className="rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-800/60">
 
         {/* HEADER */}
@@ -465,7 +465,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                 <div className="flex items-center gap-2 mt-0.5">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${predictionRunning ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400 animate-pulse'}`} />
                   <span className="text-xs text-gray-400">{loc.name || t('common.global', lang)}</span>
-                  <span className="text-gray-500">·</span>
+                  <span className="text-gray-500">-</span>
                   <span className="text-xs font-mono text-gray-400">{zuluTime}</span>
                 </div>
               </div>
@@ -491,7 +491,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
             {[
               { label: t('ai.activePredictions', lang), value: localPredictions.length, icon: Zap, color: localPredictions.length > 0 ? 'text-emerald-400' : 'text-gray-500', bg: 'bg-emerald-500/5 border-emerald-500/10' },
               { label: t('ai.highRiskAreas', lang), value: predMetrics.highRisk, icon: AlertTriangle, color: predMetrics.highRisk > 0 ? 'text-red-400' : 'text-gray-500', bg: 'bg-red-500/5 border-red-500/10' },
-              { label: t('ai.avgConfidence', lang), value: predMetrics.avgConf > 0 ? `${predMetrics.avgConf}%` : '—', icon: Gauge, color: predMetrics.avgConf >= 70 ? 'text-emerald-400' : 'text-amber-400', bg: 'bg-indigo-500/5 border-indigo-500/10' },
+              { label: t('ai.avgConfidence', lang), value: predMetrics.avgConf > 0 ? `${predMetrics.avgConf}%` : '--', icon: Gauge, color: predMetrics.avgConf >= 70 ? 'text-emerald-400' : 'text-amber-400', bg: 'bg-indigo-500/5 border-indigo-500/10' },
               { label: t('ai.dataSources', lang), value: predMetrics.dataSources, icon: Database, color: 'text-cyan-400', bg: 'bg-cyan-500/5 border-cyan-500/10' },
               { label: t('ai.heatmapPoints', lang), value: heatmapData.length, icon: Map, color: 'text-purple-400', bg: 'bg-purple-500/5 border-purple-500/10' },
               { label: t('ai.engineStatus', lang), value: predictionRunning ? t('common.processing', lang) : t('common.ready', lang), icon: Cpu, color: predictionRunning ? 'text-amber-400' : 'text-emerald-400', bg: 'bg-gray-500/5 border-gray-500/10' },
@@ -543,14 +543,14 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                 <div>
                   <p className={`text-sm font-bold ${localPredictions.length === 0 ? 'text-slate-700 dark:text-slate-300' : predMetrics.highRisk > 0 ? 'text-amber-800 dark:text-amber-200' : 'text-emerald-800 dark:text-emerald-200'}`}>
                     {localPredictions.length === 0
-                      ? 'AI engine ready — no active predictions at this location'
+                      ? 'AI engine ready -- no active predictions at this location'
                       : predMetrics.highRisk > 0
-                        ? `${predMetrics.highRisk} area${predMetrics.highRisk > 1 ? 's' : ''} at elevated flood risk — action may be required`
-                        : `${localPredictions.length} area${localPredictions.length > 1 ? 's' : ''} monitored — all within acceptable risk thresholds`}
+                        ? `${predMetrics.highRisk} area${predMetrics.highRisk > 1 ? 's' : ''} at elevated flood risk -- action may be required`
+                        : `${localPredictions.length} area${localPredictions.length > 1 ? 's' : ''} monitored -- all within acceptable risk thresholds`}
                   </p>
                   <p className={`text-xs mt-0.5 ${localPredictions.length === 0 ? 'text-slate-500 dark:text-slate-400' : predMetrics.highRisk > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
                     {localPredictions.length > 0
-                      ? `Average AI confidence: ${predMetrics.avgConf}% · ${predMetrics.dataSources} data source${predMetrics.dataSources !== 1 ? 's' : ''} active · ${heatmapData.length} heatmap point${heatmapData.length !== 1 ? 's' : ''}`
+                      ? `Average AI confidence: ${predMetrics.avgConf}% - ${predMetrics.dataSources} data source${predMetrics.dataSources !== 1 ? 's' : ''} active - ${heatmapData.length} heatmap point${heatmapData.length !== 1 ? 's' : ''}`
                       : 'Switch to the Analysis tab to run an on-demand flood risk prediction for any area'}
                   </p>
                 </div>
@@ -625,7 +625,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                                 </div>
                               </div>
                               <p className={`text-xs font-medium mb-2 ${probPct > 70 ? 'text-red-700 dark:text-red-300' : probPct > 40 ? 'text-amber-700 dark:text-amber-400' : 'text-blue-700 dark:text-blue-400'}`}>
-                                {probPct > 70 ? 'Immediate attention required — consider escalating to emergency services.' : probPct > 40 ? 'Elevated risk detected — prepare response and consider sending a pre-alert.' : 'Risk within acceptable range — continue monitoring.'}
+                                {probPct > 70 ? 'Immediate attention required -- consider escalating to emergency services.' : probPct > 40 ? 'Elevated risk detected -- prepare response and consider sending a pre-alert.' : 'Risk within acceptable range -- continue monitoring.'}
                               </p>
                               {pattern && <p className="text-xs text-gray-600 dark:text-gray-400 mb-1"><span className="font-semibold">{t('ai.pattern', lang)}:</span> {pattern}</p>}
                               {(Array.isArray(pred.next_areas) && pred.next_areas.length > 0) && (
@@ -680,7 +680,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                   <div>
                     <p className="font-semibold text-sm text-gray-900 dark:text-white">{t('ai.heatmapCoverage', lang)}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {heatmapData.length} {t('ai.dataPoints', lang).toLowerCase()} · {t('common.updated', lang)}: {new Date().toLocaleString(lang || 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      {heatmapData.length} {t('ai.dataPoints', lang).toLowerCase()} - {t('common.updated', lang)}: {new Date().toLocaleString(lang || 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                 </div>
@@ -744,7 +744,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                           { label: t('common.risk', lang), value: resultRisk, icon: AlertTriangle, bg: 'bg-red-50 dark:bg-red-900/20', tc: 'text-red-700 dark:text-red-300' },
                           { label: t('ai.probability', lang), value: `${resultProb}%`, icon: TrendingUp, bg: 'bg-blue-50 dark:bg-blue-900/20', tc: 'text-blue-700 dark:text-blue-300' },
                           { label: t('ai.confidence', lang), value: `${resultConf}%`, icon: CheckCircle, bg: 'bg-green-50 dark:bg-green-900/20', tc: 'text-green-700 dark:text-green-300' },
-                          { label: t('ai.peakTime', lang), value: predictionResult.predicted_peak_time ? new Date(predictionResult.predicted_peak_time).toLocaleString(lang || 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—', icon: Clock, bg: 'bg-purple-50 dark:bg-purple-900/20', tc: 'text-purple-700 dark:text-purple-300' },
+                          { label: t('ai.peakTime', lang), value: predictionResult.predicted_peak_time ? new Date(predictionResult.predicted_peak_time).toLocaleString(lang || 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '--', icon: Clock, bg: 'bg-purple-50 dark:bg-purple-900/20', tc: 'text-purple-700 dark:text-purple-300' },
                           { label: t('ai.radius', lang), value: `${(predictionResult.affected_radius_km || 0).toFixed?.(1) || predictionResult.affected_radius_km || 0} km`, icon: Waves, bg: 'bg-cyan-50 dark:bg-cyan-900/20', tc: 'text-cyan-700 dark:text-cyan-300' },
                         ].map((m, i) => {
                           const Icon = m.icon
@@ -787,7 +787,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                         <Sparkles className={`w-4 h-4 flex-shrink-0 mt-0.5 ${resultProb > 70 ? 'text-red-600 dark:text-red-400' : resultProb > 40 ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`} />
                         <div>
                           <p className={`text-sm font-bold ${resultProb > 70 ? 'text-red-800 dark:text-red-200' : resultProb > 40 ? 'text-amber-800 dark:text-amber-200' : 'text-blue-800 dark:text-blue-200'}`}>
-                            {resultProb > 70 ? 'Immediate Action Required' : resultProb > 40 ? 'Elevated Risk — Monitor Closely' : 'Risk Within Normal Range'}
+                            {resultProb > 70 ? 'Immediate Action Required' : resultProb > 40 ? 'Elevated Risk -- Monitor Closely' : 'Risk Within Normal Range'}
                           </p>
                           <p className={`text-xs mt-0.5 ${resultProb > 70 ? 'text-red-700 dark:text-red-300' : resultProb > 40 ? 'text-amber-700 dark:text-amber-300' : 'text-blue-700 dark:text-blue-300'}`}>
                             {resultProb > 70
@@ -1056,21 +1056,21 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                     <div className="rounded-xl border border-sky-200 dark:border-sky-900/60 bg-sky-50/70 dark:bg-sky-950/20 p-4 space-y-2">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">{t('ai.modelHealth', lang)}</h4>
                       <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div><p className="text-gray-500 dark:text-gray-400">{t('ai.currentVersion', lang)}</p><p className="font-mono font-bold text-gray-900 dark:text-white">{modelHealth?.current_version || '—'}</p></div>
+                        <div><p className="text-gray-500 dark:text-gray-400">{t('ai.currentVersion', lang)}</p><p className="font-mono font-bold text-gray-900 dark:text-white">{modelHealth?.current_version || '--'}</p></div>
                         <div><p className="text-gray-500 dark:text-gray-400">{t('ai.healthBadge', lang)}</p><p className="font-bold text-gray-900 dark:text-white">{String(modelHealth?.health_status || 'healthy').toUpperCase()}</p></div>
                         <div><p className="text-gray-500 dark:text-gray-400">{t('ai.driftScore', lang)}</p><p className="font-bold text-gray-900 dark:text-white">{Number(modelHealth?.drift_score ?? driftSnapshot?.drift_score ?? 0).toFixed(3)}</p></div>
                         <div><p className="text-gray-500 dark:text-gray-400">{t('ai.confidenceTrend', lang)}</p><p className="font-bold text-gray-900 dark:text-white">{Number(driftSnapshot?.avg_confidence ?? 0).toFixed(3)}</p></div>
                         <div><p className="text-gray-500 dark:text-gray-400">{t('ai.fallbackCount', lang)}</p><p className="font-bold text-gray-900 dark:text-white">{modelHealth?.fallback_count ?? 0}</p></div>
-                        <div><p className="text-gray-500 dark:text-gray-400">{t('ai.lastSnapshot', lang)}</p><p className="font-bold text-gray-900 dark:text-white">{modelHealth?.last_monitoring_snapshot ? new Date(modelHealth.last_monitoring_snapshot).toLocaleString() : '—'}</p></div>
+                        <div><p className="text-gray-500 dark:text-gray-400">{t('ai.lastSnapshot', lang)}</p><p className="font-bold text-gray-900 dark:text-white">{modelHealth?.last_monitoring_snapshot ? new Date(modelHealth.last_monitoring_snapshot).toLocaleString() : '--'}</p></div>
                       </div>
                     </div>
                     <div className="rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/70 dark:bg-amber-950/20 p-4 space-y-2">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">{t('ai.versionTrend', lang)}</h4>
                       <div className="space-y-1 text-xs">
-                        <p><span className="text-gray-500 dark:text-gray-400">{t('ai.promotedVersion', lang)}</span> <span className="font-mono font-bold">{versions.find((v: any) => v.promotion_status === 'promoted')?.version || '—'}</span></p>
-                        <p><span className="text-gray-500 dark:text-gray-400">{t('ai.currentLiveVersion', lang)}</span> <span className="font-mono font-bold">{modelHealth?.current_version || versions.find((v: any) => v.is_current)?.version || '—'}</span></p>
-                        <p><span className="text-gray-500 dark:text-gray-400">{t('ai.previousCandidate', lang)}</span> <span className="font-mono font-bold">{versions.find((v: any) => !v.is_current)?.version || '—'}</span></p>
-                        <p><span className="text-gray-500 dark:text-gray-400">{t('ai.rollbackRecommendation', lang)}</span> <span className="font-mono font-bold">{modelHealth?.recommended_rollback_version || rollbackHint?.recommended_rollback_version || '—'}</span></p>
+                        <p><span className="text-gray-500 dark:text-gray-400">{t('ai.promotedVersion', lang)}</span> <span className="font-mono font-bold">{versions.find((v: any) => v.promotion_status === 'promoted')?.version || '--'}</span></p>
+                        <p><span className="text-gray-500 dark:text-gray-400">{t('ai.currentLiveVersion', lang)}</span> <span className="font-mono font-bold">{modelHealth?.current_version || versions.find((v: any) => v.is_current)?.version || '--'}</span></p>
+                        <p><span className="text-gray-500 dark:text-gray-400">{t('ai.previousCandidate', lang)}</span> <span className="font-mono font-bold">{versions.find((v: any) => !v.is_current)?.version || '--'}</span></p>
+                        <p><span className="text-gray-500 dark:text-gray-400">{t('ai.rollbackRecommendation', lang)}</span> <span className="font-mono font-bold">{modelHealth?.recommended_rollback_version || rollbackHint?.recommended_rollback_version || '--'}</span></p>
                       </div>
                     </div>
                   </div>
@@ -1124,7 +1124,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                             </button>
                             {!v.is_current && (
                               <button
-                                onClick={() => askConfirm(t('ai.promoteModel', lang), `${t('ai.setActiveModel', lang)} ${v.version} — ${humanizeName(selectedHazard)}?`, 'warning', () => handlePromote(v.version))}
+                                onClick={() => askConfirm(t('ai.promoteModel', lang), `${t('ai.setActiveModel', lang)} ${v.version} -- ${humanizeName(selectedHazard)}?`, 'warning', () => handlePromote(v.version))}
                                 disabled={!!lifecycleAction}
                                 title={t('ai.promoteAsActive', lang)}
                                 className="p-1.5 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 transition-colors disabled:opacity-30"
@@ -1170,15 +1170,15 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                     <div>
                       <p className={`text-sm font-bold ${driftCount === 0 ? 'text-emerald-800 dark:text-emerald-200' : critCount > 0 ? 'text-red-800 dark:text-red-200' : 'text-amber-800 dark:text-amber-200'}`}>
                         {driftCount === 0
-                          ? 'All models performing within baseline — no retraining required.'
+                          ? 'All models performing within baseline -- no retraining required.'
                           : critCount > 0
-                            ? `${critCount} model${critCount > 1 ? 's' : ''} require immediate retraining — significant accuracy degradation detected.`
-                            : `${driftCount} model${driftCount > 1 ? 's' : ''} showing minor drift — schedule retraining soon to maintain accuracy.`}
+                            ? `${critCount} model${critCount > 1 ? 's' : ''} require immediate retraining -- significant accuracy degradation detected.`
+                            : `${driftCount} model${driftCount > 1 ? 's' : ''} showing minor drift -- schedule retraining soon to maintain accuracy.`}
                       </p>
                       <p className={`text-xs mt-0.5 ${driftCount === 0 ? 'text-emerald-700 dark:text-emerald-300' : critCount > 0 ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'}`}>
                         {driftCount === 0
-                          ? `${driftEntries.length} model${driftEntries.length > 1 ? 's' : ''} monitored — all metrics within acceptable variance`
-                          : 'Model drift occurs when real-world data patterns diverge from training data — retraining restores accuracy.'}
+                          ? `${driftEntries.length} model${driftEntries.length > 1 ? 's' : ''} monitored -- all metrics within acceptable variance`
+                          : 'Model drift occurs when real-world data patterns diverge from training data -- retraining restores accuracy.'}
                       </p>
                     </div>
                   </div>
@@ -1213,7 +1213,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                             {hasDrift ? <AlertTriangle className="w-5 h-5 text-red-600" /> : <ShieldCheck className="w-5 h-5 text-emerald-600" />}
                             <div>
                               <p className="font-semibold text-sm text-gray-900 dark:text-white">{humanizeName(d.modelName || d.model_name || t('ai.model', lang))}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{humanizeName(d.metricName || d.metric_name || t('ai.accuracy', lang))} — v{d.modelVersion || d.model_version || '?'}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{humanizeName(d.metricName || d.metric_name || t('ai.accuracy', lang))} -- v{d.modelVersion || d.model_version || '?'}</p>
                             </div>
                           </div>
                           <div className="text-right">
@@ -1254,10 +1254,10 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                                 disabled={!!retrainingDrift}
                                 onClick={async () => {
                                   setRetrainingDrift(hazardName)
-                                  pushNotification(`${t('ai.retrainingScheduled', lang)} — ${humanizeName(hazardName)}`, 'info')
+                                  pushNotification(`${t('ai.retrainingScheduled', lang)} -- ${humanizeName(hazardName)}`, 'info')
                                   try {
                                     await apiRetrainModel(hazardName)
-                                    pushNotification(`${t('ai.retrainQueued', lang)} — ${humanizeName(hazardName)}`, 'success')
+                                    pushNotification(`${t('ai.retrainQueued', lang)} -- ${humanizeName(hazardName)}`, 'success')
                                   } catch (err: any) {
                                     pushNotification(err?.message || t('ai.retrainFailed', lang), 'error')
                                   } finally {
@@ -1291,14 +1291,14 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-gray-900 dark:text-white">
-                      {auditStats.total.toLocaleString()} inference{auditStats.total !== 1 ? 's' : ''} logged{auditStats.total > 0 ? ` · Avg ${auditStats.avgLatency}ms response` : ''}
+                      {auditStats.total.toLocaleString()} inference{auditStats.total !== 1 ? 's' : ''} logged{auditStats.total > 0 ? ` - Avg ${auditStats.avgLatency}ms response` : ''}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       {parseFloat(auditStats.errorRate) < 2
-                        ? 'AI engine operating normally — all inference pipelines healthy'
+                        ? 'AI engine operating normally -- all inference pipelines healthy'
                         : parseFloat(auditStats.errorRate) < 10
-                          ? `${auditStats.errorRate}% error rate detected — review flagged entries below`
-                          : `High error rate (${auditStats.errorRate}%) — immediate investigation recommended`}
+                          ? `${auditStats.errorRate}% error rate detected -- review flagged entries below`
+                          : `High error rate (${auditStats.errorRate}%) -- immediate investigation recommended`}
                     </p>
                   </div>
                   <span className={`px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0 ${parseFloat(auditStats.errorRate) < 2 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : parseFloat(auditStats.errorRate) < 10 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'}`}>
@@ -1311,7 +1311,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
                   { label: t('ai.totalExecutions', lang), value: auditStats.total, color: 'text-gray-900 dark:text-white' },
-                  { label: t('ai.avgLatency', lang), value: auditStats.total > 0 ? `${auditStats.avgLatency}ms` : '—', color: 'text-blue-600 dark:text-blue-400' },
+                  { label: t('ai.avgLatency', lang), value: auditStats.total > 0 ? `${auditStats.avgLatency}ms` : '--', color: 'text-blue-600 dark:text-blue-400' },
                   { label: t('ai.errors', lang), value: auditStats.errorCount, color: auditStats.errorCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' },
                   { label: t('ai.errorRate', lang), value: `${auditStats.errorRate}%`, color: parseFloat(auditStats.errorRate) > 5 ? 'text-red-600' : 'text-emerald-600' },
                 ].map((s, i) => (
@@ -1380,14 +1380,14 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                       {filteredAuditEntries.slice(0, 50).map((entry: any, ei: number) => {
                         const ts = entry.createdAt || entry.created_at || ''
-                        const fmtTs = ts ? (() => { try { const d = new Date(ts); return isNaN(d.getTime()) ? ts : d.toLocaleDateString(lang || 'en-GB', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) } catch { return ts } })() : '—'
+                        const fmtTs = ts ? (() => { try { const d = new Date(ts); return isNaN(d.getTime()) ? ts : d.toLocaleDateString(lang || 'en-GB', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) } catch { return ts } })() : '--'
                         return (
                           <tr key={entry.id || ei} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                            <td className="px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300">{humanizeName(entry.modelName || entry.model_name || '') || '—'}</td>
-                            <td className="px-3 py-2.5 text-gray-600 dark:text-gray-400 truncate max-w-[180px]">{humanizeName(entry.action || entry.inputSummary || entry.input_summary || '') || '—'}</td>
+                            <td className="px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300">{humanizeName(entry.modelName || entry.model_name || '') || '--'}</td>
+                            <td className="px-3 py-2.5 text-gray-600 dark:text-gray-400 truncate max-w-[180px]">{humanizeName(entry.action || entry.inputSummary || entry.input_summary || '') || '--'}</td>
                             <td className="px-3 py-2.5">
                               <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400 text-[10px]">
-                                {humanizeName(entry.targetType || entry.target_type || '') || '—'}
+                                {humanizeName(entry.targetType || entry.target_type || '') || '--'}
                               </span>
                             </td>
                             <td className="px-3 py-2.5">
@@ -1395,10 +1395,10 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                                 (entry.status || '').toLowerCase() === 'success' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
                                 : (entry.status || '').toLowerCase() === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
                                 : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                              }`}>{humanizeName(entry.status || '') || '—'}</span>
+                              }`}>{humanizeName(entry.status || '') || '--'}</span>
                             </td>
                             <td className="px-3 py-2.5 font-mono text-gray-600 dark:text-gray-400">
-                              {entry.executionTimeMs != null ? `${entry.executionTimeMs}ms` : entry.execution_time_ms != null ? `${entry.execution_time_ms}ms` : '—'}
+                              {entry.executionTimeMs != null ? `${entry.executionTimeMs}ms` : entry.execution_time_ms != null ? `${entry.execution_time_ms}ms` : '--'}
                             </td>
                             <td className="px-3 py-2.5 text-gray-500 dark:text-gray-400">{fmtTs}</td>
                           </tr>

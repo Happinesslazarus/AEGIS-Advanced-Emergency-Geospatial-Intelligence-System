@@ -1,6 +1,6 @@
 /**
  * Tests for the useFocusTrap hook, which confines Tab/Shift+Tab keyboard focus
- * to a specific container — used in modals, dialogs, and side-drawers so keyboard
+ * to a specific container -- used in modals, dialogs, and side-drawers so keyboard
  * users cannot navigate outside the overlay while it is open.
  *
  * Glossary:
@@ -32,21 +32,21 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, cleanup } from '@testing-library/react'
 import React from 'react'
 
-// Create mock functions BEFORE vi.mock() so the factory can close over them
+//Create mock functions BEFORE vi.mock() so the factory can close over them
 const mockActivate = vi.fn()   // called when the trap is activated (modal opens)
 const mockDeactivate = vi.fn() // called when the trap is deactivated (modal closes)
 
-// Replace the real accessibility utils with lightweight stubs.
-// vi.mock is hoisted automatically by Vitest so this runs before the import below.
+//Replace the real accessibility utils with lightweight stubs.
+//vi.mock is hoisted automatically by Vitest so this runs before the import below.
 vi.mock('../utils/accessibility', () => ({
   createFocusTrap: vi.fn(() => ({
     activate: mockActivate,   // stub returned when createFocusTrap() is called
     deactivate: mockDeactivate,
   })),
-  focusFirstElement: vi.fn(), // stub — just records calls, doesn't actually focus anything
+  focusFirstElement: vi.fn(), // stub -- just records calls, doesn't actually focus anything
 }))
 
-// Import after mocking so the hook picks up the stubbed accessibility module
+//Import after mocking so the hook picks up the stubbed accessibility module
 import { useFocusTrap } from '../hooks/useFocusTrap'
 
 describe('useFocusTrap', () => {
@@ -60,29 +60,29 @@ describe('useFocusTrap', () => {
   })
 
   test('returns a ref object', () => {
-    // The hook returns a React ref so callers can do: <div ref={containerRef}>
+    //The hook returns a React ref so callers can do: <div ref={containerRef}>
     const { result } = renderHook(() => useFocusTrap())
     expect(result.current).toHaveProperty('current') // RefObject shape
     expect(result.current.current).toBeNull()         // null until attached to a DOM node
   })
 
   test('does not create trap when containerRef is null', () => {
-    // When the ref isn't attached to a DOM element, the trap cannot be created —
-    // the hook must guard against calling activate() with a null container
+    //When the ref isn't attached to a DOM element, the trap cannot be created
+    //the hook must guard against calling activate() with a null container
     renderHook(() => useFocusTrap({ enabled: true }))
     
     expect(mockActivate).not.toHaveBeenCalled()
   })
 
   test('does not create trap when enabled is false', () => {
-    // enabled: false = trap is inactive; do not intercept Tab key
+    //enabled: false = trap is inactive; do not intercept Tab key
     renderHook(() => useFocusTrap({ enabled: false }))
     
     expect(mockActivate).not.toHaveBeenCalled()
   })
 
   test('accepts autoFocus option', () => {
-    // autoFocus: true = move keyboard focus inside the container when the trap activates
+    //autoFocus: true = move keyboard focus inside the container when the trap activates
     expect(() => {
       renderHook(() => useFocusTrap({ autoFocus: true }))
     }).not.toThrow()
@@ -93,8 +93,8 @@ describe('useFocusTrap', () => {
   })
 
   test('accepts returnFocus option', () => {
-    // returnFocus: true = when the dialog closes, return focus to the element
-    // that triggered it (e.g. the "Open modal" button) — required by WCAG
+    //returnFocus: true = when the dialog closes, return focus to the element
+    //that triggered it (e.g. the "Open modal" button) -- required by WCAG
     expect(() => {
       renderHook(() => useFocusTrap({ returnFocus: true }))
     }).not.toThrow()
@@ -105,7 +105,7 @@ describe('useFocusTrap', () => {
   })
 
   test('accepts onEscape callback', () => {
-    // onEscape fires when the user presses Escape while the trap is active
+    //onEscape fires when the user presses Escape while the trap is active
     const onEscape = vi.fn()
     expect(() => {
       renderHook(() => useFocusTrap({ onEscape }))
@@ -115,49 +115,49 @@ describe('useFocusTrap', () => {
   test('handles escape key only when onEscape provided and trap enabled', () => {
     const onEscape = vi.fn()
     
-    // Trap disabled — the Escape listener should not fire onEscape
+    //Trap disabled -- the Escape listener should not fire onEscape
     renderHook(() => useFocusTrap({ onEscape, enabled: false }))
     
-    // Simulate the user pressing Escape by dispatching a real KeyboardEvent on the document
+    //Simulate the user pressing Escape by dispatching a real KeyboardEvent on the document
     const event = new KeyboardEvent('keydown', { key: 'Escape' })
     document.dispatchEvent(event)
     
-    // onEscape must not be called because the trap has no active container
+    //onEscape must not be called because the trap has no active container
     expect(onEscape).not.toHaveBeenCalled()
   })
 
   test('cleans up on unmount', () => {
-    // Unmounting the component must not throw; the hook should deactivate the trap and
-    // remove all event listeners to prevent memory leaks
+    //Unmounting the component must not throw; the hook should deactivate the trap and
+    //remove all event listeners to prevent memory leaks
     const { unmount } = renderHook(() => useFocusTrap({ enabled: false }))
     
     expect(() => unmount()).not.toThrow()
   })
 
   test('re-evaluates when enabled changes', () => {
-    // rerender() calls the hook again with new props, mimicking a parent component toggling
-    // the enabled prop — the useEffect inside the hook should respond and re-check whether
-    // to activate or deactivate the trap
+    //rerender() calls the hook again with new props, mimicking a parent component toggling
+    //the enabled prop -- the useEffect inside the hook should respond and re-check whether
+    //to activate or deactivate the trap
     const { rerender } = renderHook(
       ({ enabled }) => useFocusTrap({ enabled }),
       { initialProps: { enabled: false } }
     )
     
-    // Toggle enabled from false → true
+ //Toggle enabled from false -> true
     rerender({ enabled: true })
     
-    // Still won't activate: the ref.current is null (no real DOM in this unit test)
+    //Still won't activate: the ref.current is null (no real DOM in this unit test)
     expect(mockActivate).not.toHaveBeenCalled()
   })
 })
 
 describe('useFocusTrap integration behavior', () => {
   test('returns ref with HTMLElement generic type', () => {
-    // useFocusTrap<HTMLDivElement>() narrows the TypeScript type of ref.current
-    // to HTMLDivElement so callers get autocomplete on DOM properties
+    //useFocusTrap<HTMLDivElement>() narrows the TypeScript type of ref.current
+    //to HTMLDivElement so callers get autocomplete on DOM properties
     const { result } = renderHook(() => useFocusTrap<HTMLDivElement>())
     
-    // TypeScript generic assignment — proves the hook is type-compatible with React.RefObject
+    //TypeScript generic assignment -- proves the hook is type-compatible with React.RefObject
     const ref: React.RefObject<HTMLDivElement> = result.current
     expect(ref.current).toBeNull()
   })
@@ -170,7 +170,7 @@ describe('useFocusTrap integration behavior', () => {
   })
 
   test('all options can be combined', () => {
-    // Smoke test: ensure none of the options conflict with each other when all are set
+    //Smoke test: ensure none of the options conflict with each other when all are set
     const onEscape = vi.fn()
     
     expect(() => {

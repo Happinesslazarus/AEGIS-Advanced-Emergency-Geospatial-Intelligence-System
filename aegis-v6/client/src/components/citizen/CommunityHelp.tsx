@@ -3,7 +3,7 @@
  *
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
-/* CommunityHelp.tsx — Community mutual aid board for citizens to offer/request help. */
+/* CommunityHelp.tsx -- Community mutual aid board for citizens to offer/request help. */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { X, Heart, HelpCircle, MapPin, Clock, Phone, ExternalLink, Navigation, Shield, AlertTriangle, Flag, Home, Droplets, Car, HeartPulse, Shirt, Crosshair, Star, Lock, UserCheck, Info, CheckCircle, Search, Globe, Loader2 } from 'lucide-react'
@@ -101,22 +101,22 @@ const RESOURCES: Record<string, Resource[]> = {
     { name: 'Dundee Clothing Bank', type: 'clothing', address: 'Dundee city centre', phone: '01382 434000', hours: 'Mon-Sat 10-4', dist: 'City-wide', url: '' },
   ],
   generic: [
-    { name: 'Local Emergency Services', type: 'shelter', address: 'Call first responders', phone: '112 (EU) — 911 (US) — 999 (UK) — 000 (AU)', hours: '24/7', dist: 'Nearest', url: '' },
+    { name: 'Local Emergency Services', type: 'shelter', address: 'Call first responders', phone: '112 (EU) -- 911 (US) -- 999 (UK) -- 000 (AU)', hours: '24/7', dist: 'Nearest', url: '' },
     { name: 'International Red Cross / Red Crescent', type: 'shelter', address: 'Country-wide offices', phone: '+41 22 734 60 01', hours: '24/7', dist: 'Varies', url: 'https://www.icrc.org' },
     { name: 'UNHCR Emergency Shelter', type: 'shelter', address: 'Global operations', phone: '+41 22 739 81 11', hours: '24/7', dist: 'Varies', url: 'https://www.unhcr.org' },
     { name: 'Salvation Army (Worldwide)', type: 'shelter', address: 'National offices worldwide', phone: 'See local listing', hours: '24/7 in emergencies', dist: 'Nearest city', url: 'https://www.salvationarmy.org' },
     { name: 'Community Emergency Centres', type: 'shelter', address: 'Local churches, community halls, schools', phone: 'Ask local authority or police', hours: 'During emergencies', dist: 'Nearest', url: '' },
     { name: 'World Food Programme (WFP)', type: 'food', address: 'Global distribution networks', phone: '+39 06 6513 1', hours: '24/7', dist: 'Varies', url: 'https://www.wfp.org' },
     { name: 'Local Food Bank / Pantry', type: 'food', address: 'Ask council, church or police', phone: 'Local authority', hours: 'Varies by site', dist: 'Nearest', url: 'https://www.foodbanks.org' },
-    { name: 'Red Cross Food Aid', type: 'food', address: 'Distribution centres — check local branch', phone: 'Local Red Cross number', hours: 'Emergency hours', dist: 'Regional', url: 'https://www.redcross.org' },
-    { name: 'Nearest A&E / Emergency Room', type: 'medical', address: 'Search online or ask police', phone: '112 (EU) — 911 (US) — 999 (UK)', hours: '24/7', dist: 'Nearest', url: '' },
+    { name: 'Red Cross Food Aid', type: 'food', address: 'Distribution centres -- check local branch', phone: 'Local Red Cross number', hours: 'Emergency hours', dist: 'Regional', url: 'https://www.redcross.org' },
+    { name: 'Nearest A&E / Emergency Room', type: 'medical', address: 'Search online or ask police', phone: '112 (EU) -- 911 (US) -- 999 (UK)', hours: '24/7', dist: 'Nearest', url: '' },
     { name: 'WHO Health Emergencies', type: 'medical', address: 'Global coordination', phone: '+41 22 791 21 11', hours: '24/7', dist: 'Varies', url: 'https://www.who.int/emergencies' },
-    { name: 'Crisis / Mental Health Helpline', type: 'medical', address: 'Phone / text service', phone: '116 123 (EU) — 988 (US) — 13 11 14 (AU)', hours: '24/7', dist: 'National', url: 'https://www.samaritans.org' },
+    { name: 'Crisis / Mental Health Helpline', type: 'medical', address: 'Phone / text service', phone: '116 123 (EU) -- 988 (US) -- 13 11 14 (AU)', hours: '24/7', dist: 'National', url: 'https://www.samaritans.org' },
     { name: 'Doctors Without Borders (MSF)', type: 'medical', address: 'Deployed to disaster zones', phone: '+32 2 474 74 74', hours: '24/7 in major emergencies', dist: 'Varies', url: 'https://www.msf.org' },
     { name: 'Local Bus / Metro Emergency Routes', type: 'transport', address: 'Ask local authority or police', phone: 'Local transport authority', hours: 'Emergency schedule', dist: 'City-wide', url: '' },
     { name: 'Taxi / Ride-share Services', type: 'transport', address: 'City-wide', phone: 'Uber / local taxi', hours: '24/7 (where available)', dist: 'City-wide', url: 'https://www.uber.com' },
-    { name: 'National Ambulance / EMS', type: 'transport', address: 'Emergency only', phone: '112 — 911 — 999 — 000', hours: '24/7', dist: 'Regional', url: '' },
-    { name: 'Red Cross Emergency Clothing', type: 'clothing', address: 'Distribution centres — check local branch', phone: 'Local Red Cross', hours: 'Emergency hours', dist: 'Regional', url: 'https://www.redcross.org' },
+    { name: 'National Ambulance / EMS', type: 'transport', address: 'Emergency only', phone: '112 -- 911 -- 999 -- 000', hours: '24/7', dist: 'Regional', url: '' },
+    { name: 'Red Cross Emergency Clothing', type: 'clothing', address: 'Distribution centres -- check local branch', phone: 'Local Red Cross', hours: 'Emergency hours', dist: 'Regional', url: 'https://www.redcross.org' },
     { name: 'Salvation Army Clothing Centres', type: 'clothing', address: 'National stores / emergency centres', phone: 'See local listing', hours: 'Varies', dist: 'Nearest', url: 'https://www.salvationarmy.org' },
     { name: 'Caritas / Church Aid Clothing', type: 'clothing', address: 'Global aid programmes', phone: 'Local Caritas office', hours: '24/7 in emergencies', dist: 'Varies', url: 'https://www.caritas.org' },
   ],
@@ -211,7 +211,7 @@ const INITIAL_POSTS: Post[] = [
   { id: 1, type: 'shelter', name: 'Verified Helper', description: 'Spare room for 2 adults. Warm, dry, WiFi. Verified through council scheme.', location: 'City Centre', time: '20 mins ago', verified: true, rating: 5, safe_meeting: 'Central Library' },
   { id: 2, type: 'transport', name: 'Verified Helper', description: '4x4 available for evacuation. Can carry 4 passengers + luggage. Background checked.', location: 'North District', time: '45 mins ago', verified: true, rating: 4, safe_meeting: 'Supermarket car park' },
   { id: 3, type: 'food', name: 'Community Kitchen', description: 'Hot meals for 20+ people. Halal, vegetarian and gluten-free options. Free.', location: 'City Centre', time: '1 hour ago', verified: true, rating: 5, safe_meeting: 'Town Square (public)' },
-  { id: 4, type: 'clothing', name: 'Donation Hub', description: 'Dry clothes, blankets, coats, shoes — all sizes including children.', location: 'West Side', time: '1.5 hours ago', verified: false, rating: 4, safe_meeting: 'Community Centre' },
+  { id: 4, type: 'clothing', name: 'Donation Hub', description: 'Dry clothes, blankets, coats, shoes -- all sizes including children.', location: 'West Side', time: '1.5 hours ago', verified: false, rating: 4, safe_meeting: 'Community Centre' },
   { id: 5, type: 'medical', name: 'Volunteer First Aider', description: 'Qualified first aider with kit. Can attend nearby locations during daytime.', location: 'South District', time: '2 hours ago', verified: true, rating: 5, safe_meeting: 'Local Health Centre' },
 ]
 
@@ -226,11 +226,11 @@ async function detectCityFromCoords(lat: number, lng: number): Promise<{key: str
     const data = await res.json()
     const addr = data.address || {}
     const countryCode = (addr.country_code || '').toUpperCase()
-    // Try city, town, or county in that order
+    //Try city, town, or county in that order
     const cityName = (addr.city || addr.town || addr.county || addr.state || '').toLowerCase().trim()
-    // Check if we have specific resources for this city
+    //Check if we have specific resources for this city
     if (cityName && RESOURCES[cityName]) return { key: cityName, countryCode }
-    // Partial match (e.g. "City of Edinburgh" → "edinburgh")
+ //Partial match (e.g. "City of Edinburgh" -> "edinburgh")
     for (const key of Object.keys(RESOURCES)) {
       if (key !== 'generic' && cityName.includes(key)) return { key, countryCode }
     }
@@ -267,7 +267,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
   const [locationSearching, setLocationSearching] = useState(false)
   const [displayLocation, setDisplayLocation] = useState('')
 
-  // Helper to fetch with auth token
+  //Helper to fetch with auth token
   const authFetch = useCallback(async (path: string, options: RequestInit = {}) => {
     const token = getCitizenToken()
     const headers: Record<string, string> = { ...(options.headers as Record<string,string> || {}) }
@@ -286,7 +286,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
     return res.json()
   }, [])
 
-  // Load community help offers/requests from backend on mount
+  //Load community help offers/requests from backend on mount
   useEffect(() => {
     let cancelled = false
     const loadPosts = async () => {
@@ -306,11 +306,11 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
             safe_meeting: undefined,
             translationEligible: true,
           }))
-          // Use API posts if available, fall back to seed data only when empty
+          //Use API posts if available, fall back to seed data only when empty
           setPosts(apiPosts.length > 0 ? apiPosts : INITIAL_POSTS)
         }
       } catch {
-        // Silently fall back to initial posts if API is unavailable
+        //Silently fall back to initial posts if API is unavailable
       } finally {
         if (!cancelled) setLoadingPosts(false)
       }
@@ -341,7 +341,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
         if (cancelled || Object.keys(translatedByText).length === 0) return
         setPostTranslations((prev) => ({ ...prev, ...translatedByText }))
       } catch {
-        // Keep original content if translation fails.
+        //Keep original content if translation fails.
       }
     })()
 
@@ -350,7 +350,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
     }
   }, [lang, posts, postTranslations])
 
-  // Offer/request form state
+  //Offer/request form state
   const [oType, setOType] = useState('')
   const [oDesc, setODesc] = useState('')
   const [oLoc, setOLoc] = useState('')
@@ -363,7 +363,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
   const [rUrgent, setRUrgent] = useState(false)
   const [rPeople, setRPeople] = useState('1')
 
-  // Modal state
+  //Modal state
   const [showVerifyModal, setShowVerifyModal] = useState(false)
   const [verifyName, setVerifyName] = useState('')
   const [verifyEmail, setVerifyEmail] = useState('')
@@ -388,7 +388,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
     ]
   }, [detectedCountryCode])
 
-  // Check findahelpline.com for the detected country and store the URL if a page exists
+  //Check findahelpline.com for the detected country and store the URL if a page exists
   useEffect(() => {
     if (!detectedCountryCode) { setFindaHelplineUrl(null); return }
     const cc = detectedCountryCode.toLowerCase()
@@ -417,14 +417,14 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
             setDetectedCity(key)
             setDetectedCountryCode(countryCode)
           })
-          pushNotification('Location detected — showing approximate area only', 'success')
+          pushNotification('Location detected -- showing approximate area only', 'success')
         },
         (err) => {
           const msg = err.code === 1
-            ? 'Location permission denied — enable in browser settings and try again'
+            ? 'Location permission denied -- enable in browser settings and try again'
             : err.code === 3
-            ? 'Location timed out — check GPS signal and try again'
-            : 'Location unavailable — type your approximate area manually'
+            ? 'Location timed out -- check GPS signal and try again'
+            : 'Location unavailable -- type your approximate area manually'
           pushNotification(msg, 'warning')
         },
         GPS_OPTS
@@ -447,15 +447,15 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
           setDetectedCountryCode(detectedCC)
           const cityName = city === 'generic' ? '' : city.charAt(0).toUpperCase() + city.slice(1)
           setDisplayLocation(cityName || detectedCC)
-          pushNotification(`Location detected — showing resources near ${cityName || detectedCC}`, 'success')
+          pushNotification(`Location detected -- showing resources near ${cityName || detectedCC}`, 'success')
         },
         (err) => {
           setLocationMode('manual')
           const msg = err.code === 1
-            ? 'Location permission denied — enable in browser settings'
+            ? 'Location permission denied -- enable in browser settings'
             : err.code === 3
-            ? 'Location timed out — check GPS/location services are enabled'
-            : 'Could not detect location — showing default area resources'
+            ? 'Location timed out -- check GPS/location services are enabled'
+            : 'Could not detect location -- showing default area resources'
           pushNotification(msg, 'warning')
         },
         GPS_OPTS
@@ -466,15 +466,15 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
     }
   }
 
-  // Auto-detect location on mount — guard prevents StrictMode double-fire
+  //Auto-detect location on mount -- guard prevents StrictMode double-fire
   useEffect(() => {
     if (mountAutoDetected.current) return
     mountAutoDetected.current = true
     autoDetect()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Search by city name, country, or postcode using Nominatim geocoding
+  //Search by city name, country, or postcode using Nominatim geocoding
   const searchLocation = async (query: string) => {
     if (!query.trim() || query.trim().length < 2) return
     setLocationSearching(true)
@@ -526,7 +526,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
         }),
       })
 
-      // Add to local list immediately for responsiveness
+      //Add to local list immediately for responsiveness
       setPosts(p => [{
         id: result?.id || Date.now(), type: oType, name: oVerify ? t('communityHelp.verifiedHelperChecked', lang) : t('communityHelp.anonymousHelper', lang),
         description: oDesc, location: oLoc || loc.name, time: 'Just now',
@@ -563,7 +563,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
       })
 
       pushNotification(
-        rUrgent ? 'Urgent request sent — nearest available volunteers will be notified.' : 'Request submitted — nearby helpers will be notified.',
+        rUrgent ? 'Urgent request sent -- nearest available volunteers will be notified.' : 'Request submitted -- nearby helpers will be notified.',
         rUrgent ? 'warning' : 'success'
       )
       setRType(''); setRDesc(''); setRLoc(''); setRUrgent(false); setRPeople('1')
@@ -585,7 +585,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
     </span>
   ) : null
 
-  // Location detection step
+  //Location detection step
   if (!consent) {
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 z-50" role="dialog" aria-modal="true">
@@ -791,7 +791,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-purple-900 dark:text-purple-200">Find verified mental health &amp; crisis helplines</p>
-                      <p className="text-[10px] text-purple-600 dark:text-purple-400">findahelpline.com — free, verified support lines for {detectedCountryCode.toUpperCase()}</p>
+                      <p className="text-[10px] text-purple-600 dark:text-purple-400">findahelpline.com -- free, verified support lines for {detectedCountryCode.toUpperCase()}</p>
                     </div>
                     <ExternalLink className="w-3.5 h-3.5 text-purple-400 group-hover:text-purple-600 flex-shrink-0" />
                   </a>
@@ -879,7 +879,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                       <p className={`text-[9px] ${oDesc.length > 0 && oDesc.length < 10 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-400 dark:text-gray-300'}`}>
                         {oDesc.length > 0 && oDesc.length < 10 ? `${10 - oDesc.length} more chars needed` : `${oDesc.length}/200 ${t('communityHelp.charsCount', lang)}`}
                       </p>
-                      {oDesc.length >= 10 && <p className="text-[9px] text-green-600 dark:text-green-400 font-medium">✓ Valid</p>}
+                      {oDesc.length >= 10 && <p className="text-[9px] text-green-600 dark:text-green-400 font-medium"> Valid</p>}
                     </div>
                   </div>
 

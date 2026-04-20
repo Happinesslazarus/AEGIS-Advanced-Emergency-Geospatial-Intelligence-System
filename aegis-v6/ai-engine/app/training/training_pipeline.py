@@ -12,10 +12,6 @@ hazard models in one pass.
 - Hyperparameter search via training/hyperparameter_tuner.py (optional)
 """
 
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
 # Complete end-to-end training workflow:
 # 1. Data loading and validation
 # 2. Feature engineering
@@ -25,7 +21,6 @@ hazard models in one pass.
 # 6. Evaluation and metrics
 # 7. Model registration
 # 8. Experiment tracking
-# -------------------------------------------------------------------------------
 
 import numpy as np
 import pandas as pd
@@ -146,7 +141,7 @@ class TrainingPipeline:
                 'hazard_type': hazard_type
             }
             
-            logger.info(f"✓ Loaded {len(features_df)} training samples with {len(features_df.columns)} base features")
+            logger.info(f" Loaded {len(features_df)} training samples with {len(features_df.columns)} base features")
             logger.info(f"  Date range: {start_date} to {end_date}")
             logger.info(f"  Hazard type: {hazard_type}")
             
@@ -172,7 +167,7 @@ class TrainingPipeline:
                 logger.info(f"Encoding {len(object_cols)} categorical features: {object_cols}")
                 features_engineered = pd.get_dummies(features_engineered, columns=object_cols, drop_first=False)
             
-            logger.info(f"✓ Feature engineering complete: {len(features_engineered.columns)} total features")
+            logger.info(f" Feature engineering complete: {len(features_engineered.columns)} total features")
             
             # Step 4: Train/validation split
             logger.info("=" * 80)
@@ -184,12 +179,12 @@ class TrainingPipeline:
             
             # CRITICAL PRE-TRAINING VALIDATION AND LOGGING
             logger.info("PRE-TRAINING VALIDATION:")
-            logger.info(f"  • Total rows used: {len(X)}")
-            logger.info(f"  • Feature columns used: {len(X.columns)}")
-            logger.info(f"  • Feature names: {list(X.columns[:20])}{'...' if len(X.columns) > 20 else ''}")
-            logger.info(f"  • Target column: 'target' (binary classification)")
-            logger.info(f"  • Target distribution: Class 0: {(y==0).sum()}, Class 1: {(y==1).sum()}")
-            logger.info(f"  • Target balance: {(y==1).sum() / len(y) * 100:.1f}% positive class")
+            logger.info(f"  - Total rows used: {len(X)}")
+            logger.info(f"  - Feature columns used: {len(X.columns)}")
+            logger.info(f"  - Feature names: {list(X.columns[:20])}{'...' if len(X.columns) > 20 else ''}")
+            logger.info(f"  - Target column: 'target' (binary classification)")
+            logger.info(f"  - Target distribution: Class 0: {(y==0).sum()}, Class 1: {(y==1).sum()}")
+            logger.info(f"  - Target balance: {(y==1).sum() / len(y) * 100:.1f}% positive class")
             
             # Validate target distribution
             if (y==0).sum() == 0 or (y==1).sum() == 0:
@@ -209,11 +204,11 @@ class TrainingPipeline:
                 stratify=y
             )
             
-            logger.info(f"✓ Train/test split complete:")
-            logger.info(f"  • Training set: {len(X_train)} samples ({len(X_train)/len(X)*100:.1f}%)")
-            logger.info(f"  • Validation set: {len(X_val)} samples ({len(X_val)/len(X)*100:.1f}%)")
-            logger.info(f"  • Train target distribution: Class 0: {(y_train==0).sum()}, Class 1: {(y_train==1).sum()}")
-            logger.info(f"  • Validation target distribution: Class 0: {(y_val==0).sum()}, Class 1: {(y_val==1).sum()}")
+            logger.info(f" Train/test split complete:")
+            logger.info(f"  - Training set: {len(X_train)} samples ({len(X_train)/len(X)*100:.1f}%)")
+            logger.info(f"  - Validation set: {len(X_val)} samples ({len(X_val)/len(X)*100:.1f}%)")
+            logger.info(f"  - Train target distribution: Class 0: {(y_train==0).sum()}, Class 1: {(y_train==1).sum()}")
+            logger.info(f"  - Validation target distribution: Class 0: {(y_val==0).sum()}, Class 1: {(y_val==1).sum()}")
             
             # Step 5: Hyperparameter tuning (optional)
             best_params = None

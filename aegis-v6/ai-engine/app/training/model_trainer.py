@@ -9,16 +9,11 @@ a fitted pipeline (preprocessor + classifier) ready for registration.
 - Evaluation metrics collected here, passed to experiment_tracker.py
 """
 
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------
 # Unified training interface for:
-# - Gradient Boosting (XGBoost, LightGBM, CatBoost)
-# - Random Forest
-# - Deep Learning (LSTM, Transformer)
-# - Ensemble Methods
-# -------------------------------------------------------------------------------
+# Gradient Boosting (XGBoost, LightGBM, CatBoost)
+# Random Forest
+# Deep Learning (LSTM, Transformer)
+# Ensemble Methods
 
 from __future__ import annotations
 

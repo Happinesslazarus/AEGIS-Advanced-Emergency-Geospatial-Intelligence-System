@@ -86,7 +86,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
       if (err?.name !== 'AbortError') {
         setAttemptCount(n => {
           const next = n + 1
-          // Only show error UI after 2 failed attempts — first fail is silent with auto-retry
+          //Only show error UI after 2 failed attempts -- first fail is silent with auto-retry
           if (next >= 2) setError(err.message || 'Temporarily unavailable')
           return next
         })
@@ -95,10 +95,10 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
     setLoading(false)
   }, [])
 
-  // Initial fetch + auto-retry on first failure + cleanup
+  //Initial fetch + auto-retry on first failure + cleanup
   useEffect(() => {
     fetchLevels()
-    // Silent auto-retry after 15s covers cold-start external API delays
+    //Silent auto-retry after 15s covers cold-start external API delays
     retryTimerRef.current = setTimeout(() => fetchLevels(), 15000)
     return () => {
       abortRef.current?.abort()
@@ -106,7 +106,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
     }
   }, [fetchLevels])
 
-  // Socket.IO live updates
+  //Socket.IO live updates
   useEffect(() => {
     if (!socket) return
     const handler = (data: any) => {
@@ -125,7 +125,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
     onToggle?.()
   }
 
-  // Sort by status severity
+  //Sort by status severity
   const sorted = useMemo(() => {
     const order = { CRITICAL: 0, HIGH: 1, ELEVATED: 2, NORMAL: 3 }
     return [...readings].sort((a, b) => (order[a.status as keyof typeof order] ?? 4) - (order[b.status as keyof typeof order] ?? 4))
@@ -166,7 +166,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
           <div className="text-left">
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('river.riverLevels', lang)}</h3>
             <p className="text-[10px] text-gray-500 dark:text-gray-400">
-              {readings.length} station{readings.length !== 1 ? 's' : ''} — {lastUpdated ? `${Math.round((Date.now() - lastUpdated.getTime()) / 60000)}m ago` : 'Loading...'}
+              {readings.length} station{readings.length !== 1 ? 's' : ''} -- {lastUpdated ? `${Math.round((Date.now() - lastUpdated.getTime()) / 60000)}m ago` : 'Loading...'}
             </p>
           </div>
         </div>
@@ -198,7 +198,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
           {error && attemptCount >= 2 && (
             <div className="mx-3 my-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-lg text-xs text-amber-700 dark:text-amber-300 flex items-center gap-2">
               <RefreshCw className="w-3 h-3 flex-shrink-0 cursor-pointer hover:animate-spin" onClick={() => fetchLevels()} />
-              River data temporarily unavailable — <button className="underline" onClick={() => fetchLevels()}>retry</button>
+              River data temporarily unavailable -- <button className="underline" onClick={() => fetchLevels()}>retry</button>
             </div>
           )}
 

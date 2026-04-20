@@ -9,7 +9,7 @@
 
 import { test, expect } from '@playwright/test'
 
-// VISUAL TEST CONFIGURATION
+//VISUAL TEST CONFIGURATION
 
 /** Default snapshot options */
 const SNAPSHOT_OPTIONS = {
@@ -28,7 +28,7 @@ const VIEWPORTS = {
 /** Themes to test */
 const THEMES = ['default', 'light', 'midnight', 'ocean', 'forest', 'sunset', 'crimson', 'slate']
 
-// VISUAL REGRESSION TESTS
+//VISUAL REGRESSION TESTS
 
 test.describe('Visual Regression - Landing Page', () => {
   test.beforeEach(async ({ page }) => {
@@ -41,7 +41,7 @@ test.describe('Visual Regression - Landing Page', () => {
   })
 
   test('dark mode renders correctly', async ({ page }) => {
-    // Enable dark mode
+    //Enable dark mode
     await page.evaluate(() => {
       document.documentElement.classList.add('dark')
       localStorage.setItem('aegis-theme', 'default')
@@ -137,12 +137,12 @@ test.describe('Visual Regression - Animation Timing', () => {
   test('modal animation completes', async ({ page }) => {
     await page.goto('/')
     
-    // Trigger a modal (adjust selector as needed)
+    //Trigger a modal (adjust selector as needed)
     const trigger = page.locator('[data-modal-trigger]').first()
     if (await trigger.count() > 0) {
       await trigger.click()
       
-      // Wait for animation to complete (300ms + buffer)
+      //Wait for animation to complete (300ms + buffer)
       await page.waitForTimeout(400)
       
       await expect(page).toHaveScreenshot('modal-open.png', SNAPSHOT_OPTIONS)
@@ -166,13 +166,13 @@ test.describe('Visual Regression - Cross-Browser Quirks', () => {
   test('focus ring visibility', async ({ page }) => {
     await page.goto('/')
     
-    // Tab to first focusable element
+    //Tab to first focusable element
     await page.keyboard.press('Tab')
     
     const focused = page.locator(':focus')
     await expect(focused).toBeVisible()
     
-    // Screenshot focused element
+    //Screenshot focused element
     await expect(focused).toHaveScreenshot('focus-ring.png', {
       ...SNAPSHOT_OPTIONS,
       maxDiffPixels: 200, // Focus rings can vary across browsers
@@ -180,11 +180,11 @@ test.describe('Visual Regression - Cross-Browser Quirks', () => {
   })
 
   test('scrollbar styling', async ({ page }) => {
-    // Navigate to a page with scrollable content
+    //Navigate to a page with scrollable content
     await page.goto('/alerts')
     await page.setViewportSize({ width: 1200, height: 600 })
     
-    // Scroll to trigger scrollbar visibility
+    //Scroll to trigger scrollbar visibility
     await page.evaluate(() => window.scrollTo(0, 500))
     
     await expect(page).toHaveScreenshot('scrollbar-styling.png', {
@@ -194,7 +194,7 @@ test.describe('Visual Regression - Cross-Browser Quirks', () => {
   })
 })
 
-// ACCESSIBILITY VISUAL TESTS
+//ACCESSIBILITY VISUAL TESTS
 
 test.describe('Visual Regression - Accessibility', () => {
   test('large text mode', async ({ page }) => {
@@ -214,7 +214,7 @@ test.describe('Visual Regression - Accessibility', () => {
       document.documentElement.classList.add('reduce-motion')
     })
     
-    // Trigger something that would normally animate
+    //Trigger something that would normally animate
     await page.mouse.move(500, 300)
     
     await expect(page).toHaveScreenshot('accessibility-reduced-motion.png', SNAPSHOT_OPTIONS)
@@ -223,8 +223,8 @@ test.describe('Visual Regression - Accessibility', () => {
   test('forced colors mode simulation', async ({ page }) => {
     await page.goto('/')
     
-    // We can't truly force Windows High Contrast Mode,
-    // but we can test our CSS handles it
+    //We can't truly force Windows High Contrast Mode,
+    //but we can test our CSS handles it
     await page.addStyleTag({
       content: `
         @media (forced-colors: active) {
@@ -240,7 +240,7 @@ test.describe('Visual Regression - Accessibility', () => {
   })
 })
 
-// RTL LAYOUT TESTS
+//RTL LAYOUT TESTS
 
 test.describe('Visual Regression - RTL Layouts', () => {
   test('Arabic RTL layout', async ({ page }) => {

@@ -1,5 +1,5 @@
 /**
- * Advanced weather intelligence panel — fetches live data from the Open-Meteo API
+ * Advanced weather intelligence panel -- fetches live data from the Open-Meteo API
  * (no API key required) for the user's GPS location. Includes hourly forecast,
  * feels-like temperature, UV index, pressure, dew point, wind direction compass,
  * sunrise/sunset, and multi-level warning system.
@@ -130,15 +130,15 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
       const d = data.daily
 
       const warnings: { type: string; message: string; severity: number }[] = []
-      if (c.weather_code >= 95) warnings.push({ type: 'Severe', message: 'Thunderstorm activity detected — seek shelter immediately', severity: 4 })
-      else if (c.weather_code >= 80) warnings.push({ type: 'Amber', message: 'Heavy rain showers expected — potential surface water flooding', severity: 3 })
-      else if (c.weather_code >= 61) warnings.push({ type: 'Yellow', message: 'Persistent rain forecast — monitor water levels', severity: 2 })
-      if (c.wind_speed_10m > 80) warnings.push({ type: 'Severe', message: `Dangerous winds: ${c.wind_speed_10m.toFixed(0)} km/h — stay indoors`, severity: 4 })
-      else if (c.wind_speed_10m > 60) warnings.push({ type: 'Wind', message: `High winds: ${c.wind_speed_10m.toFixed(0)} km/h — take care outdoors`, severity: 2 })
-      if (c.uv_index >= 8) warnings.push({ type: 'UV', message: `UV Index ${c.uv_index.toFixed(0)} — extreme sun exposure risk`, severity: 3 })
-      if (c.visibility < 1000) warnings.push({ type: 'Fog', message: 'Very low visibility — travel with extreme caution', severity: 2 })
-      if (c.temperature_2m > 40) warnings.push({ type: 'Heat', message: `Extreme heat: ${c.temperature_2m}°C — heat stroke risk`, severity: 4 })
-      else if (c.temperature_2m < -10) warnings.push({ type: 'Cold', message: `Extreme cold: ${c.temperature_2m}°C — frostbite risk`, severity: 3 })
+      if (c.weather_code >= 95) warnings.push({ type: 'Severe', message: 'Thunderstorm activity detected -- seek shelter immediately', severity: 4 })
+      else if (c.weather_code >= 80) warnings.push({ type: 'Amber', message: 'Heavy rain showers expected -- potential surface water flooding', severity: 3 })
+      else if (c.weather_code >= 61) warnings.push({ type: 'Yellow', message: 'Persistent rain forecast -- monitor water levels', severity: 2 })
+      if (c.wind_speed_10m > 80) warnings.push({ type: 'Severe', message: `Dangerous winds: ${c.wind_speed_10m.toFixed(0)} km/h -- stay indoors`, severity: 4 })
+      else if (c.wind_speed_10m > 60) warnings.push({ type: 'Wind', message: `High winds: ${c.wind_speed_10m.toFixed(0)} km/h -- take care outdoors`, severity: 2 })
+      if (c.uv_index >= 8) warnings.push({ type: 'UV', message: `UV Index ${c.uv_index.toFixed(0)} -- extreme sun exposure risk`, severity: 3 })
+      if (c.visibility < 1000) warnings.push({ type: 'Fog', message: 'Very low visibility -- travel with extreme caution', severity: 2 })
+      if (c.temperature_2m > 40) warnings.push({ type: 'Heat', message: `Extreme heat: ${c.temperature_2m}°C -- heat stroke risk`, severity: 4 })
+      else if (c.temperature_2m < -10) warnings.push({ type: 'Cold', message: `Extreme cold: ${c.temperature_2m}°C -- frostbite risk`, severity: 3 })
       warnings.sort((a, b) => b.severity - a.severity)
 
       const nowHour = new Date().getHours()

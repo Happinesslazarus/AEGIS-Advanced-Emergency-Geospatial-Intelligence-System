@@ -14,7 +14,7 @@ export class HeatwaveAlertRules {
     const results: AlertRuleResult[] = []
     const { recentReports, weatherData, predictions } = context
 
-    // Rule 1: Report density threshold
+    //Rule 1: Report density threshold
     if (recentReports.length >= 10) {
       results.push({
         shouldAlert: true,
@@ -31,24 +31,24 @@ export class HeatwaveAlertRules {
       })
     }
 
-    // Rule 2: Temperature threshold (if weather data available)
+    //Rule 2: Temperature threshold (if weather data available)
     if (weatherData?.temperature && Number(weatherData.temperature) >= 38) {
       results.push({
         shouldAlert: true,
         severity: 'critical',
         title: 'Extreme Heat Warning',
-        description: `Temperature exceeds 38—C. Life-threatening heat conditions.`
+        description: `Temperature exceeds 38--C. Life-threatening heat conditions.`
       })
     } else if (weatherData?.temperature && Number(weatherData.temperature) >= 35) {
       results.push({
         shouldAlert: true,
         severity: 'warning',
         title: 'High Temperature Alert',
-        description: `Temperature exceeds 35—C. Dangerous heat expected.`
+        description: `Temperature exceeds 35--C. Dangerous heat expected.`
       })
     }
 
-    // Rule 3: Vulnerable population impact
+    //Rule 3: Vulnerable population impact
     const vulnerableReports = recentReports.filter(r => r.customFields?.vulnerablePopulation === true)
     if (vulnerableReports.length >= 3) {
       results.push({
@@ -59,7 +59,7 @@ export class HeatwaveAlertRules {
       })
     }
 
-    // Rule 4: Statistical prediction threshold
+    //Rule 4: Statistical prediction threshold
     const highRiskPredictions = predictions?.filter(p => p.probability > 0.7)
     if (highRiskPredictions && highRiskPredictions.length > 0) {
       results.push({

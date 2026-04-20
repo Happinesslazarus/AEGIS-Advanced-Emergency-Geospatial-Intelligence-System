@@ -28,7 +28,7 @@ const aberdeen: CityRegionConfig = {
       name: 'River Don',
       dataProvider: 'SEPA',
       stationId: '234234',          // Park Bridge gauge
-      historicalFloodLevel: 3.8,    // Metres — based on SEPA peak records
+      historicalFloodLevel: 3.8,    // Metres -- based on SEPA peak records
       floodThresholds: { normal: 1.5, elevated: 2.0, high: 2.5, severe: 3.5 },
       coordinates: { lat: 57.1745, lng: -2.1050 },
     },
@@ -52,42 +52,42 @@ const aberdeen: CityRegionConfig = {
   shelterSearchRadiusKm: 25,
   wmsLayers: [
     {
-      name: 'SEPA Flood Map — River (High Likelihood)',
+      name: 'SEPA Flood Map -- River (High Likelihood)',
       url: 'https://map.sepa.org.uk/floodmap/wms',
       layers: 'sepa:fld_FluvialHighLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '— SEPA',
+      attribution: '-- SEPA',
       opacity: 0.5,
       riskLevel: 'high',
     },
     {
-      name: 'SEPA Flood Map — River (Medium Likelihood)',
+      name: 'SEPA Flood Map -- River (Medium Likelihood)',
       url: 'https://map.sepa.org.uk/floodmap/wms',
       layers: 'sepa:fld_FluvialMediumLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '— SEPA',
+      attribution: '-- SEPA',
       opacity: 0.4,
       riskLevel: 'medium',
     },
     {
-      name: 'SEPA Flood Map — Surface Water',
+      name: 'SEPA Flood Map -- Surface Water',
       url: 'https://map.sepa.org.uk/floodmap/wms',
       layers: 'sepa:fld_PluvialHighLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '— SEPA',
+      attribution: '-- SEPA',
       opacity: 0.35,
       riskLevel: 'low',
     },
     {
-      name: 'SEPA Flood Map — Coastal',
+      name: 'SEPA Flood Map -- Coastal',
       url: 'https://map.sepa.org.uk/floodmap/wms',
       layers: 'sepa:fld_CoastalHighLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '— SEPA',
+      attribution: '-- SEPA',
       opacity: 0.35,
       riskLevel: 'medium',
     },
@@ -100,7 +100,7 @@ const aberdeen: CityRegionConfig = {
     aberdeen: 'aberdeen_routes.json',
   },
 
-  // Multi-Incident Configuration
+  //Multi-Incident Configuration
   language: 'en',
   units: 'metric',
   enabledIncidents: {

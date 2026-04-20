@@ -13,7 +13,7 @@ import {
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
-/* Safe date formatting — returns readable string or fallback */
+/* Safe date formatting -- returns readable string or fallback */
 function safeDate(dateStr: string | undefined | null, fallback = 'Unknown'): string {
   if (!dateStr) return fallback
   try {
@@ -25,7 +25,7 @@ function safeDate(dateStr: string | undefined | null, fallback = 'Unknown'): str
   }
 }
 
-// Types
+//Types
 
 interface Alert {
   id: string
@@ -67,7 +67,7 @@ interface Props {
   onClose?: () => void
 }
 
-// Component
+//Component
 
 export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
   const lang = useLanguage()
@@ -79,13 +79,13 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const [currentTime, setCurrentTime] = useState<Date>(new Date())
 
-  // Clock tick
+  //Clock tick
   useEffect(() => {
     const tick = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(tick)
   }, [])
 
-  // Fetch all data from real APIs
+  //Fetch all data from real APIs
   const fetchAll = useCallback(async () => {
     setLoading(true)
     const results = await Promise.allSettled([
@@ -95,7 +95,7 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
       fetch('/api/predictions').then(r => r.ok ? r.json() : []),
     ])
 
-    // Alerts — filter out test/demo alerts
+    //Alerts -- filter out test/demo alerts
     if (results[0].status === 'fulfilled') {
       const data = results[0].value
       const raw = Array.isArray(data) ? data : data?.alerts || []
@@ -106,17 +106,17 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
       }))
     }
 
-    // Shelters
+    //Shelters
     if (results[1].status === 'fulfilled' && results[1].value?.shelters) {
       setShelters(results[1].value.shelters.slice(0, 6))
     }
 
-    // Weather
+    //Weather
     if (results[2].status === 'fulfilled' && results[2].value) {
       setWeather(results[2].value)
     }
 
-    // Predictions
+    //Predictions
     if (results[3].status === 'fulfilled') {
       const data = results[3].value
       setPredictions(Array.isArray(data) ? data : [])
@@ -128,7 +128,7 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
 
   useEffect(() => {
     fetchAll()
-    // Auto-refresh every 60 seconds
+    //Auto-refresh every 60 seconds
     const interval = setInterval(fetchAll, 60000)
     return () => clearInterval(interval)
   }, [fetchAll])

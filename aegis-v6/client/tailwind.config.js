@@ -37,7 +37,7 @@ export default {
           900: 'rgb(var(--aegis-900) / <alpha-value>)',
           950: 'rgb(var(--aegis-950) / <alpha-value>)',
         },
-        /* Semantic surface / foreground tokens — theme-aware via CSS vars */
+        /* Semantic surface / foreground tokens -- theme-aware via CSS vars */
         surface: {
           DEFAULT:      'rgb(var(--surface-primary)   / <alpha-value>)',
           secondary:    'rgb(var(--surface-secondary) / <alpha-value>)',
@@ -89,27 +89,27 @@ export default {
          Semantic font-size tokens so components reference a role
          instead of arbitrary pixel values. Each entry is [size, { lineHeight, letterSpacing? }]. */
       fontSize: {
-        /* Micro text — absolute floor for accessibility (badges, legends) */
-        'micro':  ['0.625rem', { lineHeight: '0.875rem' }],          /* 10px / 14px — WCAG minimum */
-        /* Captions — timestamps, metadata, chart labels */
+        /* Micro text -- absolute floor for accessibility (badges, legends) */
+        'micro':  ['0.625rem', { lineHeight: '0.875rem' }],          /* 10px / 14px -- WCAG minimum */
+        /* Captions -- timestamps, metadata, chart labels */
         'caption': ['0.6875rem', { lineHeight: '1rem' }],            /* 11px / 16px */
-        /* Labels — form labels, stat labels, table headers */
+        /* Labels -- form labels, stat labels, table headers */
         'label':  ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.025em' }],  /* 12px (= text-xs) */
-        /* Body small — secondary text, descriptions, table cells */
+        /* Body small -- secondary text, descriptions, table cells */
         'body-sm': ['0.8125rem', { lineHeight: '1.25rem' }],         /* 13px */
-        /* Body — primary readable text */
+        /* Body -- primary readable text */
         'body':   ['0.875rem', { lineHeight: '1.375rem' }],          /* 14px (= text-sm) */
-        /* Body large — emphasized body / card intros */
+        /* Body large -- emphasized body / card intros */
         'body-lg': ['1rem', { lineHeight: '1.5rem' }],               /* 16px (= text-base) */
-        /* Heading small — card titles, section headers */
+        /* Heading small -- card titles, section headers */
         'heading-sm': ['1rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
-        /* Heading — section titles, panel headers */
+        /* Heading -- section titles, panel headers */
         'heading': ['1.125rem', { lineHeight: '1.625rem', letterSpacing: '-0.015em' }],  /* 18px (= text-lg) */
-        /* Heading large — page section titles */
+        /* Heading large -- page section titles */
         'heading-lg': ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.02em' }],  /* 20px (= text-xl) */
-        /* Display — page titles, hero headings */
+        /* Display -- page titles, hero headings */
         'display': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.025em' }],         /* 24px (= text-2xl) */
-        /* Display large — splash / landing headings */
+        /* Display large -- splash / landing headings */
         'display-lg': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.025em' }], /* 30px (= text-3xl) */
       },
       /* Motion tokens
@@ -137,7 +137,7 @@ export default {
         'shimmer':'shimmer 2s infinite',
         'float':'float 3s ease-in-out infinite',
         'glow':'glowPulse 2s ease-in-out infinite',
-        /* Phase 6 — Enhanced micro-interactions */
+        /* Phase 6 -- Enhanced micro-interactions */
         'bounce-subtle':'bounceSubtle 0.5s ease-out',
         'pop':'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
         'shake':'shake 0.5s ease-in-out',
@@ -168,7 +168,7 @@ export default {
         float: { '0%,100%':{transform:'translateY(0)'},'50%':{transform:'translateY(-6px)'} },
         glowPulse: { '0%,100%':{boxShadow:'0 0 5px rgba(var(--aegis-600),0.3)'},'50%':{boxShadow:'0 0 20px rgba(var(--aegis-600),0.5)'} },
         ring: { '0%,100%':{transform:'rotate(0deg)'},'10%,30%':{transform:'rotate(-10deg)'},'20%,40%':{transform:'rotate(10deg)'},'50%':{transform:'rotate(0deg)'} },
-        /* Phase 6 — New keyframes */
+        /* Phase 6 -- New keyframes */
         bounceSubtle: { '0%,100%':{transform:'translateY(0)'},'50%':{transform:'translateY(-4px)'} },
         pop: { '0%':{transform:'scale(0.95)',opacity:'0'},'50%':{transform:'scale(1.02)'},'100%':{transform:'scale(1)',opacity:'1'} },
         shake: { '0%,100%':{transform:'translateX(0)'},'10%,30%,50%,70%,90%':{transform:'translateX(-2px)'},'20%,40%,60%,80%':{transform:'translateX(2px)'} },

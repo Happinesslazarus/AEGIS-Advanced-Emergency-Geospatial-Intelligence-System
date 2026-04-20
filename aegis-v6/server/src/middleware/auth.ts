@@ -9,10 +9,10 @@
  *   are called by authRoutes.ts and citizenAuthRoutes.ts during login/refresh
  * - Tokens are generated here and returned to clients via auth route handlers
  *
- * - authMiddleware — verifies Bearer token on each request
- * - requireRole() / adminOnly / operatorOnly / citizenOnly — role gates
- * - generateToken() / generateRefreshToken() — issue JWTs
- * - createSession() / validateSession() / rotateRefreshToken() — session lifecycle
+ * - authMiddleware -- verifies Bearer token on each request
+ * - requireRole() / adminOnly / operatorOnly / citizenOnly -- role gates
+ * - generateToken() / generateRefreshToken() -- issue JWTs
+ * - createSession() / validateSession() / rotateRefreshToken() -- session lifecycle
  * */
 
 import { Request, Response, NextFunction } from 'express'
@@ -21,33 +21,33 @@ import crypto from 'crypto'
 import pool from '../models/db.js'
 import { logger } from '../services/logger.js'
 
-// Extend Express Request to include the authenticated user data
+//Extend Express Request to include the authenticated user data
 export interface AuthRequest extends Request {
   user?: { id: string; email: string; role: string; displayName: string; department?: string | null }
 }
 
-// Never use a hardcoded fallback secret. Generate random for dev, crash in production.
+//Never use a hardcoded fallback secret. Generate random for dev, crash in production.
 const JWT_SECRET: string = (() => {
   if (process.env.JWT_SECRET) return process.env.JWT_SECRET
   if (process.env.NODE_ENV === 'production') {
     logger.fatal('[FATAL] JWT_SECRET env variable is not set. Cannot start in production without it.')
     process.exit(1)
   }
-  // Dev / test: generate a random secret per process. Tokens won't survive restarts — that's fine.
+  //Dev / test: generate a random secret per process. Tokens won't survive restarts -- that's fine.
   const devSecret = crypto.randomBytes(64).toString('hex')
-  logger.warn('[SECURITY] JWT_SECRET not set — using random secret (dev only). Tokens invalidate on restart.')
+  logger.warn('[SECURITY] JWT_SECRET not set -- using random secret (dev only). Tokens invalidate on restart.')
   return devSecret
 })()
 
-// Separate secret for refresh tokens — prevents access token secret compromise from forging refresh tokens.
-// In production, REFRESH_TOKEN_SECRET must be a distinct key.
+//Separate secret for refresh tokens -- prevents access token secret compromise from forging refresh tokens.
+//In production, REFRESH_TOKEN_SECRET must be a distinct key.
 const REFRESH_SECRET: string = (() => {
   if (process.env.REFRESH_TOKEN_SECRET) return process.env.REFRESH_TOKEN_SECRET
   if (process.env.NODE_ENV === 'production') {
     logger.fatal('[FATAL] REFRESH_TOKEN_SECRET must be set separately from JWT_SECRET in production.')
     process.exit(1)
   }
-  // Dev: fall back to JWT_SECRET (acceptable for development only)
+  //Dev: fall back to JWT_SECRET (acceptable for development only)
   return JWT_SECRET
 })()
 
@@ -105,7 +105,7 @@ export const operatorOnly = requireRole('admin', 'operator', 'manager')
 
 /*
  * Helper to generate a signed JWT for a given user (operator or citizen).
- * Access tokens have short expiry (15 min); refresh tokens last 7—30 days.
+ * Access tokens have short expiry (15 min); refresh tokens last 7--30 days.
  */
 export function generateToken(user: { id: string; email: string; role: string; displayName: string; department?: string | null }): string {
   return jwt.sign(user, JWT_SECRET, { expiresIn: '15m' })
@@ -167,7 +167,7 @@ export function requireVerifiedEmail(req: AuthRequest, res: Response, next: Next
   })
 }
 
-// Hash a refresh token for storage in user_sessions
+//Hash a refresh token for storage in user_sessions
 export function hashRefreshToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex')
 }
@@ -213,7 +213,7 @@ export async function validateSession(refreshToken: string): Promise<{
 
   if (result.rows.length === 0) return null
 
-  // Update last_used_at
+  //Update last_used_at
   await pool.query('UPDATE user_sessions SET last_used_at = NOW() WHERE id = $1', [result.rows[0].id])
 
   return {
@@ -238,14 +238,14 @@ export async function rotateRefreshToken(options: {
 }): Promise<string> {
   const oldHash = hashRefreshToken(options.oldToken)
 
-  // Revoke old session
+  //Revoke old session
   await pool.query(
     `UPDATE user_sessions SET revoked = true, revoked_reason = 'rotated'
      WHERE refresh_token_hash = $1`,
     [oldHash]
   )
 
-  // Create new session
+  //Create new session
   return createSession({
     userId: options.userId,
     userType: options.userType,

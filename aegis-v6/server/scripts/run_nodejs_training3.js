@@ -1,4 +1,4 @@
-// Create admin operator and trigger training
+//Create admin operator and trigger training
 const http = require('http');
 const { Pool } = require('pg');
 
@@ -36,7 +36,7 @@ function httpReq(method, path, body, token) {
 }
 
 async function main() {
-  // 1. Create admin operator
+  //1. Create admin operator
   console.log('1. Creating admin operator...');
   const hash = await bcrypt.hash('Admin123!@#', 12);
   const id = '00000000-0000-0000-0000-000000000099';
@@ -52,10 +52,10 @@ async function main() {
     console.log('  DB error:', e.message);
   }
   
-  // 2. Login via operator login endpoint
+  //2. Login via operator login endpoint
   console.log('\n2. Logging in...');
   
-  // Try operator login
+  //Try operator login
   let token = null;
   for (const path of ['/api/auth/operator/login', '/api/auth/login']) {
     const res = await httpReq('POST', path, {
@@ -72,7 +72,7 @@ async function main() {
   
   if (!token) {
     console.log('  Could not get token. Trying direct approach...');
-    // Generate a JWT directly
+    //Generate a JWT directly
     const jwt = require('jsonwebtoken');
     const secret = process.env.JWT_SECRET || 'aegis-jwt-secret-key-change-me-in-production';
     token = jwt.sign(
@@ -83,7 +83,7 @@ async function main() {
     console.log('  Generated JWT directly');
   }
   
-  // 3. Trigger training
+  //3. Trigger training
   console.log('\n3. Triggering ML training pipeline...');
   const trainRes = await httpReq('POST', '/api/training/run', {}, token);
   console.log('  Status:', trainRes.status);

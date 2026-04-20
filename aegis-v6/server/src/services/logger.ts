@@ -1,5 +1,5 @@
 ﻿/**
- * Structured logging service — Pino-based logger with pretty-printing in dev
+ * Structured logging service -- Pino-based logger with pretty-printing in dev
  * and JSON output in production. Exports a requestLogger() middleware that
  * logs method, URL, status, duration, and IP for every HTTP request.
  *

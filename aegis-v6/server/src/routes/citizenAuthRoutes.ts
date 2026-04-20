@@ -8,11 +8,11 @@
  * - Includes honeypot fields to catch bot registrations
  * - Checks passwords against the Have I Been Pwned database
  *
- * POST /api/citizen-auth/register     — Create citizen account
- * POST /api/citizen-auth/login        — Authenticate citizen
- * GET  /api/citizen-auth/me           — Get current profile
- * PUT  /api/citizen-auth/profile      — Update profile
- * PUT  /api/citizen-auth/preferences  — Notification preferences
+ * POST /api/citizen-auth/register     -- Create citizen account
+ * POST /api/citizen-auth/login        -- Authenticate citizen
+ * GET  /api/citizen-auth/me           -- Get current profile
+ * PUT  /api/citizen-auth/profile      -- Update profile
+ * PUT  /api/citizen-auth/preferences  -- Notification preferences
  * */
 
 import { Router, Response, NextFunction } from 'express'
@@ -36,7 +36,7 @@ import { validatePasswordNotBreached } from '../services/hibpService.js'
 
 const router = Router()
 
-// Rate limiter for login attempts (brute-force protection)
+//Rate limiter for login attempts (brute-force protection)
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 login attempts per 15 minutes per IP
@@ -46,7 +46,7 @@ const loginLimiter = rateLimit({
   skipSuccessfulRequests: true, // Only count failed attempts toward the limit
 })
 
-// Rate limiter for registration (anti-bot)
+//Rate limiter for registration (anti-bot)
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 10, // max 10 registrations per hour per IP
@@ -55,7 +55,7 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
 })
 
-// Rate limiter for password reset requests
+//Rate limiter for password reset requests
 const resetLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5, // max 5 reset requests per hour per IP
@@ -64,7 +64,7 @@ const resetLimiter = rateLimit({
   legacyHeaders: false,
 })
 
-// Rate limiter for password change
+//Rate limiter for password change
 const changePasswordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10, // 10 attempts per 15 min
@@ -73,23 +73,23 @@ const changePasswordLimiter = rateLimit({
   legacyHeaders: false,
 })
 
-// Input length limits
+//Input length limits
 const MAX_DISPLAY_NAME = 100
 const MAX_BIO = 500
 const MAX_ADDRESS = 200
 const MAX_PHONE = 30
 const MAX_CITY = 100
 
-// POST /register - Create a new citizen account
+//POST /register - Create a new citizen account
 router.post('/register', registerLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password, displayName, phone, preferredRegion,
             isVulnerable, vulnerabilityDetails, country, city, dateOfBirth,
             bio, addressLine } = req.body
 
-    // Honeypot - invisible field filled by bots, real users leave it empty
+    //Honeypot - invisible field filled by bots, real users leave it empty
     if (req.body.website || req.body.url || req.body.fax) {
-      // Silently reject without revealing why (looks like success to bots)
+      //Silently reject without revealing why (looks like success to bots)
       res.status(201).json({ message: 'Registration successful! Please check your email to verify your account.' })
       return
     }
@@ -98,13 +98,13 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
       throw AppError.badRequest('Email, password, and display name are required.')
     }
 
-    // Email format validation
+    //Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
       throw AppError.badRequest('Please enter a valid email address.')
     }
 
-    // Input length validation
+    //Input length validation
     if (typeof displayName === 'string' && displayName.trim().length < 2) {
       throw AppError.badRequest('Display name must be at least 2 characters.')
     }
@@ -112,7 +112,7 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
       throw AppError.badRequest(`Display name must be ${MAX_DISPLAY_NAME} characters or less.`)
     }
 
-    // Date of birth validation — must be a real past date and user must be at least 13 years old
+    //Date of birth validation -- must be a real past date and user must be at least 13 years old
     if (dateOfBirth) {
       const dob = new Date(dateOfBirth)
       if (isNaN(dob.getTime())) {
@@ -144,14 +144,14 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
       throw AppError.badRequest(`Phone must be ${MAX_PHONE} characters or less.`)
     }
 
-    // Password strength — enterprise policy (12 chars, uppercase, lowercase, digit, special)
+    //Password strength -- enterprise policy (12 chars, uppercase, lowercase, digit, special)
     const pwResult = validatePasswordStrength(password, email)
     if (!pwResult.valid) {
       res.status(400).json({ error: pwResult.errors[0] })
       return
     }
 
-    // Check password against Have I Been Pwned database (k-Anonymity safe)
+    //Check password against Have I Been Pwned database (k-Anonymity safe)
     const hibpResult = await validatePasswordNotBreached(password, { blockThreshold: 0 })
     if (!hibpResult.valid) {
       res.status(400).json({
@@ -162,7 +162,7 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
       return
     }
 
-    // Check if email already registered (case-insensitive)
+    //Check if email already registered (case-insensitive)
     const normalizedEmail = email.trim().toLowerCase()
     const exists = await pool.query(
       'SELECT id FROM citizens WHERE LOWER(email) = LOWER($1) AND deleted_at IS NULL',
@@ -172,7 +172,7 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
       throw AppError.conflict('An account with this email already exists.')
     }
 
-    // Check if phone already registered (if provided)
+    //Check if phone already registered (if provided)
     if (phone) {
       const phoneExists = await pool.query(
         'SELECT id FROM citizens WHERE phone = $1 AND deleted_at IS NULL',
@@ -183,15 +183,15 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
       }
     }
 
-    // Hash password with bcrypt (12 rounds)
+    //Hash password with bcrypt (12 rounds)
     const passwordHash = await bcrypt.hash(password, 12)
 
-    // Generate email verification token (store HASH, send raw)
+    //Generate email verification token (store HASH, send raw)
     const rawVerificationToken = generateSecureToken()
     const verificationTokenHash = hashToken(rawVerificationToken)
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
-    // Insert citizen with all new fields (email stored lowercase)
+    //Insert citizen with all new fields (email stored lowercase)
     const result = await pool.query(
       `INSERT INTO citizens (email, password_hash, display_name, phone, preferred_region,
                              verification_token_hash, verification_expires,
@@ -210,23 +210,23 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
 
     const citizen = result.rows[0]
 
-    // Create default preferences
+    //Create default preferences
     await pool.query(
       `INSERT INTO citizen_preferences (citizen_id) VALUES ($1) ON CONFLICT DO NOTHING`,
       [citizen.id]
     )
 
-    // Record initial password in history (prevents immediate reuse)
+    //Record initial password in history (prevents immediate reuse)
     await recordPasswordHistory(citizen.id, 'citizen', passwordHash)
 
-    // Send verification email (dev mode: logged to console + dev_emails table)
+    //Send verification email (dev mode: logged to console + dev_emails table)
     try {
       await sendVerificationEmail(normalizedEmail, rawVerificationToken, 'citizen')
     } catch (emailErr: any) {
       logger.error({ err: emailErr }, '[CitizenAuth] Failed to send verification email')
     }
 
-    // Log registration event
+    //Log registration event
     const clientIp = getClientIp(req)
     await logSecurityEvent({
       userId: citizen.id, userType: 'citizen', eventType: 'register',
@@ -234,7 +234,7 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
       metadata: { email: normalizedEmail },
     })
 
-    // Generate JWT with citizen role
+    //Generate JWT with citizen role
     const token = generateToken({
       id: citizen.id,
       email: citizen.email,
@@ -243,7 +243,7 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
     })
     const refreshToken = generateRefreshToken({ id: citizen.id, role: citizen.role || 'citizen' })
 
-    // Create session record for the refresh token
+    //Create session record for the refresh token
     await createSession({
       userId: citizen.id, userType: 'citizen', refreshToken,
       ipAddress: clientIp, userAgent: req.headers['user-agent'] as string,
@@ -280,7 +280,7 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
   }
 })
 
-// POST /check-availability - Check if email or phone is already registered
+//POST /check-availability - Check if email or phone is already registered
 router.post('/check-availability', registerLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, phone } = req.body
@@ -315,7 +315,7 @@ router.post('/check-availability', registerLimiter, async (req: AuthRequest, res
   }
 })
 
-// POST /login - Authenticate citizen
+//POST /login - Authenticate citizen
 router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password } = req.body
@@ -336,14 +336,14 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
     )
 
     if (result.rows.length === 0) {
-      // Log failed attempt (no user found - don't reveal this)
+      //Log failed attempt (no user found - don't reveal this)
       await logSecurityEvent({ eventType: 'login_failed', ipAddress: clientIp, userAgent, metadata: { reason: 'unknown_email' } })
       throw AppError.unauthorized('Invalid email or password.')
     }
 
     const citizen = result.rows[0]
 
-    // Check account lockout
+    //Check account lockout
     const lockoutStatus = checkLockout(citizen.failed_login_attempts, citizen.locked_until)
     if (lockoutStatus.locked) {
       await logSecurityEvent({
@@ -364,7 +364,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
 
     const valid = await bcrypt.compare(password, citizen.password_hash)
     if (!valid) {
-      // Record failed attempt + possibly lock the account
+      //Record failed attempt + possibly lock the account
       const newLockout = await recordFailedLogin('citizens', citizen.id)
 
       await logSecurityEvent({
@@ -372,7 +372,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
         ipAddress: clientIp, userAgent, metadata: { attempts: newLockout.attempts },
       })
 
-      // Check for suspicious activity patterns
+      //Check for suspicious activity patterns
       await checkSuspiciousActivity(citizen.id, 'citizen', clientIp)
 
       if (newLockout.locked) {
@@ -380,7 +380,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
           userId: citizen.id, userType: 'citizen', eventType: 'account_locked',
           ipAddress: clientIp, userAgent, metadata: { duration_minutes: LOCKOUT_DURATION_MINUTES },
         })
-        // Send lockout notification email
+        //Send lockout notification email
         sendLockoutNotification(citizen.email, LOCKOUT_DURATION_MINUTES).catch(() => {})
         res.status(423).json({
           error: `Account locked for ${LOCKOUT_DURATION_MINUTES} minutes due to too many failed attempts.`,
@@ -393,16 +393,16 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       throw AppError.unauthorized('Invalid email or password.')
     }
 
-    // Successful login - reset failed attempts
+    //Successful login - reset failed attempts
     await resetFailedLogins('citizens', citizen.id)
 
-    // 2FA Gate - if citizen has 2FA enabled, issue temp token instead of full JWT
+    //2FA Gate - if citizen has 2FA enabled, issue temp token instead of full JWT
     if (citizen.two_factor_enabled) {
       const tempTokenRaw = generateTempToken()
       const tempTokenHash = hashTempToken(tempTokenRaw)
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
 
-      // Invalidate old temp tokens and create new one
+      //Invalidate old temp tokens and create new one
       await pool.query(
         `UPDATE two_factor_temp_tokens SET consumed = true WHERE user_id = $1 AND user_type = 'citizen' AND consumed = false`,
         [citizen.id]
@@ -422,14 +422,14 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       return
     }
 
-    // Update last login and increment login count
+    //Update last login and increment login count
     const loginUpdate = await pool.query(
       'UPDATE citizens SET last_login = NOW(), login_count = login_count + 1 WHERE id = $1 RETURNING login_count, last_login, created_at',
       [citizen.id]
     )
     const loginMeta = loginUpdate.rows[0]
 
-    // Auto-cancel pending deletion if user logs back in (grace period)
+    //Auto-cancel pending deletion if user logs back in (grace period)
     let deletionCancelled = false
     if (citizen.deletion_requested_at) {
       await pool.query(
@@ -452,13 +452,13 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
     })
     const refreshToken = generateRefreshToken({ id: citizen.id, role: citizen.role || 'citizen' })
 
-    // Create session in DB for refresh token tracking
+    //Create session in DB for refresh token tracking
     await createSession({
       userId: citizen.id, userType: 'citizen', refreshToken,
       ipAddress: clientIp, userAgent, ttlDays: 7,
     }).catch(() => {})
 
-    // Log successful login
+    //Log successful login
     await logSecurityEvent({
       userId: citizen.id, userType: 'citizen', eventType: 'login_success',
       ipAddress: clientIp, userAgent,
@@ -472,7 +472,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       path: '/api/citizen-auth',
     })
 
-    // Fetch preferences
+    //Fetch preferences
     const prefsResult = await pool.query(
       'SELECT * FROM citizen_preferences WHERE citizen_id = $1',
       [citizen.id]
@@ -509,7 +509,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
   }
 })
 
-// GET /me - Get current citizen profile (protected)
+//GET /me - Get current citizen profile (protected)
 router.get('/me', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
@@ -527,25 +527,25 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response, next: 
 
     const citizen = result.rows[0]
 
-    // Fetch preferences
+    //Fetch preferences
     const prefsResult = await pool.query(
       'SELECT * FROM citizen_preferences WHERE citizen_id = $1',
       [citizen.id]
     )
 
-    // Fetch emergency contacts
+    //Fetch emergency contacts
     const contactsResult = await pool.query(
       'SELECT * FROM emergency_contacts WHERE citizen_id = $1 ORDER BY is_primary DESC, created_at ASC',
       [citizen.id]
     )
 
-    // Fetch recent safety check-ins
+    //Fetch recent safety check-ins
     const safetyResult = await pool.query(
       'SELECT * FROM safety_check_ins WHERE citizen_id = $1 ORDER BY created_at DESC LIMIT 5',
       [citizen.id]
     )
 
-    // Count unread messages
+    //Count unread messages
     const unreadResult = await pool.query(
       `SELECT COALESCE(SUM(citizen_unread), 0) as unread_count
        FROM message_threads WHERE citizen_id = $1 AND status != 'closed'`,
@@ -584,14 +584,14 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response, next: 
   }
 })
 
-// PUT /profile - Update citizen profile (protected)
+//PUT /profile - Update citizen profile (protected)
 router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { displayName, phone, preferredRegion, locationLat, locationLng,
             bio, country, city, addressLine, isVulnerable, vulnerabilityDetails, dateOfBirth } = req.body
 
-    // Use explicit null to clear a field, undefined to keep existing
-    // JSON sends null for cleared fields; COALESCE would prevent clearing
+    //Use explicit null to clear a field, undefined to keep existing
+    //JSON sends null for cleared fields; COALESCE would prevent clearing
     const setClauses: string[] = []
     const params: any[] = [req.user!.id]
     let idx = 2
@@ -660,7 +660,7 @@ router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response, n
   }
 })
 
-// POST /avatar - Upload profile photo (protected)
+//POST /avatar - Upload profile photo (protected)
 router.post('/avatar', authMiddleware, uploadAvatar, validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.file) {
@@ -680,7 +680,7 @@ router.post('/avatar', authMiddleware, uploadAvatar, validateMagicBytes, async (
   }
 })
 
-// GET /preferences - Get citizen preferences (protected)
+//GET /preferences - Get citizen preferences (protected)
 router.get('/preferences', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
@@ -693,7 +693,7 @@ router.get('/preferences', authMiddleware, async (req: AuthRequest, res: Respons
   }
 })
 
-// PUT /preferences - Update citizen preferences (protected)
+//PUT /preferences - Update citizen preferences (protected)
 router.put('/preferences', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const {
@@ -765,7 +765,7 @@ router.put('/preferences', authMiddleware, async (req: AuthRequest, res: Respons
   }
 })
 
-// Emergency Contacts CRUD
+//Emergency Contacts CRUD
 router.get('/emergency-contacts', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
@@ -786,7 +786,7 @@ router.post('/emergency-contacts', authMiddleware, async (req: AuthRequest, res:
       throw AppError.badRequest('Name and phone are required.')
     }
 
-    // Max 5 contacts per citizen
+    //Max 5 contacts per citizen
     const countResult = await pool.query(
       'SELECT COUNT(*) as cnt FROM emergency_contacts WHERE citizen_id = $1',
       [req.user!.id]
@@ -795,7 +795,7 @@ router.post('/emergency-contacts', authMiddleware, async (req: AuthRequest, res:
       throw AppError.badRequest('Maximum 5 emergency contacts allowed.')
     }
 
-    // If setting as primary, un-primary others
+    //If setting as primary, un-primary others
     if (isPrimary) {
       await pool.query(
         'UPDATE emergency_contacts SET is_primary = false WHERE citizen_id = $1',
@@ -833,7 +833,7 @@ router.delete('/emergency-contacts/:id', authMiddleware, async (req: AuthRequest
   }
 })
 
-// POST /change-password — Change citizen password (protected)
+//POST /change-password -- Change citizen password (protected)
 router.post('/change-password', authMiddleware, changePasswordLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { currentPassword, newPassword } = req.body
@@ -842,14 +842,14 @@ router.post('/change-password', authMiddleware, changePasswordLimiter, async (re
       throw AppError.badRequest('Current and new passwords are required.')
     }
 
-    // Enterprise password policy
+    //Enterprise password policy
     const pwResult = validatePasswordStrength(newPassword, req.user!.email)
     if (!pwResult.valid) {
       res.status(400).json({ error: pwResult.errors[0] })
       return
     }
 
-    // Check password against Have I Been Pwned (OWASP ASVS requirement)
+    //Check password against Have I Been Pwned (OWASP ASVS requirement)
     const hibpResult = await validatePasswordNotBreached(newPassword, { blockThreshold: 0 })
     if (!hibpResult.valid) {
       res.status(400).json({
@@ -874,7 +874,7 @@ router.post('/change-password', authMiddleware, changePasswordLimiter, async (re
       throw AppError.unauthorized('Current password is incorrect.')
     }
 
-    // Check password history (prevent reuse of last 5 passwords)
+    //Check password history (prevent reuse of last 5 passwords)
     const reused = await isPasswordReused(newPassword, req.user!.id, 'citizen')
     if (reused) {
       throw AppError.badRequest('You cannot reuse any of your last 5 passwords. Please choose a different password.')
@@ -886,13 +886,13 @@ router.post('/change-password', authMiddleware, changePasswordLimiter, async (re
       [newHash, req.user!.id]
     )
 
-    // Record in password history
+    //Record in password history
     await recordPasswordHistory(req.user!.id, 'citizen', newHash)
 
-    // Revoke all other sessions (force re-login on other devices)
+    //Revoke all other sessions (force re-login on other devices)
     await revokeAllSessions(req.user!.id, 'password_changed')
 
-    // Log the event
+    //Log the event
     const clientIp = getClientIp(req)
     await logSecurityEvent({
       userId: req.user!.id, userType: 'citizen', eventType: 'password_changed',
@@ -905,7 +905,7 @@ router.post('/change-password', authMiddleware, changePasswordLimiter, async (re
   }
 })
 
-// POST /forgot-password - Request a password reset token
+//POST /forgot-password - Request a password reset token
 router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email } = req.body
@@ -920,32 +920,32 @@ router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Resp
     )
 
     if (result.rows.length === 0) {
-      // Don't reveal whether the email exists - always return success
+      //Don't reveal whether the email exists - always return success
       res.json({ success: true, message: 'If an account with that email exists, a password reset link has been generated.' })
       return
     }
 
     const citizen = result.rows[0]
 
-    // Generate reset token (valid for 1 hour)
+    //Generate reset token (valid for 1 hour)
     const rawToken = crypto.randomBytes(32).toString('hex')
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
     const resetExpires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
-    // Store the HASH - never store the raw token
+    //Store the HASH - never store the raw token
     await pool.query(
       'UPDATE citizens SET reset_token = $1, reset_token_expires = $2 WHERE id = $3',
       [tokenHash, resetExpires, citizen.id]
     )
 
-    // In production, send email with the raw (unhashed) token via emailService.
+    //In production, send email with the raw (unhashed) token via emailService.
     try {
       await sendPasswordResetEmail(citizen.email, rawToken, 'citizen')
     } catch (emailErr: any) {
       logger.error({ err: emailErr }, '[CitizenAuth] Failed to send reset email')
     }
 
-    // Log the event
+    //Log the event
     await logSecurityEvent({
       userId: citizen.id, userType: 'citizen', eventType: 'password_reset_requested',
       ipAddress: getClientIp(req), userAgent: req.headers['user-agent'] as string,
@@ -960,7 +960,7 @@ router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Resp
   }
 })
 
-// POST /reset-password - Reset password using a token
+//POST /reset-password - Reset password using a token
 router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { token, newPassword } = req.body
@@ -978,7 +978,7 @@ router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Respo
       return
     }
 
-    // Check password against Have I Been Pwned (OWASP ASVS requirement)
+    //Check password against Have I Been Pwned (OWASP ASVS requirement)
     const hibpResult = await validatePasswordNotBreached(newPassword, { blockThreshold: 0 })
     if (!hibpResult.valid) {
       res.status(400).json({
@@ -989,7 +989,7 @@ router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Respo
       return
     }
 
-    // Hash the submitted token with SHA-256 to compare against the stored hash
+    //Hash the submitted token with SHA-256 to compare against the stored hash
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
 
     const result = await pool.query(
@@ -1003,7 +1003,7 @@ router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Respo
       throw AppError.badRequest('Invalid or expired reset token. Please request a new one.')
     }
 
-    // Timing-safe comparison as defense-in-depth (DB already matched by hash)
+    //Timing-safe comparison as defense-in-depth (DB already matched by hash)
     const storedHash = Buffer.from(result.rows[0].reset_token, 'hex')
     const submittedHash = Buffer.from(tokenHash, 'hex')
     if (storedHash.length !== submittedHash.length || !crypto.timingSafeEqual(storedHash, submittedHash)) {
@@ -1018,7 +1018,7 @@ router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Respo
       [newHash, citizen.id]
     )
 
-    // Record in password history & revoke all sessions
+    //Record in password history & revoke all sessions
     await recordPasswordHistory(citizen.id, 'citizen', newHash)
     await revokeAllSessions(citizen.id, 'password_reset')
 
@@ -1035,7 +1035,7 @@ router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Respo
   }
 })
 
-// POST /refresh - Get new access token using refresh token cookie (#24)
+//POST /refresh - Get new access token using refresh token cookie (#24)
 router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const refreshCookie = req.cookies?.aegis_refresh
@@ -1045,12 +1045,12 @@ router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFuncti
 
     const decoded = verifyRefreshToken(refreshCookie)
 
-    // Validate session exists and is not revoked
+    //Validate session exists and is not revoked
     let session = await validateSession(refreshCookie)
     if (!session) {
-      // Graceful recovery: token is cryptographically valid but has no DB session.
-      // This happens for OAuth logins that were issued before the session-creation fix.
-      // Create a session on the fly instead of rejecting the user.
+      //Graceful recovery: token is cryptographically valid but has no DB session.
+      //This happens for OAuth logins that were issued before the session-creation fix.
+      //Create a session on the fly instead of rejecting the user.
       try {
         await createSession({
           userId: decoded.id,
@@ -1062,7 +1062,7 @@ router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFuncti
         })
         session = await validateSession(refreshCookie)
       } catch {
-        // If session creation fails (e.g. user doesn't exist), fall through
+        //If session creation fails (e.g. user doesn't exist), fall through
       }
       if (!session) {
         res.clearCookie('aegis_refresh', { path: '/api/citizen-auth' })
@@ -1070,7 +1070,7 @@ router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFuncti
       }
     }
 
-    // Verify citizen still exists and is not deleted
+    //Verify citizen still exists and is not deleted
     const result = await pool.query(
       'SELECT id, email, display_name, role, deletion_scheduled_at FROM citizens WHERE id = $1',
       [decoded.id]
@@ -1092,7 +1092,7 @@ router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFuncti
       displayName: citizen.display_name,
     })
 
-    // Rotate refresh token (revoke old, issue new)
+    //Rotate refresh token (revoke old, issue new)
     const newRefreshToken = generateRefreshToken({ id: citizen.id, role: citizen.role || 'citizen' })
     const clientIp = getClientIp(req)
     await rotateRefreshToken({
@@ -1117,11 +1117,11 @@ router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFuncti
   }
 })
 
-// POST /logout - Server-side logout: clear refresh cookie (#25)
+//POST /logout - Server-side logout: clear refresh cookie (#25)
 router.post('/logout', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   const refreshCookie = req.cookies?.aegis_refresh
   if (refreshCookie) {
-    // Revoke the session in DB
+    //Revoke the session in DB
     const { hashRefreshToken } = await import('../middleware/auth.js')
     const tokenHash = hashRefreshToken(refreshCookie)
     await pool.query(
@@ -1134,7 +1134,7 @@ router.post('/logout', async (req: AuthRequest, res: Response, next: NextFunctio
   res.json({ success: true, message: 'Logged out.' })
 })
 
-// GET /verify-email?token=xxx - Verify citizen email address (#23)
+//GET /verify-email?token=xxx - Verify citizen email address (#23)
 router.get('/verify-email', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { token } = req.query
@@ -1144,7 +1144,7 @@ router.get('/verify-email', async (req: AuthRequest, res: Response, next: NextFu
 
     const tokenHash = hashToken(token)
 
-    // Try new hashed column first, fall back to legacy plaintext column
+    //Try new hashed column first, fall back to legacy plaintext column
     let result = await pool.query(
       `UPDATE citizens SET email_verified = true, verification_token_hash = NULL, verification_expires = NULL, verification_token = NULL
        WHERE verification_token_hash = $1 AND email_verified = false
@@ -1153,7 +1153,7 @@ router.get('/verify-email', async (req: AuthRequest, res: Response, next: NextFu
       [tokenHash]
     )
 
-    // Fallback: check legacy plaintext verification_token (pre-migration tokens)
+    //Fallback: check legacy plaintext verification_token (pre-migration tokens)
     if (result.rows.length === 0) {
       result = await pool.query(
         `UPDATE citizens SET email_verified = true, verification_token = NULL, verification_token_hash = NULL
@@ -1178,7 +1178,7 @@ router.get('/verify-email', async (req: AuthRequest, res: Response, next: NextFu
   }
 })
 
-// POST /resend-verification - Resend email verification token (#23)
+//POST /resend-verification - Resend email verification token (#23)
 const resendLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 3,
@@ -1203,7 +1203,7 @@ router.post('/resend-verification', authMiddleware, resendLimiter, async (req: A
       return
     }
 
-    // Generate new token (hashed storage, raw sent via email)
+    //Generate new token (hashed storage, raw sent via email)
     const rawToken = generateSecureToken()
     const tokenHash = hashToken(rawToken)
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
@@ -1213,7 +1213,7 @@ router.post('/resend-verification', authMiddleware, resendLimiter, async (req: A
       [tokenHash, expires, userId]
     )
 
-    // Send verification email (dev mode = console + DB, production = SMTP)
+    //Send verification email (dev mode = console + DB, production = SMTP)
     try {
       await sendVerificationEmail(citizen.rows[0].email, rawToken, 'citizen')
     } catch (emailErr: any) {

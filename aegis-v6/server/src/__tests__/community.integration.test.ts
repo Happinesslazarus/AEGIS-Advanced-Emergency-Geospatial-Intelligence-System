@@ -15,7 +15,7 @@ import request from 'supertest'
 import express, { type Request, type Response, type NextFunction } from 'express'
 import { v4 as uuid } from 'uuid'
 
-// Test environment
+//Test environment
 process.env.JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-at-least-32-chars'
 process.env.NODE_ENV = 'test'
@@ -30,7 +30,7 @@ import {
 import { insertCitizen, insertOperator, insertPost } from './helpers/testFixtures'
 import { AppError } from '../utils/AppError'
 
-// Build test app
+//Build test app
 
 let app: express.Express
 let emittedEvents: Array<{ event: string; args: unknown[] }>
@@ -52,7 +52,7 @@ function buildCommunityTestApp() {
   const { authMiddleware } = require('../middleware/auth')
   const router = express.Router()
 
-  // Helper
+  //Helper
   async function getUserInfo(userId: string) {
     const c = await pool.query('SELECT id, display_name, role FROM citizens WHERE id = $1', [userId])
     if (c.rows[0]) return c.rows[0]
@@ -60,7 +60,7 @@ function buildCommunityTestApp() {
     return o.rows[0] || null
   }
 
-  // GET /posts
+  //GET /posts
   router.get('/posts', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = (req as any).user?.id
@@ -83,7 +83,7 @@ function buildCommunityTestApp() {
     } catch (err) { next(err) }
   })
 
-  // POST /posts
+  //POST /posts
   router.post('/posts', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = (req as any).user?.id
@@ -106,7 +106,7 @@ function buildCommunityTestApp() {
     } catch (err) { next(err) }
   })
 
-  // PUT /posts/:postId — edit (owner only)
+  //PUT /posts/:postId -- edit (owner only)
   router.put('/posts/:postId', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = (req as any).user?.id
@@ -127,7 +127,7 @@ function buildCommunityTestApp() {
     } catch (err) { next(err) }
   })
 
-  // DELETE /posts/:postId — owner or admin (reported posts only)
+  //DELETE /posts/:postId -- owner or admin (reported posts only)
   router.delete('/posts/:postId', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = (req as any).user?.id
@@ -155,7 +155,7 @@ function buildCommunityTestApp() {
     } catch (err) { next(err) }
   })
 
-  // POST /posts/:postId/like — toggle
+  //POST /posts/:postId/like -- toggle
   router.post('/posts/:postId/like', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = (req as any).user?.id
@@ -183,7 +183,7 @@ function buildCommunityTestApp() {
     } catch (err) { next(err) }
   })
 
-  // GET /posts/:postId/comments
+  //GET /posts/:postId/comments
   router.get('/posts/:postId/comments', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { rows } = await pool.query(
@@ -200,7 +200,7 @@ function buildCommunityTestApp() {
     } catch (err) { next(err) }
   })
 
-  // POST /posts/:postId/comments
+  //POST /posts/:postId/comments
   router.post('/posts/:postId/comments', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = (req as any).user?.id
@@ -218,7 +218,7 @@ function buildCommunityTestApp() {
     } catch (err) { next(err) }
   })
 
-  // POST /posts/:postId/report
+  //POST /posts/:postId/report
   router.post('/posts/:postId/report', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = (req as any).user?.id
@@ -253,14 +253,14 @@ function buildCommunityTestApp() {
   return _app
 }
 
-// Lifecycle
+//Lifecycle
 
 beforeAll(async () => {
   app = buildCommunityTestApp()
   await ensureTestSchema()
   await insertCitizen()
   await insertOperator()
-  // Insert admin into operators table
+  //Insert admin into operators table
   const pool = getTestPool()
   await pool.query(
     `INSERT INTO operators (id, email, display_name, role, department)
@@ -283,7 +283,7 @@ afterAll(async () => {
 
 describe('Community Integration Tests', () => {
 
-  // Post CRUD
+  //Post CRUD
 
   describe('Post CRUD', () => {
     it('should create a post', async () => {
@@ -343,7 +343,7 @@ describe('Community Integration Tests', () => {
       expect(res.status).toBe(200)
       expect(res.body.deleted).toBe(true)
 
-      // Should not appear in listings
+      //Should not appear in listings
       const list = await request(app)
         .get('/api/community/posts')
         .set(...authHeader(citizenToken()))
@@ -368,7 +368,7 @@ describe('Community Integration Tests', () => {
     })
   })
 
-  // Likes
+  //Likes
 
   describe('Likes (Toggle)', () => {
     it('should like a post', async () => {
@@ -386,12 +386,12 @@ describe('Community Integration Tests', () => {
     it('should unlike when toggled again', async () => {
       const post = await insertPost(TEST_CITIZEN.id, 'Toggle me')
 
-      // Like
+      //Like
       await request(app)
         .post(`/api/community/posts/${post.id}/like`)
         .set(...authHeader(citizenToken()))
 
-      // Unlike
+      //Unlike
       const res = await request(app)
         .post(`/api/community/posts/${post.id}/like`)
         .set(...authHeader(citizenToken()))
@@ -413,7 +413,7 @@ describe('Community Integration Tests', () => {
     it('should track likes_count via listing endpoint', async () => {
       const post = await insertPost(TEST_CITIZEN.id, 'Count test')
 
-      // Two different users like
+      //Two different users like
       await request(app)
         .post(`/api/community/posts/${post.id}/like`)
         .set(...authHeader(citizenToken()))
@@ -428,7 +428,7 @@ describe('Community Integration Tests', () => {
     })
   })
 
-  // Comments
+  //Comments
 
   describe('Comments', () => {
     it('should add a comment to a post', async () => {
@@ -486,7 +486,7 @@ describe('Community Integration Tests', () => {
     })
   })
 
-  // Reporting & Moderation
+  //Reporting & Moderation
 
   describe('Reporting & Moderation', () => {
     it('should report a post with valid reason', async () => {
@@ -528,13 +528,13 @@ describe('Community Integration Tests', () => {
     it('should allow admin to delete reported post', async () => {
       const post = await insertPost(TEST_CITIZEN.id, 'Will be reported')
 
-      // Operator reports it
+      //Operator reports it
       await request(app)
         .post(`/api/community/posts/${post.id}/report`)
         .set(...authHeader(operatorToken()))
         .send({ reason: 'spam' })
 
-      // Admin deletes it
+      //Admin deletes it
       const res = await request(app)
         .delete(`/api/community/posts/${post.id}`)
         .set(...authHeader(adminToken()))
@@ -565,7 +565,7 @@ describe('Community Integration Tests', () => {
     })
   })
 
-  // Edge Cases
+  //Edge Cases
 
   describe('Edge Cases', () => {
     it('should handle post with hazard_update flag', async () => {

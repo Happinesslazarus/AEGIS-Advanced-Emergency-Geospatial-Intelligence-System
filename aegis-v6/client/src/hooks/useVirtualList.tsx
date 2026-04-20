@@ -49,24 +49,24 @@ export function useVirtualList({
   const [scrollOffset, setScrollOffset] = useState(0)
   const [containerSize, setContainerSize] = useState(0)
   
-  // Store measured sizes for dynamic heights.
-  // When items have different heights (e.g. variable-length alert cards), we
-  // record the actual rendered height the first time each item is visible so
-  // future scroll calculations use the real value instead of the estimate.
+  //Store measured sizes for dynamic heights.
+  //When items have different heights (e.g. variable-length alert cards), we
+  //record the actual rendered height the first time each item is visible so
+  //future scroll calculations use the real value instead of the estimate.
   const measuredSizes = useRef<Map<number, number>>(new Map())
   
-  // Get size for an item (measured or estimated).
-  // Falls back to the caller-supplied estimateSize function/constant when an
-  // item hasn't been rendered yet (not yet in the visible window).
+  //Get size for an item (measured or estimated).
+  //Falls back to the caller-supplied estimateSize function/constant when an
+  //item hasn't been rendered yet (not yet in the visible window).
   const getSize = useCallback((index: number): number => {
     const measured = measuredSizes.current.get(index)
     if (measured !== undefined) return measured
     return typeof estimateSize === 'function' ? estimateSize(index) : estimateSize
   }, [estimateSize])
   
-  // Pre-calculate cumulative offset for each item (its top position in pixels)
-  // and the total scroll height needed to fit all items.
-  // itemOffsets[i] = sum of heights of items 0 to i-1.
+  //Pre-calculate cumulative offset for each item (its top position in pixels)
+  //and the total scroll height needed to fit all items.
+  //itemOffsets[i] = sum of heights of items 0 to i-1.
   const { itemOffsets, totalSize } = useMemo(() => {
     const offsets: number[] = []
     let total = 0
@@ -79,14 +79,14 @@ export function useVirtualList({
     return { itemOffsets: offsets, totalSize: total }
   }, [count, getSize])
   
-  // findRange: efficiently find which items overlap the visible viewport.
-  // Uses binary search (O(log n) instead of O(n)) so large lists (1 000+ items)
-  // stay fast — important during momentum scrolling on mobile.
+  //findRange: efficiently find which items overlap the visible viewport.
+  //Uses binary search (O(log n) instead of O(n)) so large lists (1 000+ items)
+  //stay fast -- important during momentum scrolling on mobile.
   const findRange = useCallback((offset: number, size: number): [number, number] => {
     if (count === 0) return [0, 0]
     
-    // Binary search: find the first item whose bottom edge is at or below the
-    // viewport's top edge (offset = scroll position = first visible pixel).
+    //Binary search: find the first item whose bottom edge is at or below the
+    //viewport's top edge (offset = scroll position = first visible pixel).
     let start = 0
     let end = count - 1
     
@@ -99,12 +99,12 @@ export function useVirtualList({
       }
     }
     
-    // overscan: render a few extra items above and below the visible window.
-    // This eliminates blank flashes when the user scrolls faster than React
-    // can re-render (e.g. keyboard Page Down or fast touch flick).
+    //overscan: render a few extra items above and below the visible window.
+    //This eliminates blank flashes when the user scrolls faster than React
+    //can re-render (e.g. keyboard Page Down or fast touch flick).
     const startIndex = Math.max(0, start - overscan)
     
-    // Walk forward from the start item until we pass the viewport's bottom edge.
+    //Walk forward from the start item until we pass the viewport's bottom edge.
     let endIndex = start
     let currentOffset = itemOffsets[start] ?? 0
     
@@ -116,7 +116,7 @@ export function useVirtualList({
     return [startIndex, Math.min(count, endIndex + overscan)]
   }, [count, itemOffsets, getSize, overscan])
   
-  // Calculate virtual items
+  //Calculate virtual items
   const virtualItems = useMemo((): VirtualItem[] => {
     const [startIndex, endIndex] = findRange(scrollOffset, containerSize)
     const items: VirtualItem[] = []
@@ -133,7 +133,7 @@ export function useVirtualList({
     return items
   }, [scrollOffset, containerSize, findRange, itemOffsets, getSize, getItemKey])
   
-  // Handle scroll events
+  //Handle scroll events
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -147,7 +147,7 @@ export function useVirtualList({
     return () => container.removeEventListener('scroll', handleScroll)
   }, [horizontal])
   
-  // Handle container resize
+  //Handle container resize
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -166,7 +166,7 @@ export function useVirtualList({
     return () => observer.disconnect()
   }, [horizontal])
   
-  // Scroll to specific index
+  //Scroll to specific index
   const scrollToIndex = useCallback((
     index: number, 
     options: { align?: 'start' | 'center' | 'end' } = {}
@@ -195,7 +195,7 @@ export function useVirtualList({
     }
   }, [count, itemOffsets, getSize, containerSize, totalSize, horizontal])
   
-  // Update measured size for an item
+  //Update measured size for an item
   const measureItem = useCallback((index: number, size: number) => {
     measuredSizes.current.set(index, size)
   }, [])

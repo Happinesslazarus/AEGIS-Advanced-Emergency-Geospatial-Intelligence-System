@@ -14,7 +14,7 @@ export class FloodAlertRules {
     const results: AlertRuleResult[] = []
     const { recentReports, predictions } = context
 
-    // Rule 1: Report density threshold
+    //Rule 1: Report density threshold
     if (recentReports.length >= 10) {
       results.push({
         shouldAlert: true,
@@ -31,7 +31,7 @@ export class FloodAlertRules {
       })
     }
 
-    // Rule 2: High severity concentration
+    //Rule 2: High severity concentration
     const criticalReports = recentReports.filter(r => r.severity === 'Critical')
     if (criticalReports.length >= 3) {
       results.push({
@@ -42,7 +42,7 @@ export class FloodAlertRules {
       })
     }
 
-    // Rule 3: Evacuation flags
+    //Rule 3: Evacuation flags
     const evacuationReports = recentReports.filter(r => r.customFields?.evacuationNeeded === true)
     if (evacuationReports.length >= 2) {
       results.push({
@@ -53,7 +53,7 @@ export class FloodAlertRules {
       })
     }
 
-    // Rule 4: ML prediction threshold
+    //Rule 4: ML prediction threshold
     const highRiskPredictions = predictions?.filter(p => p.probability > 0.7)
     if (highRiskPredictions && highRiskPredictions.length > 0) {
       results.push({

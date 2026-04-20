@@ -1,5 +1,5 @@
 ﻿/**
- * Device registry manager — tracks trusted devices per user with fingerprints,
+ * Device registry manager -- tracks trusted devices per user with fingerprints,
  * user agents, locations, and trust expiry. Sends security alert emails on
  * new-device or suspicious logins.
  *
@@ -54,7 +54,7 @@ export interface LoginEvent {
   notificationSent: boolean
 }
 
-// Configuration
+//Configuration
 const config = {
   alwaysNotifyNewDevice: true,
   alwaysNotifySuspiciousLogin: true,
@@ -135,7 +135,7 @@ export function generateDeviceFingerprint(device: Partial<DeviceInfo>): string {
 export function parseUserAgent(userAgent: string): Partial<DeviceInfo> {
   const info: Partial<DeviceInfo> = { userAgent }
   
-  // Browser detection
+  //Browser detection
   if (userAgent.includes('Firefox/')) {
     info.browser = 'Firefox'
   } else if (userAgent.includes('Edg/')) {
@@ -148,7 +148,7 @@ export function parseUserAgent(userAgent: string): Partial<DeviceInfo> {
     info.browser = 'Unknown'
   }
   
-  // OS detection
+  //OS detection
   if (userAgent.includes('Windows')) {
     info.os = 'Windows'
   } else if (userAgent.includes('Mac OS')) {
@@ -163,7 +163,7 @@ export function parseUserAgent(userAgent: string): Partial<DeviceInfo> {
     info.os = 'Unknown'
   }
   
-  // Device type detection
+  //Device type detection
   if (userAgent.includes('Mobile') || userAgent.includes('Android') && !userAgent.includes('Tablet')) {
     info.deviceType = 'mobile'
   } else if (userAgent.includes('Tablet') || userAgent.includes('iPad')) {
@@ -197,7 +197,7 @@ export async function recordLogin(
   const success = options.success !== false
   const riskScore = options.riskScore || 0
   
-  // Check if device is known
+  //Check if device is known
   const existingDevice = await pool.query(`
     SELECT * FROM trusted_devices
     WHERE user_id = $1 AND fingerprint = $2
@@ -205,7 +205,7 @@ export async function recordLogin(
   
   const isNewDevice = existingDevice.rows.length === 0
   
-  // Check if location is new
+  //Check if location is new
   const locationResult = await pool.query(`
     SELECT DISTINCT country
     FROM login_events
@@ -218,7 +218,7 @@ export async function recordLogin(
     ? !knownCountries.includes(device.location.country)
     : false
   
-  // Determine if notification needed
+  //Determine if notification needed
   let shouldNotify = false
   let notificationReason = ''
   
@@ -237,7 +237,7 @@ export async function recordLogin(
     notificationReason = 'high_risk'
   }
   
-  // Record login event
+  //Record login event
   await pool.query(`
     INSERT INTO login_events (
       user_id, device_fingerprint, ip_address, user_agent, location, country,
@@ -258,7 +258,7 @@ export async function recordLogin(
     options.failureReason || null,
   ])
   
-  // Update or create device record
+  //Update or create device record
   if (success) {
     if (isNewDevice) {
       await pool.query(`
@@ -283,7 +283,7 @@ export async function recordLogin(
     }
   }
   
-  // Send notification email
+  //Send notification email
   if (shouldNotify && success && userEmail) {
     await sendLoginNotification(userEmail, {
       isNewDevice,
@@ -293,7 +293,7 @@ export async function recordLogin(
       riskScore,
     })
     
-    // Log security event
+    //Log security event
     logSecurityEvent({
       userId,
       userType: 'citizen',
@@ -310,7 +310,7 @@ export async function recordLogin(
     })
   }
   
-  // Determine risk level
+  //Determine risk level
   let riskLevel: 'low' | 'medium' | 'high' = 'low'
   if (riskScore >= 70) riskLevel = 'high'
   else if (riskScore >= 40 || isNewDevice || isNewLocation) riskLevel = 'medium'
@@ -355,7 +355,7 @@ Device: ${deviceInfo}
 Location: ${locationStr}
 IP Address: ${info.device.ipAddress}
 
-${info.isNewDevice ? '⚠️ This is a new device\n' : ''}${info.isNewLocation ? '⚠️ This is a new location\n' : ''}
+${info.isNewDevice ? '!️ This is a new device\n' : ''}${info.isNewLocation ? '!️ This is a new location\n' : ''}
 If this was you, no action is needed.
 
 If you didn't authorize this login:
@@ -364,7 +364,7 @@ If you didn't authorize this login:
 3. Enable two-factor authentication if not already enabled
     `.trim()
     
-    // Determine severity based on risk score
+    //Determine severity based on risk score
     const severity = info.riskScore >= 70 ? 'critical' : info.riskScore >= 40 ? 'warning' : 'info'
     
     await sendSecurityAlertEmail(email, title, message, severity)

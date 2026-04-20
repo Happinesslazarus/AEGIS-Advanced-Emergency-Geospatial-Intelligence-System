@@ -1,12 +1,12 @@
 """
 Validates that the AEGIS flood model's features are geographically
-transferable — that a model trained on one UK region can make useful
+transferable -- that a model trained on one UK region can make useful
 predictions in a completely held-out region it has never seen.
 
 This matters because:
-  • SEPA (Scotland) and EA (England+Wales) use different spatial densities
-  • Scottish catchments have shorter, steeper hydrographs than English ones
-  • A model that fails cross-region transfer is over-fit to terrain specifics,
+  - SEPA (Scotland) and EA (England+Wales) use different spatial densities
+  - Scottish catchments have shorter, steeper hydrographs than English ones
+  - A model that fails cross-region transfer is over-fit to terrain specifics,
     not learning the underlying rainfall-runoff physics
 
 Test design:
@@ -15,21 +15,21 @@ Test design:
   Region C  Scotland           lat ≥ 55.5°N   (Tay, Clyde, Dee)
 
   Cross-region trains (3 × 2 = 6 runs):
-    Train A → Test B, Test C
-    Train B → Test A, Test C
-    Train C → Test A, Test B
+    Train A -> Test B, Test C
+    Train B -> Test A, Test C
+    Train C -> Test A, Test B
   Plus 3 with-held-out baselines:
-    Train A∪B → Test C   (Scotland generalisation)
-    Train A∪C → Test B   (Northern England generalisation)
-    Train B∪C → Test A   (Lowlands generalisation)
+    Train A∪B -> Test C   (Scotland generalisation)
+    Train A∪C -> Test B   (Northern England generalisation)
+    Train B∪C -> Test A   (Lowlands generalisation)
 
 Outputs:
-  reports/cross_region_results.csv    — all 9 runs
-  reports/cross_region_heatmap.pdf    — source→target AUC heatmap
+  reports/cross_region_results.csv    -- all 9 runs
+  reports/cross_region_heatmap.pdf    -- source->target AUC heatmap
 
-  Reads from  ← data/processed/master_features_uk_2000_2024.parquet
-              ← data/labels/flood_labels.parquet
-  Writes to   → reports/
+  Reads from  <- data/processed/master_features_uk_2000_2024.parquet
+              <- data/labels/flood_labels.parquet
+  Writes to   -> reports/
 
 Usage:
   python scripts/evaluation/cross_region_test.py
@@ -165,7 +165,7 @@ def train_and_eval(
 
 
 def plot_heatmap(auc_matrix: pd.DataFrame, out_path: Path) -> None:
-    """Source→target AUC heatmap; diagonal = in-distribution performance."""
+    """Source->target AUC heatmap; diagonal = in-distribution performance."""
     fig, ax = plt.subplots(figsize=(8, 6))
     mask    = auc_matrix.isna()
     sns.heatmap(
@@ -177,13 +177,13 @@ def plot_heatmap(auc_matrix: pd.DataFrame, out_path: Path) -> None:
         linewidths=0.5,
         ax=ax,
     )
-    ax.set_title("Cross-Region ROC-AUC: Train Region → Test Region", fontsize=11)
+    ax.set_title("Cross-Region ROC-AUC: Train Region -> Test Region", fontsize=11)
     ax.set_xlabel("Test Region")
     ax.set_ylabel("Train Region")
     plt.tight_layout()
     plt.savefig(str(out_path), dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"  Heatmap → {out_path}")
+    print(f"  Heatmap -> {out_path}")
 
 
 def main(args: argparse.Namespace) -> None:
@@ -197,7 +197,7 @@ def main(args: argparse.Namespace) -> None:
     if not labels_path.exists():
         sys.exit("Flood labels not found.  Run build_flood_labels.py first.")
 
-    print("[1/4] Loading data …")
+    print("[1/4] Loading data ...")
     df = load_data(master_path, labels_path)
     df = assign_region(df)
     region_names = list(REGIONS.keys())
@@ -206,7 +206,7 @@ def main(args: argparse.Namespace) -> None:
         n = (df["region"] == rname).sum()
         print(f"  {rname}: {n:,} rows")
 
-    print("[2/4] Single-region cross-validation …")
+    print("[2/4] Single-region cross-validation ...")
     rows = []
     # 3×3 matrix: train on A, test on B
     auc_grid = pd.DataFrame(index=region_names, columns=region_names, dtype=object)
@@ -216,7 +216,7 @@ def main(args: argparse.Namespace) -> None:
             train_df = df[df["region"] == train_region]
             test_df  = df[df["region"] == test_region]
             label    = ("In-distribution" if train_region == test_region
-                        else f"{train_region} → {test_region}")
+                        else f"{train_region} -> {test_region}")
             metrics  = train_and_eval(train_df, test_df, args.estimators)
             auc_grid.loc[train_region, test_region] = metrics["roc_auc"]
             rows.append({
@@ -225,14 +225,14 @@ def main(args: argparse.Namespace) -> None:
                 "test_region":  test_region,
                 **metrics,
             })
-            sym = "" if train_region == test_region else "↗"
+            sym = "" if train_region == test_region else "^"
             print(f"  {sym} {label}: AUC={metrics['roc_auc']}")
 
-    print("[3/4] Combined-source generalisation experiments …")
+    print("[3/4] Combined-source generalisation experiments ...")
     for exp in COMBINED_EXPERIMENTS:
         train_df = df[df["region"].isin(exp["train"])]
         test_df  = df[df["region"] == exp["test"]]
-        label    = f"{' + '.join(exp['train'])} → {exp['test']}"
+        label    = f"{' + '.join(exp['train'])} -> {exp['test']}"
         metrics  = train_and_eval(train_df, test_df, args.estimators)
         rows.append({
             "experiment":   label,
@@ -240,12 +240,12 @@ def main(args: argparse.Namespace) -> None:
             "test_region":  exp["test"],
             **metrics,
         })
-        print(f"  ↗ {label}: AUC={metrics['roc_auc']}")
+        print(f"  ^ {label}: AUC={metrics['roc_auc']}")
 
-    print("[4/4] Writing outputs …")
+    print("[4/4] Writing outputs ...")
     results = pd.DataFrame(rows)
     results.to_csv(str(REPORT_DIR / "cross_region_results.csv"), index=False)
-    print(f"  CSV → {REPORT_DIR / 'cross_region_results.csv'}")
+    print(f"  CSV -> {REPORT_DIR / 'cross_region_results.csv'}")
 
     auc_float = auc_grid.apply(pd.to_numeric, errors="coerce")
     plot_heatmap(auc_float, REPORT_DIR / "cross_region_heatmap.pdf")
@@ -256,11 +256,11 @@ def main(args: argparse.Namespace) -> None:
                   isinstance(r["roc_auc"], float)]
     if cross_aucs:
         print(f"\n  Cross-region AUC range: "
-              f"{min(cross_aucs):.3f} – {max(cross_aucs):.3f}  "
+              f"{min(cross_aucs):.3f} - {max(cross_aucs):.3f}  "
               f"(mean={np.mean(cross_aucs):.3f})")
-        print("  ✓ Region adapter pattern validated"
+        print("   Region adapter pattern validated"
               if min(cross_aucs) >= 0.75 else
-              "  ⚠ AUC < 0.75 for some region pairs — consider per-region fine-tuning")
+              "  ! AUC < 0.75 for some region pairs -- consider per-region fine-tuning")
 
 
 def parse_args() -> argparse.Namespace:

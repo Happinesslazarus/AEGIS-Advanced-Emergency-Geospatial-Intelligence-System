@@ -18,7 +18,7 @@
  *
  * Glossary:
  *   JWT               = JSON Web Token; base64-encoded header.payload.signature string;
- *                       the payload contains {role, exp, sub, …} claims
+ *                       the payload contains {role, exp, sub, ...} claims
  *   exp claim         = token expiry time in Unix seconds
  *   httpOnly cookie   = a cookie the JavaScript cannot read; only the browser sends it on
  *                       matching requests; protects refresh tokens from XSS
@@ -53,12 +53,10 @@
 const BASE = String(import.meta.env.VITE_API_BASE_URL || '')           // backend base URL (empty = same origin)
 const DEFAULT_REGION = String(import.meta.env.VITE_DEFAULT_REGION || 'scotland') // geographic default for flood/weather queries
 
-// ---------------------------------------------------------------------------
-// In-memory token storage — XSS-safe: tokens never written to localStorage
-// ---------------------------------------------------------------------------
-// Storing in a module variable means an XSS attacker's injected script cannot
-// read the token from document.cookie or localStorage.
-// On page reload, the token is recovered via the httpOnly refresh cookie.
+//In-memory token storage -- XSS-safe: tokens never written to localStorage
+//Storing in a module variable means an XSS attacker's injected script cannot
+//read the token from document.cookie or localStorage.
+//On page reload, the token is recovered via the httpOnly refresh cookie.
 
 import { getCitizenToken } from '../contexts/CitizenAuthContext'
 
@@ -79,20 +77,20 @@ export function scheduleTokenRefresh(token?: string): void {
     const { exp } = JSON.parse(decoded)    // exp = Unix timestamp seconds (expiry)
     if (!exp) return
     const msUntilRefresh = exp * 1000 - Date.now() - 5 * 60 * 1000 // refresh 5 min before expiry
-    if (msUntilRefresh <= 0) { _doRefresh(); return } // already close to expiry → refresh now
+ if (msUntilRefresh <= 0) { _doRefresh(); return } // already close to expiry -> refresh now
     _refreshTimer = setTimeout(_doRefresh, msUntilRefresh)
   } catch { /* ignore malformed JWTs silently */ }
 }
 
-// Attempt one silent token refresh.  Returns the new token string or null on failure.
-// Multiple simultaneous callers receive the same in-flight promise (singleton guard)
-// so only one network request fires even when many 401s arrive at once.
+//Attempt one silent token refresh.  Returns the new token string or null on failure.
+//Multiple simultaneous callers receive the same in-flight promise (singleton guard)
+//so only one network request fires even when many 401s arrive at once.
 async function _attemptRefresh(): Promise<string | null> {
   if (_refreshing) return _refreshing
   _refreshing = (async () => {
     try {
       const res = await fetch(`${BASE}/api/auth/refresh`, { method: 'POST', credentials: 'include' })
-      if (!res.ok) { console.warn('[API] Silent refresh failed — user will need to log in again'); return null }
+      if (!res.ok) { console.warn('[API] Silent refresh failed -- user will need to log in again'); return null }
       const { token } = await res.json()
       if (token) {
         setToken(token)   // stores token in memory, resets _redirecting, schedules next refresh
@@ -111,8 +109,8 @@ async function _attemptRefresh(): Promise<string | null> {
 
 async function _doRefresh(): Promise<void> { await _attemptRefresh() }
 
-// Attempt silent refresh on module load to recover session from the httpOnly cookie.
-// Subsequent API calls await `waitForAuth()` to ensure the token is ready.
+//Attempt silent refresh on module load to recover session from the httpOnly cookie.
+//Subsequent API calls await `waitForAuth()` to ensure the token is ready.
 _refreshReady = _doRefresh()
 
 /* Get the current in-memory staff JWT (admin / operator / viewer).  Returns null if not signed in. */
@@ -130,16 +128,16 @@ export function setToken(t: string): void {
   _accessToken = t        // store the new JWT in memory
   _redirecting = false    // reset redirect guard so any future 401 can redirect again
   scheduleTokenRefresh(t) // schedule background renewal before it expires
-  // Notify SocketContext to reconnect the sharedSocket using the new admin token.
-  // The storage event only fires in OTHER tabs, so we use a custom event here.
+  //Notify SocketContext to reconnect the sharedSocket using the new admin token.
+  //The storage event only fires in OTHER tabs, so we use a custom event here.
   window.dispatchEvent(new CustomEvent('ae:token-set'))
 }
 
 export function clearToken(): void {
   _accessToken = null     // wipe the in-memory JWT
-  // NOTE: _redirecting is intentionally NOT reset here — resetting it inside clearToken
-  // would allow concurrent 401 handlers to each attempt a redirect.  It resets
-  // naturally when the page reloads (module re-initializes to false).
+  //NOTE: _redirecting is intentionally NOT reset here -- resetting it inside clearToken
+  //would allow concurrent 401 handlers to each attempt a redirect.  It resets
+  //naturally when the page reloads (module re-initializes to false).
   if (_refreshTimer) { clearTimeout(_refreshTimer); _refreshTimer = null } // cancel scheduled refresh
   localStorage.removeItem('aegis-user')         // remove stored staff user info
   localStorage.removeItem('aegis-citizen-user') // remove stored citizen user info
@@ -152,45 +150,41 @@ export async function waitForAuth(): Promise<void> {
   if (_refreshReady) await _refreshReady
 }
 
-// ---------------------------------------------------------------------------
-// 401 redirect target detection — decides where to send the user when a token expires
-// ---------------------------------------------------------------------------
+//401 redirect target detection -- decides where to send the user when a token expires
 /**
  * Determine the correct auth page to redirect to on 401.
- * Uses a priority chain: current URL path → stored user data → JWT role claim.
+ * Uses a priority chain: current URL path -> stored user data -> JWT role claim.
  * Must be called BEFORE clearToken() wipes state.
  */
 function detect401RedirectTarget(): string {
-  // 1. URL path — strongest signal, always correct for the current page context
+  //1. URL path -- strongest signal, always correct for the current page context
   const p = window.location.pathname
   if (p.startsWith('/citizen')) return '/citizen/login'
   if (p.startsWith('/admin'))   return '/admin'
 
-  // 2. localStorage user type — works even from ambiguous paths like '/'
+  //2. localStorage user type -- works even from ambiguous paths like '/'
   if (localStorage.getItem('aegis-citizen-user')) return '/citizen/login'
   if (localStorage.getItem('aegis-user')) return '/admin'
 
-  // 3. JWT role claim — last resort before the token is cleared below
+  //3. JWT role claim -- last resort before the token is cleared below
   try {
     if (_accessToken && _accessToken.split('.').length === 3) {
       const payload = JSON.parse(atob(_accessToken.split('.')[1])) // Base64 decode the payload segment
       if (payload.role === 'citizen') return '/citizen/login'
       if (['admin', 'operator', 'viewer'].includes(payload.role)) return '/admin'
     }
-  } catch { /* malformed token — fall through */ }
+  } catch { /* malformed token -- fall through */ }
 
-  // 4. Fallback — unknown user type, send to landing page
+  //4. Fallback -- unknown user type, send to landing page
   return '/'
 }
 export function setUser(u: unknown): void { if (u) localStorage.setItem('aegis-user', JSON.stringify(u)); else localStorage.removeItem('aegis-user') }
 export function getUser(): Operator | null { try { const d = localStorage.getItem('aegis-user'); return d ? JSON.parse(d) : null } catch { return null } }
 export function isAuthenticated(): boolean { return !!getToken() }
 
-// ---------------------------------------------------------------------------
-// API response types — TypeScript interfaces for backend payloads
-// ---------------------------------------------------------------------------
+//API response types -- TypeScript interfaces for backend payloads
 
-// API Response Types
+//API Response Types
 
 export interface Operator {
   id: string
@@ -384,15 +378,15 @@ export interface SuspendPayload {
 
 const API_TIMEOUT_MS = 30_000  // abort request after 30 seconds of no response
 const API_RETRIES = 2           // retry GET/HEAD requests up to 2 extra times on transient errors
-const API_RETRY_BASE_MS = 500   // base delay for exponential back-off (500ms, 1s, 2s, …)
+const API_RETRY_BASE_MS = 500   // base delay for exponential back-off (500ms, 1s, 2s, ...)
 
-// fetchWithTimeout wraps fetch() with an AbortController-based deadline.
-// If the request takes longer than timeoutMs it is aborted and throws an AbortError.
+//fetchWithTimeout wraps fetch() with an AbortController-based deadline.
+//If the request takes longer than timeoutMs it is aborted and throws an AbortError.
 async function fetchWithTimeout(url: string, opts: RequestInit, timeoutMs: number): Promise<Response> {
   const controller = new AbortController()
   const existing = opts.signal
   if (existing) {
-    // Forward external abort into our controller
+    //Forward external abort into our controller
     if ((existing as AbortSignal).aborted) controller.abort()
     else (existing as AbortSignal).addEventListener('abort', () => controller.abort(), { once: true })
   }
@@ -404,7 +398,7 @@ async function fetchWithTimeout(url: string, opts: RequestInit, timeoutMs: numbe
   }
 }
 
-// isRetryable returns true for errors that are worth retrying
+//isRetryable returns true for errors that are worth retrying
 // (network failure or timeout) versus logic errors that retrying cannot fix.
 function isRetryable(err: unknown): boolean {
   if (err instanceof DOMException && err.name === 'AbortError') return true // timeout
@@ -412,22 +406,20 @@ function isRetryable(err: unknown): boolean {
   return false
 }
 
-// ---------------------------------------------------------------------------
-// apiFetch — central fetch wrapper used by every exported API function
-// ---------------------------------------------------------------------------
+//apiFetch -- central fetch wrapper used by every exported API function
 export async function apiFetch<T = unknown>(path: string, opts: RequestInit = {}): Promise<T> {
-  // Wait for the initial silent refresh to complete before reading the token.
-  // This prevents a race condition on page load where dashboard components fire
-  // API calls before _doRefresh() has finished setting _accessToken.
-  // After the first refresh attempt this is effectively a no-op (resolved promise).
+  //Wait for the initial silent refresh to complete before reading the token.
+  //This prevents a race condition on page load where dashboard components fire
+  //API calls before _doRefresh() has finished setting _accessToken.
+  //After the first refresh attempt this is effectively a no-op (resolved promise).
   await waitForAuth()
   const token = getToken()  // read the in-memory staff JWT
   const headerInit = opts.headers as Record<string, string> | undefined
   const h: Record<string, string> = { ...(headerInit || {}) }            // copy caller-supplied headers
   if (token) h['Authorization'] = `Bearer ${token}`                       // attach staff JWT if present
   if (!(opts.body instanceof FormData)) h['Content-Type'] = 'application/json' // JSON unless file upload
-  // Attach CSRF token for state-changing requests (double-submit cookie pattern)
-  // GET / HEAD / OPTIONS are safe methods — they cannot change server state so no CSRF needed
+  //Attach CSRF token for state-changing requests (double-submit cookie pattern)
+  //GET / HEAD / OPTIONS are safe methods -- they cannot change server state so no CSRF needed
   const method = (opts.method || 'GET').toUpperCase()
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
     const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
@@ -440,7 +432,7 @@ export async function apiFetch<T = unknown>(path: string, opts: RequestInit = {}
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       res = await fetchWithTimeout(`${BASE}${path}`, { ...opts, headers: h }, API_TIMEOUT_MS)
-      // Retry on 502/503/504 (gateway/server-side transient errors) for safe methods only
+      //Retry on 502/503/504 (gateway/server-side transient errors) for safe methods only
       if (canRetry && attempt < maxAttempts - 1 && [502, 503, 504].includes(res.status)) {
         await new Promise(r => setTimeout(r, API_RETRY_BASE_MS * 2 ** attempt)) // exponential back-off
         continue
@@ -454,38 +446,38 @@ export async function apiFetch<T = unknown>(path: string, opts: RequestInit = {}
       }
       if (err instanceof DOMException && err.name === 'AbortError') {
         console.error('[API] Request timed out:', path)
-        throw new Error('The request timed out. The server may be under load — please try again in a moment.')
+        throw new Error('The request timed out. The server may be under load -- please try again in a moment.')
       }
       console.error('[API] Network error:', err)
       throw new Error('Cannot reach the AEGIS server. Check your internet connection and try again.')
     }
   }
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  //eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!res!) {
     console.error('[API] All retries exhausted:', lastErr)
     throw new Error('Cannot reach the AEGIS server after multiple attempts. Check your connection and try again.')
   }
   
-  // Handle 401 Unauthorized — role-aware redirect to the correct login page.
-  // Auth endpoints (login, register, etc.) are excluded so their actual error
-  // messages ('Invalid email or password') reach the caller unchanged.
+  //Handle 401 Unauthorized -- role-aware redirect to the correct login page.
+  //Auth endpoints (login, register, etc.) are excluded so their actual error
+  //messages ('Invalid email or password') reach the caller unchanged.
   const isAuthEndpoint = path.startsWith('/api/auth/') && (opts.method || 'GET').toUpperCase() === 'POST'
   if (res.status === 401 && !isAuthEndpoint) {
-    // Before logging the user out, attempt one silent token refresh.
-    // This recovers the common case where the 15-min access token expired and the
-    // scheduled background refresh failed silently (network blip, sleep/wake, etc.).
+    //Before logging the user out, attempt one silent token refresh.
+    //This recovers the common case where the 15-min access token expired and the
+    //scheduled background refresh failed silently (network blip, sleep/wake, etc.).
     const newToken = await _attemptRefresh()
     if (newToken) {
-      // Refresh succeeded — replay the original request with the fresh token.
+      //Refresh succeeded -- replay the original request with the fresh token.
       const retryHeaders: Record<string, string> = { ...h, 'Authorization': `Bearer ${newToken}` }
       try {
         const retryRes = await fetchWithTimeout(`${BASE}${path}`, { ...opts, headers: retryHeaders }, API_TIMEOUT_MS)
         if (retryRes.ok) return retryRes.json() as Promise<T>
-        // Retry also 401/error — fall through to logout
-      } catch { /* network error on retry — fall through to logout */ }
+        //Retry also 401/error -- fall through to logout
+      } catch { /* network error on retry -- fall through to logout */ }
     }
-    // Refresh failed or retried request still unauthorized — clear session and redirect.
-    console.warn('[API] 401 Unauthorized — session cannot be refreshed, clearing session')
+    //Refresh failed or retried request still unauthorized -- clear session and redirect.
+    console.warn('[API] 401 Unauthorized -- session cannot be refreshed, clearing session')
     const redirectTarget = detect401RedirectTarget()
     clearToken()  // wipe the expired token
     if (!_redirecting && !window.location.search.includes('session=expired')) {
@@ -499,8 +491,8 @@ export async function apiFetch<T = unknown>(path: string, opts: RequestInit = {}
     let body: any = {}
     try { body = await res.json() } catch { /* non-JSON response */ }
 
-    // CSRF mismatch: stale cookie from a previous server session.
-    // Auto-reload to get a fresh CSRF cookie — prevents the stuck error banner.
+    //CSRF mismatch: stale cookie from a previous server session.
+    //Auto-reload to get a fresh CSRF cookie -- prevents the stuck error banner.
     if (res.status === 403 && body?.code === 'CSRF_INVALID') {
       window.location.reload()
       return new Promise(() => {}) as Promise<T>
@@ -508,26 +500,26 @@ export async function apiFetch<T = unknown>(path: string, opts: RequestInit = {}
 
     console.error('[API] Request failed:', res.status, body)
 
-    // Prefer the server's own message, then fall back to status-code translations
+    //Prefer the server's own message, then fall back to status-code translations
     const serverMsg: string | undefined =
       typeof body.error === 'string' ? body.error :
       typeof body.error?.message === 'string' ? body.error.message :
       typeof body.message === 'string' ? body.message :
       undefined
 
-    // If the server gave a clear message (not a raw HTTP status string), use it
+    //If the server gave a clear message (not a raw HTTP status string), use it
     if (serverMsg && !serverMsg.startsWith('HTTP ')) {
       throw new Error(serverMsg)
     }
 
-    // Status-code fallbacks — always human-readable
+    //Status-code fallbacks -- always human-readable
     const STATUS_MESSAGES: Record<number, string> = {
       400: 'The request was invalid. Please check your input and try again.',
       401: 'You are not signed in. Please log in and try again.',
       403: 'You do not have permission to perform this action.',
       404: 'The requested item could not be found. It may have been moved or deleted.',
       408: 'The request timed out. Please try again.',
-      409: 'A conflict occurred — a record with this value may already exist.',
+      409: 'A conflict occurred -- a record with this value may already exist.',
       413: 'The file or data you sent is too large. Please reduce the size and try again.',
       422: 'The data you submitted could not be processed. Please check your input.',
       429: 'Too many requests. Please wait a moment before trying again.',
@@ -542,9 +534,7 @@ export async function apiFetch<T = unknown>(path: string, opts: RequestInit = {}
   return res.json() as Promise<T>
 }
 
-// ---------------------------------------------------------------------------
-// Authentication endpoints
-// ---------------------------------------------------------------------------
+//Authentication endpoints
 export async function apiLogin(email: string, password: string) { return apiFetch<LoginResponse>('/api/auth/login', { method:'POST', body: JSON.stringify({email,password}) }) }
 export async function apiInviteOperator(fd: FormData) { const token = getToken(); const h: Record<string, string> = {}; if(token) h['Authorization']=`Bearer ${token}`; const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]; if(csrfToken) h['X-CSRF-Token']=csrfToken; const r = await fetch(`${BASE}/api/auth/invite`,{method:'POST',body:fd,headers:h}); if(!r.ok){const e=await r.json().catch(()=>({error:'failed'}));const msg=typeof e.error==='string'?e.error:e.error?.message||e.message||'Invite failed';throw new Error(msg)} return r.json() }
 export async function apiForgotPassword(email: string) { return apiFetch('/api/auth/forgot-password', { method:'POST', body: JSON.stringify({ email }) }) }
@@ -567,13 +557,13 @@ export async function apiGetCommandCenterAnalytics() {
   return apiFetch('/api/reports/command-center')
 }
 export async function apiSubmitReport(fd: FormData) {
-  // Use ONLY the citizen token — never fall back to the operator token.
-  // If no citizen is signed in the request goes unauthenticated so the server
-  // saves "Anonymous Citizen" instead of whichever operator happens to be open.
+  //Use ONLY the citizen token -- never fall back to the operator token.
+  //If no citizen is signed in the request goes unauthenticated so the server
+  //saves "Anonymous Citizen" instead of whichever operator happens to be open.
   const token = getCitizenToken()
   const h: Record<string, string> = {}
   if (token) h['Authorization'] = `Bearer ${token}`
-  // CSRF double-submit: read the cookie and echo it as a header
+  //CSRF double-submit: read the cookie and echo it as a header
   const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
   if (csrfToken) h['X-CSRF-Token'] = csrfToken
   const r = await fetch(`${BASE}/api/reports`, { method: 'POST', body: fd, headers: h })
@@ -601,7 +591,7 @@ export async function apiGetGovernanceModels() { return apiFetch('/api/ai/govern
 export async function apiGetConfidenceDistribution(model?: string) { return apiFetch(`/api/ai/confidence-distribution${model ? `?model=${model}` : ''}`) }
 export async function apiGetAIAuditLog(limit = 50, offset = 0, model?: string) { return apiFetch(`/api/ai/audit?limit=${limit}&offset=${offset}${model ? `&model=${model}` : ''}`) }
 
-// Model Lifecycle Management
+//Model Lifecycle Management
 export async function apiGetRegistryVersions(hazardType: string, regionId: string) { return apiFetch(`/api/ai/registry/versions/${hazardType}/${regionId}`) }
 export async function apiPromoteModel(hazardType: string, regionId: string, version: string) { return apiFetch(`/api/ai/registry/promote/${hazardType}/${regionId}/${encodeURIComponent(version)}`, { method: 'POST' }) }
 export async function apiDemoteModel(hazardType: string, regionId: string) { return apiFetch(`/api/ai/registry/demote/${hazardType}/${regionId}`, { method: 'POST' }) }
@@ -621,15 +611,15 @@ export async function apiGetWeather(lat: number, lng: number) { return apiFetch(
 export async function apiCheckFloodZone(lat: number, lng: number) { return apiFetch(`/api/flood-check?lat=${lat}&lng=${lng}`) }
 
 /* DEPARTMENTS */
-// Used by registration forms to populate the department dropdown.
+//Used by registration forms to populate the department dropdown.
 export async function apiGetDepartments(): Promise<{ id: string; name: string }[]> {
   return apiFetch('/api/departments')
 }
 
-/* SUBSCRIPTIONS — alert subscription management (email / SMS / Telegram) */
+/* SUBSCRIPTIONS -- alert subscription management (email / SMS / Telegram) */
 export async function apiSubscribe(data: SubscriptionPayload): Promise<{ id: string }> {
-  // Prefer citizen token (signed-in citizen), then operator token, then unauthenticated.
-  // This lets the server store citizen_id and differentiate anonymous vs authenticated.
+  //Prefer citizen token (signed-in citizen), then operator token, then unauthenticated.
+  //This lets the server store citizen_id and differentiate anonymous vs authenticated.
   const token = getCitizenToken() || getToken()
   const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
   const h: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -656,7 +646,7 @@ export async function apiUnsubscribe(id: string): Promise<{ success: boolean }> 
   return apiFetch(`/api/subscriptions/${id}`, { method: 'DELETE' })
 }
 
-/* AUDIT LOG — immutable record of all admin actions for compliance */
+/* AUDIT LOG -- immutable record of all admin actions for compliance */
 export async function apiAuditLog(data: Record<string, unknown>): Promise<{ id: string }> {
   return apiFetch('/api/audit', { method: 'POST', body: JSON.stringify(data) })
 }
@@ -666,7 +656,7 @@ export async function apiGetAuditLog(filters?: Record<string, string>): Promise<
   return apiFetch(`/api/audit${params}`)
 }
 
-/* COMMUNITY HELP — neighbourhood offers / requests board (mutual aid) */
+/* COMMUNITY HELP -- neighbourhood offers / requests board (mutual aid) */
 export async function apiGetCommunityHelp(filters?: Record<string, string>): Promise<CommunityPost[]> {
   const params = filters ? '?' + new URLSearchParams(filters).toString() : ''
   return apiFetch(`/api/community${params}`)
@@ -680,7 +670,7 @@ export async function apiUpdateCommunityStatus(id: string, status: string): Prom
   return apiFetch(`/api/community/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) })
 }
 
-/* FLOOD PREDICTIONS — ML risk forecast records saved to the database */
+/* FLOOD PREDICTIONS -- ML risk forecast records saved to the database */
 export async function apiGetPredictions(): Promise<Prediction[]> {
   return apiFetch('/api/predictions')
 }
@@ -689,7 +679,7 @@ export async function apiSendPreAlert(id: string, operatorId?: string): Promise<
   return apiFetch(`/api/predictions/${id}/pre-alert`, { method: 'POST', body: JSON.stringify({ operator_id: operatorId }) })
 }
 
-/* RESOURCE DEPLOYMENTS — track ambulances, fire engines, rescue boats */
+/* RESOURCE DEPLOYMENTS -- track ambulances, fire engines, rescue boats */
 export async function apiGetDeployments(): Promise<Deployment[]> {
   return apiFetch('/api/deployments')
 }
@@ -750,17 +740,17 @@ export async function apiToggleMutualAid(deploymentId: string, needsMutualAid: b
   return apiFetch(`/api/deployments/${deploymentId}/mutual-aid`, { method: 'PATCH', body: JSON.stringify({ needs_mutual_aid: needsMutualAid, incident_commander: incidentCommander }) })
 }
 
-/* REPORT MEDIA — images/videos attached to a citizen report */
+/* REPORT MEDIA -- images/videos attached to a citizen report */
 export async function apiGetReportMedia(reportId: string): Promise<{ id: string; url: string; type: string }[]> {
   return apiFetch(`/api/reports/${reportId}/media`)
 }
 
-/* AI STATUS — health check for the AI engine */
+/* AI STATUS -- health check for the AI engine */
 export async function apiGetAIStatus(): Promise<Record<string, unknown>> {
   return apiFetch('/api/ai/status')
 }
 
-/* ACCOUNT GOVERNANCE — profile update routes on /api/auth (not /api/users) */
+/* ACCOUNT GOVERNANCE -- profile update routes on /api/auth (not /api/users) */
 export async function apiUpdateProfile(id: string, data: Partial<Operator>): Promise<Operator> {
   return apiFetch('/api/auth/profile', { method: 'PUT', body: JSON.stringify(data) })
 }
@@ -926,7 +916,7 @@ export async function apiGetSeasonalTrends(): Promise<{ trends: SeasonalTrend[];
   return apiFetch('/api/reports/seasonal-trends')
 }
 
-/* USER MANAGEMENT — Super Admin only routes; not available to operator/viewer roles */
+/* USER MANAGEMENT -- Super Admin only routes; not available to operator/viewer roles */
 export async function apiGetUsers(): Promise<Operator[]> {
   return apiFetch('/api/users')
 }
@@ -975,7 +965,7 @@ export async function apiRetrainModel(hazardType: string, regionId?: string): Pr
   return apiFetch('/api/ai/retrain', { method: 'POST', body: JSON.stringify(body) })
 }
 
-/* TWO-FACTOR AUTHENTICATION — TOTP setup, verify, authenticate, and backup-code management */
+/* TWO-FACTOR AUTHENTICATION -- TOTP setup, verify, authenticate, and backup-code management */
 
 export interface TwoFactorSetupResponse {
   success: boolean
@@ -1018,12 +1008,12 @@ export async function api2FAVerify(code: string): Promise<TwoFactorVerifyRespons
   return apiFetch('/api/auth/2fa/verify', { method: 'POST', body: JSON.stringify({ code }) })
 }
 
-// api2FAAuthenticate must NOT include an Authorization header because the user
-// is not yet fully authenticated (they only have a tempToken, not a full JWT).
-// It uses raw fetch() to bypass apiFetch's automatic Bearer header injection.
+//api2FAAuthenticate must NOT include an Authorization header because the user
+//is not yet fully authenticated (they only have a tempToken, not a full JWT).
+//It uses raw fetch() to bypass apiFetch's automatic Bearer header injection.
 export async function api2FAAuthenticate(tempToken: string, code: string, rememberDevice?: boolean): Promise<TwoFactorAuthResponse> {
-  // This call must NOT include Authorization header (user isn't fully authenticated yet)
-  // Use raw fetch to avoid the automatic auth header injection
+  //This call must NOT include Authorization header (user isn't fully authenticated yet)
+  //Use raw fetch to avoid the automatic auth header injection
   const res = await fetch(`${BASE}/api/auth/2fa/authenticate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1046,8 +1036,8 @@ export async function api2FARegenerateBackupCodes(password: string, code: string
   return apiFetch('/api/auth/2fa/regenerate-backup-codes', { method: 'POST', body: JSON.stringify({ password, code }) })
 }
 
-// Citizen 2FA — same pattern as staff 2FA but uses /api/citizen-auth/ endpoints
-// and returns a CitizenTwoFactorAuthResponse which includes citizen preferences.
+//Citizen 2FA -- same pattern as staff 2FA but uses /api/citizen-auth/ endpoints
+//and returns a CitizenTwoFactorAuthResponse which includes citizen preferences.
 export interface CitizenTwoFactorAuthResponse {
   success: boolean
   token: string

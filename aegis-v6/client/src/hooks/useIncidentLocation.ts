@@ -26,11 +26,11 @@ export interface IncidentLocationState {
   confirmed: boolean
 }
 
-// confidenceFromAccuracy: maps the Geolocation API's accuracy radius (metres)
-// to a human-readable confidence band.
-// < 50 m  = GPS lock inside a building or outdoors — 'high' (usable for street-level address)
-// ≤ 150 m  = typical urban GPS with partial sky view — 'medium' (usable for neighbourhood)
-// > 150 m  = cell tower / WiFi triangulation — 'poor' (only good for city-level dispatch)
+//confidenceFromAccuracy: maps the Geolocation API's accuracy radius (metres)
+//to a human-readable confidence band.
+// < 50 m  = GPS lock inside a building or outdoors -- 'high' (usable for street-level address)
+// ≤ 150 m  = typical urban GPS with partial sky view -- 'medium' (usable for neighbourhood)
+// > 150 m  = cell tower / WiFi triangulation -- 'poor' (only good for city-level dispatch)
 export function confidenceFromAccuracy(accuracy: number | null): IncidentLocationConfidence {
   if (accuracy == null) return 'medium'
   if (accuracy < 50) return 'high'

@@ -17,7 +17,7 @@ export interface ActivityEntry {
 const INITIAL_LOG: ActivityEntry[] = [
   { id: 1, action: 'Logged in to AEGIS Admin', operator: 'System Administrator', timestamp: new Date(Date.now() - 3600000).toISOString(), type: 'login' },
   { id: 2, action: 'Verified report', reportId: 'RPT-001', operator: 'System Administrator', timestamp: new Date(Date.now() - 3000000).toISOString(), type: 'verify' },
-  { id: 3, action: 'Sent alert: Flood Warning — River Don', operator: 'System Administrator', timestamp: new Date(Date.now() - 2400000).toISOString(), type: 'alert' },
+  { id: 3, action: 'Sent alert: Flood Warning -- River Don', operator: 'System Administrator', timestamp: new Date(Date.now() - 2400000).toISOString(), type: 'alert' },
   { id: 4, action: 'Flagged report for review', reportId: 'RPT-003', operator: 'Emergency Operator', timestamp: new Date(Date.now() - 1800000).toISOString(), type: 'flag' },
   { id: 5, action: 'Deployed resources to Bridge of Don', operator: 'System Administrator', timestamp: new Date(Date.now() - 1200000).toISOString(), type: 'deploy' },
   { id: 6, action: 'Escalated to URGENT', reportId: 'RPT-005', operator: 'Emergency Operator', timestamp: new Date(Date.now() - 600000).toISOString(), type: 'urgent' },
@@ -35,7 +35,7 @@ export function addActivity(entry: Omit<ActivityEntry, 'id' | 'timestamp'>): voi
 export function useActivityLog(): [ActivityEntry[], (entries: ActivityEntry[]) => void] {
   const [log, setLog] = useState<ActivityEntry[]>(_log)
   useEffect(() => {
-    // Ensure no duplicate listeners (e.g. from StrictMode double-mount)
+    //Ensure no duplicate listeners (e.g. from StrictMode double-mount)
     _listeners = _listeners.filter(fn => fn !== setLog)
     _listeners.push(setLog)
     return () => { _listeners = _listeners.filter(fn => fn !== setLog) }
@@ -71,7 +71,7 @@ export default function ActivityLog(): JSX.Element {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{entry.action}{entry.reportId && <span className="text-[10px] font-mono text-gray-500 dark:text-gray-300 ml-1">({entry.reportId})</span>}</p>
-                <p className="text-[10px] text-gray-500 dark:text-gray-300">{entry.operator} · {timeStr}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-300">{entry.operator} - {timeStr}</p>
               </div>
             </div>
           )

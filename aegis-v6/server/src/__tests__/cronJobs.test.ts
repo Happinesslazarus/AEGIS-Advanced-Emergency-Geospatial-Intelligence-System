@@ -6,7 +6,7 @@
   *
   * How it connects:
   * - Tests server/src/services/cronJobs.ts safetyReminderJob
-  * - Pure unit test — no DB or network calls
+  * - Pure unit test -- no DB or network calls
   * - Run via: npm test -- cronJobs.test
  */
 
@@ -21,14 +21,14 @@ import * as path from 'path'
  * reminder job to fail silently at runtime. This test guards against
  * re-introduction of that bug via static source analysis.
  */
-describe('Safety Reminder Cron Job — schema regression', () => {
-  // Normalise to LF so the slice/search works on both Windows (CRLF) and Linux (LF)
+describe('Safety Reminder Cron Job -- schema regression', () => {
+  //Normalise to LF so the slice/search works on both Windows (CRLF) and Linux (LF)
   const cronSource = fs.readFileSync(
     path.resolve(__dirname, '../services/cronJobs.ts'),
     'utf-8',
   ).replace(/\r\n/g, '\n')
 
-  // Extract only the sendSafetyReminders function block for targeted checks
+  //Extract only the sendSafetyReminders function block for targeted checks
   const fnStart = cronSource.indexOf('async function sendSafetyReminders')
   const fnBlock = cronSource.slice(fnStart, cronSource.indexOf('\n}\n', fnStart) + 3)
 

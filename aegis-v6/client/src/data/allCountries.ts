@@ -27,9 +27,9 @@ export interface ContinentGroup {
   countries: CountryEntry[]
 }
 
-// Master list of all countries grouped by continent
+//Master list of all countries grouped by continent
 const RAW_COUNTRIES: { code: string; name: string; dial: string; continent: string }[] = [
-  // Africa (54)
+  //Africa (54)
   { code: 'DZ', name: 'Algeria', dial: '+213', continent: 'Africa' },
   { code: 'AO', name: 'Angola', dial: '+244', continent: 'Africa' },
   { code: 'BJ', name: 'Benin', dial: '+229', continent: 'Africa' },
@@ -84,7 +84,7 @@ const RAW_COUNTRIES: { code: string; name: string; dial: string; continent: stri
   { code: 'ZM', name: 'Zambia', dial: '+260', continent: 'Africa' },
   { code: 'ZW', name: 'Zimbabwe', dial: '+263', continent: 'Africa' },
 
-  // Asia (48)
+  //Asia (48)
   { code: 'AF', name: 'Afghanistan', dial: '+93', continent: 'Asia' },
   { code: 'AM', name: 'Armenia', dial: '+374', continent: 'Asia' },
   { code: 'AZ', name: 'Azerbaijan', dial: '+994', continent: 'Asia' },
@@ -135,7 +135,7 @@ const RAW_COUNTRIES: { code: string; name: string; dial: string; continent: stri
   { code: 'VN', name: 'Vietnam', dial: '+84', continent: 'Asia' },
   { code: 'YE', name: 'Yemen', dial: '+967', continent: 'Asia' },
 
-  // Europe (44)
+  //Europe (44)
   { code: 'AL', name: 'Albania', dial: '+355', continent: 'Europe' },
   { code: 'AD', name: 'Andorra', dial: '+376', continent: 'Europe' },
   { code: 'AT', name: 'Austria', dial: '+43', continent: 'Europe' },
@@ -179,7 +179,7 @@ const RAW_COUNTRIES: { code: string; name: string; dial: string; continent: stri
   { code: 'UA', name: 'Ukraine', dial: '+380', continent: 'Europe' },
   { code: 'GB', name: 'United Kingdom', dial: '+44', continent: 'Europe' },
 
-  // North America (23)
+  //North America (23)
   { code: 'AG', name: 'Antigua and Barbuda', dial: '+1-268', continent: 'North America' },
   { code: 'BS', name: 'Bahamas', dial: '+1-242', continent: 'North America' },
   { code: 'BB', name: 'Barbados', dial: '+1-246', continent: 'North America' },
@@ -204,7 +204,7 @@ const RAW_COUNTRIES: { code: string; name: string; dial: string; continent: stri
   { code: 'TT', name: 'Trinidad and Tobago', dial: '+1-868', continent: 'North America' },
   { code: 'US', name: 'United States', dial: '+1', continent: 'North America' },
 
-  // South America (12)
+  //South America (12)
   { code: 'AR', name: 'Argentina', dial: '+54', continent: 'South America' },
   { code: 'BO', name: 'Bolivia', dial: '+591', continent: 'South America' },
   { code: 'BR', name: 'Brazil', dial: '+55', continent: 'South America' },
@@ -218,7 +218,7 @@ const RAW_COUNTRIES: { code: string; name: string; dial: string; continent: stri
   { code: 'UY', name: 'Uruguay', dial: '+598', continent: 'South America' },
   { code: 'VE', name: 'Venezuela', dial: '+58', continent: 'South America' },
 
-  // Oceania (14)
+  //Oceania (14)
   { code: 'AU', name: 'Australia', dial: '+61', continent: 'Oceania' },
   { code: 'FJ', name: 'Fiji', dial: '+679', continent: 'Oceania' },
   { code: 'KI', name: 'Kiribati', dial: '+686', continent: 'Oceania' },
@@ -235,7 +235,7 @@ const RAW_COUNTRIES: { code: string; name: string; dial: string; continent: stri
   { code: 'VU', name: 'Vanuatu', dial: '+678', continent: 'Oceania' },
 ]
 
-// Build lookup-ready entries with flag emoji
+//Build lookup-ready entries with flag emoji
 export const ALL_COUNTRIES: CountryEntry[] = RAW_COUNTRIES.map(c => ({
   ...c,
   flag: codeToFlag(c.code),
@@ -259,10 +259,10 @@ export const CONTINENT_GROUPS: ContinentGroup[] = (() => {
   }))
 })()
 
-// Flat alphabetical list of country names
+//Flat alphabetical list of country names
 export const ALL_COUNTRY_NAMES: string[] = ALL_COUNTRIES.map(c => c.name).sort()
 
-// Quick lookup: name -> entry
+//Quick lookup: name -> entry
 const byName = new Map(ALL_COUNTRIES.map(c => [c.name, c]))
 const byCode = new Map(ALL_COUNTRIES.map(c => [c.code, c]))
 
@@ -274,7 +274,7 @@ export function getCountryEntryByCode(code: string): CountryEntry | undefined {
   return byCode.get(code.toUpperCase())
 }
 
-// Regions for major countries. For countries not listed, user types city manually.
+//Regions for major countries. For countries not listed, user types city manually.
 export const REGION_MAP: Record<string, { value: string; label: string }[]> = {
   'United Kingdom': [
     { value: 'london', label: 'London' }, { value: 'manchester', label: 'Manchester' },
@@ -1763,7 +1763,7 @@ export const REGION_MAP: Record<string, { value: string; label: string }[]> = {
   ],
 }
 
-// Emergency number for every country. Falls back to universal 112/911.
+//Emergency number for every country. Falls back to universal 112/911.
 export interface EmergencyInfo {
   police: string
   fire: string
@@ -1972,7 +1972,7 @@ export const EMERGENCY_NUMBERS_GLOBAL: Record<string, EmergencyInfo> = {
   CK: { police: '999', fire: '996', ambulance: '998', universal: '999', extras: [] },
 }
 
-// Fallback for countries not in the map
+//Fallback for countries not in the map
 export const DEFAULT_EMERGENCY: EmergencyInfo = {
   police: '112', fire: '112', ambulance: '112', universal: '112',
   extras: [
@@ -1985,7 +1985,7 @@ export function getEmergencyInfo(code: string): EmergencyInfo {
   return EMERGENCY_NUMBERS_GLOBAL[code.toUpperCase()] || DEFAULT_EMERGENCY
 }
 
-// Regional survival tips
+//Regional survival tips
 export const REGIONAL_TIPS: Record<string, string[]> = {
   GB: ['Monitor Environment Agency and Met Office severe weather updates.', 'Know your nearest evacuation routes and flood shelters.', 'Keep an emergency Go-Bag with essentials near your door.'],
   US: ['Monitor FEMA and NOAA advisories for your county.', 'Know your local tornado/hurricane shelters and routes.', 'Register for IPAWS wireless emergency alerts.'],

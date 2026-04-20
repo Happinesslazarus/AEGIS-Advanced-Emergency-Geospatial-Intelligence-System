@@ -26,7 +26,7 @@ export function generateFollowUpQuestions(
   const lower = userMessage.toLowerCase()
   const replyLower = assistantReply.toLowerCase()
 
-  // Emergency context follow-ups — urgency-aware, escalating
+  //Emergency context follow-ups -- urgency-aware, escalating
   if (emergency.isEmergency) {
     if (emergency.type === 'flood') {
       questions.push('Are you on higher ground now? Do you need help finding an evacuation route?')
@@ -49,8 +49,8 @@ export function generateFollowUpQuestions(
     return questions.slice(0, 3)
   }
 
-  // Deep Context Analysis
-  // Extract what the user asked about and what the bot discussed
+  //Deep Context Analysis
+  //Extract what the user asked about and what the bot discussed
   const topicPatterns: Array<{ pattern: RegExp; topic: string; followUps: string[] }> = [
     { pattern: /\b(flood|flooding|water level|river)\b/i, topic: 'flood',
       followUps: ['Would you like a personalised flood preparedness checklist for your area?', 'Should I check real-time river levels near your location?'] },
@@ -76,7 +76,7 @@ export function generateFollowUpQuestions(
       followUps: ['Would you like me to check soil saturation levels and landslide risk in your area?', 'Should I find safe zones away from unstable terrain?'] },
   ]
 
-  // Match topics from both user message and bot reply
+  //Match topics from both user message and bot reply
   const matchedTopics = new Set<string>()
   for (const { pattern, topic, followUps } of topicPatterns) {
     if (pattern.test(lower) || pattern.test(replyLower)) {
@@ -89,8 +89,8 @@ export function generateFollowUpQuestions(
     }
   }
 
-  // Unresolved Topic Detection
-  // If the bot mentioned something but didn't fully address it
+  //Unresolved Topic Detection
+  //If the bot mentioned something but didn't fully address it
   const unresolvedPatterns: Array<{ trigger: RegExp; question: string }> = [
     { trigger: /\bcontact\b.*\b(local|council|authorit)/i, question: 'Would you like me to look up the specific contact details for your local authority?' },
     { trigger: /\bmore information\b/i, question: 'What specific details would be most helpful for your situation?' },
@@ -106,8 +106,8 @@ export function generateFollowUpQuestions(
     }
   }
 
-  // Tool-Aware Suggestions
-  // Suggest follow-ups that leverage available tools the bot hasn't used yet
+  //Tool-Aware Suggestions
+  //Suggest follow-ups that leverage available tools the bot hasn't used yet
   if (!replyLower.includes('river level') && !replyLower.includes('gauge') && matchedTopics.has('flood')) {
     questions.push('Should I pull live river gauge data to check current water levels?')
   }
@@ -115,10 +115,10 @@ export function generateFollowUpQuestions(
     questions.push('Would you like me to calculate the fastest route from your location?')
   }
   if (lower.includes('image') || lower.includes('photo') || lower.includes('picture')) {
-    questions.push('You can upload a photo and I\'ll analyze it for safety assessment — would you like to try that?')
+    questions.push('You can upload a photo and I\'ll analyze it for safety assessment -- would you like to try that?')
   }
 
-  // Agent-Specific Contextual Follow-ups
+  //Agent-Specific Contextual Follow-ups
   if (agentType === 'preparedness_coach' && questions.length < 2) {
     questions.push('Would you like information about community emergency groups in your area?')
   }
@@ -129,7 +129,7 @@ export function generateFollowUpQuestions(
     questions.push('Do you need information about supply distribution points near you?')
   }
 
-  // Deduplicate and limit — prioritize topic-matched over generic
+  //Deduplicate and limit -- prioritize topic-matched over generic
   const unique = [...new Set(questions)]
   return unique.slice(0, 3)
 }
@@ -149,7 +149,7 @@ export function scoreResponseQuality(
   const replyLower = assistantReply.toLowerCase()
   const userLower = userMessage.toLowerCase()
 
-  // 1. Relevance: TF-IDF semantic similarity + keyword overlap hybrid
+  //1. Relevance: TF-IDF semantic similarity + keyword overlap hybrid
   const userWords = new Set(userLower.split(/\s+/).filter(w => w.length > 3))
   const replyWords = new Set(replyLower.split(/\s+/).filter(w => w.length > 3))
   let overlapCount = 0
@@ -160,7 +160,7 @@ export function scoreResponseQuality(
     ? Math.min(1, (overlapCount / userWords.size) * 1.5 + 0.3)
     : 0.5
 
-  // Semantic relevance: check if key user nouns/entities appear in reply paraphrased
+  //Semantic relevance: check if key user nouns/entities appear in reply paraphrased
   const userNouns = userLower.match(/\b(?:flood|storm|fire|shelter|evacuation|hospital|road|bridge|power|water|weather|alert|warning|river|rain|wind)\b/g) || []
   const semanticHits = userNouns.filter(noun => {
     const synonymMap: Record<string, string[]> = {
@@ -183,7 +183,7 @@ export function scoreResponseQuality(
   const semanticRelevance = userNouns.length > 0 ? semanticHits.length / userNouns.length : 0.5
   const relevance = Math.min(1, keywordRelevance * 0.5 + semanticRelevance * 0.5)
 
-  // 2. Actionability: does the response contain concrete steps?
+  //2. Actionability: does the response contain concrete steps?
   const actionIndicators = [
     /\b(step \d|first|then|next|finally)\b/i,
     /\b(call|go to|move to|avoid|do not|check|contact|visit)\b/i,
@@ -195,7 +195,7 @@ export function scoreResponseQuality(
   const actionMatchCount = actionIndicators.filter(p => p.test(assistantReply)).length
   const actionability = Math.min(1, actionMatchCount * 0.18)
 
-  // 3. Data recency: is it citing current/live data?
+  //3. Data recency: is it citing current/live data?
   const recencyIndicators = [
     toolsUsed.length > 0,
     liveContextUsed,
@@ -206,24 +206,24 @@ export function scoreResponseQuality(
   const recencyMatchCount = recencyIndicators.filter(Boolean).length
   const dataRecency = Math.min(1, recencyMatchCount * 0.25)
 
-  // 4. Safety compliance
+  //4. Safety compliance
   const safetyCompliance = safetyFlags.length === 0 ? 1.0 : 0.2
 
-  // 5. Completeness: did the response address all parts of the user's question?
+  //5. Completeness: did the response address all parts of the user's question?
   const userQuestionMarks = (userMessage.match(/\?/g) || []).length
   const userAndSeparators = (userMessage.match(/\b(and|also|plus|additionally)\b/gi) || []).length
   const expectedParts = Math.max(1, userQuestionMarks + userAndSeparators)
   const responseParagraphs = assistantReply.split(/\n\n+/).filter(p => p.trim().length > 20).length
   const completeness = Math.min(1, responseParagraphs / expectedParts)
 
-  // 6. Empathy: appropriate tone markers
+  //6. Empathy: appropriate tone markers
   const empathyIndicators = [
     /\b(understand|sorry to hear|i can help|let me|here's what|stay safe)\b/i,
     /\b(important|critical|please|ensure|make sure)\b/i,
   ]
   const empathy = Math.min(1, empathyIndicators.filter(p => p.test(assistantReply)).length * 0.5)
 
-  // Overall weighted score (6 dimensions)
+  //Overall weighted score (6 dimensions)
   const overall = relevance * 0.25 + actionability * 0.2 + dataRecency * 0.15 +
     safetyCompliance * 0.15 + completeness * 0.15 + empathy * 0.1
 
@@ -237,8 +237,8 @@ export function scoreResponseQuality(
 }
 
 
-// In-memory analytics store (per-session). Resets on server restart — intended for
-// operational monitoring, not permanent storage.
+//In-memory analytics store (per-session). Resets on server restart -- intended for
+//operational monitoring, not permanent storage.
 export const sessionAnalytics: Map<string, {
   responseTimes: number[]
   toolUsage: Record<string, number>
@@ -294,7 +294,7 @@ export function recordAnalytics(
 }
 
  /*
- * Get aggregated analytics for a session — exported for monitoring endpoints.
+ * Get aggregated analytics for a session -- exported for monitoring endpoints.
   */
 export function getSessionAnalytics(sessionId: string): {
   averageLatencyMs: number

@@ -12,7 +12,7 @@ import React, { memo, useCallback } from 'react'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { useTranslation } from 'react-i18next'
 
-// TYPES
+//TYPES
 
 export interface SkipLink {
   /** Label for the link */
@@ -28,14 +28,14 @@ interface SkipLinksProps {
   className?: string
 }
 
-// DEFAULT LINKS
+//DEFAULT LINKS
 
 const defaultLinks: SkipLink[] = [
   { label: 'Skip to main content', targetId: 'main-content' },
   { label: 'Skip to navigation', targetId: 'main-nav' },
 ]
 
-// SKIP LINKS COMPONENT
+//SKIP LINKS COMPONENT
 
 export const SkipLinks = memo<SkipLinksProps>(({
   links = defaultLinks,
@@ -50,18 +50,18 @@ export const SkipLinks = memo<SkipLinksProps>(({
     const target = document.getElementById(targetId)
     if (!target) return
     
-    // Make target focusable if not naturally focusable
+    //Make target focusable if not naturally focusable
     if (!target.hasAttribute('tabindex')) {
       target.setAttribute('tabindex', '-1')
     }
     
-    // Scroll to target
+    //Scroll to target
     target.scrollIntoView({
       behavior: prefersReduced ? 'auto' : 'smooth',
       block: 'start',
     })
     
-    // Focus target
+    //Focus target
     target.focus({ preventScroll: true })
   }, [prefersReduced])
   
@@ -97,7 +97,7 @@ export const SkipLinks = memo<SkipLinksProps>(({
 
 SkipLinks.displayName = 'SkipLinks'
 
-// SKIP LINK TARGET (wrapper for main content areas)
+//SKIP LINK TARGET (wrapper for main content areas)
 
 interface SkipLinkTargetProps {
   /** Target ID */
@@ -137,7 +137,7 @@ export const SkipLinkTarget = memo<SkipLinkTargetProps>(({
 
 SkipLinkTarget.displayName = 'SkipLinkTarget'
 
-// CSS (to be added to global styles)
+//CSS (to be added to global styles)
 
 export const skipLinkStyles = `
 /* Skip link styles */
@@ -161,7 +161,7 @@ export const skipLinkStyles = `
 }
 `
 
-// EXPORTS
+//EXPORTS
 
 export default {
   SkipLinks,

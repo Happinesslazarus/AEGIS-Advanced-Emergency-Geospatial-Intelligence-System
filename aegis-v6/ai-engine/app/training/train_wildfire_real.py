@@ -2,15 +2,14 @@
 Trains the wildfire fire-danger prediction model using real-world historical
 data from Open-Meteo and NASA FIRMS satellite active fire detection records.
 
-Label source (INDEPENDENT — no leakage)
------------------------------------------
+Label source (INDEPENDENT -- no leakage)
 Labels are derived from the NASA FIRMS (Fire Information for Resource
 Management System) MODIS/VIIRS satellite active fire detection archive.
 FIRMS provides confirmed fire pixel detections from polar-orbiting satellites
 at 375m (VIIRS) and 1km (MODIS) resolution with near-global daily coverage.
 
 These detections are entirely independent of the ERA5 meteorological variables
-used as features — satellites detect thermal anomalies, not wind or humidity.
+used as features -- satellites detect thermal anomalies, not wind or humidity.
 This completely eliminates label-feature correlation:
   - FWI sub-indices: NOT in features (unchanged from previous design)
   - All raw meteorological features: legitimate predictors
@@ -23,13 +22,11 @@ the FWI-threshold proxy labels from the previous design (with a prominent
 warning and automatic downgrade to 'proxy' / PARTIAL status).
 
 Forecast horizon
------------------
 task_type = "forecast", lead_hours = 24: features at time T predict fire
 activity (confirmed satellite detection) at T+24h.  This captures the
 physical relationship between meteorological pre-conditions and fire ignition.
 
 Global training scope
-----------------------
 Global fire-prone locations (GLOBAL_WILDFIRE_LOCATIONS: Iberian Peninsula,
 S France, Italy, Greece, Canary Islands, Morocco, and UK) provide sufficient
 positive samples.  UK alone would produce < 0.05% positive rate.
@@ -101,21 +98,21 @@ class WildfireRealPipeline(BaseRealPipeline):
             "source": (
                 "NASA FIRMS VIIRS SNPP (375m) and MODIS SP (1km) active fire "
                 "pixel archive.  Free API at "
-                "https://firms.modaps.eosdis.nasa.gov/api/ — register for a "
+                "https://firms.modaps.eosdis.nasa.gov/api/ -- register for a "
                 "MAP_KEY and set FIRMS_MAP_KEY environment variable."
             ),
             "description": (
                 "Positive labels: any hour on a day when a FIRMS satellite "
                 "detection falls within 50km of a training weather station.  "
                 "Fire pixels represent confirmed thermal anomalies from MODIS/"
-                "VIIRS — independent of ERA5 wind, humidity, or precipitation. "
+                "VIIRS -- independent of ERA5 wind, humidity, or precipitation. "
                 "Features at T predict fire occurrence (FIRMS detection) at T+24h."
             ),
             "limitations": (
-                "FIRMS spatial resolution (375m–1km) means localised fires may "
+                "FIRMS spatial resolution (375m-1km) means localised fires may "
                 "not appear within 50km of a grid point.  Cloud cover can "
-                "suppress detections for 1–3 day gaps (fires labelled negative "
-                "despite burning).  VIIRS standard processing (SP) has 5–7 day "
+                "suppress detections for 1-3 day gaps (fires labelled negative "
+                "despite burning).  VIIRS standard processing (SP) has 5-7 day "
                 "latency so near-real-time training is not possible.  Prescribed "
                 "burns appear as positives.  If FIRMS_MAP_KEY is absent, the "
                 "pipeline falls back to FWI-threshold proxy labels "
@@ -130,9 +127,9 @@ class WildfireRealPipeline(BaseRealPipeline):
                 "Wildfire AUC ≥ 0.95 is physically expected and does not indicate "
                 "label leakage.  The causal chain is well-established in fire science: "
                 "prolonged dry conditions (low antecedent rainfall, high ET, low relative "
-                "humidity) + high wind → low fuel moisture → ignition susceptibility → "
+ "humidity) + high wind -> low fuel moisture -> ignition susceptibility -> "
                 "active fire detected by FIRMS thermal sensors. "
-                "Labels are satellite thermal anomaly detections (FIRMS VIIRS/MODIS) — "
+                "Labels are satellite thermal anomaly detections (FIRMS VIIRS/MODIS) -- "
                 "entirely independent of ERA5 input features. "
                 "The predictive power comes from ERA5 capturing multi-day drought "
                 "precursors (antecedent_rainfall_7d, days_since_significant_rain, "
@@ -190,7 +187,7 @@ class WildfireRealPipeline(BaseRealPipeline):
                     break
         else:
             logger.warning(
-                "FIRMS_MAP_KEY not set — will use FWI-threshold fallback labels.  "
+                "FIRMS_MAP_KEY not set -- will use FWI-threshold fallback labels.  "
                 "Set FIRMS_MAP_KEY for independent satellite fire labels."
             )
 
@@ -207,14 +204,14 @@ class WildfireRealPipeline(BaseRealPipeline):
 
         FALLBACK PATH (FIRMS unavailable):
             Simplified FWI threshold (FWI > 30 AND days_since_rain > 7).
-            The FWI is computed for label derivation ONLY — it is never added
+            The FWI is computed for label derivation ONLY -- it is never added
             to the features DataFrame.  data_validity is demoted to 'proxy'.
         """
         weather = raw_data.get("weather", pd.DataFrame())
         firms_df = raw_data.get("firms", pd.DataFrame())
 
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build wildfire labels")
+            raise RuntimeError("No weather data -- cannot build wildfire labels")
 
         weather = weather.copy()
         weather["timestamp"] = pd.to_datetime(weather["timestamp"])
@@ -224,14 +221,14 @@ class WildfireRealPipeline(BaseRealPipeline):
             return self._build_firms_labels(weather, firms_df)
         else:
             # FWI fallback uses ERA5-derived thresholds on the same variables used as
-            # features — tautological leakage. A model trained this way would achieve
+            # features -- tautological leakage. A model trained this way would achieve
             # artificially high AUC by reconstructing the label formula, not learning
             # genuine fire-weather relationships. Hard-block: raise so training aborts
             # rather than silently producing a scientifically invalid model.
             raise RuntimeError(
                 "FIRMS satellite data unavailable and FWI-threshold fallback is blocked "
                 "because FWI is computed from ERA5 variables also used as features "
-                "(tautological label leakage — AUC would be inflated to ~0.95+). "
+                "(tautological label leakage -- AUC would be inflated to ~0.95+). "
                 "Fix: ensure FIRMS_MAP_KEY is set and the API is reachable, or supply "
                 "an offline FIRMS CSV in data/cache/firms/."
             )
@@ -427,13 +424,13 @@ class WildfireRealPipeline(BaseRealPipeline):
     def build_features(self, raw_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
         """Build per-station weather features.
 
-        FWI sub-indices are intentionally NOT computed or added here —
+        FWI sub-indices are intentionally NOT computed or added here --
         they remain absent from features regardless of whether FIRMS or
         FWI fallback was used for labels.
         """
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build features")
+            raise RuntimeError("No weather data -- cannot build features")
         return build_per_station_features(weather, self.feature_engineer)
 
     def hazard_feature_columns(self) -> list[str]:
@@ -462,7 +459,7 @@ class WildfireRealPipeline(BaseRealPipeline):
             # Atmospheric state
             "pressure_msl",
             "pressure_change_3h",
-            # Temporal context — vegetation dryness seasonality
+            # Temporal context -- vegetation dryness seasonality
             "season_sin", "season_cos", "month",
         ]
 

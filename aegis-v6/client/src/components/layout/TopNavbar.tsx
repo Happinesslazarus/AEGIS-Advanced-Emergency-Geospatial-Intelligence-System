@@ -42,7 +42,7 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
   const userRef = useRef<HTMLDivElement>(null)
   const bellRef = useRef<HTMLDivElement>(null)
 
-  // Derive risk level from alerts
+  //Derive risk level from alerts
   const riskLevel = (() => {
     const critCount = alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length
     const warnCount = alerts.filter(a => a.severity === 'medium').length
@@ -51,7 +51,7 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
     return { label: t('layout.topNavbar.riskNormal', lang), color: 'bg-green-500', textColor: 'text-green-600 dark:text-green-400', ring: 'ring-green-500/30' }
   })()
 
-  // Close dropdowns on outside click
+  //Close dropdowns on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (loginRef.current && !loginRef.current.contains(e.target as Node)) setLoginDropdownOpen(false)
@@ -93,7 +93,7 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
           {/* Divider */}
           <div className="w-px h-6 bg-gray-200 dark:bg-white/8 hidden sm:block mx-1" />
 
-          {/* Region selector — shared dropdown */}
+          {/* Region selector -- shared dropdown */}
           <LocationDropdown compact className="hidden sm:block" />
 
           {/* System status indicator */}
@@ -114,7 +114,7 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
           <LanguageSelector darkNav={dark} />
           <ThemeSelector darkNav={dark} />
 
-          {/* Notifications bell — dropdown */}
+          {/* Notifications bell -- dropdown */}
           {(() => {
             const totalBell = alertCount + communityUnread + unreadMessages
             const recentAlerts = alerts.filter(a => a.active).slice(0, 5)

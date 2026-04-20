@@ -8,7 +8,7 @@ reservoir telemetry is stale (>6 h old) to signal data-quality uncertainty.
 """
 
 """
- AEGIS AI ENGINE — Water Supply Disruption Prediction Module
+ AEGIS AI ENGINE -- Water Supply Disruption Prediction Module
  Rule-based risk assessment using drought severity, infrastructure age,
  contamination indicators, and seasonal demand patterns.
 """

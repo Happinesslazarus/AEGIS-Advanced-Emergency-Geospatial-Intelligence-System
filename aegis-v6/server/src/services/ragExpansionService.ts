@@ -35,11 +35,11 @@ const CHUNK_OVERLAP = 50
  * Falls back to fixed-size word splitting only for very large paragraphs.
  */
 function chunkText(text: string, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP): string[] {
-  // First pass: split on semantic boundaries (double newline = paragraph, markdown headers)
+  //First pass: split on semantic boundaries (double newline = paragraph, markdown headers)
   const semanticSplitPattern = /\n\n+|(?=^#{1,4}\s)/gm
   const sections = text.split(semanticSplitPattern).map(s => s.trim()).filter(s => s.length > 0)
 
-  // If only one section and it's small enough, return as-is
+  //If only one section and it's small enough, return as-is
   if (sections.length <= 1 && text.split(/\s+/).length <= chunkSize) {
     return [text]
   }
@@ -51,12 +51,12 @@ function chunkText(text: string, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP
   for (const section of sections) {
     const sectionWords = section.split(/\s+/).length
 
-    // If a single section exceeds chunk size, split it on sentence boundaries
+    //If a single section exceeds chunk size, split it on sentence boundaries
     if (sectionWords > chunkSize) {
-      // Flush current chunk first
+      //Flush current chunk first
       if (currentChunk.length > 0) {
         chunks.push(currentChunk.join('\n\n'))
-        // Keep last part for overlap
+        //Keep last part for overlap
         const overlapText = currentChunk[currentChunk.length - 1]
         const overlapWords = overlapText.split(/\s+/).length
         if (overlapWords <= overlap * 2) {
@@ -68,7 +68,7 @@ function chunkText(text: string, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP
         }
       }
 
-      // Split large section on sentence boundaries
+      //Split large section on sentence boundaries
       const sentences = section.match(/[^.!?]+[.!?]+\s*/g) || [section]
       let sentenceChunk: string[] = []
       let sentenceWordCount = 0
@@ -77,7 +77,7 @@ function chunkText(text: string, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP
         const sentWords = sentence.split(/\s+/).length
         if (sentenceWordCount + sentWords > chunkSize && sentenceChunk.length > 0) {
           chunks.push(sentenceChunk.join(' '))
-          // Overlap: keep last sentence
+          //Overlap: keep last sentence
           const lastSent = sentenceChunk[sentenceChunk.length - 1]
           sentenceChunk = [lastSent]
           sentenceWordCount = lastSent.split(/\s+/).length
@@ -91,10 +91,10 @@ function chunkText(text: string, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP
       continue
     }
 
-    // Accumulate sections into chunks
+    //Accumulate sections into chunks
     if (currentWordCount + sectionWords > chunkSize && currentChunk.length > 0) {
       chunks.push(currentChunk.join('\n\n'))
-      // Overlap: keep last section
+      //Overlap: keep last section
       const lastSection = currentChunk[currentChunk.length - 1]
       const lastWords = lastSection.split(/\s+/).length
       if (lastWords <= overlap * 2) {
@@ -110,7 +110,7 @@ function chunkText(text: string, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP
     currentWordCount += sectionWords
   }
 
-  // Flush remaining
+  //Flush remaining
   if (currentChunk.length > 0) {
     chunks.push(currentChunk.join('\n\n'))
   }
@@ -123,7 +123,7 @@ async function storeRAGDocument(doc: RAGDocument): Promise<number> {
   const chunks = chunkText(doc.content)
   let stored = 0
 
-  // Try to get embedding function (may not be available if no API key)
+  //Try to get embedding function (may not be available if no API key)
   let embedFn: ((text: string) => Promise<number[]>) | null = null
   try {
     const { embedText } = await import('./embeddingRouter.js')
@@ -140,7 +140,7 @@ async function storeRAGDocument(doc: RAGDocument): Promise<number> {
         original_title: doc.title,
       })
 
-      // Generate embedding vector if provider available
+      //Generate embedding vector if provider available
       let embeddingVector: number[] | null = null
       if (embedFn) {
         try {
@@ -294,13 +294,13 @@ export async function expandRAGKnowledgeBase(): Promise<{
   const sources: Record<string, number> = {}
   let newDocs = 0
 
-  // Ensure rag_documents table has required columns
+  //Ensure rag_documents table has required columns
   await pool.query(`
     ALTER TABLE rag_documents ADD COLUMN IF NOT EXISTS category VARCHAR(100);
     ALTER TABLE rag_documents ADD COLUMN IF NOT EXISTS metadata JSONB;
   `).catch(() => {})
 
-  // Phase 1: Inject expert knowledge base
+  //Phase 1: Inject expert knowledge base
   logger.info('[RAG] Phase 1: Expert knowledge base...')
   for (const doc of FLOOD_KNOWLEDGE_BASE) {
     const stored = await storeRAGDocument(doc)
@@ -308,7 +308,7 @@ export async function expandRAGKnowledgeBase(): Promise<{
     sources[doc.category] = (sources[doc.category] || 0) + stored
   }
 
-  // Phase 1b: Inject global knowledge base (universal disaster science)
+  //Phase 1b: Inject global knowledge base (universal disaster science)
   logger.info('[RAG] Phase 1b: Global knowledge base...')
   for (const doc of GLOBAL_KNOWLEDGE_BASE) {
     const stored = await storeRAGDocument(doc)
@@ -316,7 +316,7 @@ export async function expandRAGKnowledgeBase(): Promise<{
     sources[doc.category] = (sources[doc.category] || 0) + stored
   }
 
-  // Phase 2: Import from flood_archives
+  //Phase 2: Import from flood_archives
   logger.info('[RAG] Phase 2: Historical flood archives...')
   try {
     const { rows } = await pool.query(`
@@ -340,7 +340,7 @@ export async function expandRAGKnowledgeBase(): Promise<{
     logger.warn({ err }, '[RAG] Flood archives import failed')
   }
 
-  // Phase 3: Import from wiki_flood_knowledge
+  //Phase 3: Import from wiki_flood_knowledge
   logger.info('[RAG] Phase 3: Wikipedia flood knowledge...')
   try {
     const { rows } = await pool.query(`
@@ -362,7 +362,7 @@ export async function expandRAGKnowledgeBase(): Promise<{
     logger.warn({ err }, '[RAG] Wikipedia import failed')
   }
 
-  // Phase 4: Import from news_articles
+  //Phase 4: Import from news_articles
   logger.info('[RAG] Phase 4: News articles...')
   try {
     const { rows } = await pool.query(`
@@ -387,7 +387,7 @@ export async function expandRAGKnowledgeBase(): Promise<{
     logger.warn({ err }, '[RAG] News import failed')
   }
 
-  // Phase 5: Import from existing citizen reports (top-quality ones)
+  //Phase 5: Import from existing citizen reports (top-quality ones)
   logger.info('[RAG] Phase 5: High-quality citizen reports...')
   try {
     const { rows } = await pool.query(`
@@ -413,7 +413,7 @@ export async function expandRAGKnowledgeBase(): Promise<{
     logger.warn({ err }, '[RAG] Reports import failed')
   }
 
-  // Get total
+  //Get total
   let total = 0
   try {
     const r = await pool.query('SELECT COUNT(*) as c FROM rag_documents')
@@ -441,14 +441,14 @@ export async function ragRetrieve(query: string, limit = 5): Promise<Array<{
   relevance: number
 }>> {
   try {
-    //  Phase 1: Try vector similarity search (requires embedding provider)
+    // Phase 1: Try vector similarity search (requires embedding provider)
     try {
-      // Dynamic import to avoid circular deps; this may throw if no provider
+      //Dynamic import to avoid circular deps; this may throw if no provider
       const { embedText } = await import('./embeddingRouter.js')
       const queryVector = await embedText(query)
 
       if (queryVector && queryVector.length > 0) {
-        // Convert JS array to PG double precision array literal
+        //Convert JS array to PG double precision array literal
         const pgArray = `{${queryVector.join(',')}}`
 
         const { rows } = await pool.query(`
@@ -467,11 +467,11 @@ export async function ragRetrieve(query: string, limit = 5): Promise<Array<{
         }
       }
     } catch (embErr: any) {
-      // Embedding provider not configured or failed - fall through to text search
+      //Embedding provider not configured or failed - fall through to text search
       logger.warn({ err: embErr }, '[RAG] Vector search unavailable - using full-text search')
     }
 
-    //  Phase 2: Full-text search with ts_rank_cd
+    // Phase 2: Full-text search with ts_rank_cd
     const { rows } = await pool.query(`
       SELECT title, content, source,
         ts_rank_cd(
@@ -490,7 +490,7 @@ export async function ragRetrieve(query: string, limit = 5): Promise<Array<{
       return rows
     }
 
-    //  Phase 3: ILIKE pattern matching (last resort)
+    // Phase 3: ILIKE pattern matching (last resort)
     const keywords = query.split(/\s+/).filter(w => w.length > 3).slice(0, 5)
     if (keywords.length === 0) return []
 
@@ -592,7 +592,7 @@ export function computeBM25Score(
 
   if (docLen === 0 || queryTokens.length === 0) return 0
 
-  // Build term-frequency map for document
+  //Build term-frequency map for document
   const tf: Record<string, number> = {}
   for (const t of docTokens) {
     tf[t] = (tf[t] || 0) + 1
@@ -637,22 +637,22 @@ export function rerankResults(
   const queryWords = new Set(tokenize(query))
 
   const scored = results.map(r => {
-    // 1. Keyword overlap (0-0.4)
+    //1. Keyword overlap (0-0.4)
     const contentTokens = tokenize(r.content)
     const matchCount = contentTokens.filter(t => queryWords.has(t)).length
     const keywordScore = Math.min(0.4, (matchCount / Math.max(queryWords.size, 1)) * 0.4)
 
-    // 2. Source authority (0-0.3)
+    //2. Source authority (0-0.3)
     const srcKey = r.source.toLowerCase().replace(/[\s-]/g, '_')
     const authorityRaw = SOURCE_AUTHORITY[srcKey] ?? 0.5
     const authorityScore = authorityRaw * 0.3
 
-    // 3. Title relevance bonus (0-0.2)
+    //3. Title relevance bonus (0-0.2)
     const titleTokens = tokenize(r.title)
     const titleMatches = titleTokens.filter(t => queryWords.has(t)).length
     const titleScore = Math.min(0.2, (titleMatches / Math.max(queryWords.size, 1)) * 0.2)
 
-    // 4. Length penalty (0-0.1) - very short or very long content penalised
+    //4. Length penalty (0-0.1) - very short or very long content penalised
     const len = r.content.length
     let lengthScore = 0.1
     if (len < 50) lengthScore = 0.02
@@ -746,7 +746,7 @@ export async function ragRetrieveEnhanced(
   const expanded = expandQuery(query)
   logger.info({ original: query, expanded }, '[RAG-Enhanced] Query expanded')
 
-  // Retrieve more candidates than needed so re-ranking has room to work
+  //Retrieve more candidates than needed so re-ranking has room to work
   const candidates = await ragRetrieve(expanded, limit * 3)
 
   if (candidates.length === 0) return []
@@ -766,14 +766,14 @@ export async function injectRealtimeKnowledge(): Promise<number> {
   let injected = 0
 
   try {
-    // Purge stale realtime injections (older than 1 hour)
+    //Purge stale realtime injections (older than 1 hour)
     await pool.query(`
       DELETE FROM rag_documents
       WHERE source = 'realtime_injection'
         AND created_at < NOW() - INTERVAL '1 hour'
     `)
 
-    // 1. Latest flood predictions
+    //1. Latest flood predictions
     try {
       const { rows } = await pool.query(`
         SELECT region, risk_level, predicted_peak, confidence, description, created_at
@@ -798,7 +798,7 @@ export async function injectRealtimeKnowledge(): Promise<number> {
       }
     } catch { /* flood_predictions table may not exist */ }
 
-    // 2. Active alerts
+    //2. Active alerts
     try {
       const { rows } = await pool.query(`
         SELECT title, message, severity, region, alert_type, created_at
@@ -824,7 +824,7 @@ export async function injectRealtimeKnowledge(): Promise<number> {
       }
     } catch { /* alerts table may not exist */ }
 
-    // 3. Latest threat assessment
+    //3. Latest threat assessment
     try {
       const { rows } = await pool.query(`
         SELECT region, threat_level, summary, factors, assessed_at

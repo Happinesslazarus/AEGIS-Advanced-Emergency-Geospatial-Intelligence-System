@@ -8,14 +8,14 @@
  * browser automatically includes the user's session cookie.
  *
  * Defences implemented:
- *   1. Synchroniser token  — server injects a random token into a <meta> tag;
+ *   1. Synchroniser token  -- server injects a random token into a <meta> tag;
  *                            the client reads it and includes it in request headers
- *   2. Double-submit cookie — the same token is stored in a cookie AND sent as a header;
+ *   2. Double-submit cookie -- the same token is stored in a cookie AND sent as a header;
  *                              because only the real origin can read the cookie value,
  *                              a cross-site form cannot forge the matching header
- *   3. SameSite cookies    — modern browsers won't send cookies on cross-origin requests
+ *   3. SameSite cookies    -- modern browsers won't send cookies on cross-origin requests
  *                              when SameSite=Strict or SameSite=Lax is set
- *   4. Credentials mode    — cross-origin fetch requests should not include credentials
+ *   4. Credentials mode    -- cross-origin fetch requests should not include credentials
  *
  * Glossary:
  *   describe()              = groups related tests
@@ -42,7 +42,7 @@
  *   credentials:'omit'      = browser never sends credentials (safest for public APIs)
  *   double-submit cookie    = CSRF pattern where the cookie value and a request header value
  *                             must match; attacker cannot forge the header without reading the cookie
- *   decodeURIComponent()    = decodes percent-encoded characters in cookie values (%2B → +)
+ * decodeURIComponent() = decodes percent-encoded characters in cookie values (%2B -> +)
  *   Headers                 = browser Fetch API class for managing HTTP header key-value pairs
  *   meta tag                = <meta name="csrf-token" content="TOKEN"> injected by server SSR
  *   document.cookie         = string-concatenation of all non-HttpOnly cookies for this origin
@@ -54,11 +54,9 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// ---------------------------------------------------------------------------
-// CSRF protection utilities (implemented in this file; exported at the bottom)
-// ---------------------------------------------------------------------------
+//CSRF protection utilities (implemented in this file; exported at the bottom)
 
-/** CSRF token HTTP request header name — must match server-side expectations */
+/** CSRF token HTTP request header name -- must match server-side expectations */
 const CSRF_HEADER = 'X-CSRF-Token'
 
 /** Cookie name storing the double-submit CSRF token (read by getCsrfTokenFromCookie) */
@@ -93,7 +91,7 @@ function getCsrfTokenFromCookie(): string | null {
 function createCsrfHeaders(existingHeaders?: HeadersInit): Headers {
   const headers = new Headers(existingHeaders) // start with caller's headers
 
-  // Prefer the meta-tag token; fall back to the cookie token
+  //Prefer the meta-tag token; fall back to the cookie token
   const token = getCsrfTokenFromMeta() || getCsrfTokenFromCookie()
   if (token) {
     headers.set(CSRF_HEADER, token) // inject as 'X-CSRF-Token: <value>'
@@ -108,7 +106,7 @@ function createCsrfHeaders(existingHeaders?: HeadersInit): Headers {
  */
 function requiresCsrfProtection(method: string): boolean {
   const safeMethods = ['GET', 'HEAD', 'OPTIONS', 'TRACE']
-  return !safeMethods.includes(method.toUpperCase()) // POST/PUT/PATCH/DELETE → true
+ return !safeMethods.includes(method.toUpperCase()) // POST/PUT/PATCH/DELETE -> true
 }
 
 /**
@@ -138,13 +136,11 @@ function validateCredentialsMode(url: string, credentials: RequestCredentials): 
     return true // same-origin requests are always safe regardless of credentials mode
   }
 
-  // Cross-origin with 'include' sends cookies to a third-party origin — dangerous
+  //Cross-origin with 'include' sends cookies to a third-party origin -- dangerous
   return credentials !== 'include'
 }
 
-// ---------------------------------------------------------------------------
-// Mock setup — intercept fetch and reset DOM before each test
-// ---------------------------------------------------------------------------
+//Mock setup -- intercept fetch and reset DOM before each test
 
 interface MockFetchCall {
   url: string
@@ -158,14 +154,14 @@ beforeEach(() => {
   fetchCalls = [] // clear call log before each test
   originalFetch = global.fetch
 
-  // Replace global fetch with a spy that records calls and returns a successful response
+  //Replace global fetch with a spy that records calls and returns a successful response
   global.fetch = vi.fn((url: string | URL | Request, options?: RequestInit) => {
     const urlString = url instanceof Request ? url.url : url.toString()
     fetchCalls.push({ url: urlString, options })
     return Promise.resolve(new Response('{}', { status: 200 }))
   }) as typeof fetch
 
-  // Reset the DOM to a clean state (no meta tags, no cookies)
+  //Reset the DOM to a clean state (no meta tags, no cookies)
   document.head.innerHTML = ''
   document.cookie = '' // Note: setting cookie to '' doesn't clear cookies in jsdom
 })
@@ -174,18 +170,14 @@ afterEach(() => {
   global.fetch = originalFetch // restore real fetch so other tests aren't affected
 })
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+//Tests
 
 describe('CSRF Protection', () => {
 
-  // ---------------------------------------------------------------------------
-  // Token retrieval
-  // ---------------------------------------------------------------------------
+  //Token retrieval
   describe('Token retrieval', () => {
     it('retrieves CSRF token from meta tag', () => {
-      // Simulate server injecting <meta name="csrf-token" content="..."> into the page
+      //Simulate server injecting <meta name="csrf-token" content="..."> into the page
       const meta = document.createElement('meta')
       meta.name = 'csrf-token'
       meta.content = 'test-token-123'
@@ -195,28 +187,26 @@ describe('CSRF Protection', () => {
     })
 
     it('returns null when meta tag is missing', () => {
-      // On pages without SSR injection, no token is available from meta
+      //On pages without SSR injection, no token is available from meta
       expect(getCsrfTokenFromMeta()).toBeNull()
     })
 
     it('retrieves CSRF token from cookie', () => {
-      // Set the cookie directly — getCsrfTokenFromCookie parses document.cookie
+      //Set the cookie directly -- getCsrfTokenFromCookie parses document.cookie
       document.cookie = `${CSRF_COOKIE}=cookie-token-456`
 
       expect(getCsrfTokenFromCookie()).toBe('cookie-token-456')
     })
 
     it('handles URL-encoded cookie values', () => {
-      // Tokens with special characters must be percent-encoded in cookies and decoded on read
+      //Tokens with special characters must be percent-encoded in cookies and decoded on read
       document.cookie = `${CSRF_COOKIE}=${encodeURIComponent('token+with/special=chars')}`
 
       expect(getCsrfTokenFromCookie()).toBe('token+with/special=chars')
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Header creation
-  // ---------------------------------------------------------------------------
+  //Header creation
   describe('Header creation', () => {
     it('adds CSRF token header when token exists', () => {
       const meta = document.createElement('meta')
@@ -226,12 +216,12 @@ describe('CSRF Protection', () => {
 
       const headers = createCsrfHeaders() // no existing headers
 
-      // The built Headers object must include the X-CSRF-Token header
+      //The built Headers object must include the X-CSRF-Token header
       expect(headers.get(CSRF_HEADER)).toBe('my-csrf-token')
     })
 
     it('preserves existing headers', () => {
-      // createCsrfHeaders must merge, not replace
+      //createCsrfHeaders must merge, not replace
       const meta = document.createElement('meta')
       meta.name = 'csrf-token'
       meta.content = 'token'
@@ -248,9 +238,9 @@ describe('CSRF Protection', () => {
     })
 
     it('does not add header when no token available', () => {
-      // If neither meta tag nor cookie provides a token, the header must be absent
+      //If neither meta tag nor cookie provides a token, the header must be absent
       document.head.innerHTML = ''
-      // Expire the cookie to clear it
+      //Expire the cookie to clear it
       document.cookie = `${CSRF_COOKIE}=; expires=Thu, 01 Jan 1970 00:00:00 GMT`
 
       const headers = createCsrfHeaders()
@@ -259,72 +249,66 @@ describe('CSRF Protection', () => {
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Method safety checking — which HTTP verbs require a CSRF token
-  // ---------------------------------------------------------------------------
+  //Method safety checking -- which HTTP verbs require a CSRF token
   describe('Method safety checking', () => {
-    // it.each() runs the same test body for every value in the array
+    //it.each() runs the same test body for every value in the array
     it.each(['POST', 'PUT', 'PATCH', 'DELETE'])('%s requires CSRF protection', (method) => {
-      // State-changing methods must be protected; attacker can forge these with <form>
+      //State-changing methods must be protected; attacker can forge these with <form>
       expect(requiresCsrfProtection(method)).toBe(true)
     })
 
     it.each(['GET', 'HEAD', 'OPTIONS'])('%s does not require CSRF protection', (method) => {
-      // Read-only methods cannot modify server state — no CSRF risk
+      //Read-only methods cannot modify server state -- no CSRF risk
       expect(requiresCsrfProtection(method)).toBe(false)
     })
 
     it('is case-insensitive', () => {
-      // The caller should not need to normalise the method string
+      //The caller should not need to normalise the method string
       expect(requiresCsrfProtection('post')).toBe(true)
       expect(requiresCsrfProtection('get')).toBe(false)
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // SameSite cookie attribute validation
-  // ---------------------------------------------------------------------------
+  //SameSite cookie attribute validation
   describe('SameSite cookie validation', () => {
     it('detects SameSite=Strict', () => {
-      // Strict: cookies never sent cross-site, even on top-level navigations
+      //Strict: cookies never sent cross-site, even on top-level navigations
       expect(validateSameSiteAttribute('session=abc; SameSite=Strict')).toBe('Strict')
     })
 
     it('detects SameSite=Lax', () => {
-      // Lax: cookies sent on top-level GET navigations; not on cross-site POSTs
+      //Lax: cookies sent on top-level GET navigations; not on cross-site POSTs
       expect(validateSameSiteAttribute('token=xyz; SameSite=Lax; HttpOnly')).toBe('Lax')
     })
 
     it('detects SameSite=None', () => {
-      // None: always sent; must be combined with Secure flag; used for embedded widgets
+      //None: always sent; must be combined with Secure flag; used for embedded widgets
       expect(validateSameSiteAttribute('cookie=val; SameSite=None; Secure')).toBe('None')
     })
 
     it('returns null when SameSite is not set', () => {
-      // Older cookie without the SameSite attribute → vulnerable in older browsers
+ //Older cookie without the SameSite attribute -> vulnerable in older browsers
       expect(validateSameSiteAttribute('session=abc; HttpOnly')).toBeNull()
     })
 
     it('is case-insensitive', () => {
-      // Browsers accept mixed-case attribute names; our parser must too
+      //Browsers accept mixed-case attribute names; our parser must too
       expect(validateSameSiteAttribute('x=y; samesite=strict')).toBe('Strict')
     })
   })
 
-  // ---------------------------------------------------------------------------
-  // Credentials mode validation
-  // ---------------------------------------------------------------------------
+  //Credentials mode validation
   describe('Credentials mode validation', () => {
     it('allows same-origin requests with any credentials mode', () => {
-      // Same-origin requests cannot be forged cross-site, so all credential modes are safe
+      //Same-origin requests cannot be forged cross-site, so all credential modes are safe
       const currentOrigin = window.location.origin
       expect(validateCredentialsMode(`${currentOrigin}/api`, 'include')).toBe(true)
       expect(validateCredentialsMode('/api/data', 'same-origin')).toBe(true)
     })
 
     it('blocks cross-origin credentials:include', () => {
-      // credentials:'include' on a cross-origin request would send the user's cookies
-      // to a third-party server — classic CSRF vector
+      //credentials:'include' on a cross-origin request would send the user's cookies
+      //to a third-party server -- classic CSRF vector
       const crossOrigin = window.location.origin.includes('localhost')
         ? 'https://evil.com'
         : 'http://localhost:9999'
@@ -342,24 +326,22 @@ describe('CSRF Protection', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// CSRF attack scenario documentation
-// ---------------------------------------------------------------------------
+//CSRF attack scenario documentation
 describe('CSRF Attack Scenarios', () => {
   it('should reject requests without CSRF token (simulated)', () => {
-    // Documents expected server behaviour: server returns 403 Forbidden when
-    // a state-changing request arrives without a valid X-CSRF-Token header
+    //Documents expected server behaviour: server returns 403 Forbidden when
+    //a state-changing request arrives without a valid X-CSRF-Token header
     const hasToken = getCsrfTokenFromMeta() !== null
 
     if (!hasToken && requiresCsrfProtection('POST')) {
-      // In a real integration test the server would return 403 here
-      expect(true).toBe(true) // placeholder — server-side test outside this file's scope
+      //In a real integration test the server would return 403 here
+      expect(true).toBe(true) // placeholder -- server-side test outside this file's scope
     }
   })
 
   it('should not send cookies to cross-origin POST (with proper SameSite)', () => {
-    // With SameSite=Strict, the browser itself refuses to include the session cookie
-    // on cross-origin POST requests from a different site — stopping CSRF at the browser
+    //With SameSite=Strict, the browser itself refuses to include the session cookie
+    //on cross-origin POST requests from a different site -- stopping CSRF at the browser
     const cookieAttr = 'session=abc123; SameSite=Strict; HttpOnly; Secure'
     const sameSite = validateSameSiteAttribute(cookieAttr)
 
@@ -367,18 +349,16 @@ describe('CSRF Attack Scenarios', () => {
   })
 
   it('validates origin/referer header expectations', () => {
-    // Server-side defence: check that the Origin or Referer header matches the expected origin.
-    // An attacker's page will have a different origin.
+    //Server-side defence: check that the Origin or Referer header matches the expected origin.
+    //An attacker's page will have a different origin.
     const attackOrigin = 'https://attacker.com'
     const expectedOrigin = window.location.origin
 
-    expect(attackOrigin).not.toBe(expectedOrigin) // origins are different → request should be rejected
+ expect(attackOrigin).not.toBe(expectedOrigin) // origins are different -> request should be rejected
   })
 })
 
-// ---------------------------------------------------------------------------
-// Secure cookie fallback — for browsers without SameSite support
-// ---------------------------------------------------------------------------
+//Secure cookie fallback -- for browsers without SameSite support
 describe('Secure Cookie Fallback', () => {
   /**
    * For older browsers that do not support SameSite cookies, the double-submit
@@ -389,7 +369,7 @@ describe('Secure Cookie Fallback', () => {
    */
 
   it('double-submit cookie pattern requires matching values', () => {
-    // Both the cookie and the header must carry the same token value
+    //Both the cookie and the header must carry the same token value
     const cookieToken = 'double-submit-token-xyz'
     document.cookie = `${CSRF_COOKIE}=${cookieToken}` // "send" the token in a cookie
 
@@ -399,16 +379,16 @@ describe('Secure Cookie Fallback', () => {
   })
 
   it('validates token format', () => {
-    // A CSRF token must be long enough to resist brute-force guessing
+    //A CSRF token must be long enough to resist brute-force guessing
     const validToken = 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
 
     expect(validToken.length).toBeGreaterThanOrEqual(32) // ≥32 characters = 128+ bits of entropy
-    expect(validToken).not.toBe('1234567890')  // trivially guessable → rejected
-    expect(validToken).not.toBe('csrf-token')  // static string → insecure
+ expect(validToken).not.toBe('1234567890') // trivially guessable -> rejected
+ expect(validToken).not.toBe('csrf-token') // static string -> insecure
   })
 
   it('token should be regenerated per session', () => {
-    // Different sessions must have different tokens so a stolen token is useless after logout
+    //Different sessions must have different tokens so a stolen token is useless after logout
     const token1 = 'session1-token-abc' // user A's session
     const token2 = 'session2-token-xyz' // user B's session
 
@@ -416,9 +396,7 @@ describe('Secure Cookie Fallback', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Exports — shared utilities used by the client fetch wrapper
-// ---------------------------------------------------------------------------
+//Exports -- shared utilities used by the client fetch wrapper
 export {
   getCsrfTokenFromMeta,
   getCsrfTokenFromCookie,
@@ -429,5 +407,5 @@ export {
   CSRF_COOKIE,
 }
 
-// TESTS
+//TESTS
 

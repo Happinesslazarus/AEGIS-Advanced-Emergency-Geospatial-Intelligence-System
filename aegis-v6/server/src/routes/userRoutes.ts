@@ -6,12 +6,12 @@
  * - Manages the operators table
  * - Used by the admin user management panel in the frontend
  *
- * GET    /api/users         — List all operators
- * GET    /api/users/:id     — Get operator details
- * PUT    /api/users/:id     — Update operator
- * PUT    /api/users/:id/suspend   — Suspend account
- * PUT    /api/users/:id/activate  — Reactivate account
- * DELETE /api/users/:id     — Soft-delete operator
+ * GET    /api/users         -- List all operators
+ * GET    /api/users/:id     -- Get operator details
+ * PUT    /api/users/:id     -- Update operator
+ * PUT    /api/users/:id/suspend   -- Suspend account
+ * PUT    /api/users/:id/activate  -- Reactivate account
+ * DELETE /api/users/:id     -- Soft-delete operator
  * */
 
 import { Router, Response, NextFunction } from 'express'
@@ -25,13 +25,13 @@ import { logger } from '../services/logger.js'
 
 const router = Router()
 
-// Middleware to check Super Admin role
+//Middleware to check Super Admin role
 const requireSuperAdmin = (req: AuthRequest, res: Response, next: Function) => {
   const role = req.user?.role?.toLowerCase()
   const isSuperAdmin = role === 'admin'
   if (!isSuperAdmin) {
-    // For non-admin operators, allow read-only access to user list
-    // but block mutations (handled per-route)
+    //For non-admin operators, allow read-only access to user list
+    //but block mutations (handled per-route)
     if (req.method === 'GET') {
       return next()
     }
@@ -128,18 +128,18 @@ router.put('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, r
     if (role !== undefined && role !== null && !VALID_ROLES.includes(role)) {
       throw AppError.badRequest(`Invalid role. Must be one of: ${VALID_ROLES.join(', ')}`)
     }
-    // Prevent non-super-admin from changing their own role
+    //Prevent non-super-admin from changing their own role
     if (role !== undefined && req.user?.id === id && req.user?.role !== 'admin') {
       throw AppError.forbidden('Cannot change your own role.')
     }
 
-    // Fetch current state for audit log
+    //Fetch current state for audit log
     const before = await pool.query('SELECT id, email, display_name, role, department, phone FROM operators WHERE id = $1', [id])
     if (before.rows.length === 0) {
       throw AppError.notFound('User not found.')
     }
 
-    // Update operator
+    //Update operator
     const result = await pool.query(`
       UPDATE operators
       SET 
@@ -154,7 +154,7 @@ router.put('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, r
 
     const after = result.rows[0]
 
-    // Log to audit_log
+    //Log to audit_log
     await pool.query(`
       INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, before_state, after_state)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -184,18 +184,18 @@ router.put('/:id/suspend', authMiddleware, requireSuperAdmin, async (req: AuthRe
     const { id } = req.params
     const { until, reason } = req.body
 
-    // Prevent self-suspension
+    //Prevent self-suspension
     if (id === req.user?.id) {
       throw AppError.badRequest('Cannot suspend your own account.')
     }
 
-    // Fetch current state
+    //Fetch current state
     const before = await pool.query('SELECT id, email, display_name, is_suspended, suspended_until FROM operators WHERE id = $1', [id])
     if (before.rows.length === 0) {
       throw AppError.notFound('User not found.')
     }
 
-    // Suspend account
+    //Suspend account
     const result = await pool.query(`
       UPDATE operators
       SET 
@@ -209,7 +209,7 @@ router.put('/:id/suspend', authMiddleware, requireSuperAdmin, async (req: AuthRe
 
     const after = result.rows[0]
 
-    // Log to audit_log
+    //Log to audit_log
     await pool.query(`
       INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, before_state, after_state, notes)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -225,7 +225,7 @@ router.put('/:id/suspend', authMiddleware, requireSuperAdmin, async (req: AuthRe
       reason || 'No reason provided'
     ])
 
-    // Emit real-time event so other admin views update immediately (M12)
+    //Emit real-time event so other admin views update immediately (M12)
     const io = req.app.get('io')
     if (io) io.to('admins').emit('user:suspended', { id, until: until || null, reason })
 
@@ -242,13 +242,13 @@ router.put('/:id/activate', authMiddleware, requireSuperAdmin, async (req: AuthR
   try {
     const { id } = req.params
 
-    // Fetch current state
+    //Fetch current state
     const before = await pool.query('SELECT id, email, display_name, is_suspended, suspended_until FROM operators WHERE id = $1', [id])
     if (before.rows.length === 0) {
       throw AppError.notFound('User not found.')
     }
 
-    // Activate account
+    //Activate account
     const result = await pool.query(`
       UPDATE operators
       SET 
@@ -262,7 +262,7 @@ router.put('/:id/activate', authMiddleware, requireSuperAdmin, async (req: AuthR
 
     const after = result.rows[0]
 
-    // Log to audit_log
+    //Log to audit_log
     await pool.query(`
       INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, before_state, after_state)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -294,7 +294,7 @@ router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req
   try {
     const { id } = req.params
 
-    // Check user exists
+    //Check user exists
     const userCheck = await pool.query('SELECT id, email, display_name FROM operators WHERE id = $1 AND deleted_at IS NULL', [id])
     if (userCheck.rows.length === 0) {
       throw AppError.notFound('User not found.')
@@ -302,18 +302,18 @@ router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req
 
     const targetUser = userCheck.rows[0]
 
-    // Generate reset token
+    //Generate reset token
     const rawToken = crypto.randomBytes(32).toString('hex')
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
-    // Store hashed token (matches authRoutes reset-password lookup which hashes submitted token)
+    //Store hashed token (matches authRoutes reset-password lookup which hashes submitted token)
     await pool.query(`
       INSERT INTO password_reset_tokens (operator_id, token, expires_at)
       VALUES ($1, $2, $3)
     `, [id, tokenHash, expiresAt])
 
-    // Log to audit_log
+    //Log to audit_log
     await pool.query(`
       INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id)
       VALUES ($1, $2, $3, $4, $5, $6)
@@ -326,7 +326,7 @@ router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req
       id
     ])
 
-    // Send password reset email
+    //Send password reset email
     const resetLink = `${process.env.RESET_PASSWORD_URL || 'http://localhost:5173/reset-password'}?token=${rawToken}`
     
     try {
@@ -350,7 +350,7 @@ router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req
           expiresAt 
         })
       } else {
-        // Email failed but token was created — never leak raw token in response
+        //Email failed but token was created -- never leak raw token in response
         logger.warn({ error: emailResult.error }, 'Email delivery failed')
         res.json({ 
           message: 'Password reset token generated but email delivery failed. Check server logs.',
@@ -359,7 +359,7 @@ router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req
         })
       }
     } catch (emailError: any) {
-      // Email failed but token was created — never leak raw token in response
+      //Email failed but token was created -- never leak raw token in response
       logger.error({ err: emailError }, 'Failed to send password reset email')
       res.json({ 
         message: 'Password reset token generated but email delivery failed. Check server logs.',
@@ -379,18 +379,18 @@ router.delete('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest
   try {
     const { id } = req.params
 
-    // Prevent self-deletion
+    //Prevent self-deletion
     if (id === req.user?.id) {
       throw AppError.badRequest('Cannot delete your own account.')
     }
 
-    // Fetch current state
+    //Fetch current state
     const before = await pool.query('SELECT id, email, display_name, role FROM operators WHERE id = $1 AND deleted_at IS NULL', [id])
     if (before.rows.length === 0) {
       throw AppError.notFound('User not found.')
     }
 
-    // Soft delete
+    //Soft delete
     await pool.query(`
       UPDATE operators
       SET 
@@ -400,7 +400,7 @@ router.delete('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest
       WHERE id = $2
     `, [req.user?.id, id])
 
-    // Log to audit_log
+    //Log to audit_log
     await pool.query(`
       INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, before_state)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -421,7 +421,7 @@ router.delete('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest
 })
 
 /*
- * POST /api/users/bulk — Bulk suspend / activate / delete operators (M11)
+ * POST /api/users/bulk -- Bulk suspend / activate / delete operators (M11)
  * Body: { userIds: string[], action: 'suspend'|'activate'|'delete', until?: string, reason?: string }
  */
 router.post('/bulk', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -472,7 +472,7 @@ router.post('/bulk', authMiddleware, requireSuperAdmin, async (req: AuthRequest,
        VALUES ($1, $2, $3, $4, 'operator', $5, $6)`,
       [
         req.user!.id, req.user!.displayName,
-        `Bulk ${action}: ${processed.length} users${reason ? ` — ${reason}` : ''}`,
+        `Bulk ${action}: ${processed.length} users${reason ? ` -- ${reason}` : ''}`,
         `bulk_${action}`,
         JSON.stringify({ userIds, action }),
         JSON.stringify({ processed, failed, reason })

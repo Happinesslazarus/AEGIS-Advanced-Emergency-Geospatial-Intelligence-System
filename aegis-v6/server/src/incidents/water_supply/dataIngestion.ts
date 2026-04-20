@@ -14,7 +14,7 @@ export class WaterSupplyDataIngestion {
    */
   static async ingestData(region: string): Promise<{ recordsIngested: number; source: string }> {
     try {
-      // Count recent water supply disruption reports
+      //Count recent water supply disruption reports
       const result = await pool.query(
         `SELECT COUNT(*) as count
          FROM reports

@@ -2,9 +2,9 @@
 Fuses predictions from three independent signal sources into a single
 incident probability and structured alert for the AEGIS system:
 
-  1. ML hazard score   — numerical weather + terrain features → LightGBM/XGB
-  2. CLIP image score  — on-scene photo analysed by fine-tuned ViT-B-32
-  3. NLP text score    — incident report / tweet analysed by sentiment + keyword
+ 1. ML hazard score -- numerical weather + terrain features -> LightGBM/XGB
+  2. CLIP image score  -- on-scene photo analysed by fine-tuned ViT-B-32
+  3. NLP text score    -- incident report / tweet analysed by sentiment + keyword
 
 The fusion strategy is Bayesian model averaging with learned reliability
 weights calibrated on a held-out validation set.  When only a subset of
@@ -14,7 +14,7 @@ are redistributed proportionally across the present signals.
 Output schema (returned as a dict / JSON):
   {
     "incident_type":     str,      # highest-probability hazard class
-    "confidence":        float,    # 0–1 fused probability
+    "confidence":        float,    # 0-1 fused probability
     "ml_score":          float,    # raw ML model output
     "clip_score":        float,    # CLIP classification confidence
     "nlp_score":         float,    # NLP classification confidence
@@ -28,18 +28,18 @@ Glossary:
   Bayesian model averaging  = treating each model as a separate expert and
                               weighting their predictions by their empirical
                               reliability on a calibration set
-  CLIP                      = Contrastive Language–Image Pre-training; maps
+  CLIP                      = Contrastive Language-Image Pre-training; maps
                               images to the same embedding space as text
   NLP                       = Natural Language Processing; here a fine-tuned
                               DistilBERT zero-shot or keyword classifier
   isotonic calibration      = a non-parametric method to convert raw model
                               scores into proper probabilities
 
-  Called by  ← app/routers/predict.py (REST endpoint POST /api/predict)
-             ← app/routers/reports.py (community report analysis)
-  Uses       → model_registry/clip/clip_crisis_vit_b32.pt
-             → model_registry/clip/clip_damage_severity_vit_b32.pt
-             → model_registry/<hazard>/<hazard>_uk_v2*.pkl
+ Called by <- app/routers/predict.py (REST endpoint POST /api/predict)
+ <- app/routers/reports.py (community report analysis)
+ Uses -> model_registry/clip/clip_crisis_vit_b32.pt
+ -> model_registry/clip/clip_damage_severity_vit_b32.pt
+ -> model_registry/<hazard>/<hazard>_uk_v2*.pkl
 
 Usage (programmatic):
   from app.services.multimodal_fusion import MultimodalFusionService
@@ -72,14 +72,14 @@ _AI_ROOT     = Path(__file__).resolve().parents[2]
 REGISTRY_DIR = _AI_ROOT / "model_registry"
 
 # Reliability weights per signal type  (empirically calibrated; see README)
-# These are priors — updated at runtime if dynamic calibration data available
+# These are priors -- updated at runtime if dynamic calibration data available
 DEFAULT_WEIGHTS = {
     "ml":    0.55,
     "clip":  0.28,
     "nlp":   0.17,
 }
 
-# Maps fine-tuned CLIP class name ↔ AEGIS incident type
+# Maps fine-tuned CLIP class name <-> AEGIS incident type
 CLIP_TO_HAZARD = {
     "flood":             "flood",
     "wildfire":          "wildfire",
@@ -238,7 +238,7 @@ class CLIPScorer:
 
             ckpt = REGISTRY_DIR / "clip" / "clip_damage_severity_vit_b32.pt"
             if not ckpt.exists():
-                logger.info("Damage severity checkpoint not found — skipping")
+                logger.info("Damage severity checkpoint not found -- skipping")
                 return False
 
             embed_dim = 512
@@ -345,7 +345,7 @@ class NLPScorer:
     }
 
     def score(self, text: str) -> dict[str, float]:
-        """Return keyword-hit frequency scores per hazard (0–1 scaled)."""
+        """Return keyword-hit frequency scores per hazard (0-1 scaled)."""
         text_lower = text.lower()
         scores     = {}
         for hazard, kws in self.KEYWORDS.items():
@@ -392,7 +392,7 @@ class MultimodalFusionService:
         signals_used: list[str] = []
         per_hazard_scores: dict[str, dict[str, float]] = {h: {} for h in HAZARD_ORDER}
 
-        # ── ML signal ──────────────────────────────────────────────────────
+        # ML signal
         ml_scores: dict[str, float] = {}
         if ml_features:
             ml_scores    = self._ml_scorer.score(ml_features)
@@ -400,7 +400,7 @@ class MultimodalFusionService:
             for hazard, score in ml_scores.items():
                 per_hazard_scores[hazard]["ml"] = score
 
-        # ── CLIP / image signal ────────────────────────────────────────────
+        # CLIP / image signal
         clip_hazard: str | None = None
         clip_conf  : float      = 0.0
         damage_severity: str    = "no_damage"
@@ -416,7 +416,7 @@ class MultimodalFusionService:
             # Damage severity (independent of hazard classification)
             damage_severity, severity_conf = self._clip_scorer.score_severity(image_path)
 
-        # ── NLP signal ─────────────────────────────────────────────────────
+        # NLP signal
         nlp_scores: dict[str, float] = {}
         if text and text.strip():
             nlp_scores   = self._nlp_scorer.score(text)
@@ -424,7 +424,7 @@ class MultimodalFusionService:
             for hazard, score in nlp_scores.items():
                 per_hazard_scores[hazard]["nlp"] = score
 
-        # ── Bayesian log-odds fusion ───────────────────────────────────────
+        # Bayesian log-odds fusion
         # Convert probabilities to log-odds, weight, sum, convert back.
         # Clamp probabilities to [0.01, 0.99] to avoid infinite log-odds.
         active_weights: dict[str, float] = {
@@ -461,11 +461,11 @@ class MultimodalFusionService:
                     combined_lo += w * (_prob_to_logodds(p) - prior_lo)
             fused[hazard] = _logodds_to_prob(combined_lo)
 
-        # ── Pick best hazard ───────────────────────────────────────────────
+        # Pick best hazard
         best_hazard    = max(fused, key=fused.get)
         best_score     = fused[best_hazard]
 
-        # ── Uncertainty: Shannon entropy of the fused distribution ─────────
+        # Uncertainty: Shannon entropy of the fused distribution
         fused_vals = list(fused.values())
         total_p    = sum(fused_vals) or 1.0
         normalised = [p / total_p for p in fused_vals]
@@ -473,7 +473,7 @@ class MultimodalFusionService:
         max_entropy = math.log(len(HAZARD_ORDER))
         uncertainty = round(entropy / max_entropy, 4)  # 0 = certain, 1 = uniform
 
-        # ── Build explanation string ───────────────────────────────────────
+        # Build explanation string
         parts = []
         if "ml" in signals_used and ml_scores.get(best_hazard, 0) > 0.4:
             parts.append(f"weather/terrain model: {ml_scores[best_hazard]:.0%}")
@@ -512,5 +512,5 @@ class MultimodalFusionService:
             "severity_confidence": 0.0,
             "signals_used":        [],
             "all_hazard_scores":   {},
-            "explanation":         "Insufficient signal — no features, image, or text provided.",
+            "explanation":         "Insufficient signal -- no features, image, or text provided.",
         }

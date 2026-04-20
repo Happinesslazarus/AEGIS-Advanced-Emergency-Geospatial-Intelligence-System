@@ -77,7 +77,7 @@ export class EnvironmentalHazardService {
    * Calculate Air Quality Index (AQI)
    */
   static calculateAQI(pm25: number, pm10: number, o3: number, no2: number): number {
-    // Simplified AQI calculation based on PM2.5
+    //Simplified AQI calculation based on PM2.5
     if (pm25 >= AIR_QUALITY_THRESHOLDS.pm25.critical) return 300
     if (pm25 >= AIR_QUALITY_THRESHOLDS.pm25.high) return 200
     if (pm25 >= AIR_QUALITY_THRESHOLDS.pm25.medium) return 100

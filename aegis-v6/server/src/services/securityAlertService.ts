@@ -1,5 +1,5 @@
 ﻿/**
- * Operator security alert dispatcher — sends alerts (2FA disabled, new device,
+ * Operator security alert dispatcher -- sends alerts (2FA disabled, new device,
  * backup code used, account locked, etc.) based on per-operator notification
  * preferences stored in operator_security_preferences.
  *
@@ -40,7 +40,7 @@ async function shouldAlert(operatorId: string, alertType: SecurityAlertType): Pr
   ).catch(() => ({ rows: [] }))
 
   if (result.rows.length === 0) {
-    // No preferences set - default to alerting on everything
+    //No preferences set - default to alerting on everything
     return true
   }
 
@@ -65,12 +65,12 @@ async function shouldAlert(operatorId: string, alertType: SecurityAlertType): Pr
  */
 export async function sendSecurityAlert(alert: SecurityAlert): Promise<void> {
   try {
-    // Check preferences
+    //Check preferences
     if (!(await shouldAlert(alert.operatorId, alert.alertType))) {
       return
     }
 
-    // Store as a security event for in-app notifications
+    //Store as a security event for in-app notifications
     await logSecurityEvent({
       userId: alert.operatorId,
       userType: 'operator',
@@ -84,7 +84,7 @@ export async function sendSecurityAlert(alert: SecurityAlert): Promise<void> {
       },
     })
 
-    // Insert into activity_log for dashboard visibility
+    //Insert into activity_log for dashboard visibility
     await pool.query(
       `INSERT INTO activity_log (action, action_type, operator_id, metadata)
        VALUES ($1, $2, $3, $4::jsonb)`,
@@ -101,7 +101,7 @@ export async function sendSecurityAlert(alert: SecurityAlert): Promise<void> {
       ]
     ).catch(() => {})
 
-    // Send email notification via emailService
+    //Send email notification via emailService
     try {
       const operator = await pool.query('SELECT email FROM operators WHERE id = $1', [alert.operatorId])
       if (operator.rows[0]?.email) {
@@ -115,7 +115,7 @@ export async function sendSecurityAlert(alert: SecurityAlert): Promise<void> {
   }
 }
 
-// Pre-built Alert Factories
+//Pre-built Alert Factories
 
 export async function alert2FADisabled(operatorId: string, ip: string): Promise<void> {
   await sendSecurityAlert({
@@ -183,7 +183,7 @@ export async function alertRepeatedFailures(operatorId: string, count: number, i
   })
 }
 
-// Security Dashboard Queries
+//Security Dashboard Queries
 
 /**
  * Get recent security alerts for the admin security dashboard.

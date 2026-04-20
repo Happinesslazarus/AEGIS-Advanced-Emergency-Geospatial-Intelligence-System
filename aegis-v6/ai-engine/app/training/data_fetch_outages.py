@@ -1,5 +1,5 @@
 """
-Power outage data for training labels — two independent sources:
+Power outage data for training labels -- two independent sources:
 
   1. EIA Form OE-417 (US Electric Emergency Incidents and Disturbances)
      Annual Excel reports of all US electric disturbance events with weather
@@ -14,21 +14,19 @@ Power outage data for training labels — two independent sources:
        - BBC/Sky News contemporaneous coverage
        - Network company (WPD, SSEN, SPEN, ENW, UKPN) customer impact figures
      These are the same events as NAMED_STORMS in data_fetch_events.py but
-     enriched with customer impact data → provides independent validation that
+ enriched with customer impact data -> provides independent validation that
      wind speed features predict *actual* service disruption, not just met thresholds.
 
 WHY THESE SOURCES ARE INDEPENDENT
-----------------------------------
 EIA OE-417: Submitted by utilities to the federal government under NERC
 reporting rules.  Customer counts, event times, and restoration times are
-observed operational records — entirely independent of any ERA5 reanalysis.
+observed operational records -- entirely independent of any ERA5 reanalysis.
 
 UK Storm Outages: Recorded by network distribution companies and Ofgem.
 The "affected customers" figure is derived from smart-meter outage telemetry
-and call-centre logs — again entirely independent of meteorological reanalysis.
+and call-centre logs -- again entirely independent of meteorological reanalysis.
 
 LABEL DEFINITION
-----------------
 A station-hour is POSITIVE when at least one major weather-caused outage event
 was ACTIVE (start ≤ hour ≤ restore) within the station's spatial region.
 
@@ -37,7 +35,7 @@ For UK storms: all Named Storm outages with confirmed customer impacts.
 
 SETUP
 -----
-UK storm outages are embedded as a static list — no download required.
+UK storm outages are embedded as a static list -- no download required.
 
 EIA OE-417:
   from app.training.data_fetch_outages import download_eia_oe417
@@ -64,9 +62,7 @@ _OUTAGES_DIR = _AI_ROOT / "data" / "outages"
 _EIA_DIR     = _OUTAGES_DIR / "eia_oe417"
 
 
-# ---------------------------------------------------------------------------
-# UK Named Storm Power Outage Records  (static — no download required)
-# ---------------------------------------------------------------------------
+# UK Named Storm Power Outage Records  (static -- no download required)
 # Each record:
 #   name          : storm name (matches NAMED_STORMS in data_fetch_events.py)
 #   start         : UTC datetime of primary outage onset
@@ -77,10 +73,9 @@ _EIA_DIR     = _OUTAGES_DIR / "eia_oe417"
 #
 # Customer figures sourced from Ofgem disturbance notifications, SSEN/WPD/
 # SPEN/ENW/UKPN press releases, and BBC reporting where available.
-# ---------------------------------------------------------------------------
 
 UK_STORM_OUTAGES: list[dict] = [
-    # --- 2015 ---
+    # 2015
     {
         "name": "Storm Abigail", "start": datetime(2015, 11, 12, 14, 0),
         "end": datetime(2015, 11, 13, 18, 0), "affected_k": 30,
@@ -117,14 +112,14 @@ UK_STORM_OUTAGES: list[dict] = [
         "regions": ["scotland", "northern_ireland", "ireland"],
         "source": "SSEN / SSE / ESB Networks press releases",
     },
-    # --- 2016 ---
+    # 2016
     {
         "name": "Storm Imogen", "start": datetime(2016, 2, 8, 6, 0),
         "end": datetime(2016, 2, 9, 18, 0), "affected_k": 60,
         "regions": ["southwest_england", "wales", "midlands"],
         "source": "WPD / SSE incident report Feb 2016",
     },
-    # --- 2017 ---
+    # 2017
     {
         "name": "Storm Doris", "start": datetime(2017, 2, 23, 10, 0),
         "end": datetime(2017, 2, 24, 20, 0), "affected_k": 40,
@@ -137,7 +132,7 @@ UK_STORM_OUTAGES: list[dict] = [
         "regions": ["scotland_highland", "orkney_shetland"],
         "source": "SSEN press release Jun 2018",
     },
-    # --- 2018 ---
+    # 2018
     {
         "name": "Storm Ali", "start": datetime(2018, 9, 19, 4, 0),
         "end": datetime(2018, 9, 20, 12, 0), "affected_k": 180,
@@ -156,7 +151,7 @@ UK_STORM_OUTAGES: list[dict] = [
         "regions": ["ireland", "northern_ireland", "scotland_highland"],
         "source": "ESB Networks incident report Dec 2018",
     },
-    # --- 2019 ---
+    # 2019
     {
         "name": "Storm Erik", "start": datetime(2019, 2, 8, 8, 0),
         "end": datetime(2019, 2, 9, 18, 0), "affected_k": 50,
@@ -169,7 +164,7 @@ UK_STORM_OUTAGES: list[dict] = [
         "regions": ["southwest_england", "wales"],
         "source": "WPD / SSE incident report",
     },
-    # --- 2020 ---
+    # 2020
     {
         "name": "Storm Ciara", "start": datetime(2020, 2, 9, 0, 0),
         "end": datetime(2020, 2, 10, 18, 0), "affected_k": 300,
@@ -182,7 +177,7 @@ UK_STORM_OUTAGES: list[dict] = [
         "regions": ["uk_wide", "ireland"],
         "source": "National Grid ESO / WPD / SSEN / Northern Powergrid combined reports",
     },
-    # --- 2021 ---
+    # 2021
     {
         "name": "Storm Christoph", "start": datetime(2021, 1, 19, 6, 0),
         "end": datetime(2021, 1, 21, 12, 0), "affected_k": 25,
@@ -193,9 +188,9 @@ UK_STORM_OUTAGES: list[dict] = [
         "name": "Storm Arwen", "start": datetime(2021, 11, 26, 18, 0),
         "end": datetime(2021, 12, 2, 18, 0), "affected_k": 100,
         "regions": ["scotland", "northeast_england", "yorkshire"],
-        "source": "SSEN / Northern Powergrid Ofgem post-event review (PER); 100k customers, multi-day restoration — one of the most damaging UK winter storms in decades",
+        "source": "SSEN / Northern Powergrid Ofgem post-event review (PER); 100k customers, multi-day restoration -- one of the most damaging UK winter storms in decades",
     },
-    # --- 2022 ---
+    # 2022
     {
         "name": "Storm Dudley", "start": datetime(2022, 2, 16, 22, 0),
         "end": datetime(2022, 2, 17, 20, 0), "affected_k": 80,
@@ -220,7 +215,7 @@ UK_STORM_OUTAGES: list[dict] = [
         "regions": ["wales", "midlands", "southwest_england"],
         "source": "WPD / National Grid incident report Aug 2023",
     },
-    # --- 2024 ---
+    # 2024
     {
         "name": "Storm Babet", "start": datetime(2023, 10, 18, 18, 0),
         "end": datetime(2023, 10, 20, 18, 0), "affected_k": 60,
@@ -251,7 +246,7 @@ UK_STORM_OUTAGES: list[dict] = [
         "regions": ["ireland", "uk_wide"],
         "source": "ESB Networks / National Grid combined report; ~280k customers; Red warning W Ireland, SW England, Wales",
     },
-    # --- 2025 ---
+    # 2025
     {
         "name": "Storm Eowyn", "start": datetime(2025, 1, 24, 2, 0),
         "end": datetime(2025, 1, 26, 22, 0), "affected_k": 770,
@@ -260,7 +255,7 @@ UK_STORM_OUTAGES: list[dict] = [
     },
 ]
 
-# Approximate region → (lat, lon) centroids for spatial matching
+# Approximate region -> (lat, lon) centroids for spatial matching
 _REGION_CENTROIDS: dict[str, tuple[float, float]] = {
     "scotland":            (56.5,  -4.2),
     "scotland_highland":   (57.5,  -4.5),
@@ -281,9 +276,7 @@ _REGION_CENTROIDS: dict[str, tuple[float, float]] = {
 }
 
 
-# ---------------------------------------------------------------------------
 # EIA Form OE-417 (US power outage reports)
-# ---------------------------------------------------------------------------
 
 # EIA OE-417 annual Excel files
 # Since 2021 the EIA publishes monthly CSVs; prior years are annual Excel files.
@@ -308,7 +301,7 @@ _EIA_WEATHER_KEYWORDS = {
     "weather", "storm",
 }
 
-# US state → (lat, lon) centroid for spatial matching
+# US state -> (lat, lon) centroid for spatial matching
 _US_STATE_CENTROIDS: dict[str, tuple[float, float]] = {
     "AL": (32.8, -86.8), "AK": (64.2, -153.4), "AZ": (34.3, -111.1),
     "AR": (34.8, -92.2), "CA": (36.8, -119.4), "CO": (39.0, -105.5),
@@ -338,12 +331,11 @@ def download_eia_oe417(
     """Download EIA Form OE-417 annual summary Excel files.
 
     Parameters
-    ----------
-    years : iterable of years (default: 2015–2024)
+    years : iterable of years (default: 2015-2024)
     force : re-download even if file exists
 
     Returns
-    -------
+
     List of paths to downloaded Excel files.
     """
     if years is None:
@@ -488,14 +480,12 @@ def load_all_eia_oe417(start_year: int, end_year: int) -> pd.DataFrame:
     combined = pd.concat(frames, ignore_index=True)
     logger.info(
         f"  EIA OE-417: {len(combined):,} weather-caused outage events "
-        f"({start_year}–{end_year})"
+        f"({start_year}-{end_year})"
     )
     return combined
 
 
-# ---------------------------------------------------------------------------
 # Shared helpers
-# ---------------------------------------------------------------------------
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     r = 6371.0
@@ -510,9 +500,7 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return r * 2 * math.asin(math.sqrt(min(a, 1.0)))
 
 
-# ---------------------------------------------------------------------------
 # Label builder
-# ---------------------------------------------------------------------------
 
 def build_outage_label_df(
     station_locations: list[dict],
@@ -527,7 +515,6 @@ def build_outage_label_df(
     ACTIVE (event_start ≤ hour ≤ event_end) within `radius_km` of the station.
 
     Parameters
-    ----------
     station_locations : list of {"id", "lat", "lon"} dicts
     start_date        : "YYYY-MM-DD"
     end_date          : "YYYY-MM-DD"
@@ -535,13 +522,13 @@ def build_outage_label_df(
     min_customers     : minimum affected customers to include (default 0 = all events)
 
     Returns
-    -------
+
     pd.DataFrame with columns: timestamp (hourly), station_id, label (0/1)
     """
     dt_start = datetime.strptime(start_date, "%Y-%m-%d")
     dt_end   = datetime.strptime(end_date,   "%Y-%m-%d")
 
-    # --- Collect all outage events as (start, end, lat, lon) tuples ---
+    # Collect all outage events as (start, end, lat, lon) tuples
     outage_events: list[tuple[datetime, datetime, float, float]] = []
 
     # 1. UK named storm outages
@@ -580,12 +567,12 @@ def build_outage_label_df(
     if not outage_events:
         logger.warning(
             "No outage data loaded. Labels will be all-zero.\n"
-            "UK storm outage records are embedded — check date range.\n"
+            "UK storm outage records are embedded -- check date range.\n"
             "EIA OE-417: from app.training.data_fetch_outages import download_eia_oe417; download_eia_oe417()"
         )
         return pd.DataFrame(columns=["timestamp", "station_id", "label"])
 
-    # --- Build full hourly grid and apply labels ---
+    # Build full hourly grid and apply labels
     hourly_index = pd.date_range(dt_start, dt_end, freq="h")
     rows: list[pd.DataFrame] = []
     n_positive_total = 0
@@ -632,7 +619,7 @@ def build_outage_label_df(
 
 
 def outages_available() -> bool:
-    """Return True — UK storm outage list is always embedded.
+    """Return True -- UK storm outage list is always embedded.
     EIA data is optional (adds US coverage).
     """
     # UK records are always present; check if EIA data adds extra coverage

@@ -1,5 +1,5 @@
 ﻿/**
- * Load-aware rate limiter — Express middleware that dynamically adjusts
+ * Load-aware rate limiter -- Express middleware that dynamically adjusts
  * per-tier rate limits (internal, admin, operator, citizen) based on
  * real-time CPU, memory, and event loop lag.
  *
@@ -13,7 +13,7 @@ import client from 'prom-client'
 import { logger } from './logger.js'
 import pool from '../models/db.js'
 
-// Prometheus metrics
+//Prometheus metrics
 const rateLimitHits = new client.Counter({
   name: 'aegis_rate_limit_hits_total',
   help: 'Total rate limit rejections',
@@ -31,7 +31,7 @@ const effectiveLimitGauge = new client.Gauge({
   labelNames: ['tier'] as const,
 })
 
-// Configuration
+//Configuration
 interface RateLimitTier {
   name: string
   baseLimit: number      // Requests per minute at 0% load
@@ -84,7 +84,7 @@ const TIERS: RateLimitTier[] = [
   },
 ]
 
-// Token bucket state per identifier
+//Token bucket state per identifier
 interface TokenBucket {
   tokens: number
   lastRefill: number
@@ -93,7 +93,7 @@ interface TokenBucket {
 
 const buckets = new Map<string, TokenBucket>()
 
-// System load monitoring
+//System load monitoring
 interface SystemLoad {
   cpuUsage: number        // 0-1
   memoryUsage: number     // 0-1
@@ -112,7 +112,7 @@ let currentLoad: SystemLoad = {
   requestQueueDepth: 0,
 }
 
-// Error tracking for adaptive response
+//Error tracking for adaptive response
 const recentErrors: number[] = []
 const ERROR_WINDOW_MS = 60_000
 
@@ -120,7 +120,7 @@ const ERROR_WINDOW_MS = 60_000
  * Calculate composite load factor (0-1)
  */
 function calculateLoadFactor(): number {
-  // Weighted average of load indicators
+  //Weighted average of load indicators
   const weights = {
     cpu: 0.25,
     memory: 0.20,
@@ -129,10 +129,10 @@ function calculateLoadFactor(): number {
     errorRate: 0.10,
   }
 
-  // Normalize event loop lag (target: <50ms is healthy)
+  //Normalize event loop lag (target: <50ms is healthy)
   const normalizedLag = Math.min(currentLoad.eventLoopLag / 200, 1)
 
-  // Normalize error rate (target: <10/min is healthy)
+  //Normalize error rate (target: <10/min is healthy)
   const normalizedErrors = Math.min(currentLoad.errorRate / 50, 1)
 
   const composite = 
@@ -152,7 +152,7 @@ function getEffectiveLimit(tier: RateLimitTier): number {
   const loadFactor = calculateLoadFactor()
   currentLoadGauge.set(loadFactor)
 
-  // Linear interpolation between base and min limit
+  //Linear interpolation between base and min limit
   const effectiveLimit = Math.round(
     tier.baseLimit - (tier.baseLimit - tier.minLimit) * loadFactor
   )
@@ -204,7 +204,7 @@ function checkRateLimit(identifier: string, tier: RateLimitTier): {
     buckets.set(identifier, bucket)
   }
 
-  // Refill tokens based on elapsed time
+  //Refill tokens based on elapsed time
   const elapsed = now - bucket.lastRefill
   const refillRate = effectiveLimit / 60_000 // tokens per ms
   const tokensToAdd = elapsed * refillRate
@@ -212,7 +212,7 @@ function checkRateLimit(identifier: string, tier: RateLimitTier): {
   bucket.tokens = Math.min(bucket.tokens + tokensToAdd, burstLimit)
   bucket.lastRefill = now
 
-  // Check if request can proceed
+  //Check if request can proceed
   if (bucket.tokens >= 1) {
     bucket.tokens -= 1
     return {
@@ -222,7 +222,7 @@ function checkRateLimit(identifier: string, tier: RateLimitTier): {
     }
   }
 
-  // Rate limited
+  //Rate limited
   const tokensNeeded = 1 - bucket.tokens
   const waitTime = Math.ceil(tokensNeeded / refillRate)
 
@@ -252,7 +252,7 @@ const MAX_QUEUE_WAIT_MS = 5000
 
 async function enqueue(priority: number): Promise<void> {
   if (requestQueue.length >= MAX_QUEUE_SIZE) {
-    // Reject lowest priority request to make room
+    //Reject lowest priority request to make room
     const lowestIdx = requestQueue.reduce((minIdx, item, idx, arr) => 
       item.priority < arr[minIdx].priority ? idx : minIdx
     , 0)
@@ -268,12 +268,12 @@ async function enqueue(priority: number): Promise<void> {
   return new Promise((resolve, reject) => {
     const entry = { priority, timestamp: Date.now(), resolve, reject }
 
-    // Insert sorted by priority (highest first)
+    //Insert sorted by priority (highest first)
     let insertIdx = requestQueue.findIndex(item => item.priority < priority)
     if (insertIdx === -1) insertIdx = requestQueue.length
     requestQueue.splice(insertIdx, 0, entry)
 
-    // Timeout after MAX_QUEUE_WAIT_MS
+    //Timeout after MAX_QUEUE_WAIT_MS
     setTimeout(() => {
       const idx = requestQueue.indexOf(entry)
       if (idx !== -1) {
@@ -299,8 +299,8 @@ export function adaptiveRateLimitMiddleware(
   res: Response,
   next: NextFunction
 ): void {
-  // Skip critical bootstrap/auth routes so sign-in and socket handshake
-  // are not blocked by load-adaptive throttling.
+  //Skip critical bootstrap/auth routes so sign-in and socket handshake
+  //are not blocked by load-adaptive throttling.
   const skipPrefixes = [
     '/api/health',
     '/metrics',
@@ -318,7 +318,7 @@ export function adaptiveRateLimitMiddleware(
   const tier = getTier(req)
   const result = checkRateLimit(identifier, tier)
 
-  // Set rate limit headers
+  //Set rate limit headers
   res.setHeader('X-RateLimit-Limit', getEffectiveLimit(tier))
   res.setHeader('X-RateLimit-Remaining', result.remaining)
   res.setHeader('X-RateLimit-Reset', Math.ceil(result.resetAt / 1000))
@@ -351,7 +351,7 @@ export function recordError(): void {
   const now = Date.now()
   recentErrors.push(now)
 
-  // Clean old errors
+  //Clean old errors
   while (recentErrors.length > 0 && recentErrors[0] < now - ERROR_WINDOW_MS) {
     recentErrors.shift()
   }
@@ -363,12 +363,12 @@ export function recordError(): void {
  * Update system load metrics
  */
 function updateLoadMetrics(): void {
-  // Memory usage
+  //Memory usage
   const mem = process.memoryUsage()
   const totalMem = require('os').totalmem()
   currentLoad.memoryUsage = mem.heapUsed / totalMem
 
-  // CPU usage (sampled)
+  //CPU usage (sampled)
   const cpus = require('os').cpus()
   if (cpus.length > 0) {
     const cpu = cpus[0]
@@ -377,26 +377,26 @@ function updateLoadMetrics(): void {
     currentLoad.cpuUsage = 1 - (idle / total)
   }
 
-  // Event loop lag
+  //Event loop lag
   const start = process.hrtime.bigint()
   setImmediate(() => {
     const lag = Number(process.hrtime.bigint() - start) / 1_000_000
     currentLoad.eventLoopLag = lag
   })
 
-  // DB pool usage
+  //DB pool usage
   const poolTotal = (pool as any).totalCount || 20
   const poolIdle = (pool as any).idleCount || 0
   currentLoad.dbPoolUsage = (poolTotal - poolIdle) / poolTotal
 
-  // Request queue depth
+  //Request queue depth
   currentLoad.requestQueueDepth = requestQueue.length
 }
 
-// Update load metrics every second
+//Update load metrics every second
 setInterval(updateLoadMetrics, 1000)
 
-// Clean old buckets every minute
+//Clean old buckets every minute
 setInterval(() => {
   const now = Date.now()
   const staleThreshold = 5 * 60 * 1000 // 5 minutes

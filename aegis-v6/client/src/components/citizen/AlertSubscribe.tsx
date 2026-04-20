@@ -82,13 +82,13 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
 
     setSubmitting(true)
     try {
-      // If Web Push is enabled AND VAPID is configured on the server, register the browser push subscription
+      //If Web Push is enabled AND VAPID is configured on the server, register the browser push subscription
       if (channels.web.enabled && webPushStatus.enabled) {
         try {
           await subscribeToWebPush(channels.email.enabled ? channels.email.value : undefined)
           pushNotification(t('alertSub.webPushEnabled', activeLang), 'success')
         } catch (err: any) {
-          // Only show error for non-config issues (permission denied, etc.) — missing VAPID key is silently skipped
+          //Only show error for non-config issues (permission denied, etc.) -- missing VAPID key is silently skipped
           const msg: string = err?.message || ''
           if (!msg.includes('not configured') && !msg.includes('public key')) {
             pushNotification(`${t('alertSub.webPushFailed', activeLang)}: ${msg}`, 'warning')
@@ -220,7 +220,7 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
                               fieldState === 'invalid' ? 'text-red-500' :
                               fieldState === 'valid' ? 'text-green-600 dark:text-green-400' : 'text-gray-400'
                             }`}>
-                              {fieldState === 'invalid' ? `Format: ${fieldHint[ch.key]}` : fieldState === 'valid' ? '✓ Valid format' : fieldHint[ch.key]}
+                              {fieldState === 'invalid' ? `Format: ${fieldHint[ch.key]}` : fieldState === 'valid' ? ' Valid format' : fieldHint[ch.key]}
                             </p>
                           )}
                         </div>

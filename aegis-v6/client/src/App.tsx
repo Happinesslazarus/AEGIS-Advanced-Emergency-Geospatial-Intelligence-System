@@ -11,19 +11,19 @@
  * - RTL language support handled by RtlEnforcer() inside this file
  *
  * Key routes:
- * /                    — LandingPage
- * /citizen             — CitizenPage (public safety map)
- * /citizen/auth        — CitizenAuthPage (citizen login/signup)
- * /citizen/dashboard   — CitizenDashboard (authenticated citizen view)
- * /admin               — AdminPage (operator / admin dashboard)
- * /alerts              — AlertsPage (live alert feed)
- * /guest               — GuestDashboard (read-only view without login)
+ * /                    -- LandingPage
+ * /citizen             -- CitizenPage (public safety map)
+ * /citizen/auth        -- CitizenAuthPage (citizen login/signup)
+ * /citizen/dashboard   -- CitizenDashboard (authenticated citizen view)
+ * /admin               -- AdminPage (operator / admin dashboard)
+ * /alerts              -- AlertsPage (live alert feed)
+ * /guest               -- GuestDashboard (read-only view without login)
  *
- * - client/src/contexts/AppProviders.tsx      — all Context providers in one place
- * - client/src/components/shared/RouteGuards.tsx — role-based route protection
- * - client/src/pages/AdminPage.tsx            — the main operator dashboard
- * - client/src/pages/CitizenDashboard.tsx     — the citizen safety dashboard
- * - client/src/components/FloatingChatWidget  — the persistent chat button/panel
+ * - client/src/contexts/AppProviders.tsx      -- all Context providers in one place
+ * - client/src/components/shared/RouteGuards.tsx -- role-based route protection
+ * - client/src/pages/AdminPage.tsx            -- the main operator dashboard
+ * - client/src/pages/CitizenDashboard.tsx     -- the citizen safety dashboard
+ * - client/src/components/FloatingChatWidget  -- the persistent chat button/panel
  * */
 
 import { Routes, Route } from 'react-router-dom'

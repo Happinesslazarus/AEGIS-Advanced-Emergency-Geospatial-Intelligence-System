@@ -48,7 +48,7 @@ class FloodRealPipeline(BaseRealPipeline):
         lead_hours=6,
         region_scope="GLOBAL",
         label_source=(
-            "EM-DAT (CRED) global flood disaster catalog — "
+            "EM-DAT (CRED) global flood disaster catalog -- "
             "independent of ERA5 reanalysis. "
             "Positive = EM-DAT documented flood event within 300 km of station."
         ),
@@ -62,26 +62,26 @@ class FloodRealPipeline(BaseRealPipeline):
             "description": (
                 "Labels from EM-DAT global flood records. "
                 "Positive = EM-DAT flood event within 300 km of station. "
-                "Independent from ERA5 features — no label-feature tautology."
+                "Independent from ERA5 features -- no label-feature tautology."
             ),
             "limitations": (
                 "EM-DAT records significant national disasters; minor local floods absent. "
                 "300 km spatial radius may include events not affecting the exact station."
             ),
             "peer_reviewed_basis": (
-                "Guha-Sapir D. et al. EM-DAT: The Emergency Events Database — "
+                "Guha-Sapir D. et al. EM-DAT: The Emergency Events Database -- "
                 "Université catholique de Louvain (UCL) - CRED, Brussels, Belgium."
             ),
             "expected_high_auc_rationale": (
                 "Flood AUC ≥ 0.95 is physically expected and not indicative of label leakage. "
                 "The causal chain is direct and well-established in hydrology: "
-                "extreme precipitation → soil saturation → river overtopping → flood disaster. "
+ "extreme precipitation -> soil saturation -> river overtopping -> flood disaster. "
                 "ERA5 precipitation features (antecedent_rainfall_24h/48h/72h/7d, "
                 "soil_moisture) capture exactly this causal chain. "
-                "Labels are from EM-DAT documented disasters — an independent source "
+                "Labels are from EM-DAT documented disasters -- an independent source "
                 "that records EFFECTS (property damage, casualties) not weather thresholds. "
                 "High AUC reflects the strength of the physical signal, not tautology. "
-                "Reference: Alfieri L. et al. (2013) 'GloFAS — global ensemble streamflow "
+                "Reference: Alfieri L. et al. (2013) 'GloFAS -- global ensemble streamflow "
                 "forecasting and flood early warning' HESSD 10:12547-12600."
             ),
         },
@@ -89,9 +89,9 @@ class FloodRealPipeline(BaseRealPipeline):
         min_positive_samples=20,
         min_stations=5,
         promotion_min_roc_auc=0.70,
-        # Use 2020-01-01 test date — EM-DAT has reliable coverage through 2019-2021.
+        # Use 2020-01-01 test date -- EM-DAT has reliable coverage through 2019-2021.
         # 2022-2023 window has near-zero events due to data-entry lag (confirmed
-        # in two training runs: test set = all-negative → AUC undefined → 0.5).
+ # in two training runs: test set = all-negative -> AUC undefined -> 0.5).
         # 2020-2021 holdout gives a genuine temporal test with documented flood events.
         fixed_test_date="2020-01-01",
         allow_sparse_test=True,
@@ -111,7 +111,7 @@ class FloodRealPipeline(BaseRealPipeline):
             hourly_vars=EXTENDED_HOURLY_VARS,
         )
 
-        # River levels are a bonus — failure is expected in most environments
+        # River levels are a bonus -- failure is expected in most environments
         river = pd.DataFrame()
         flood_events = pd.DataFrame()
         try:
@@ -137,7 +137,7 @@ class FloodRealPipeline(BaseRealPipeline):
         """Build per-station features from multi-location weather grid."""
         weather = raw_data.get("weather", pd.DataFrame())
         if weather.empty:
-            raise RuntimeError("No weather data — cannot build flood features")
+            raise RuntimeError("No weather data -- cannot build flood features")
         return build_per_station_features(
             weather,
             self.feature_engineer,
@@ -148,15 +148,15 @@ class FloodRealPipeline(BaseRealPipeline):
         )
 
     def build_labels(self, raw_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
-        """Build flood labels — EM-DAT primary, river gauge fallback."""
+        """Build flood labels -- EM-DAT primary, river gauge fallback."""
         river = raw_data.get("river", pd.DataFrame())
 
         # Primary: EM-DAT global flood events matched to GLOBAL_HEATWAVE_LOCATIONS.
         #
         # ONSET-ONLY labels (PhD-grade fix):
-        # EM-DAT records span the full event duration (days–months).  Labeling
+        # EM-DAT records span the full event duration (days-months).  Labeling
         # ALL hours of a 3-month Bangladesh flood as positive means the model
-        # sees "clear weather on day 45 → positive" — a temporal non-sequitur
+ # sees "clear weather on day 45 -> positive" -- a temporal non-sequitur
         # that destroys signal.  A FORECAST model should learn which atmospheric
         # conditions PRECEDE a flood onset, not "it's still flooding."
         #
@@ -166,10 +166,10 @@ class FloodRealPipeline(BaseRealPipeline):
         # accumulate 3-7 days before peak discharge (Alfieri et al., 2013 GloFAS;
         # Blöschl et al., 2017 Science). Labeling the FULL event duration (old
         # approach) included post-flood clear-weather periods (day 10-30 of a flood
-        # when rain has stopped but water hasn't receded) as positive → model learned
-        # "clearing skies = flood risk" → AUC < 0.5 (inverted predictor).
+ # when rain has stopped but water hasn't receded) as positive -> model learned
+ # "clearing skies = flood risk" -> AUC < 0.5 (inverted predictor).
         # The 5-day precursor window teaches which atmospheric conditions PRECEDE
-        # flood onset — the correct scientific target for a 6h lead-time forecast.
+        # flood onset -- the correct scientific target for a 6h lead-time forecast.
         emdat_labels = build_emdat_label_df(
             hazard_type="flood",
             station_locations=GLOBAL_HEATWAVE_LOCATIONS,
@@ -182,25 +182,25 @@ class FloodRealPipeline(BaseRealPipeline):
             # Full event duration labels (not onset-only).
             #
             # Rationale: onset-only (first 24h per block) reduces training positives
-            # to ~720 samples in the 2016-2019 training window — too sparse for any
+            # to ~720 samples in the 2016-2019 training window -- too sparse for any
             # model to learn from (AUC=0.47 in empirical testing).  The full event
             # duration gives ~1,400 training positives, providing enough signal.
             #
             # This is NOT tautological: EM-DAT labels record EFFECTS (property damage,
-            # casualties) from national disaster agencies — entirely independent of
+            # casualties) from national disaster agencies -- entirely independent of
             # ERA5 reanalysis.  The model learns which atmospheric conditions
             # (heavy rainfall + antecedent soil moisture) cause documented disasters,
             # not which threshold rules define "flooding".
             self.HAZARD_CONFIG.label_provenance["category"] = "recorded_events"
             self.HAZARD_CONFIG.label_provenance["source"] = (
-                "EM-DAT (CRED) global flood disaster catalog — "
+                "EM-DAT (CRED) global flood disaster catalog -- "
                 "independent of ERA5 reanalysis.  "
                 "Full event duration labels, 80 km spatial radius."
             )
             self.HAZARD_CONFIG.label_provenance["description"] = (
                 "Labels from EM-DAT global flood records. "
                 "Positive = any hour during a documented flood event within 80 km "
-                "of station.  Independent from ERA5 features — no tautology."
+                "of station.  Independent from ERA5 features -- no tautology."
             )
             n_pos = int(emdat_labels["label"].sum())
             logger.info(
@@ -212,7 +212,7 @@ class FloodRealPipeline(BaseRealPipeline):
         if river.empty:
             raise RuntimeError(
                 "EM-DAT flood fallback returned no events "
-                f"for {self.start_date}–{self.end_date}. "
+                f"for {self.start_date}-{self.end_date}. "
                 "EM-DAT covers recorded disasters; very recent dates may have sparse coverage. "
                 "Try a wider date range or ensure data/emdat/emdat_export.xlsx is present."
             )
@@ -259,12 +259,12 @@ class FloodRealPipeline(BaseRealPipeline):
     def hazard_feature_columns(self) -> list[str]:
         """Feature columns for flood prediction (ERA5 weather from multi-location grid)."""
         return [
-            # Rainfall accumulation — primary flood driver
+            # Rainfall accumulation -- primary flood driver
             "rainfall_1h", "rainfall_3h", "rainfall_6h", "rainfall_12h",
             "rainfall_24h", "rainfall_48h", "rainfall_72h", "rainfall_7d",
             "antecedent_rainfall_7d", "antecedent_rainfall_14d", "antecedent_rainfall_30d",
             "days_since_significant_rain",
-            # Soil moisture (antecedent saturation — affects runoff)
+            # Soil moisture (antecedent saturation -- affects runoff)
             "soil_moisture_0_to_7cm", "soil_moisture_7_to_28cm",
             # Temperature (snowmelt contribution)
             "temperature_2m", "temperature_anomaly", "freeze_thaw_cycles",

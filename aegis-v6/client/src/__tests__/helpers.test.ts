@@ -30,10 +30,10 @@ import {
   createMarkerSvg,
 } from '../utils/helpers'
 
-// vi.mock() intercepts the real i18n module and replacing t() with a stub
-// that returns hardcoded strings.  This prevents test failures caused by the
-// i18next initialisation happening asynchronously (it hasn't loaded language
-// files yet at the time this module is imported).
+//vi.mock() intercepts the real i18n module and replacing t() with a stub
+//that returns hardcoded strings.  This prevents test failures caused by the
+//i18next initialisation happening asynchronously (it hasn't loaded language
+//files yet at the time this module is imported).
 vi.mock('../utils/i18n', () => ({
   t: (key: string) => {
     const translations: Record<string, string> = {
@@ -47,7 +47,7 @@ vi.mock('../utils/i18n', () => ({
   },
 }))
 
-// timeAgo Tests
+//timeAgo Tests
 
 describe('timeAgo', () => {
   beforeEach(() => {
@@ -92,7 +92,7 @@ describe('timeAgo', () => {
   })
 })
 
-// timeAgoCompact Tests
+//timeAgoCompact Tests
 
 describe('timeAgoCompact', () => {
   beforeEach(() => {
@@ -133,7 +133,7 @@ describe('timeAgoCompact', () => {
   })
 })
 
-// getPasswordStrength Tests
+//getPasswordStrength Tests
 
 describe('getPasswordStrength', () => {
   test('returns weak for very short password', () => {
@@ -183,7 +183,7 @@ describe('getPasswordStrength', () => {
   })
 })
 
-// getSeverityClass Tests
+//getSeverityClass Tests
 
 describe('getSeverityClass', () => {
   test('returns badge-critical for High', () => {
@@ -207,7 +207,7 @@ describe('getSeverityClass', () => {
   })
 })
 
-// getStatusClass Tests
+//getStatusClass Tests
 
 describe('getStatusClass', () => {
   test('returns badge-verified for Verified', () => {
@@ -235,7 +235,7 @@ describe('getStatusClass', () => {
   })
 })
 
-// getSeverityBorderClass Tests
+//getSeverityBorderClass Tests
 
 describe('getSeverityBorderClass', () => {
   test('returns red classes for high', () => {
@@ -267,7 +267,7 @@ describe('getSeverityBorderClass', () => {
   })
 })
 
-// getPriorityColor Tests
+//getPriorityColor Tests
 
 describe('getPriorityColor', () => {
   test('returns red for Critical', () => {
@@ -291,7 +291,7 @@ describe('getPriorityColor', () => {
   })
 })
 
-// getConfidenceColor Tests
+//getConfidenceColor Tests
 
 describe('getConfidenceColor', () => {
   test('returns green for 80+', () => {
@@ -310,7 +310,7 @@ describe('getConfidenceColor', () => {
   })
 })
 
-// truncate Tests
+//truncate Tests
 
 describe('truncate', () => {
   test('returns original string if under limit', () => {
@@ -319,7 +319,7 @@ describe('truncate', () => {
 
   test('truncates and adds ellipsis for long strings', () => {
     const result = truncate('This is a very long string', 10)
-    expect(result).toBe('This is a …')
+    expect(result).toBe('This is a ...')
     expect(result.length).toBe(11)
   })
 
@@ -344,7 +344,7 @@ describe('truncate', () => {
   })
 })
 
-// escapeHtml Tests
+//escapeHtml Tests
 
 describe('escapeHtml', () => {
   test('escapes ampersand', () => {
@@ -378,7 +378,7 @@ describe('escapeHtml', () => {
   })
 })
 
-// createMarkerSvg Tests
+//createMarkerSvg Tests
 
 describe('createMarkerSvg', () => {
   test('creates SVG with specified color', () => {

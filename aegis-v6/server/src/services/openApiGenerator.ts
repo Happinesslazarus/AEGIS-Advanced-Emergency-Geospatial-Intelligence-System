@@ -1,5 +1,5 @@
 ﻿/**
- * OpenAPI 3.1.0 specification builder — programmatically generates the full
+ * OpenAPI 3.1.0 specification builder -- programmatically generates the full
  * API spec from Express route metadata including schemas, security definitions,
  * tags, and examples. Feeds Swagger UI and ReDoc documentation endpoints.
  *
@@ -11,7 +11,7 @@
 import { Router, Request, Response } from 'express'
 import { createHash } from 'crypto'
 
-// TYPE DEFINITIONS
+//TYPE DEFINITIONS
 
 export interface OpenAPISpec {
   openapi: '3.1.0'
@@ -186,7 +186,7 @@ interface SchemaObject {
   externalDocs?: ExternalDocumentationObject
   example?: any
   deprecated?: boolean
-  // JSON Schema
+  //JSON Schema
   properties?: Record<string, SchemaObject>
   additionalProperties?: boolean | SchemaObject
   required?: string[]
@@ -269,7 +269,7 @@ interface ExternalDocumentationObject {
   url: string
 }
 
-// ROUTE METADATA STORAGE
+//ROUTE METADATA STORAGE
 
 interface RouteMetadata {
   path: string
@@ -287,9 +287,9 @@ interface RouteMetadata {
 
 const routeMetadata: RouteMetadata[] = []
 
-// DECORATORS FOR ROUTE DOCUMENTATION
+//DECORATORS FOR ROUTE DOCUMENTATION
 
-// Simple metadata storage (avoids reflect-metadata dependency)
+//Simple metadata storage (avoids reflect-metadata dependency)
 const operationMetadata = new WeakMap<Function, any>()
 const bodyMetadata = new WeakMap<Function, any>()
 const responsesMetadata = new WeakMap<Function, Record<number, any>>()
@@ -307,7 +307,7 @@ export function ApiOperation(config: {
   deprecated?: boolean
 }) {
   return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
-    // Store metadata for later retrieval
+    //Store metadata for later retrieval
     operationMetadata.set(descriptor.value, config)
     return descriptor
   }
@@ -366,7 +366,7 @@ export function ApiSecurity(schemes: SecurityRequirementObject[]) {
   }
 }
 
-// AEGIS API SPECIFICATION
+//AEGIS API SPECIFICATION
 
 function generateAegisSpec(): OpenAPISpec {
   return {
@@ -486,7 +486,7 @@ API version is specified via URL path (\`/api/v1/...\`) or Accept header.
 
 function generatePaths(): PathsObject {
   return {
-    // Authentication
+    //Authentication
     '/api/auth/login': {
       post: {
         tags: ['Authentication'],
@@ -614,7 +614,7 @@ function generatePaths(): PathsObject {
       },
     },
     
-    // Reports
+    //Reports
     '/api/reports': {
       get: {
         tags: ['Reports'],
@@ -901,7 +901,7 @@ function generatePaths(): PathsObject {
       },
     },
     
-    // Alerts
+    //Alerts
     '/api/alerts': {
       get: {
         tags: ['Alerts'],
@@ -961,7 +961,7 @@ function generatePaths(): PathsObject {
       },
     },
     
-    // AI
+    //AI
     '/api/ai/classify': {
       post: {
         tags: ['AI'],
@@ -1029,7 +1029,7 @@ function generatePaths(): PathsObject {
       },
     },
     
-    // Analytics
+    //Analytics
     '/api/analytics/summary': {
       get: {
         tags: ['Analytics'],
@@ -1097,7 +1097,7 @@ function generatePaths(): PathsObject {
       },
     },
     
-    // Health
+    //Health
     '/api/health': {
       get: {
         tags: ['Health'],
@@ -1227,7 +1227,7 @@ function generateWebhooks(): Record<string, PathItemObject> {
 function generateComponents(): ComponentsObject {
   return {
     schemas: {
-      // Base schemas
+      //Base schemas
       Error: {
         type: 'object',
         properties: {
@@ -1280,7 +1280,7 @@ function generateComponents(): ComponentsObject {
         },
       },
       
-      // Enums
+      //Enums
       HazardType: {
         type: 'string',
         enum: ['FLOOD', 'FIRE', 'EARTHQUAKE', 'LANDSLIDE', 'STORM', 'INFRASTRUCTURE', 'ENVIRONMENTAL', 'OTHER'],
@@ -1298,7 +1298,7 @@ function generateComponents(): ComponentsObject {
         enum: ['CITIZEN', 'RESPONDER', 'ADMIN', 'SUPER_ADMIN'],
       },
       
-      // Auth schemas
+      //Auth schemas
       LoginRequest: {
         type: 'object',
         properties: {
@@ -1335,7 +1335,7 @@ function generateComponents(): ComponentsObject {
         },
       },
       
-      // User schema
+      //User schema
       User: {
         type: 'object',
         properties: {
@@ -1350,7 +1350,7 @@ function generateComponents(): ComponentsObject {
         },
       },
       
-      // Report schemas
+      //Report schemas
       Report: {
         type: 'object',
         properties: {
@@ -1401,7 +1401,7 @@ function generateComponents(): ComponentsObject {
         },
       },
       
-      // Alert schemas
+      //Alert schemas
       Alert: {
         type: 'object',
         properties: {
@@ -1428,7 +1428,7 @@ function generateComponents(): ComponentsObject {
         required: ['title', 'message', 'severity'],
       },
       
-      // AI schemas
+      //AI schemas
       ClassificationResult: {
         type: 'object',
         properties: {
@@ -1462,7 +1462,7 @@ function generateComponents(): ComponentsObject {
         },
       },
       
-      // Analytics schemas
+      //Analytics schemas
       AnalyticsSummary: {
         type: 'object',
         properties: {
@@ -1558,7 +1558,7 @@ function generateComponents(): ComponentsObject {
   }
 }
 
-// EXPRESS ROUTER
+//EXPRESS ROUTER
 
 let cachedSpec: OpenAPISpec | null = null
 let specHash = ''
@@ -1580,7 +1580,7 @@ export function getOpenAPISpec(): OpenAPISpec {
 export function createOpenAPIRouter(): Router {
   const router = Router()
   
-  // OpenAPI JSON spec
+  //OpenAPI JSON spec
   router.get('/openapi.json', (_req: Request, res: Response) => {
     res.setHeader('Content-Type', 'application/json')
     res.setHeader('Cache-Control', 'public, max-age=3600')
@@ -1588,7 +1588,7 @@ export function createOpenAPIRouter(): Router {
     res.json(getOpenAPISpec())
   })
   
-  // OpenAPI YAML spec
+  //OpenAPI YAML spec
   router.get('/openapi.yaml', (_req: Request, res: Response) => {
     const spec = getOpenAPISpec()
     res.setHeader('Content-Type', 'text/yaml')
@@ -1596,13 +1596,13 @@ export function createOpenAPIRouter(): Router {
     res.send(jsonToYaml(spec))
   })
   
-  // Swagger UI
+  //Swagger UI
   router.get('/docs', (_req: Request, res: Response) => {
     res.setHeader('Content-Type', 'text/html')
     res.send(generateSwaggerUI())
   })
   
-  // ReDoc
+  //ReDoc
   router.get('/redoc', (_req: Request, res: Response) => {
     res.setHeader('Content-Type', 'text/html')
     res.send(generateReDoc())
@@ -1701,7 +1701,7 @@ function generateReDoc(): string {
 </html>`
 }
 
-// STATS & UTILITIES
+//STATS & UTILITIES
 
 export function getOpenAPIStats(): {
   version: string

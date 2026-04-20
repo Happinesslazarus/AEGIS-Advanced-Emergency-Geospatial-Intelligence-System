@@ -43,7 +43,7 @@ export default function ProfileCountryPicker({
   const dropdownRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
-  // Find selected entry from value (country name or code depending on valueType)
+  //Find selected entry from value (country name or code depending on valueType)
   const selected = useMemo(() => {
     if (!value) return null
     const q = value.toLowerCase()
@@ -59,7 +59,7 @@ export default function ProfileCountryPicker({
     return null
   }, [value])
 
-  // Close on outside click (check both trigger and portal dropdown)
+  //Close on outside click (check both trigger and portal dropdown)
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const target = e.target as Node
@@ -72,7 +72,7 @@ export default function ProfileCountryPicker({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Compute portal position from trigger button rect
+  //Compute portal position from trigger button rect
   const [portalStyle, setPortalStyle] = useState<React.CSSProperties>({})
   useEffect(() => {
     if (open && ref.current) {
@@ -92,7 +92,7 @@ export default function ProfileCountryPicker({
     }
   }, [open])
 
-  // Focus search when opened, auto-expand group with selected entry
+  //Focus search when opened, auto-expand group with selected entry
   useEffect(() => {
     if (open) {
       setTimeout(() => searchRef.current?.focus(), 60)
@@ -111,7 +111,7 @@ export default function ProfileCountryPicker({
     }
   }, [open])
 
-  // Filtered groups
+  //Filtered groups
   const filteredGroups = useMemo(() => {
     const q = search.toLowerCase().trim()
     return COUNTRY_GROUPS.map(g => ({
@@ -128,7 +128,7 @@ export default function ProfileCountryPicker({
 
   const isSearching = search.trim().length > 0
 
-  /** Display label for trigger button — always uses entry.label */
+  /** Display label for trigger button -- always uses entry.label */
   const displayValue = selected?.label || (valueType === 'code' && value ? value.toUpperCase() : value)
 
   const handleSelect = (entry: RegionEntry) => {
@@ -166,7 +166,7 @@ export default function ProfileCountryPicker({
         <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform flex-shrink-0 ${open ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Dropdown panel — rendered via portal to escape stacking context */}
+      {/* Dropdown panel -- rendered via portal to escape stacking context */}
       {open && createPortal(
         <div
           ref={dropdownRef}
@@ -346,7 +346,7 @@ export default function ProfileCountryPicker({
 }
 
 /**
- * ProfileRegionPicker — Select a region/state within the chosen country.
+ * ProfileRegionPicker -- Select a region/state within the chosen country.
  * Uses worldRegions children if available, otherwise falls back to REGION_MAP from allCountries.
  */
 import { REGION_MAP } from '../../data/allCountries'
@@ -364,7 +364,7 @@ export function ProfileRegionPicker({ country, value, onChange, className = '', 
   const [dropUp, setDropUp] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  // Check for worldRegions children first (e.g. UK → England, Scotland, Wales, NI)
+ //Check for worldRegions children first (e.g. UK -> England, Scotland, Wales, NI)
   const worldChildren = useMemo(() => {
     if (!country) return []
     const q = country.toLowerCase()
@@ -378,7 +378,7 @@ export function ProfileRegionPicker({ country, value, onChange, className = '', 
     return []
   }, [country])
 
-  // Fall back to REGION_MAP from allCountries
+  //Fall back to REGION_MAP from allCountries
   const regions = useMemo(() => {
     if (worldChildren.length > 0) return null // use worldChildren instead
     return REGION_MAP[country] || []
@@ -386,7 +386,7 @@ export function ProfileRegionPicker({ country, value, onChange, className = '', 
 
   const hasOptions = worldChildren.length > 0 || (regions && regions.length > 0)
 
-  // Close on outside click
+  //Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
@@ -395,7 +395,7 @@ export function ProfileRegionPicker({ country, value, onChange, className = '', 
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Viewport-aware positioning
+  //Viewport-aware positioning
   useEffect(() => {
     if (open && ref.current) {
       const rect = ref.current.getBoundingClientRect()
@@ -403,7 +403,7 @@ export function ProfileRegionPicker({ country, value, onChange, className = '', 
     }
   }, [open])
 
-  // If no country or no predefined regions, show text input
+  //If no country or no predefined regions, show text input
   if (!country || !hasOptions) {
     return (
       <input
@@ -417,7 +417,7 @@ export function ProfileRegionPicker({ country, value, onChange, className = '', 
     )
   }
 
-  // Dropdown for countries with predefined regions
+  //Dropdown for countries with predefined regions
   return (
     <div ref={ref} className={`relative ${className}`}>
       <button
@@ -457,7 +457,7 @@ export function ProfileRegionPicker({ country, value, onChange, className = '', 
           </button>
 
           {worldChildren.length > 0 ? (
-            // World regions children (e.g. UK nations)
+            //World regions children (e.g. UK nations)
             worldChildren.map((child, i) => {
               const isActive = child.label === value
               return (
@@ -482,7 +482,7 @@ export function ProfileRegionPicker({ country, value, onChange, className = '', 
               )
             })
           ) : (
-            // REGION_MAP entries
+            //REGION_MAP entries
             regions!.map((r, i) => {
               const isActive = r.label === value
               return (

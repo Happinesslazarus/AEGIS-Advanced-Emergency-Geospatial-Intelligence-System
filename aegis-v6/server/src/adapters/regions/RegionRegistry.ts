@@ -59,7 +59,7 @@ class RegionRegistry {
       const adapter = this.adapters.get(this.activeRegionId)
       if (adapter) return adapter
     }
-    // Fallback to 'default' (GenericAdapter)
+    //Fallback to 'default' (GenericAdapter)
     return this.adapters.get('default') || [...this.adapters.values()][0]
   }
 
@@ -72,7 +72,7 @@ class RegionRegistry {
 
     if (!this.adapters.has(regionId)) {
       throw new Error(
-        `[RegionRegistry] Cannot set active region to '${regionId}' — not registered. ` +
+        `[RegionRegistry] Cannot set active region to '${regionId}' -- not registered. ` +
         `Available: ${[...this.adapters.keys()].join(', ')}`,
       )
     }
@@ -98,7 +98,7 @@ class RegionRegistry {
   }
 }
 
-// Singleton instance
+//Singleton instance
 
 export const regionRegistry = new RegionRegistry()
 
@@ -109,19 +109,19 @@ export const regionRegistry = new RegionRegistry()
  * @throws Error if ACTIVE_REGION env var is set to an unrecognised value
  */
 export function initRegionRegistry(): void {
-  // Register built-in adapters
+  //Register built-in adapters
   regionRegistry.registerRegion(new ScotlandAdapter())
   regionRegistry.registerRegion(new EnglandAdapter())
   regionRegistry.registerRegion(new GenericAdapter())
 
-  // Determine active region from env
+  //Determine active region from env
   const envRegion = (
     process.env.ACTIVE_REGION ||
     process.env.AEGIS_REGION ||
     'scotland'
   ).toLowerCase()
 
-  // Alias common names to registered IDs
+  //Alias common names to registered IDs
   const aliases: Record<string, string> = {
     gb: 'scotland',
     uk: 'scotland',

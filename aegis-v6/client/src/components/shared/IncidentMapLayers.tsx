@@ -14,7 +14,7 @@ import { useLanguage } from '../../hooks/useLanguage'
 
 import { INCIDENT_HEX } from '../../utils/colorTokens'
 
-// Incident colour & icon config
+//Incident colour & icon config
 const INCIDENT_COLORS: Record<string, string> = INCIDENT_HEX
 
 const INCIDENT_ICONS: Record<string, string> = {
@@ -62,7 +62,7 @@ function createIncidentIcon(type: string, severity: string): L.DivIcon {
   })
 }
 
-// Component
+//Component
 interface Props {
   /* Which incident types to show. Empty = all enabled */
   visibleTypes?: IncidentTypeId[]
@@ -95,7 +95,7 @@ export default function IncidentMapLayers({
     setLoading(true)
     try {
       const data = await apiGetAllIncidentMapData(region)
-      // Server returns { layers: IncidentMapData[] } — index by incidentType
+      //Server returns { layers: IncidentMapData[] } -- index by incidentType
       const byType: Record<string, IncidentMapData> = {}
       for (const layer of (data.layers || [])) {
         byType[layer.incidentType] = layer
@@ -189,7 +189,7 @@ export default function IncidentMapLayers({
                 </span>
               </div>
               <div className="text-gray-500 dark:text-gray-300 text-xs">
-                {marker.source} — {new Date(marker.timestamp).toLocaleString()}
+                {marker.source} -- {new Date(marker.timestamp).toLocaleString()}
               </div>
               {marker.details && Object.keys(marker.details).length > 0 && (
                 <div className="mt-1 text-xs text-gray-600">

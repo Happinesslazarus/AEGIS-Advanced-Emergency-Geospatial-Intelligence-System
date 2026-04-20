@@ -8,14 +8,14 @@ import type { CityRegionConfig } from './types.js'
 import aberdeen from './aberdeen.js'
 import glasgow from './glasgow.js'
 
-// Registry — add new cities here
+//Registry -- add new cities here
 
 const CITY_REGIONS: Record<string, CityRegionConfig> = {
   aberdeen_scotland_uk: aberdeen,
   glasgow_scotland_uk: glasgow,
 }
 
-// Public API
+//Public API
 
  /*
  * Get a specific region config by ID.

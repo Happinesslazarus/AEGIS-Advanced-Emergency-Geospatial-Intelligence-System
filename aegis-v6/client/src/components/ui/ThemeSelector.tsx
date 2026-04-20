@@ -23,7 +23,7 @@ export default function ThemeSelector({ darkNav, className = '' }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  // close on outside click
+  //close on outside click
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
@@ -33,7 +33,7 @@ export default function ThemeSelector({ darkNav, className = '' }: Props) {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  // close on Escape
+  //close on Escape
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }

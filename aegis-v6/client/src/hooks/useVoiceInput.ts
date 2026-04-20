@@ -4,13 +4,13 @@
  * incident report forms.
  *
  * How it works:
- *  1. User presses the record button → MediaRecorder captures audio in WebM
+ * 1. User presses the record button -> MediaRecorder captures audio in WebM
  *  2. Every CHUNK_INTERVAL_MS the WebM chunk is sent over a WebSocket to
- *     the AEGIS server (ws://…/api/voice/stream)
+ *     the AEGIS server (ws://.../api/voice/stream)
  *  3. The server forwards the chunk to the Python faster-whisper service
  *  4. The transcription text is streamed back and the hook appends it to
  *     the transcript state
- *  5. User presses stop → MediaRecorder finalises; full transcript is ready
+ * 5. User presses stop -> MediaRecorder finalises; full transcript is ready
  *
  * Graceful degradation:
  *  - If the browser does not support MediaRecorder, isSupported = false
@@ -18,13 +18,10 @@
  *  - If the WebSocket fails, falls back to polling the POST endpoint with
  *    the entire accumulated audio blob on stop
  *
- * How it connects:
+ * Integration points:
  *  - Used by VoiceInputButton.tsx (the record button component)
  *  - WebSocket connects to server/src/routes/voice.ts
  *  - Server routes to ai-engine/app/services/voice_transcription.py
- *
- * Simple explanation:
- *  Manages the microphone, sends audio to the server, and gives back text.
  */
 
 import {
@@ -34,7 +31,7 @@ import {
   useEffect,
 } from 'react'
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+//Constants
 
 /** How often (ms) to send audio chunks to the server during recording */
 const CHUNK_INTERVAL_MS = 1_500
@@ -42,7 +39,7 @@ const CHUNK_INTERVAL_MS = 1_500
 /** Max recording time before auto-stop (2 minutes) */
 const MAX_DURATION_MS = 120_000
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+//Types
 
 export interface VoiceInputState {
   /** Is the browser capable of recording audio? */
@@ -57,9 +54,9 @@ export interface VoiceInputState {
   error: string | null
   /** Detected primary hazard keyword from the transcription */
   primaryHazard: string | null
-  /** Approximate confidence from the last whisper segment (0–1) */
+  /** Approximate confidence from the last whisper segment (0-1) */
   transcriptConfidence: number
-  /** Audio level for the animated waveform (0–100, updated frequently) */
+  /** Audio level for the animated waveform (0-100, updated frequently) */
   audioLevel: number
 }
 
@@ -71,7 +68,7 @@ export interface VoiceInputHandlers {
 
 export type UseVoiceInputReturn = VoiceInputState & VoiceInputHandlers
 
-// ─── Server message shape ────────────────────────────────────────────────────
+//Server message shape
 
 interface TranscriptionMessage {
   text:                string
@@ -82,7 +79,7 @@ interface TranscriptionMessage {
   error?:              string
 }
 
-// ─── Hook ────────────────────────────────────────────────────────────────────
+//Hook
 
 /**
  * useVoiceInput
@@ -114,7 +111,7 @@ export function useVoiceInput(
   const animFrameRef      = useRef<number | null>(null)
   const streamRef         = useRef<MediaStream | null>(null)
 
-  // ── Detect browser support ─────────────────────────────────────────────
+  //Detect browser support
   useEffect(() => {
     const supported =
       typeof window !== 'undefined' &&
@@ -123,7 +120,7 @@ export function useVoiceInput(
     setState(s => ({ ...s, isSupported: supported }))
   }, [])
 
-  // ── Cleanup on unmount ────────────────────────────────────────────────
+  //Cleanup on unmount
   useEffect(() => {
     return () => {
       mediaRecorderRef.current?.stop()
@@ -134,7 +131,7 @@ export function useVoiceInput(
     }
   }, [])
 
-  // ── WebSocket management ──────────────────────────────────────────────
+  //WebSocket management
 
   const buildWsUrl = useCallback((): string => {
     if (wsUrl) return wsUrl
@@ -174,7 +171,7 @@ export function useVoiceInput(
             onTranscript?.(msg.text, msg.primary_hazard ?? null)
           }
         } catch {
-          // ignore malformed JSON
+          //ignore malformed JSON
         }
       }
 
@@ -182,7 +179,7 @@ export function useVoiceInput(
     })
   }, [buildWsUrl, onTranscript])
 
-  // ── Audio level monitor (for animated waveform) ───────────────────────
+  //Audio level monitor (for animated waveform)
 
   const startAudioLevelMonitor = useCallback((stream: MediaStream) => {
     try {
@@ -202,11 +199,11 @@ export function useVoiceInput(
       }
       animFrameRef.current = requestAnimationFrame(tick)
     } catch {
-      // AudioContext not available (JSDOM / old browser)
+      //AudioContext not available (JSDOM / old browser)
     }
   }, [])
 
-  // ── Start recording ───────────────────────────────────────────────────
+  //Start recording
 
   const startRecording = useCallback(async () => {
     if (state.isRecording || !state.isSupported) return
@@ -224,18 +221,18 @@ export function useVoiceInput(
     }
     streamRef.current = stream
 
-    // Open WebSocket; fall back to buffered mode if it fails
+    //Open WebSocket; fall back to buffered mode if it fails
     let ws: WebSocket | null = null
     try {
       ws = await openWebSocket()
     } catch {
       setState(s => ({
         ...s,
-        error: 'Real-time transcription unavailable — audio will be processed on stop.',
+        error: 'Real-time transcription unavailable -- audio will be processed on stop.',
       }))
     }
 
-    // Choose the best supported audio MIME type
+    //Choose the best supported audio MIME type
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
       ? 'audio/webm;codecs=opus'
       : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
@@ -260,7 +257,7 @@ export function useVoiceInput(
       stream.getTracks().forEach(t => t.stop())
       setState(s => ({ ...s, isRecording: false, audioLevel: 0 }))
 
-      // Fallback: POST full audio blob if WebSocket was unavailable
+      //Fallback: POST full audio blob if WebSocket was unavailable
       if (!ws || ws.readyState !== WebSocket.OPEN) {
         await fallbackPostTranscription(
           new Blob(chunksRef.current, { type: mimeType }),
@@ -276,13 +273,13 @@ export function useVoiceInput(
     startAudioLevelMonitor(stream)
     setState(s => ({ ...s, isRecording: true }))
 
-    // Auto-stop after MAX_DURATION_MS
+    //Auto-stop after MAX_DURATION_MS
     autoStopTimerRef.current = setTimeout(() => {
       recorder.state === 'recording' && recorder.stop()
     }, MAX_DURATION_MS)
   }, [state.isRecording, state.isSupported, openWebSocket, startAudioLevelMonitor, onTranscript])
 
-  // ── Stop recording ────────────────────────────────────────────────────
+  //Stop recording
 
   const stopRecording = useCallback(() => {
     if (autoStopTimerRef.current) clearTimeout(autoStopTimerRef.current)
@@ -290,7 +287,7 @@ export function useVoiceInput(
       mediaRecorderRef.current.stop()
   }, [])
 
-  // ── Clear ─────────────────────────────────────────────────────────────
+  //Clear
 
   const clearTranscript = useCallback(() => {
     setState(s => ({
@@ -310,7 +307,7 @@ export function useVoiceInput(
   }
 }
 
-// ─── Fallback POST transcription ─────────────────────────────────────────────
+//Fallback POST transcription
 
 async function fallbackPostTranscription(
   audioBlob: Blob,

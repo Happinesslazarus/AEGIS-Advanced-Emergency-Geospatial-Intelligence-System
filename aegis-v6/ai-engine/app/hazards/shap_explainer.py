@@ -32,7 +32,7 @@ try:
 except ImportError:
     shap = None
     SHAP_AVAILABLE = False
-    logger.warning("SHAP not installed — explainability limited to metadata-based importance")
+    logger.warning("SHAP not installed -- explainability limited to metadata-based importance")
 
 # Module-level cache: {id(model): TreeExplainer}
 _explainer_cache: Dict[int, Any] = {}

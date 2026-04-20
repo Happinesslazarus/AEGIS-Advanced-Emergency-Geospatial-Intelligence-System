@@ -10,13 +10,13 @@
 
 import jwt, { type SignOptions } from 'jsonwebtoken'
 
-// Ensure test secrets are set (idempotent if already set by the test file)
+//Ensure test secrets are set (idempotent if already set by the test file)
 process.env.JWT_SECRET ??= 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET ??= 'test-refresh-secret-at-least-32-chars'
 
 const JWT_SECRET = process.env.JWT_SECRET
 
-// Token payloads
+//Token payloads
 
 export interface TestUser {
   id: string
@@ -55,7 +55,7 @@ export const TEST_MANAGER: TestUser = {
   displayName: 'Test Manager',
 }
 
-// Token generators
+//Token generators
 
 /**
  * Generate a valid JWT access token for a given user.

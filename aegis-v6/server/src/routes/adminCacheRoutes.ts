@@ -7,10 +7,10 @@
  * - Uses cacheService for the actual cache operations
  * - Requires admin authentication
  *
- * POST /api/admin/cache/clear           — Flush entire cache
- * POST /api/admin/cache/clear-namespace — Flush one namespace
- * POST /api/admin/cache/clear-key       — Delete a single key
- * GET  /api/admin/cache/stats           — Cache diagnostics
+ * POST /api/admin/cache/clear           -- Flush entire cache
+ * POST /api/admin/cache/clear-namespace -- Flush one namespace
+ * POST /api/admin/cache/clear-key       -- Delete a single key
+ * GET  /api/admin/cache/stats           -- Cache diagnostics
  * */
 
 import { Router, Response, NextFunction } from 'express'
@@ -20,7 +20,7 @@ import { auditLog } from '../utils/logger.js'
 
 const router = Router()
 
-// All admin cache routes require admin authentication
+//All admin cache routes require admin authentication
 router.use(authMiddleware, adminOnly)
 
 /**
@@ -53,7 +53,7 @@ router.post('/clear-namespace', async (req: AuthRequest, res: Response, next: Ne
     if (!namespace || typeof namespace !== 'string') {
       return res.status(400).json({ error: 'A cache namespace is required.' })
     }
-    // Sanitise namespace: allow only alphanumeric, underscore, hyphen
+    //Sanitise namespace: allow only alphanumeric, underscore, hyphen
     if (!/^[a-z0-9_-]{1,64}$/i.test(namespace)) {
       return res.status(400).json({ error: 'Invalid namespace format. Use only letters, numbers, hyphens, and underscores.' })
     }
@@ -82,7 +82,7 @@ router.post('/clear-key', async (req: AuthRequest, res: Response, next: NextFunc
     if (!key || typeof key !== 'string') {
       return res.status(400).json({ error: 'A cache key is required.' })
     }
-    // Only allow keys within our namespace prefix
+    //Only allow keys within our namespace prefix
     if (!key.startsWith('aegis:v1:')) {
       return res.status(400).json({ error: 'Key must start with aegis:v1:' })
     }

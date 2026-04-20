@@ -1,5 +1,5 @@
 /**
- * Cascading three-level location picker: region → district → ward.
+ * Cascading three-level location picker: region -> district -> ward.
  * Each level fetches its options from /api/locations and icons indicate
  * the location type (city, village, etc.).
  */
@@ -20,7 +20,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
 }
 
 interface Props {
-  /* Compact mode — used in navigation bars (no label text, smaller) */
+  /* Compact mode -- used in navigation bars (no label text, smaller) */
   compact?: boolean
   /* Additional CSS classes on the outer wrapper */
   className?: string
@@ -81,14 +81,14 @@ export default function LocationDropdown({ compact = false, className = '' }: Pr
   useEffect(() => {
     if (open) {
       setTimeout(() => searchRef.current?.focus(), 60)
-      // Auto-expand the group containing the active location
+      //Auto-expand the group containing the active location
       for (const g of WORLD_REGIONS) {
         if (g.entries.some(e =>
           (e.locationKey || e.code) === activeLocation ||
           (e.children || []).some(c => (c.locationKey || c.code) === activeLocation)
         )) {
           setExpandedGroup(g.id)
-          // Also expand parent entry if active is a child
+          //Also expand parent entry if active is a child
           const parentEntry = g.entries.find(e => (e.children || []).some(c => (c.locationKey || c.code) === activeLocation))
           if (parentEntry) setExpandedEntry(`${g.id}-${parentEntry.code}`)
           break

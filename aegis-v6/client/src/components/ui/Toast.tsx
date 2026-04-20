@@ -8,7 +8,7 @@ import React, { createContext, useContext, useReducer, useCallback, useEffect, m
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { visuallyHiddenStyles } from '../../utils/accessibility'
 
-// TYPES
+//TYPES
 
 export type ToastVariant = 'info' | 'success' | 'warning' | 'error'
 export type ToastPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center' | 'bottom-center'
@@ -37,7 +37,7 @@ export interface ToastOptions {
   dismissible?: boolean
 }
 
-// CONTEXT & REDUCER
+//CONTEXT & REDUCER
 
 type ToastAction_ = 
   | { type: 'ADD_TOAST'; payload: Toast }
@@ -52,7 +52,7 @@ const toastReducer = (state: ToastState, action: ToastAction_): ToastState => {
   switch (action.type) {
     case 'ADD_TOAST': {
       const newToasts = [...state.toasts, action.payload]
-      // Evict oldest toasts beyond hard limit to prevent memory leak
+      //Evict oldest toasts beyond hard limit to prevent memory leak
       if (newToasts.length > 20) {
         return { toasts: newToasts.slice(-20) }
       }
@@ -80,7 +80,7 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined)
 
-// PROVIDER
+//PROVIDER
 
 interface ToastProviderProps {
   children: React.ReactNode
@@ -139,7 +139,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
     dispatch({ type: 'CLEAR_ALL' })
   }, [])
   
-  // Limit visible toasts
+  //Limit visible toasts
   const visibleToasts = state.toasts.slice(-maxToasts)
   
   const value: ToastContextValue = {
@@ -161,7 +161,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
   )
 }
 
-// HOOK
+//HOOK
 
 export const useToast = (): ToastContextValue => {
   const context = useContext(ToastContext)
@@ -171,7 +171,7 @@ export const useToast = (): ToastContextValue => {
   return context
 }
 
-// TOAST CONTAINER
+//TOAST CONTAINER
 
 interface ToastContainerProps {
   position: ToastPosition
@@ -210,7 +210,7 @@ const ToastContainer: React.FC<ToastContainerProps> = ({ position, toasts, onDis
   )
 }
 
-// TOAST ITEM
+//TOAST ITEM
 
 interface ToastItemProps {
   toast: Toast
@@ -244,7 +244,7 @@ const ToastItem = memo<ToastItemProps>(({ toast, onDismiss }) => {
   const { prefersReduced, getSafeTransition } = useReducedMotion()
   const styles = variantStyles[toast.variant]
   
-  // Auto-dismiss
+  //Auto-dismiss
   useEffect(() => {
     if (toast.duration && toast.duration > 0) {
       const timer = setTimeout(() => onDismiss(toast.id), toast.duration)
@@ -333,7 +333,7 @@ const ToastItem = memo<ToastItemProps>(({ toast, onDismiss }) => {
 
 ToastItem.displayName = 'ToastItem'
 
-// ICONS
+//ICONS
 
 const ToastIcon: React.FC<{ variant: ToastVariant }> = ({ variant }) => {
   const className = 'h-5 w-5'
@@ -373,7 +373,7 @@ const CloseIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 )
 
-// CSS ANIMATIONS (inject into global styles)
+//CSS ANIMATIONS (inject into global styles)
 
 export const toastAnimations = `
 @keyframes toast-in {
@@ -401,7 +401,7 @@ export const toastAnimations = `
 }
 `
 
-// EXPORTS
+//EXPORTS
 
 export default {
   ToastProvider,

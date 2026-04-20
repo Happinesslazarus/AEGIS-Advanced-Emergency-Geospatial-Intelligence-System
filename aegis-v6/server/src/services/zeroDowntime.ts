@@ -1,6 +1,6 @@
 ﻿/**
- * Graceful deployment lifecycle manager — handles STARTING → HEALTHY →
- * DRAINING → TERMINATING → TERMINATED transitions with connection draining,
+ * Graceful deployment lifecycle manager -- handles STARTING -> HEALTHY ->
+ * DRAINING -> TERMINATING -> TERMINATED transitions with connection draining,
  * priority-ordered shutdown hooks, and Kubernetes health endpoints.
  *
  * - Registers SIGTERM/SIGINT handlers for graceful shutdown
@@ -14,7 +14,7 @@ import { Redis } from 'ioredis'
 import client from 'prom-client'
 import { logger } from './logger.js'
 
-// Prometheus metrics
+//Prometheus metrics
 const shutdownDurationHistogram = new client.Histogram({
   name: 'aegis_shutdown_duration_seconds',
   help: 'Time taken for graceful shutdown',
@@ -31,7 +31,7 @@ const drainedConnectionsCounter = new client.Counter({
   help: 'Total connections drained during shutdown',
 })
 
-// Deployment states
+//Deployment states
 export enum DeploymentState {
   STARTING = 'starting',
   HEALTHY = 'healthy',
@@ -40,7 +40,7 @@ export enum DeploymentState {
   TERMINATED = 'terminated',
 }
 
-// Instance states
+//Instance states
 export enum HealthState {
   UNKNOWN = 'unknown',
   HEALTHY = 'healthy',
@@ -71,7 +71,7 @@ interface HealthCheck {
   critical: boolean  // If critical check fails, instance is unhealthy
 }
 
-// Instance state
+//Instance state
 const instance: ServerInstance = {
   server: null,
   dbPool: null,
@@ -83,11 +83,11 @@ const instance: ServerInstance = {
   version: process.env.APP_VERSION || 'unknown',
 }
 
-// Hooks and checks
+//Hooks and checks
 const shutdownHooks: ShutdownHook[] = []
 const healthChecks: HealthCheck[] = []
 
-// Configuration
+//Configuration
 const SHUTDOWN_TIMEOUT_MS = parseInt(process.env.SHUTDOWN_TIMEOUT_MS || '30000', 10)
 const DRAIN_TIMEOUT_MS = parseInt(process.env.DRAIN_TIMEOUT_MS || '15000', 10)
 const HEALTH_CHECK_INTERVAL_MS = 5000
@@ -108,7 +108,7 @@ export function initZeroDowntime(options: {
   instance.redisClient = options.redisClient || null
   instance.version = options.version || instance.version
 
-  // Register default health checks
+  //Register default health checks
   registerHealthCheck({
     name: 'database',
     critical: true,
@@ -137,13 +137,13 @@ export function initZeroDowntime(options: {
     },
   })
 
-  // Start health check loop
+  //Start health check loop
   healthCheckInterval = setInterval(runHealthChecks, HEALTH_CHECK_INTERVAL_MS)
 
-  // Register signal handlers
+  //Register signal handlers
   registerSignalHandlers()
 
-  // Transition to healthy after initial checks
+  //Transition to healthy after initial checks
   setTimeout(async () => {
     await runHealthChecks()
     if (instance.state === DeploymentState.STARTING) {
@@ -171,7 +171,7 @@ function registerSignalHandlers(): void {
     })
   }
 
-  // Handle uncaught errors
+  //Handle uncaught errors
   process.on('uncaughtException', async (err) => {
     logger.fatal({ err }, '[ZeroDowntime] Uncaught exception')
     await gracefulShutdown(1)
@@ -192,16 +192,16 @@ export async function gracefulShutdown(exitCode = 0): Promise<void> {
   const startTime = Date.now()
   logger.info('[ZeroDowntime] Starting graceful shutdown')
 
-  // Phase 1: Stop accepting new connections
+  //Phase 1: Stop accepting new connections
   instance.state = DeploymentState.DRAINING
 
-  // Stop health check loop
+  //Stop health check loop
   if (healthCheckInterval) {
     clearInterval(healthCheckInterval)
     healthCheckInterval = null
   }
 
-  // Stop HTTP server from accepting new connections
+  //Stop HTTP server from accepting new connections
   if (instance.server) {
     await new Promise<void>((resolve) => {
       instance.server!.close(() => {
@@ -211,17 +211,17 @@ export async function gracefulShutdown(exitCode = 0): Promise<void> {
     })
   }
 
-  // Phase 2: Wait for active connections to drain
+  //Phase 2: Wait for active connections to drain
   await drainConnections()
 
-  // Phase 3: Run shutdown hooks
+  //Phase 3: Run shutdown hooks
   instance.state = DeploymentState.TERMINATING
   await runShutdownHooks()
 
-  // Phase 4: Close resources
+  //Phase 4: Close resources
   await closeResources()
 
-  // Record shutdown duration
+  //Record shutdown duration
   const duration = (Date.now() - startTime) / 1000
   shutdownDurationHistogram.observe(duration)
 
@@ -262,7 +262,7 @@ async function drainConnections(): Promise<void> {
  * Run registered shutdown hooks in priority order
  */
 async function runShutdownHooks(): Promise<void> {
-  // Sort by priority (higher first)
+  //Sort by priority (higher first)
   const sorted = [...shutdownHooks].sort((a, b) => b.priority - a.priority)
 
   for (const hook of sorted) {
@@ -284,7 +284,7 @@ async function runShutdownHooks(): Promise<void> {
  * Close resources (DB, Redis, etc.)
  */
 async function closeResources(): Promise<void> {
-  // Close Redis
+  //Close Redis
   if (instance.redisClient) {
     try {
       await instance.redisClient.quit()
@@ -294,7 +294,7 @@ async function closeResources(): Promise<void> {
     }
   }
 
-  // Close database pool
+  //Close database pool
   if (instance.dbPool) {
     try {
       await instance.dbPool.end()
@@ -359,7 +359,7 @@ async function runHealthChecks(): Promise<void> {
     }
   }
 
-  // Update health state
+  //Update health state
   if (criticalFailure) {
     instance.healthState = HealthState.UNHEALTHY
   } else if (results.some(r => !r.healthy)) {

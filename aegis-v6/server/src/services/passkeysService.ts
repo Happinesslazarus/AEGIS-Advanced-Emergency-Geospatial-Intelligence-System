@@ -1,5 +1,5 @@
 ﻿/**
- * WebAuthn/FIDO2 passkey service — handles the full passkey lifecycle:
+ * WebAuthn/FIDO2 passkey service -- handles the full passkey lifecycle:
  * registration options, credential storage in passkey_credentials, and
  * authentication challenges with a 5-minute in-memory TTL.
  *
@@ -12,7 +12,7 @@ import crypto from 'crypto'
 import pool from '../models/db.js'
 import { AppError } from '../utils/AppError.js'
 
-// WebAuthn Types
+//WebAuthn Types
 export interface PublicKeyCredentialCreationOptions {
   challenge: string // base64url
   rp: {
@@ -68,7 +68,7 @@ export interface PasskeyCredential {
   aaguid: string | null
 }
 
-// Configuration
+//Configuration
 const config = {
   rpName: process.env.WEBAUTHN_RP_NAME || 'AEGIS Platform',
   rpId: process.env.WEBAUTHN_RP_ID || 'localhost',
@@ -77,7 +77,7 @@ const config = {
   attestation: 'none' as const, // 'none' for privacy, 'direct' for enterprise
 }
 
-// Challenge storage (in production, use Redis with TTL)
+//Challenge storage (in production, use Redis with TTL)
 const pendingChallenges = new Map<string, {
   challenge: string
   userId?: string
@@ -109,7 +109,7 @@ export async function initPasskeys(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_passkey_credential ON passkey_credentials(credential_id);
     `)
     
-    // Clean expired challenges periodically
+    //Clean expired challenges periodically
     setInterval(cleanExpiredChallenges, 60 * 1000)
     
     console.log('[Passkeys] Service initialized')
@@ -138,10 +138,10 @@ export async function generateRegistrationOptions(
   userName: string,
   displayName: string
 ): Promise<PublicKeyCredentialCreationOptions> {
-  // Generate random challenge
+  //Generate random challenge
   const challenge = crypto.randomBytes(32).toString('base64url')
   
-  // Get existing credentials for this user (to exclude)
+  //Get existing credentials for this user (to exclude)
   const existingCreds = await getUserCredentials(userId)
   
   const options: PublicKeyCredentialCreationOptions = {
@@ -173,7 +173,7 @@ export async function generateRegistrationOptions(
     })),
   }
   
-  // Store challenge for verification
+  //Store challenge for verification
   pendingChallenges.set(`reg:${userId}`, {
     challenge,
     userId,
@@ -201,7 +201,7 @@ export async function verifyRegistration(
   },
   deviceName: string = 'Unknown Device'
 ): Promise<{ success: boolean; credentialId?: string; error?: string }> {
-  // Get pending challenge
+  //Get pending challenge
   const pending = pendingChallenges.get(`reg:${userId}`)
   if (!pending || pending.type !== 'registration') {
     return { success: false, error: 'No pending registration challenge' }
@@ -213,37 +213,37 @@ export async function verifyRegistration(
   }
   
   try {
-    // Decode clientDataJSON
+    //Decode clientDataJSON
     const clientDataJSON = JSON.parse(
       Buffer.from(response.response.clientDataJSON, 'base64').toString('utf8')
     )
     
-    // Verify challenge matches
+    //Verify challenge matches
     if (clientDataJSON.challenge !== pending.challenge) {
       return { success: false, error: 'Challenge mismatch' }
     }
     
-    // Verify origin
+    //Verify origin
     const expectedOrigins = [config.origin, `https://${config.rpId}`]
     if (!expectedOrigins.some(o => clientDataJSON.origin.startsWith(o.split('://')[1] || o))) {
-      // More permissive origin check for development
+      //More permissive origin check for development
       console.warn('[Passkeys] Origin mismatch:', clientDataJSON.origin, 'expected:', expectedOrigins)
     }
     
-    // Verify type
+    //Verify type
     if (clientDataJSON.type !== 'webauthn.create') {
       return { success: false, error: 'Invalid operation type' }
     }
     
-    // Decode attestationObject (simplified - production should use proper CBOR parsing)
-    // For this implementation, we extract the public key from the credential
+    //Decode attestationObject (simplified - production should use proper CBOR parsing)
+    //For this implementation, we extract the public key from the credential
     const attestationBuffer = Buffer.from(response.response.attestationObject, 'base64')
     
-    // Extract auth data and public key (simplified extraction)
-    // In production, use @simplewebauthn/server or similar library
+    //Extract auth data and public key (simplified extraction)
+    //In production, use @simplewebauthn/server or similar library
     const publicKeyBase64 = response.response.attestationObject
     
-    // Store credential
+    //Store credential
     await pool.query(`
       INSERT INTO passkey_credentials (
         credential_id, user_id, public_key, counter, transports, device_name
@@ -257,7 +257,7 @@ export async function verifyRegistration(
       deviceName,
     ])
     
-    // Clean up challenge
+    //Clean up challenge
     pendingChallenges.delete(`reg:${userId}`)
     
     console.log(`[Passkeys] Registered credential for user ${userId}`)
@@ -275,14 +275,14 @@ export async function verifyRegistration(
 export async function generateAuthenticationOptions(
   userId?: string
 ): Promise<PublicKeyCredentialRequestOptions> {
-  // Generate random challenge
+  //Generate random challenge
   const challenge = crypto.randomBytes(32).toString('base64url')
   const sessionId = crypto.randomBytes(16).toString('hex')
   
   let allowCredentials: PublicKeyCredentialRequestOptions['allowCredentials']
   
   if (userId) {
-    // Get user's credentials
+    //Get user's credentials
     const creds = await getUserCredentials(userId)
     allowCredentials = creds.map(cred => ({
       type: 'public-key' as const,
@@ -299,7 +299,7 @@ export async function generateAuthenticationOptions(
     userVerification: 'preferred',
   }
   
-  // Store challenge for verification
+  //Store challenge for verification
   pendingChallenges.set(`auth:${sessionId}`, {
     challenge,
     userId,
@@ -327,17 +327,17 @@ export async function verifyAuthentication(
   }
 ): Promise<{ success: boolean; userId?: string; error?: string }> {
   try {
-    // Decode clientDataJSON
+    //Decode clientDataJSON
     const clientDataJSON = JSON.parse(
       Buffer.from(response.response.clientDataJSON, 'base64').toString('utf8')
     )
     
-    // Extract session ID from challenge
+    //Extract session ID from challenge
     const [sessionId, originalChallenge] = clientDataJSON.challenge.includes(':')
       ? clientDataJSON.challenge.split(':')
       : [null, clientDataJSON.challenge]
     
-    // Find pending challenge
+    //Find pending challenge
     let pending
     for (const [key, value] of pendingChallenges) {
       if (key.startsWith('auth:') && value.challenge === originalChallenge) {
@@ -355,12 +355,12 @@ export async function verifyAuthentication(
       return { success: false, error: 'Challenge expired' }
     }
     
-    // Verify type
+    //Verify type
     if (clientDataJSON.type !== 'webauthn.get') {
       return { success: false, error: 'Invalid operation type' }
     }
     
-    // Look up credential
+    //Look up credential
     const credResult = await pool.query(`
       SELECT pc.*, u.id as user_id, u.email
       FROM passkey_credentials pc
@@ -374,27 +374,27 @@ export async function verifyAuthentication(
     
     const credential = credResult.rows[0]
     
-    // Verify signature (simplified - production should use proper verification)
-    // This requires parsing authenticatorData, extracting counter, and verifying signature
+    //Verify signature (simplified - production should use proper verification)
+    //This requires parsing authenticatorData, extracting counter, and verifying signature
     const authenticatorData = Buffer.from(response.response.authenticatorData, 'base64')
     
-    // Extract counter (bytes 33-36 in authenticatorData)
+    //Extract counter (bytes 33-36 in authenticatorData)
     const counter = authenticatorData.readUInt32BE(33)
     
-    // Verify counter increased (replay attack protection)
+    //Verify counter increased (replay attack protection)
     if (counter <= credential.counter) {
       console.warn('[Passkeys] Counter not increased - possible replay attack')
-      // In production, this should fail. For development, we'll warn.
+      //In production, this should fail. For development, we'll warn.
     }
     
-    // Update counter and last used
+    //Update counter and last used
     await pool.query(`
       UPDATE passkey_credentials
       SET counter = $1, last_used_at = NOW()
       WHERE credential_id = $2
     `, [counter, response.rawId])
     
-    // Clean up challenge
+    //Clean up challenge
     pendingChallenges.delete(pending.key)
     
     console.log(`[Passkeys] Authenticated user ${credential.user_id} with passkey`)

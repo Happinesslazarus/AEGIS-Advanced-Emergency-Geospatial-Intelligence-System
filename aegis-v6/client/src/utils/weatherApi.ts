@@ -46,11 +46,11 @@ export function hasWeatherApiKey(): boolean {
 }
 
 export async function fetchCurrentWeather(lat: number, lon: number): Promise<WeatherData> {
-  // Primary provider: Open-Meteo (free, no API key required, EU-hosted).
-  // We try this first so users without an OpenWeatherMap key still get live data.
+  //Primary provider: Open-Meteo (free, no API key required, EU-hosted).
+  //We try this first so users without an OpenWeatherMap key still get live data.
   try {
-    // WMO (World Meteorological Organization) weather_code = standardised integer
-    // describing the current condition (e.g. 0=clear, 61=rain, 80=showers).
+    //WMO (World Meteorological Organization) weather_code = standardised integer
+    //describing the current condition (e.g. 0=clear, 61=rain, 80=showers).
     const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,visibility&timezone=auto`)
     if (res.ok) {
       const d = await res.json()
@@ -62,15 +62,15 @@ export async function fetchCurrentWeather(lat: number, lon: number): Promise<Wea
         windDir: degToDir(c.wind_direction_10m),
         description: wmoToDescription(c.weather_code), icon: wmoToIcon(c.weather_code),
         rainfall1h: c.rain || 0, rainfall3h: (c.rain || 0) * 3,
-        visibility: c.visibility ? Math.round(c.visibility / 1000) : 10,  // m → km
+ visibility: c.visibility ? Math.round(c.visibility / 1000) : 10, // m -> km
         clouds: c.cloud_cover || 0,
         updatedAt: new Date().toISOString(), source: 'live'
       }
     }
   } catch {}
 
-  // Secondary provider: OpenWeatherMap (requires user-supplied API key stored
-  // in localStorage so it never travels to our server).
+  //Secondary provider: OpenWeatherMap (requires user-supplied API key stored
+  //in localStorage so it never travels to our server).
   const key = getApiKey()
   if (!key) throw new Error('Live weather provider unavailable and no OpenWeather API key is configured.')
 
@@ -81,7 +81,7 @@ export async function fetchCurrentWeather(lat: number, lon: number): Promise<Wea
     return {
       temp: Math.round(d.main.temp), feelsLike: Math.round(d.main.feels_like),
       humidity: d.main.humidity, pressure: d.main.pressure,
-      // OpenWeatherMap returns wind speed in m/s; multiply by 3.6 to get km/h.
+      //OpenWeatherMap returns wind speed in m/s; multiply by 3.6 to get km/h.
       windSpeed: Math.round(d.wind.speed * 3.6),
       windDir: degToDir(d.wind.deg),
       description: d.weather[0].description, icon: d.weather[0].icon,
@@ -96,7 +96,7 @@ export async function fetchCurrentWeather(lat: number, lon: number): Promise<Wea
 }
 
 export async function fetchForecast(lat: number, lon: number): Promise<WeatherForecast[]> {
-  // Primary: Open-Meteo hourly forecast (free, no API key)
+  //Primary: Open-Meteo hourly forecast (free, no API key)
   try {
     const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,rain,wind_speed_10m,weather_code&forecast_days=2&timezone=auto`)
     if (res.ok) {
@@ -126,7 +126,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<WeatherFo
     }
   } catch {}
 
-  // Secondary: OpenWeatherMap
+  //Secondary: OpenWeatherMap
   const key = getApiKey()
   if (!key) throw new Error('Unable to fetch live forecast data. Configure OpenWeather API key as fallback.')
 
