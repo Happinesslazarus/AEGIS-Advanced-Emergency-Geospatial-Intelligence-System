@@ -1,7 +1,11 @@
 /**
- * Aberdeen server module.
+ * City-level configuration for Aberdeen, Scotland. Defines the bounding box,
+ * map centre (57.15°N, 2.09°W), monitored river stations (Don, Dee) with SEPA
+ * gauge IDs and flood thresholds, and the WMS layers used to render SEPA flood
+ * extent maps on the dashboard.
  *
- * - Imported by services and components that need this configuration
+ * - Consumed by server/src/config/regions.ts (registered under 'aberdeen')
+ * - River threshold values calibrated against SEPA gauge 15003 historical data
  */
 
 import type { CityRegionConfig } from './types.js'

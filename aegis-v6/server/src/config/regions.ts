@@ -1,7 +1,11 @@
 /**
- * Regions server module.
+ * Top-level region configuration registry. Maps region identifiers
+ * (e.g. 'scotland', 'england') to their full RegionConfig objects, including
+ * map centre coordinates, bounding box, emergency number, flood authority,
+ * weather/gauge API endpoints, and WMS tile layer definitions.
  *
- * - Imported by services and components that need this configuration
+ * - Consumed by RegionRegistry, spatial routes, and the flood alert service
+ * - City-level detail is in server/src/config/regions/aberdeen.ts etc.
  */
 
 import type { RegionConfig } from '../types/index.js'

@@ -1,8 +1,12 @@
 /**
- * Types incident component.
+ * Shared TypeScript types and interfaces for the AEGIS incident module system.
+ * Defines operational status, AI tier strategy, incident prediction shape,
+ * route mounting config, and the IncidentModule interface that every hazard
+ * type (flood, heatwave, landslide, etc.) must satisfy before being registered.
  *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
+ * - Consumed by incidents/registry.ts and all hazard sub-modules
+ * - IncidentModule.router is mounted under /api/incidents/:type by index.ts
+ */
 
 import type { Router } from 'express'
 

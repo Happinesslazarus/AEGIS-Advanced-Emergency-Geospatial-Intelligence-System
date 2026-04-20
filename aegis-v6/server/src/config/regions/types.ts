@@ -1,7 +1,11 @@
 /**
- * Types server module.
+ * TypeScript type definitions for city-level region configurations.
+ * Defines RiverStation (gauge ID, flood thresholds, data provider),
+ * WMSLayerDef (tile URL and layer names), and CityRegionConfig (the full
+ * composite shape used by Aberdeen, Glasgow, and future city configs).
  *
- * - Imported by services and components that need this configuration
+ * - Imported by all files under server/src/config/regions/
+ * - Distinct from the top-level RegionConfig in server/src/types/index.ts
  */
 
 export interface RiverStation {

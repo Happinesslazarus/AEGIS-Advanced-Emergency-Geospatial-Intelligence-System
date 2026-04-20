@@ -1,7 +1,11 @@
 /**
- * Test fixtures server module.
+ * Database fixture helpers for integration tests. Provides `insertCitizen`,
+ * `insertOperator`, `insertAdmin`, and cleanup utilities that seed the test
+ * database with predictable user records before each test and remove them
+ * afterwards, ensuring test isolation without full schema teardown.
  *
- * - Run by the test runner (Vitest or Jest)
+ * - Depends on testDb.ts (Pool) and testAuth.ts (canonical test user IDs)
+ * - Called in beforeEach / afterEach blocks across the integration test suite
  */
 
 import { getTestPool } from './testDb'

@@ -1,7 +1,12 @@
 /**
- * Open meteo adapter server module.
+ * River level adapter that pulls data from the Open-Meteo Flood API
+ * (flood-api.open-meteo.com). No API key required. Uses the latitude/longitude
+ * embedded in a station ID string (format: `lat_lng`) to query hourly river
+ * discharge forecasts and return a standardised RiverReading.
  *
- * - Used by services for external data fetching
+ * - Implements RiverDataAdapter interface (./RiverDataAdapter.ts)
+ * - Used by ScotlandAdapter and GenericAdapter as a fallback data source
+ * - Open-Meteo docs: https://open-meteo.com/en/docs/flood-api
  */
 
 import type { RiverDataAdapter, RiverReading, RiverHistory } from './RiverDataAdapter.js'

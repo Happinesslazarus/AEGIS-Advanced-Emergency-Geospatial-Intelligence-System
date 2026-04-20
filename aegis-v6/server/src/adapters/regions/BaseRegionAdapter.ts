@@ -1,7 +1,12 @@
 /**
- * Base region adapter server module.
+ * Abstract base class shared by all regional data adapters (Scotland, England,
+ * Generic). Loads the per-region JSON config file from disk, implements the
+ * common `RegionAdapter` interface, and provides default no-op implementations
+ * so concrete adapters only need to override the data sources they actually
+ * support (SEPA, EA API, Open-Meteo, etc.).
  *
- * - Used by services for external data fetching
+ * - Extended by EnglandAdapter, ScotlandAdapter, GenericAdapter
+ * - Config files live in server/src/config/regions/*.json
  */
 
 import { readFileSync } from 'fs'

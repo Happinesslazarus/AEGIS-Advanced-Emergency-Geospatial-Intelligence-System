@@ -1,7 +1,11 @@
 /**
- * Glasgow server module.
+ * City-level configuration for Glasgow, Scotland. Defines the bounding box,
+ * map centre (55.86°N, 4.25°W), monitored river stations (Clyde, Kelvin) with
+ * SEPA gauge IDs and flood thresholds, and the WMS layers used for the
+ * SEPA flood extent overlay on the dashboard map.
  *
- * - Imported by services and components that need this configuration
+ * - Consumed by server/src/config/regions.ts (registered under 'glasgow')
+ * - Clyde flood thresholds calibrated against SEPA gauge 84007 historical data
  */
 
 import type { CityRegionConfig } from './types.js'

@@ -1,12 +1,14 @@
 /**
- * Crowd density monitoring panel (shows real-time crowd levels).
+ * Admin crowd-density monitoring panel. Polls the spatial density API every
+ * 15 seconds and renders live heatmap cards for each monitored zone, showing
+ * crowd estimate, capacity utilisation, trend direction, and risk level.
+ * Falls back to report-derived density zones when the dedicated endpoint is
+ * unavailable, so operators always have situational awareness.
  *
- * - Pulls spatial density data from the backend API
- * - Falls back to report-derived zones when density data is missing
- * - Renders the admin view used by operations staff
- * Endpoints:
- * GET /api/spatial/density
- * GET /api/reportsimport { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+ * - Endpoints: GET /api/spatial/density, GET /api/reports
+ * - Mounted inside AdminPage.tsx under the Crowd Density tab
+ */
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Users, Activity, TrendingUp, TrendingDown, MapPin, RefreshCw, Loader2,
   AlertTriangle, Clock, ChevronDown, ChevronUp, Search, BarChart3,

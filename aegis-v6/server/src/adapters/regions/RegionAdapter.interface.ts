@@ -1,7 +1,11 @@
 /**
- * Region adapter.interface server module.
+ * Shared TypeScript interfaces and return-type contracts for all regional data
+ * adapters. Defines the shapes for flood warnings, river level readings,
+ * weather forecasts, rainfall data, emergency contacts, phone number formats,
+ * flood zones, hazard types, and monitored city records.
  *
- * - Used by services for external data fetching
+ * - Implemented by BaseRegionAdapter and all concrete adapters
+ * - Consumed by flood, heatwave, and spatial route handlers
  */
 
 // Return types

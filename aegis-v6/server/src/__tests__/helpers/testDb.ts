@@ -1,7 +1,11 @@
 /**
- * Test db server module.
+ * Shared PostgreSQL pool factory for integration tests. Returns a singleton
+ * Pool pointed at the DATABASE_URL env var and guards against accidental
+ * connection to a production database by requiring the URL to contain 'test'
+ * or 'localhost'. Exposes helpers to truncate tables between test runs.
  *
- * - Run by the test runner (Vitest or Jest)
+ * - Used by testFixtures.ts and every integration test that hits the database
+ * - Pool is torn down automatically in the global afterAll hook
  */
 
 import pg from 'pg'

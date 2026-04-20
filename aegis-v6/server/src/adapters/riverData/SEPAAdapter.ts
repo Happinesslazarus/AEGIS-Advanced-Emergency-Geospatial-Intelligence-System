@@ -1,7 +1,12 @@
 /**
- * S e p a adapter server module.
+ * River level adapter for the Scottish Environment Protection Agency (SEPA)
+ * KiWIS time-series API. Fetches current gauge readings and historical
+ * discharge data for Scottish river stations. Includes per-station error
+ * suppression to avoid log spam when a gauge is temporarily offline.
  *
- * - Used by services for external data fetching
+ * - Implements RiverDataAdapter (./RiverDataAdapter.ts)
+ * - SEPA KiWIS API: https://timeseries.sepa.org.uk/KiWIS/KiWIS
+ * - Used by ScotlandAdapter for all primary river data
  */
 
 import type { RiverDataAdapter, RiverReading, RiverHistory } from './RiverDataAdapter.js'

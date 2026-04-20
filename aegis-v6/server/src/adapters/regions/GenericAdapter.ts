@@ -1,7 +1,11 @@
 /**
- * Generic adapter server module.
+ * Fallback region adapter used for any country not covered by a dedicated
+ * adapter (Scotland, England). Falls back to the Open-Meteo global flood API
+ * for river discharge anomalies and Open-Meteo weather for forecasts.
+ * Limited to the first 5 monitored cities to avoid API rate limits.
  *
- * - Used by services for external data fetching
+ * - Instantiated by RegionRegistry when no country-specific adapter exists
+ * - Extends BaseRegionAdapter (server/src/adapters/regions/BaseRegionAdapter.ts)
  */
 
 import { BaseRegionAdapter } from './BaseRegionAdapter.js'

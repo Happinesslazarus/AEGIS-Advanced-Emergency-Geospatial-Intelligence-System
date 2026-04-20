@@ -1,7 +1,11 @@
 /**
- * Test auth server module.
+ * Test authentication helpers. Provides pre-built JWT tokens and user payload
+ * fixtures (TEST_CITIZEN, TEST_OPERATOR, TEST_ADMIN) used across the integration
+ * test suite. Sets JWT_SECRET and REFRESH_TOKEN_SECRET env vars if they are
+ * not already present so tests can run without a real .env file.
  *
- * - Run by the test runner (Vitest or Jest)
+ * - Imported by all server integration test files that need auth headers
+ * - Works with the Express auth middleware (server/src/middleware/auth.ts)
  */
 
 import jwt, { type SignOptions } from 'jsonwebtoken'
