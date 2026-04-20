@@ -43,6 +43,12 @@ from __future__ import annotations
 import math
 import os
 
+try:
+    from dotenv import load_dotenv as _load_dotenv
+    _load_dotenv()
+except ImportError:
+    pass
+
 import numpy as np
 import pandas as pd
 from loguru import logger

@@ -5,8 +5,9 @@
  */
 
 import { type ReactNode, type ComponentType, type FC } from 'react'
-import { QueryClientProvider } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { queryClient } from '../lib/queryClient'
+import { queryPersister } from '../lib/queryPersister'
 import { ThemeProvider } from './ThemeContext'
 import { LocationProvider } from './LocationContext'
 import { RegionProvider } from './RegionContext'
@@ -53,8 +54,30 @@ export function composeProviders(providers: ProviderComponent[]): FC<{ children:
  * These form the foundation of the app.
  */
 const CoreProviders: ProviderComponent[] = [
-  //Query client for data fetching
-  ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>,
+  //Query client with offline cache persistence (localStorage-backed)
+  ({ children }) => (
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: queryPersister,
+        maxAge: 24 * 60 * 60 * 1000,         // discard cache older than 24 hours
+        buster: '6.9.1',                       // bump on breaking API changes
+        dehydrateOptions: {
+          shouldDehydrateQuery: (query) => {
+            // Only persist successful queries; skip auth/session data
+            if (query.state.status !== 'success') return false
+            const key = query.queryKey[0]
+            if (typeof key === 'string' && /^(auth|session|login|token|currentUser)$/i.test(key)) {
+              return false
+            }
+            return true
+          },
+        },
+      }}
+    >
+      {children}
+    </PersistQueryClientProvider>
+  ),
   //Theme (dark/light mode, color schemes)
   ThemeProvider,
   //WebSocket connection
