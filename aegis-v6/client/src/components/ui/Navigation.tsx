@@ -3,6 +3,7 @@
  *
  * - Uses useResponsive for breakpoint detection
  * - Uses useFocusTrap for mobile drawer accessibility
+ */
 import React, { memo, useState, useCallback } from 'react'
 import { useResponsive } from '../../hooks/useResponsive'
 import { useReducedMotion } from '../../hooks/useReducedMotion'

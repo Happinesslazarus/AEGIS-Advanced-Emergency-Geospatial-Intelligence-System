@@ -3,6 +3,7 @@
  *
  * - Used by data-fetching components as placeholder content
  * - Respects useReducedMotion for animation preferences
+ */
 import React, { memo } from 'react'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { visuallyHiddenStyles } from '../../utils/accessibility'

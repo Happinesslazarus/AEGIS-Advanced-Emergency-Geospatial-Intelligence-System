@@ -3,6 +3,7 @@
  *
  * - Provides ToastContext consumed via useToast() hook
  * - Uses useReducedMotion for animation preferences
+ */
 import React, { createContext, useContext, useReducer, useCallback, useEffect, memo } from 'react'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { visuallyHiddenStyles } from '../../utils/accessibility'

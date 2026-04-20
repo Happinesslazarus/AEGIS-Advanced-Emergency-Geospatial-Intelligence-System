@@ -4,6 +4,7 @@
  * - Rendered by AdminLayout
  * - Reads alerts from AlertsContext for the notification dropdown
  * - Calls onViewChange to switch the active admin view
+ */
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {

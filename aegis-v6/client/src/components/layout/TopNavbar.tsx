@@ -5,6 +5,7 @@
  * - Reads auth state from CitizenAuthContext
  * - Reads alerts from AlertsContext to derive risk level
  * - Uses LocationContext for the active region
+ */
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {

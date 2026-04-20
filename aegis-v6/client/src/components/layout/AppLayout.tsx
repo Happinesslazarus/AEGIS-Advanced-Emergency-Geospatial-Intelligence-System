@@ -3,6 +3,7 @@
  *
  * - Used by CitizenPage and CitizenDashboard to wrap citizen views
  * - Reads alert count from AlertsContext for the navbar badge
+ */
 import { useState, useCallback } from 'react'
 import TopNavbar from './TopNavbar'
 import Sidebar, { type SidebarItem } from './Sidebar'

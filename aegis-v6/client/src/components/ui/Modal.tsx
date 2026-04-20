@@ -3,6 +3,7 @@
  *
  * - Renders via React portal to document body
  * - Uses useFocusTrap and useReducedMotion hooks
+ */
 import React, { useEffect, useCallback, useRef, memo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useReducedMotion } from '../../hooks/useReducedMotion'

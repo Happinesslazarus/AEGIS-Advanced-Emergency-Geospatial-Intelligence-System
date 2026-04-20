@@ -3,6 +3,7 @@
  *
  * - Uses Spinner from LoadingStates for the loading state
  * - Uses useReducedMotion for animation preferences
+ */
 import React, { forwardRef, memo } from 'react'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { Spinner } from './LoadingStates'

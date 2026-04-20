@@ -3,6 +3,7 @@
  *
  * - Wraps route-level components as error boundaries
  * - Used inline for fetch failures and empty data states
+ */
 import React, { Component, memo, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 

@@ -3,6 +3,7 @@
  *
  * - Used by AdminPage to wrap all admin views
  * - Composes AdminNavbar and AdminSidebar with SkipLinks for a11y
+ */
 import { useState, useCallback } from 'react'
 import AdminNavbar from './AdminNavbar'
 import AdminSidebar from './AdminSidebar'

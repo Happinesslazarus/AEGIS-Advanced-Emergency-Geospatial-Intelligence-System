@@ -3,6 +3,7 @@
  *
  * - Used by any form across the app
  * - Wired to InlineError from ErrorStates for validation messages
+ */
 import React, { forwardRef, memo, useState, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { InlineError } from './ErrorStates'
