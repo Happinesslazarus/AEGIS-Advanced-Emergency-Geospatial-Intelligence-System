@@ -266,8 +266,6 @@ import emergencyQRAuthRoutes from './routes/emergencyQRAuthRoutes.js'
 import incidentRoutes from './routes/incidentRoutes.js'
 import setupRoutes from './routes/setupRoutes.js'
 import mapTileRoutes from './routes/mapTileRoutes.js'
-import adaptiveMFARoutes from './routes/adaptiveMFARoutes.js'
-import { initAdaptiveMFA } from './services/adaptiveMFAService.js'
 import helplinesRoutes from './routes/helplinesRoutes.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { requestIdMiddleware } from './middleware/requestId.js'
@@ -335,10 +333,6 @@ console.log('')
 
 eventStreaming.initEventStreaming().catch((err: Error) => {
   console.warn(' [WARN] Event streaming failed to initialize:', err.message)
-})
-
-initAdaptiveMFA().catch((err: Error) => {
-  console.warn(' [WARN] Adaptive MFA failed to initialize:', err.message)
 })
 
 console.log(' [OK] Data layer services initialized')
@@ -584,8 +578,6 @@ app.use((req, res, next) => {
   const safeMethods = ['GET', 'HEAD', 'OPTIONS']
   //Auth endpoints are exempt: login/register have no session to protect, refresh/logout
   //use httpOnly cookies which prevent CSRF by design (JS cannot read them to forge requests).
-  // /api/security/passkeys/ is exempt because WebAuthn uses its own cryptographic challenge
-  //binding (clientDataJSON origin check) which provides equivalent CSRF protection.
   const csrfExemptPaths = ['/api/internal/', '/api/telegram/', '/api/map-tiles/', '/api/auth/', '/api/citizen-auth/', '/api/spatial/', '/api/chat', '/api/notifications/', '/api/voice/', '/api/translate', '/api/security/']
 
   if (safeMethods.includes(req.method) || csrfExemptPaths.some(p => req.path.startsWith(p))) {
@@ -698,7 +690,6 @@ app.use('/api/auth/login', loginLimiter) // Brute-force protection for login
 app.use('/api/citizen-auth/login', loginLimiter) // Brute-force protection for citizen login
 app.use('/api/auth', authRoutes) // Authentication
 app.use('/api/auth/2fa', twoFactorRoutes) // TOTP Two-Factor Authentication
-app.use('/api/auth/mfa', adaptiveMFARoutes) // Adaptive MFA step-up (NIST SP 800-63B)
 app.use('/api/security', securityRoutes) // Device Trust, Security Dashboard, Alert Preferences
 app.use('/api/auth', oauthRoutes) // OAuth social login (Google etc.)
 app.use('/api/auth', githubOAuthRoutes) // GitHub OAuth social login

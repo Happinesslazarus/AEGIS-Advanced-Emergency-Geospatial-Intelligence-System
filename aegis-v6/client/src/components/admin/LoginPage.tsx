@@ -373,35 +373,6 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
           {showMoreAuth && (
             <div className="space-y-2 animate-[aegis-fade-up_0.25s_ease-out]">
 
-              {/* Passkey */}
-              <button type="button"
-                onClick={async () => {
-                  try {
-                    if (!window.PublicKeyCredential) { setError('Passkeys not supported on this device'); return }
-                    const res = await fetch(`${API_BASE}/api/security/passkeys/auth-options`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-                    const { data } = await res.json()
-                    const credential = await navigator.credentials.get({ publicKey: { ...data, challenge: Uint8Array.from(atob(data.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)), allowCredentials: (data.allowCredentials || []).map((c: any) => ({ ...c, id: Uint8Array.from(atob(c.id.replace(/-/g, '+').replace(/_/g, '/')), ch => ch.charCodeAt(0)) })) } }) as PublicKeyCredential
-                    const authRes = credential.response as AuthenticatorAssertionResponse
-                    const toBase64Url = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-                    const verifyRes = await fetch(`${API_BASE}/api/security/passkeys/auth-verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: credential.id, rawId: toBase64Url(credential.rawId), response: { authenticatorData: toBase64Url(authRes.authenticatorData), clientDataJSON: toBase64Url(authRes.clientDataJSON), signature: toBase64Url(authRes.signature) }, type: 'public-key' }) })
-                    const verifyData = await verifyRes.json()
-                    if (verifyData.success && verifyData.token) {
-                      setToken(verifyData.token)
-                      setUser(verifyData.user)
-                      onLogin(verifyData.user)
-                    } else { setError(verifyData.error || 'Passkey authentication failed') }
-                  } catch (err: any) { setError(err?.message || 'Passkey authentication failed') }
-                }}
-                className="w-full flex items-center gap-3 py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition text-sm text-gray-700 dark:text-gray-200 shadow-sm">
-                <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center flex-shrink-0">
-                  <Fingerprint className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div className="text-left min-w-0">
-                  <p className="font-medium text-sm">Passkey / Biometric</p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500">Face ID, fingerprint, or security key</p>
-                </div>
-              </button>
-
               {/* Magic Link */}
               {!showMagicLink ? (
                 <button type="button" onClick={() => setShowMagicLink(true)}
