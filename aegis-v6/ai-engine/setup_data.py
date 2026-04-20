@@ -46,9 +46,7 @@ except ImportError:
     pass
 
 
-# ============================================================================
 # Status tracking
-# ============================================================================
 
 _OK      = "  [OK]      "
 _READY   = "  [READY]   "
@@ -63,9 +61,7 @@ def _section(title: str) -> None:
     print('='*60)
 
 
-# ============================================================================
 # 1.  Auto-downloadable datasets
-# ============================================================================
 
 def setup_spei(force: bool = False) -> bool:
     """CSIC SPEI Global v2.9 — drought labels (no registration required)."""
@@ -195,9 +191,7 @@ def setup_grdc_catalogue(force: bool = False) -> bool:
         return False
 
 
-# ============================================================================
 # 2.  Registration-required datasets
-# ============================================================================
 
 def check_firms_key() -> bool:
     """NASA FIRMS MAP_KEY — wildfire labels."""
@@ -239,9 +233,7 @@ def check_emdat() -> bool:
         return False
 
 
-# ============================================================================
 # 3.  Summary and training instructions
-# ============================================================================
 
 def print_summary(results: dict[str, bool]) -> None:
     _section("SETUP SUMMARY")
@@ -282,9 +274,7 @@ def print_summary(results: dict[str, bool]) -> None:
         print("    python app/training/train_all.py --start-date 2015-01-01 --end-date 2025-12-31")
 
 
-# ============================================================================
 # Main
-# ============================================================================
 
 def main() -> None:
     parser = argparse.ArgumentParser(
