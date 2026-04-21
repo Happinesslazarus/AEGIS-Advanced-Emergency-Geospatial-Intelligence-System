@@ -17,6 +17,7 @@
 import { Router, Response, NextFunction } from 'express'
 import pool from '../models/db.js'
 import { authMiddleware, requireRole, AuthRequest } from '../middleware/auth.js'
+import { AppError } from '../utils/AppError.js'
 import { getTokenUsageStats, getProviderStatus, classifyQuery } from '../services/llmRouter.js'
 import { chatCompletion } from '../services/llmRouter.js'
 import { logger } from '../services/logger.js'
@@ -148,7 +149,7 @@ router.post('/canned-replies', async (req: AuthRequest, res: Response, next: Nex
     res.status(201).json(rows[0])
   } catch (err: any) {
     if (err.code === '42P01') {
-      return res.status(503).json({ error: 'The canned replies feature is not yet set up. A database migration needs to be run -- please contact your system administrator.' })
+      return next(AppError.serviceUnavailable('The canned replies feature is not yet set up. A database migration needs to be run -- please contact your system administrator.'))
     }
     next(err)
   }

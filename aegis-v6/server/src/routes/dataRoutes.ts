@@ -295,7 +295,7 @@ router.get('/weather/:lat/:lng', async (req: Request, res: Response): Promise<vo
     res.json(result)
   } catch (err: any) {
     logger.error({ err }, '[Weather] API error')
-    res.status(502).json({ error: 'Failed to fetch live weather data.' })
+    throw AppError.badGateway('Failed to fetch live weather data.')
   }
 })
 
@@ -343,7 +343,7 @@ router.get('/weather/current', async (req: Request, res: Response): Promise<void
     res.json(result)
   } catch (err: any) {
     logger.warn({ err }, '[Weather/current] Open-Meteo failed')
-    res.status(503).json({ error: 'Weather data temporarily unavailable.' })
+    throw AppError.serviceUnavailable('Weather data temporarily unavailable.')
   }
 })
 
@@ -453,7 +453,7 @@ router.get('/flood-data/stations/:stationId/readings', async (req: Request, res:
     res.json(readings)
   } catch (err: any) {
     logger.error({ err }, '[FloodData] station readings error')
-    res.status(502).json({ error: 'Failed to fetch station readings.' })
+    throw AppError.badGateway('Failed to fetch station readings.')
   }
 })
 

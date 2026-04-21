@@ -63,7 +63,7 @@ router.get('/:provider/:z/:x/:y', async (req: Request, res: Response) => {
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.status(200).send(bytes)
   } catch {
-    res.status(502).json({ error: 'Unable to load map tile via proxy' })
+    throw AppError.badGateway('Unable to load map tile via proxy')
   }
 })
 

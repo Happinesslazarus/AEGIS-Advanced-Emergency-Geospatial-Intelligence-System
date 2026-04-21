@@ -466,8 +466,7 @@ router.post('/forgot-password', async (req: AuthRequest, res: Response, next: Ne
       //Enforce HTTPS for password reset links in production to prevent token interception
       if (process.env.NODE_ENV === 'production' && !resetBase.startsWith('https://')) {
         logger.error('[SECURITY] RESET_PASSWORD_URL or CLIENT_URL must use HTTPS in production. Set RESET_PASSWORD_URL env var.')
-        res.status(500).json({ error: 'The password reset service is not properly configured. Please contact your system administrator.' })
-        return
+        throw AppError.internal('The password reset service is not properly configured. Please contact your system administrator.')
       }
       const resetLink = `${resetBase}?token=${rawToken}`
 

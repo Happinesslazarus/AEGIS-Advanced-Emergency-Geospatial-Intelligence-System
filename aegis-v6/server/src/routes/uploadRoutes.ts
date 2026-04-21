@@ -8,7 +8,7 @@
  * - Uploaded files served by the static handler in index.ts
  * */
 
-import express, { Response, NextFunction } from 'express'
+import express, { Response } from 'express'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
@@ -96,25 +96,21 @@ router.post('/upload',
   },
   upload.single('file'),
   validateMagicBytes,
-  (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-      if (!req.file) {
-        throw AppError.badRequest('No file provided')
-      }
-
-      const uploadType = (req as any).uploadType || 'general'
-      const url = `/uploads/${uploadType}/${req.file.filename}`
-
-      res.json({
-        success: true,
-        url,
-        filename: req.file.filename,
-        size: req.file.size,
-        mimetype: req.file.mimetype,
-      })
-    } catch (err) {
-      next(err)
+  (req: AuthRequest, res: Response) => {
+    if (!req.file) {
+      throw AppError.badRequest('No file provided')
     }
+
+    const uploadType = (req as any).uploadType || 'general'
+    const url = `/uploads/${uploadType}/${req.file.filename}`
+
+    res.json({
+      success: true,
+      url,
+      filename: req.file.filename,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+    })
   }
 )
 
@@ -127,22 +123,18 @@ router.post('/upload/avatar',
     next()
   },
   upload.single('file'),
-  (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-      if (!req.file) {
-        throw AppError.badRequest('No file provided')
-      }
-
-      const url = `/uploads/avatars/${req.file.filename}`
-
-      res.json({
-        success: true,
-        url,
-        filename: req.file.filename,
-      })
-    } catch (err) {
-      next(err)
+  (req: AuthRequest, res: Response) => {
+    if (!req.file) {
+      throw AppError.badRequest('No file provided')
     }
+
+    const url = `/uploads/avatars/${req.file.filename}`
+
+    res.json({
+      success: true,
+      url,
+      filename: req.file.filename,
+    })
   }
 )
 
@@ -155,22 +147,18 @@ router.post('/upload/community',
     next()
   },
   upload.single('file'),
-  (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-      if (!req.file) {
-        throw AppError.badRequest('No file provided')
-      }
-
-      const url = `/uploads/community/${req.file.filename}`
-
-      res.json({
-        success: true,
-        url,
-        filename: req.file.filename,
-      })
-    } catch (err) {
-      next(err)
+  (req: AuthRequest, res: Response) => {
+    if (!req.file) {
+      throw AppError.badRequest('No file provided')
     }
+
+    const url = `/uploads/community/${req.file.filename}`
+
+    res.json({
+      success: true,
+      url,
+      filename: req.file.filename,
+    })
   }
 )
 
