@@ -213,7 +213,6 @@ export default function GuestDashboard(): JSX.Element {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [signInOpen, setSignInOpen] = useState(false)
-  const [navSearchOpen, setNavSearchOpen] = useState(false)
   const [liveClock, setLiveClock] = useState(new Date())
   const [mounted, setMounted] = useState(false)
   const signInRef = useRef<HTMLDivElement>(null)

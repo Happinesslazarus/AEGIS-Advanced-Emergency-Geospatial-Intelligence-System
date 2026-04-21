@@ -258,7 +258,6 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
   const [detectedCity, setDetectedCity] = useState<string>('generic')
   const [detectedCountryCode, setDetectedCountryCode] = useState<string>('')
   const [findaHelplineUrl, setFindaHelplineUrl] = useState<string | null>(null)
-  const [nearbyRadius, setNearbyRadius] = useState(5)
   const [submitting, setSubmitting] = useState(false)
   const [loadingPosts, setLoadingPosts] = useState(false)
   const [postTranslations, setPostTranslations] = useState<Record<string, string>>({})

@@ -215,10 +215,6 @@ export default function CitizenDashboard(): JSX.Element {
   const tabFromUrl = searchParams.get('tab')
   const initialTab = (tabFromUrl && VALID_TABS.has(tabFromUrl as TabKey)) ? tabFromUrl as TabKey : 'overview'
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [statusColor, setStatusColor] = useState<'green' | 'yellow' | 'red'>('green')
-  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
-  const [showAlertPanel, setShowAlertPanel] = useState(false)
   const [showAssistant, setShowAssistant] = useState(false)
   const [communityUnread, setCommunityUnread] = useState(0)
 

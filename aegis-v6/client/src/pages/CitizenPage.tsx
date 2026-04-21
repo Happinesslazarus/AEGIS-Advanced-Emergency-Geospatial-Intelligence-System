@@ -272,7 +272,6 @@ export default function CitizenPage(): JSX.Element {
   const [activeTab, setActiveTab] = useState('map')
   const [sortField, setSortField] = useState('timestamp')
   const [sortOrder, setSortOrder] = useState('desc')
-  const [safetyStatus, setSafetyStatus] = useState<string|null>(null)
   const [showSubscribe, setShowSubscribe] = useState(false)
   //selectedCountry is used for SOS handler and emergency-info fallback display
   const selectedCountry: CountryCode = ALL_COUNTRY_CODES.find(c => c.code === 'GB') || ALL_COUNTRY_CODES[0]
@@ -293,7 +292,6 @@ export default function CitizenPage(): JSX.Element {
     localStorage.getItem('aegis_onboarding_v1') === 'true'
   )
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
-  const [prepExpanded, setPrepExpanded] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedAlert, setSelectedAlert] = useState<any>(null)
   const [selectedReport, setSelectedReport] = useState<any>(null)

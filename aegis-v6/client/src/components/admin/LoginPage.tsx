@@ -43,7 +43,6 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
   const [twoFactorRequired, setTwoFactorRequired] = useState(false)
   const [tempToken, setTempToken] = useState('')
   const [navDropdownOpen, setNavDropdownOpen] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showMoreAuth, setShowMoreAuth] = useState(false)
   const navDropdownRef = useRef<HTMLDivElement>(null)
 
