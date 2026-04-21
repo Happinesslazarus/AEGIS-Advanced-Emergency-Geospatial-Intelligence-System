@@ -17,13 +17,14 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
   Shield, Users, Activity, Eye, Search, RefreshCw, Clock, ChevronDown,
   ChevronRight, Edit2, Ban, CheckCircle2, Trash2, Key,
-  AlertTriangle, Lock, UserPlus, ArrowUpDown, ArrowUp,
-  ArrowDown, Fingerprint, Building2,
+  AlertTriangle, Lock, UserPlus, Fingerprint, Building2,
   ShieldAlert, History, BarChart3, User, XCircle, Check, X, FileText
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { apiInviteOperator } from '../../utils/api'
+import { DataTable } from '../ui/DataTable'
+import type { DataTableColumn } from '../ui/DataTable'
 
 /*  types  */
 interface Props {
@@ -422,13 +423,6 @@ export default function UserAccessManagement({
     }
   }
 
-  /*  sort button  */
-  const SortBtn = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-    <button onClick={() => toggleSort(field)} className="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
-      {children}
-      {sortField === field ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-30" />}
-    </button>
-  )
 
   /*  RENDER  */
   return (
@@ -558,89 +552,92 @@ export default function UserAccessManagement({
 
           {/* Table */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
-                    <th className="px-4 py-3 text-left w-10">
-                      <input type="checkbox" checked={bulkSelected.size === filteredUsers.length && filteredUsers.length > 0} onChange={toggleBulkAll} className="w-3.5 h-3.5 rounded border-gray-300 text-aegis-600 focus:ring-aegis-500" />
-                    </th>
-                    <th className="px-3 py-3 text-left"><SortBtn field="name">{t('users.user', lang)}</SortBtn></th>
-                    <th className="px-3 py-3 text-left"><SortBtn field="role">{t('users.role', lang)}</SortBtn></th>
-                    <th className="px-3 py-3 text-left"><SortBtn field="department">{t('users.department', lang)}</SortBtn></th>
-                    <th className="px-3 py-3 text-left"><SortBtn field="status">{t('common.status', lang)}</SortBtn></th>
-                    <th className="px-3 py-3 text-left"><SortBtn field="lastLogin">{t('users.lastLogin', lang)}</SortBtn></th>
-                    <th className="px-3 py-3 text-left"><SortBtn field="created">{t('common.created', lang)}</SortBtn></th>
-                    <th className="px-4 py-3 text-right">{t('common.actions', lang)}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
-                  {filteredUsers.map((u: any) => {
-                    const status = getUserStatus(u)
-                    const sm = STATUS_META[status]
-                    const rm = roleMeta[u.role] || roleMeta.viewer
+            {(() => {
+              const userColumns: DataTableColumn<any>[] = [
+                {
+                  key: 'select',
+                  header: <input type="checkbox" checked={bulkSelected.size === filteredUsers.length && filteredUsers.length > 0} onChange={toggleBulkAll} className="w-3.5 h-3.5 rounded border-gray-300 text-aegis-600 focus:ring-aegis-500" />,
+                  render: (u) => <input type="checkbox" checked={bulkSelected.has(u.id)} onChange={() => toggleBulk(u.id)} className="w-3.5 h-3.5 rounded border-gray-300 text-aegis-600 focus:ring-aegis-500" />,
+                  className: 'w-10 px-4',
+                  headerClassName: 'px-4 w-10',
+                },
+                {
+                  key: 'name', header: t('users.user', lang), sortable: true,
+                  render: (u) => {
                     const isExpanded = expandedUser === u.id
                     const isSelf = u.id === currentUser?.id
                     return (
-                      <React.Fragment key={u.id}>
-                        <tr className={`group text-xs hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors ${status === 'suspended' ? 'bg-red-50/30 dark:bg-red-950/5' : ''}`}>
-                          <td className="px-4 py-3">
-                            <input type="checkbox" checked={bulkSelected.has(u.id)} onChange={() => toggleBulk(u.id)} className="w-3.5 h-3.5 rounded border-gray-300 text-aegis-600 focus:ring-aegis-500" />
-                          </td>
-                          <td className="px-3 py-3">
-                            <button onClick={() => setExpandedUser(isExpanded ? null : u.id)} className="flex items-center gap-2.5 group/user">
-                              {isExpanded ? <ChevronDown className="w-3 h-3 text-gray-400 dark:text-gray-300 flex-shrink-0" /> : <ChevronRight className="w-3 h-3 text-gray-400 dark:text-gray-300 flex-shrink-0" />}
-                              {u.avatar_url
-                                ? <img src={u.avatar_url} alt="" className="w-8 h-8 rounded-lg object-cover border border-gray-200 dark:border-gray-700 flex-shrink-0" />
-                                : <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0 ${u.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : u.role === 'operator' ? 'bg-gradient-to-br from-blue-500 to-cyan-600' : 'bg-gradient-to-br from-gray-400 to-gray-500'}`}>{u.display_name?.charAt(0) || '?'}</div>
-                              }
-                              <div className="text-left min-w-0">
-                                <p className="font-bold text-gray-900 dark:text-white group-hover/user:text-blue-600 dark:group-hover/user:text-blue-400 transition-colors truncate whitespace-nowrap">
-                                  {u.display_name}{isSelf && <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold">{t('users.youBadge', lang)}</span>}
-                                </p>
-                                <p className="text-[10px] text-gray-400 dark:text-gray-300 truncate font-mono">{u.email}</p>
-                              </div>
-                            </button>
-                          </td>
-                          <td className="px-3 py-3">
-                            <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold ring-1 ${rm.bg} ${rm.color} ${rm.ring}`}>
-                              <rm.icon className="w-3 h-3" /> {rm.label}
-                            </span>
-                          </td>
-                          <td className="px-3 py-3 text-gray-600 dark:text-gray-300 truncate max-w-[140px]">{u.department ? (departmentLabels[u.department] || u.department) : <span className="text-gray-400 dark:text-gray-300 italic">{t('users.unassigned', lang)}</span>}</td>
-                          <td className="px-3 py-3">
-                            <span className={`inline-flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full font-bold ${sm.bg} ${sm.color}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${sm.dot} ${status === 'active' ? 'animate-pulse' : ''}`} /> {sm.label}
-                            </span>
-                          </td>
-                          <td className="px-3 py-3 text-gray-500 dark:text-gray-300 whitespace-nowrap">{u.last_login ? timeAgo(u.last_login, lang) : <span className="text-gray-400 dark:text-gray-300 italic">{t('common.never', lang)}</span>}</td>
-                          <td className="px-3 py-3 text-gray-400 dark:text-gray-300 whitespace-nowrap text-[10px]">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '--'}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-1 justify-end">
-                              <button onClick={() => { setEditModal(u); setEditForm({ role: u.role, department: u.department || '', phone: u.phone || '', displayName: u.display_name }) }} title={t('users.editUser', lang)} className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                              {u.is_suspended ? (
-                                <button onClick={() => askConfirm(t('users.activate', lang), `${t('users.activate', lang)} ${u.display_name}?`, 'success', async () => {
-                                  await apiActivateUser(u.id); setUsers(prev => prev.map(x => x.id === u.id ? { ...x, is_suspended: false } : x)); pushNotification(t('users.activatedSuccess', lang), 'success')
-                                })} title={t('users.activate', lang)} className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"><CheckCircle2 className="w-3.5 h-3.5" /></button>
-                              ) : (
-                                <button onClick={() => { setSuspendModal(u); setSuspendForm({ until: '', reason: '' }) }} title={t('users.suspend', lang)} className="p-1.5 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"><Ban className="w-3.5 h-3.5" /></button>
-                              )}
-                              <button onClick={() => askConfirm(t('users.resetPassword', lang), `${t('users.resetPassword', lang)} ${u.display_name}?`, 'info', async () => {
-                                await apiResetUserPassword(u.id); pushNotification(t('users.resetLinkGenerated', lang), 'success')
-                              })} title={t('users.resetPassword', lang)} className="p-1.5 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"><Key className="w-3.5 h-3.5" /></button>
-                              {!isSelf && (
-                                <button onClick={() => askConfirm(t('users.deleteUser', lang), `${t('users.bulkDeletePrompt', lang)} ${u.display_name}? ${t('users.bulkDeleteSuffix', lang)}`, 'danger', async () => {
-                                  await apiDeleteUser(u.id); setUsers(prev => prev.filter(x => x.id !== u.id)); pushNotification(t('users.deletedSuccess', lang), 'success')
-                                })} title={t('common.delete', lang)} className="p-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-
-                        {/* Expanded profile detail */}
-                        {isExpanded && (
-                          <tr>
-                            <td colSpan={8} className="bg-gray-50/50 dark:bg-gray-800/20 px-5 py-4">
+                      <button onClick={() => setExpandedUser(isExpanded ? null : u.id)} className="flex items-center gap-2.5 group/user">
+                        {isExpanded ? <ChevronDown className="w-3 h-3 text-gray-400 dark:text-gray-300 flex-shrink-0" /> : <ChevronRight className="w-3 h-3 text-gray-400 dark:text-gray-300 flex-shrink-0" />}
+                        {u.avatar_url
+                          ? <img src={u.avatar_url} alt="" className="w-8 h-8 rounded-lg object-cover border border-gray-200 dark:border-gray-700 flex-shrink-0" />
+                          : <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0 ${u.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : u.role === 'operator' ? 'bg-gradient-to-br from-blue-500 to-cyan-600' : 'bg-gradient-to-br from-gray-400 to-gray-500'}`}>{u.display_name?.charAt(0) || '?'}</div>
+                        }
+                        <div className="text-left min-w-0">
+                          <p className="font-bold text-gray-900 dark:text-white group-hover/user:text-blue-600 dark:group-hover/user:text-blue-400 transition-colors truncate whitespace-nowrap">
+                            {u.display_name}{isSelf && <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold">{t('users.youBadge', lang)}</span>}
+                          </p>
+                          <p className="text-[10px] text-gray-400 dark:text-gray-300 truncate font-mono">{u.email}</p>
+                        </div>
+                      </button>
+                    )
+                  },
+                },
+                {
+                  key: 'role', header: t('users.role', lang), sortable: true,
+                  render: (u) => { const rm = roleMeta[u.role] || roleMeta.viewer; return <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold ring-1 ${rm.bg} ${rm.color} ${rm.ring}`}><rm.icon className="w-3 h-3" /> {rm.label}</span> },
+                },
+                {
+                  key: 'department', header: t('users.department', lang), sortable: true,
+                  render: (u) => u.department ? (departmentLabels[u.department] || u.department) : <span className="text-gray-400 dark:text-gray-300 italic">{t('users.unassigned', lang)}</span>,
+                  className: 'text-gray-600 dark:text-gray-300 truncate max-w-[140px]',
+                },
+                {
+                  key: 'status', header: t('common.status', lang), sortable: true,
+                  render: (u) => { const sm = STATUS_META[getUserStatus(u)]; const status = getUserStatus(u); return <span className={`inline-flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full font-bold ${sm.bg} ${sm.color}`}><span className={`w-1.5 h-1.5 rounded-full ${sm.dot} ${status === 'active' ? 'animate-pulse' : ''}`} /> {sm.label}</span> },
+                },
+                {
+                  key: 'lastLogin', header: t('users.lastLogin', lang), sortable: true,
+                  render: (u) => u.last_login ? timeAgo(u.last_login, lang) : <span className="text-gray-400 dark:text-gray-300 italic">{t('common.never', lang)}</span>,
+                  className: 'text-gray-500 dark:text-gray-300 whitespace-nowrap',
+                },
+                {
+                  key: 'created', header: t('common.created', lang), sortable: true,
+                  render: (u) => u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '--',
+                  className: 'text-gray-400 dark:text-gray-300 whitespace-nowrap text-[10px]',
+                },
+                {
+                  key: 'actions', header: t('common.actions', lang), align: 'right',
+                  render: (u) => {
+                    const isSelf = u.id === currentUser?.id
+                    return (
+                      <div className="flex items-center gap-1 justify-end">
+                        <button onClick={() => { setEditModal(u); setEditForm({ role: u.role, department: u.department || '', phone: u.phone || '', displayName: u.display_name }) }} title={t('users.editUser', lang)} className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
+                        {u.is_suspended
+                          ? <button onClick={() => askConfirm(t('users.activate', lang), `${t('users.activate', lang)} ${u.display_name}?`, 'success', async () => { await apiActivateUser(u.id); setUsers(prev => prev.map(x => x.id === u.id ? { ...x, is_suspended: false } : x)); pushNotification(t('users.activatedSuccess', lang), 'success') })} title={t('users.activate', lang)} className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"><CheckCircle2 className="w-3.5 h-3.5" /></button>
+                          : <button onClick={() => { setSuspendModal(u); setSuspendForm({ until: '', reason: '' }) }} title={t('users.suspend', lang)} className="p-1.5 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"><Ban className="w-3.5 h-3.5" /></button>
+                        }
+                        <button onClick={() => askConfirm(t('users.resetPassword', lang), `${t('users.resetPassword', lang)} ${u.display_name}?`, 'info', async () => { await apiResetUserPassword(u.id); pushNotification(t('users.resetLinkGenerated', lang), 'success') })} title={t('users.resetPassword', lang)} className="p-1.5 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"><Key className="w-3.5 h-3.5" /></button>
+                        {!isSelf && <button onClick={() => askConfirm(t('users.deleteUser', lang), `${t('users.bulkDeletePrompt', lang)} ${u.display_name}? ${t('users.bulkDeleteSuffix', lang)}`, 'danger', async () => { await apiDeleteUser(u.id); setUsers(prev => prev.filter(x => x.id !== u.id)); pushNotification(t('users.deletedSuccess', lang), 'success') })} title={t('common.delete', lang)} className="p-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>}
+                      </div>
+                    )
+                  },
+                },
+              ]
+              return (
+                <DataTable
+                  columns={userColumns}
+                  rows={filteredUsers}
+                  rowKey={(u) => u.id}
+                  sortField={sortField}
+                  sortDir={sortDir}
+                  onSort={(field, _dir) => toggleSort(field as SortField)}
+                  rowClassName={(u) => getUserStatus(u) === 'suspended' ? 'bg-red-50/30 dark:bg-red-950/5' : ''}
+                  expandedKey={expandedUser}
+                  renderExpanded={(u) => {
+                    const rm = roleMeta[u.role] || roleMeta.viewer
+                    return (
+                      <>
                               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 text-xs">
                                 <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.accountId', lang)}</span><div className="flex items-center gap-1.5 group/aid"><span className="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">ACC-{(u.id || '').slice(0, 6).toUpperCase()}</span><button className="opacity-0 group-hover/aid:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(u.id || '') }} title={u.id || ''}><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg></button></div></div>
                                 <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('common.email', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 truncate">{u.email}</p></div>
@@ -654,7 +651,6 @@ export default function UserAccessManagement({
                                   <p className="text-[11px] text-red-700 dark:text-red-300 flex items-center gap-1.5"><Ban className="w-3 h-3" /> {t('users.suspendedUntil', lang)} {new Date(u.suspended_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                                 </div>
                               )}
-                              {/* Mini audit for this user */}
                               <div className="mt-3">
                                 <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2">{t('users.accountActivity', lang)}</p>
                                 {auditLog.filter(a => a.target_id === u.id || (a.operator_id === u.id && (a.action_type === 'login' || a.action_type === 'logout'))).slice(0, 5).map((log, li) => (
@@ -666,22 +662,13 @@ export default function UserAccessManagement({
                                 ))}
                                 {auditLog.filter(a => a.target_id === u.id).length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('users.noAccountActivity', lang)}</p>}
                               </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
+                      </>
                     )
-                  })}
-                </tbody>
-              </table>
-              {filteredUsers.length === 0 && (
-                <div className="text-center py-16">
-                  <Users className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
-                  <p className="font-semibold text-gray-600 dark:text-gray-300">{t('users.noUsersMatch', lang)}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{search ? t('users.tryDifferentSearch', lang) : t('users.noUsersRegistered', lang)}</p>
-                </div>
-              )}
-            </div>
+                  }}
+                  emptyMessage={t('users.noUsersMatch', lang)}
+                />
+              )
+            })()}
             {/* Footer */}
             <div className="px-5 py-2.5 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-500 dark:text-gray-300 flex items-center justify-between">
               <span>{t('common.showing', lang)} {filteredUsers.length} {t('common.of', lang)} {users.length} {t('users.accounts', lang)}</span>
@@ -712,54 +699,26 @@ export default function UserAccessManagement({
 
           {/* Audit table */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
-                    <th className="px-5 py-3 text-left">{t('audit.action', lang)}</th>
-                    <th className="px-3 py-3 text-left">{t('common.type', lang)}</th>
-                    <th className="px-3 py-3 text-left">{t('users.operator', lang)}</th>
-                    <th className="px-3 py-3 text-left">{t('common.target', lang)}</th>
-                    <th className="px-3 py-3 text-left">{t('common.details', lang)}</th>
-                    <th className="px-5 py-3 text-right">{t('common.timestamp', lang)}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
-                  {filteredAudit.map((log: any, i: number) => {
-                    const at = AUDIT_TYPES[log.action_type] || { label: log.action_type || t('common.unknown', lang), color: 'bg-gray-100 dark:bg-gray-800 text-gray-600', icon: FileText }
-                    const AtIcon = at.icon
-                    return (
-                      <tr key={log.id || i} className="text-xs hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${at.color}`}>
-                              <AtIcon className="w-3.5 h-3.5" />
-                            </div>
-                            <span className="font-medium text-gray-900 dark:text-white truncate max-w-[260px]">{log.action}</span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className={`inline-flex text-[10px] px-2 py-0.5 rounded-md font-bold ${at.color}`}>{at.label}</span>
-                        </td>
-                        <td className="px-3 py-3 text-gray-600 dark:text-gray-300">{log.operator_name || t('common.system', lang)}</td>
-                        <td className="px-3 py-3">{log.target_id ? <span className="font-mono text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors" title={log.target_id} onClick={() => navigator.clipboard.writeText(log.target_id || '')}>TGT-{(log.target_id || '').slice(0, 6).toUpperCase()}</span> : <span className="text-[10px] text-gray-400 dark:text-gray-300">--</span>}</td>
-                        <td className="px-3 py-3 text-gray-400 dark:text-gray-300 text-[10px] truncate max-w-[160px]">{log.before_state ? t('common.stateChangeCaptured', lang) : log.ip_address || '-'}</td>
-                        <td className="px-5 py-3 text-right text-gray-500 dark:text-gray-300 whitespace-nowrap">
-                          <div>{new Date(log.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}</div>
-                          <div className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(log.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-              {filteredAudit.length === 0 && (
-                <div className="text-center py-16">
-                  <History className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
-                  <p className="font-semibold text-gray-600 dark:text-gray-300">{t('audit.noEntriesFound', lang)}</p>
-                </div>
-              )}
-            </div>
+            <DataTable
+              columns={[
+                {
+                  key: 'action', header: t('audit.action', lang), className: 'px-5',
+                  render: (log) => { const at = AUDIT_TYPES[log.action_type] || { label: log.action_type || t('common.unknown', lang), color: 'bg-gray-100 dark:bg-gray-800 text-gray-600', icon: FileText }; const AtIcon = at.icon; return <div className="flex items-center gap-2.5"><div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${at.color}`}><AtIcon className="w-3.5 h-3.5" /></div><span className="font-medium text-gray-900 dark:text-white truncate max-w-[260px]">{log.action}</span></div> },
+                },
+                {
+                  key: 'type', header: t('common.type', lang),
+                  render: (log) => { const at = AUDIT_TYPES[log.action_type] || { label: log.action_type || t('common.unknown', lang), color: 'bg-gray-100 dark:bg-gray-800 text-gray-600', icon: FileText }; return <span className={`inline-flex text-[10px] px-2 py-0.5 rounded-md font-bold ${at.color}`}>{at.label}</span> },
+                },
+                { key: 'operator', header: t('users.operator', lang), render: (log) => <span className="text-gray-600 dark:text-gray-300">{log.operator_name || t('common.system', lang)}</span> },
+                { key: 'target', header: t('common.target', lang), render: (log) => log.target_id ? <span className="font-mono text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors" title={log.target_id} onClick={() => navigator.clipboard.writeText(log.target_id || '')}>TGT-{(log.target_id || '').slice(0, 6).toUpperCase()}</span> : <span className="text-[10px] text-gray-400 dark:text-gray-300">--</span> },
+                { key: 'details', header: t('common.details', lang), render: (log) => <span className="text-gray-400 dark:text-gray-300 text-[10px] truncate max-w-[160px] block">{log.before_state ? t('common.stateChangeCaptured', lang) : log.ip_address || '-'}</span> },
+                { key: 'timestamp', header: t('common.timestamp', lang), align: 'right', className: 'px-5',
+                  render: (log) => <div className="text-gray-500 dark:text-gray-300 whitespace-nowrap"><div>{new Date(log.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}</div><div className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(log.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div></div> },
+              ]}
+              rows={filteredAudit}
+              rowKey={(log: any) => String(log.id ?? log.created_at)}
+              emptyMessage={t('audit.noEntriesFound', lang)}
+            />
             <div className="px-5 py-2.5 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-400 dark:text-gray-300 flex items-center justify-between">
               <span>{filteredAudit.length} {t('common.entries', lang)}</span>
               <span className="flex items-center gap-1"><Lock className="w-3 h-3" /> {t('users.immutableAuditLog', lang)}</span>
