@@ -4,6 +4,7 @@
  * - Used by React components that need this functionality */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useEventCallbacks } from './useEventStream'
 
 interface DistressState {
   isActive: boolean
@@ -214,45 +215,32 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     }
   }, [])
 
-  //Socket listeners
-  useEffect(() => {
-    if (!socket) return
-
-    const onAck = (data: any) => {
-      //Only process if this event is for OUR distress call (multiple tabs may
-      //be open, so we filter by distressId).
-      if (data.distressId === state.distressId) {
-        setState(prev => ({
-          ...prev,
-          status: 'acknowledged',
-          acknowledgedBy: data.operatorName,
-          triageLevel: data.triageLevel,
-        }))
-        onAcknowledged?.(data.operatorName)
-      }
-    }
-
-    const onResol = (data: any) => {
-      if (data.distressId === state.distressId) {
-        cleanup()
-        setState(prev => ({
-          ...prev,
-          isActive: false,
-          status: 'resolved',
-          resolution: data.resolution,
-        }))
-        onResolved?.(data.resolution)
-      }
-    }
-
-    socket.on('distress:acknowledged', onAck)
-    socket.on('distress:resolved', onResol)
-
-    return () => {
-      socket.off('distress:acknowledged', onAck)
-      socket.off('distress:resolved', onResol)
-    }
-  }, [socket, state.distressId, onAcknowledged, onResolved, cleanup])
+  //Socket listeners via typed event hook
+  useEventCallbacks({
+    'distress:acknowledged': (data) => {
+      const d = data as { distressId?: string; operatorName?: string; triageLevel?: string }
+      if (d.distressId !== state.distressId) return
+      setState(prev => ({
+        ...prev,
+        status: 'acknowledged',
+        acknowledgedBy: d.operatorName ?? null,
+        triageLevel: d.triageLevel ?? null,
+      }))
+      if (d.operatorName) onAcknowledged?.(d.operatorName)
+    },
+    'distress:resolved': (data) => {
+      const d = data as { distressId?: string; resolution?: string }
+      if (d.distressId !== state.distressId) return
+      cleanup()
+      setState(prev => ({
+        ...prev,
+        isActive: false,
+        status: 'resolved',
+        resolution: d.resolution ?? null,
+      }))
+      if (d.resolution) onResolved?.(d.resolution)
+    },
+  })
 
   //Cleanup on unmount
   useEffect(() => {

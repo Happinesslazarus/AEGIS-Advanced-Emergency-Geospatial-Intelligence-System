@@ -9,6 +9,7 @@ import { apiGetReports, apiUpdateReportStatus, apiSubmitReport } from '../utils/
 import { translateTexts } from '../utils/translateService'
 import { useLanguage } from '../hooks/useLanguage'
 import { useSharedSocket } from './SocketContext'
+import { useEventCallbacks } from '../hooks/useEventStream'
 import { getCitizenToken } from './CitizenAuthContext'
 import type { Report, NewReportInput, ServerReport, NewReportResponse } from '../types'
 
@@ -194,58 +195,44 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
     }
   }, [rawReports, language])
 
-  useEffect(() => {
-    const socket = sharedSocket.socket
-    if (!socket) return
-
-    socket.on('report:new', (report: Record<string, unknown>) => {
+  // Typed live-event subscriptions (replaces 50+ lines of socket.on/off plumbing).
+  useEventCallbacks({
+    'report:new': (report) => {
       const newReport = normalizeServerReport({
         ...report,
         timestamp: report.timestamp || report.createdAt || new Date().toISOString(),
       } as Record<string, unknown>)
-
       setRawReports((prev) => {
-        const existingIdx = prev.findIndex((r) => r.id === newReport.id)
-        if (existingIdx !== -1) {
-          //Report already exists (optimistic update or prior fetch).
-          //Merge in media data from the socket broadcast -- the socket version
-          //carries the authoritative media URLs that the public API omits.
-          const existing = prev[existingIdx]
+        const idx = prev.findIndex((r) => r.id === newReport.id)
+        if (idx !== -1) {
+          // Report already exists (optimistic update or prior fetch). Merge
+          // socket-only media URLs that the public API omits.
+          const existing = prev[idx]
           const hasNewMedia = (newReport.media?.length ?? 0) > 0 || !!newReport.mediaUrl
           const hasCachedMedia = (existing.media?.length ?? 0) > 0 || !!existing.mediaUrl
           if (hasNewMedia && !hasCachedMedia) {
-            const updated = [...prev]
-            updated[existingIdx] = { ...existing, media: newReport.media, mediaUrl: newReport.mediaUrl, hasMedia: true }
-            return updated
+            const next = [...prev]
+            next[idx] = { ...existing, media: newReport.media, mediaUrl: newReport.mediaUrl, hasMedia: true }
+            return next
           }
           return prev
         }
         return [newReport, ...prev]
       })
-    })
-
-    socket.on('report:updated', (update: { id?: string; status?: string }) => {
-      if (!update?.id || !update?.status) return
+    },
+    'report:updated': (u) => {
+      if (!u?.id || !u?.status) return
       setRawReports((prev) =>
-        prev.map((report) => (report.id === update.id ? { ...report, status: update.status as Report['status'] } : report)),
+        prev.map((r) => (r.id === u.id ? { ...r, status: u.status as Report['status'] } : r)),
       )
-    })
-
-    socket.on('report:bulk-updated', (update: { reportIds?: string[]; status?: string }) => {
-      if (!Array.isArray(update?.reportIds) || !update?.status) return
+    },
+    'report:bulk-updated': (u) => {
+      if (!Array.isArray(u?.reportIds) || !u?.status) return
       setRawReports((prev) =>
-        prev.map((report) =>
-          update.reportIds!.includes(report.id) ? { ...report, status: update.status as Report['status'] } : report,
-        ),
+        prev.map((r) => (u.reportIds!.includes(r.id) ? { ...r, status: u.status as Report['status'] } : r)),
       )
-    })
-
-    return () => {
-      socket.off('report:new')
-      socket.off('report:updated')
-      socket.off('report:bulk-updated')
-    }
-  }, [sharedSocket.socket])
+    },
+  })
 
   const addReport = useCallback(async (input: NewReportInput, files: File[] = []): Promise<Report | null> => {
     const formData = new FormData()

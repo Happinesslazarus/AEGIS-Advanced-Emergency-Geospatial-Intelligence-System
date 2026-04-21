@@ -31,11 +31,16 @@ export const AegisChannels = {
   INCIDENT_ALERT_PRIORITY: 'incident:alert:priority',
   INCIDENT_PREDICTIONS_UPDATED: 'incident:predictions_updated',
   DISTRESS_NEW_ALERT: 'distress:new_alert',
+  DISTRESS_NEW: 'distress:new',
+  DISTRESS_UPDATED: 'distress:updated',
+  DISTRESS_ALARM: 'distress:alarm',
   DISTRESS_CANCELLED: 'distress:cancelled',
   DISTRESS_STATUS_CHANGED: 'distress:status_changed',
   DISTRESS_LOCATION: 'distress:location',
   DISTRESS_ACKNOWLEDGED: 'distress:acknowledged',
   DISTRESS_RESOLVED: 'distress:resolved',
+  // Alert variants
+  ALERT_UPDATE: 'alert:update',
 } as const
 
 export type AegisChannel = typeof AegisChannels[keyof typeof AegisChannels]
@@ -60,12 +65,19 @@ export interface RiskUpdatedEvent {
 }
 
 export interface AlertNewEvent {
-  alertId: string
-  hazardType: string
-  severity: 'low' | 'medium' | 'high' | 'critical'
+  alertId?: string
+  id?: string
+  hazardType?: string
+  type?: string
+  severity: 'low' | 'medium' | 'high' | 'critical' | 'warning' | 'info' | string
+  title?: string
   message: string
+  area?: string
   affectedRegionId?: string
+  issuedAt?: string
+  actionRequired?: string
   correlationId?: string
+  [k: string]: unknown
 }
 
 export interface IncidentEscalatedEvent {
@@ -146,11 +158,15 @@ export interface AegisChannelMap {
   [AegisChannels.INCIDENT_ALERT_PRIORITY]: IncidentAlertEvent
   [AegisChannels.INCIDENT_PREDICTIONS_UPDATED]: Record<string, unknown>
   [AegisChannels.DISTRESS_NEW_ALERT]: DistressEvent
+  [AegisChannels.DISTRESS_NEW]: DistressEvent
+  [AegisChannels.DISTRESS_UPDATED]: DistressEvent
+  [AegisChannels.DISTRESS_ALARM]: DistressEvent
   [AegisChannels.DISTRESS_CANCELLED]: DistressEvent
-  [AegisChannels.DISTRESS_STATUS_CHANGED]: DistressEvent
-  [AegisChannels.DISTRESS_LOCATION]: DistressEvent
+  [AegisChannels.DISTRESS_STATUS_CHANGED]: DistressEvent & { distressId?: string }
+  [AegisChannels.DISTRESS_LOCATION]: DistressEvent & { distressId?: string; accuracy?: number; heading?: number; speed?: number }
   [AegisChannels.DISTRESS_ACKNOWLEDGED]: DistressEvent
   [AegisChannels.DISTRESS_RESOLVED]: DistressEvent
+  [AegisChannels.ALERT_UPDATE]: IncidentAlertEvent
 }
 
 /** Strongly-typed subscribe helper. Returns an unsubscribe function. */

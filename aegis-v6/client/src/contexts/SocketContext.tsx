@@ -6,6 +6,7 @@
 
 import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useSocket, type SocketState } from '../hooks/useSocket'
+import { useEventCallbacks } from '../hooks/useEventStream'
 import { getToken } from '../utils/api'
 import { getCitizenToken } from './CitizenAuthContext'
 
@@ -72,34 +73,38 @@ export function SocketProvider({ children }: { children: ReactNode }): JSX.Eleme
     }
   }, [socketState.disconnect])
 
-  //Proactive agent: forward critical socket alerts to chatbot via localStorage
-  useEffect(() => {
-    const socket = socketState.socket
-    if (!socket) return
+  return (
+    <SocketContext.Provider value={socketState}>
+      <ProactiveAgentBridge />
+      {children}
+    </SocketContext.Provider>
+  )
+}
 
-    const handleAlert = (payload: any) => {
-      if (payload?.riskLevel === 'critical' || payload?.riskLevel === 'high' || payload?.severity === 'Critical' || payload?.severity === 'Warning') {
-        localStorage.setItem('aegis-latest-alert', JSON.stringify({
-          severity: payload.severity || payload.riskLevel || 'Warning',
-          title: payload.title || payload.incidentType || 'New alert',
-          description: payload.description || payload.details || '',
-          location_text: payload.location_text || payload.regionId || '',
-          timestamp: Date.now(),
-        }))
-      }
-    }
+/**
+ * Forwards critical alert payloads from the typed event channels into
+ * localStorage so the chatbot can pick them up. Lives inside the
+ * provider so the typed event hook can subscribe via context.
+ */
+function ProactiveAgentBridge(): null {
+  useEventCallbacks({
+    'incident:alert': forwardAlert,
+    'alert:new':      forwardAlert,
+    'alert:update':   forwardAlert,
+  })
+  return null
+}
 
-    socket.on('incident:alert', handleAlert)
-    socket.on('alert:new', handleAlert)
-    socket.on('alert:update', handleAlert)
-    return () => {
-      socket.off('incident:alert', handleAlert)
-      socket.off('alert:new', handleAlert)
-      socket.off('alert:update', handleAlert)
-    }
-  }, [socketState.socket])
-
-  return <SocketContext.Provider value={socketState}>{children}</SocketContext.Provider>
+function forwardAlert(payload: { riskLevel?: string; severity?: string; title?: string; incidentType?: string; description?: string; details?: string; location_text?: string; affectedRegionId?: string; regionId?: string }): void {
+  const sev = String(payload?.severity || payload?.riskLevel || '')
+  if (!['critical', 'high', 'Critical', 'Warning'].includes(sev)) return
+  localStorage.setItem('aegis-latest-alert', JSON.stringify({
+    severity: payload.severity || payload.riskLevel || 'Warning',
+    title: payload.title || payload.incidentType || 'New alert',
+    description: payload.description || payload.details || '',
+    location_text: payload.location_text || payload.affectedRegionId || payload.regionId || '',
+    timestamp: Date.now(),
+  }))
 }
 
 /** Trigger socket reconnection after citizen login/logout (same-tab).

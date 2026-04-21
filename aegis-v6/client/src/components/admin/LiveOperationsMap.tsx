@@ -515,7 +515,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
           <div className="absolute top-3 left-3 z-[900] flex-col gap-2 w-[260px] max-h-[calc(100%-1.5rem)] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent pointer-events-auto hidden md:flex">
             <IntelligenceDashboard socket={socket} collapsed={true} region={activeLocation} />
             <RiverLevelPanel socket={socket} />
-            <DistressPanel socket={socket} operatorId={user?.id || ''} operatorName={user?.displayName || t('common.operator', lang)} />
+            <DistressPanel operatorId={user?.id || ''} operatorName={user?.displayName || t('common.operator', lang)} />
           </div>
         )}
 

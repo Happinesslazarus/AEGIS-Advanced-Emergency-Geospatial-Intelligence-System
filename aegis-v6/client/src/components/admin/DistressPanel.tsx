@@ -4,6 +4,8 @@
  * - Rendered inside AdminPage.tsx based on active view */
 
 import { useState, useEffect, useCallback, useRef, memo } from 'react'
+import { useEventCallbacks } from '../../hooks/useEventStream'
+import { useSharedSocket } from '../../contexts/SocketContext'
 import { getToken } from '../../utils/api'
 import {
   Radio, Shield, MapPin, Phone, Clock, AlertTriangle,
@@ -40,13 +42,13 @@ interface DistressCall {
 }
 
 interface Props {
-  socket: any
   operatorId: string
   operatorName: string
   className?: string
 }
 
-const DistressPanel = memo(function DistressPanel({ socket, operatorId, operatorName, className = '' }: Props): JSX.Element {
+const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, className = '' }: Props): JSX.Element {
+  const { socket } = useSharedSocket()
   const lang = useLanguage()
   const triageOptions = [
     { value: 'critical', label: t('distress.triage.critical', lang), colour: 'bg-red-600 text-white' },
@@ -83,56 +85,47 @@ const DistressPanel = memo(function DistressPanel({ socket, operatorId, operator
 
   useEffect(() => { fetchActive() }, [fetchActive])
 
-  //Socket.IO listeners
-  useEffect(() => {
-    if (!socket) return
-
-    const onNewAlert = (data: any) => {
-      setDistressCalls(prev => {
-        //Avoid duplicates
-        if (prev.find(d => d.id === data.id)) return prev
-        return [data, ...prev]
-      })
-      //Play alarm sound
-      if (alarmEnabled) playAlarm()
-    }
-
-    const onLocationUpdate = (data: any) => {
+  //Socket.IO listeners (typed event hook)
+  const onNewDistress = (data: { id?: string }) => {
+    if (!data?.id) return
+    setDistressCalls(prev => prev.find(d => d.id === data.id) ? prev : [data as unknown as DistressCall, ...prev])
+    if (alarmEnabled) playAlarm()
+  }
+  useEventCallbacks({
+    'distress:new_alert': onNewDistress,
+    'distress:alarm':     onNewDistress,
+    'distress:location': (data) => {
+      const id = data.distressId
+      if (!id) return
       setDistressCalls(prev => prev.map(d =>
-        d.id === data.distressId
-          ? { ...d, latitude: data.latitude, longitude: data.longitude, accuracy: data.accuracy, heading: data.heading, speed: data.speed, last_gps_at: data.timestamp }
-          : d
+        d.id === id
+          ? {
+              ...d,
+              latitude: data.latitude ?? d.latitude,
+              longitude: data.longitude ?? d.longitude,
+              accuracy: data.accuracy ?? d.accuracy,
+              heading: data.heading ?? d.heading,
+              speed: data.speed ?? d.speed,
+              last_gps_at: (data.timestamp ?? (d as DistressCall & { last_gps_at?: string | null }).last_gps_at ?? null) as string | null,
+            } as DistressCall
+          : d,
       ))
-    }
-
-    const onStatusChanged = (data: any) => {
+    },
+    'distress:status_changed': (data) => {
+      const id = data.distressId
+      if (!id) return
       if (data.status === 'resolved' || data.status === 'cancelled') {
-        setDistressCalls(prev => prev.filter(d => d.id !== data.distressId))
+        setDistressCalls(prev => prev.filter(d => d.id !== id))
       } else {
-        setDistressCalls(prev => prev.map(d =>
-          d.id === data.distressId ? { ...d, status: data.status } : d
-        ))
+        setDistressCalls(prev => prev.map(d => d.id === id ? { ...d, status: String(data.status || d.status) } : d))
       }
-    }
-
-    const onCancelled = (data: any) => {
-      setDistressCalls(prev => prev.filter(d => d.id !== data.distressId))
-    }
-
-    socket.on('distress:new_alert', onNewAlert)
-    socket.on('distress:alarm', onNewAlert)
-    socket.on('distress:location', onLocationUpdate)
-    socket.on('distress:status_changed', onStatusChanged)
-    socket.on('distress:cancelled', onCancelled)
-
-    return () => {
-      socket.off('distress:new_alert', onNewAlert)
-      socket.off('distress:alarm', onNewAlert)
-      socket.off('distress:location', onLocationUpdate)
-      socket.off('distress:status_changed', onStatusChanged)
-      socket.off('distress:cancelled', onCancelled)
-    }
-  }, [socket, alarmEnabled])
+    },
+    'distress:cancelled': (data) => {
+      const id = data.distressId
+      if (!id) return
+      setDistressCalls(prev => prev.filter(d => d.id !== id))
+    },
+  })
 
   //Cleanup AudioContext on unmount
   useEffect(() => {

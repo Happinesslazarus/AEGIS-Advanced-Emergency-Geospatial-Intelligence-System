@@ -1541,7 +1541,7 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
           <div className="absolute top-3 left-3 z-[900] flex flex-col gap-2 w-[calc(50vw-1.5rem)] sm:w-[260px] max-h-[calc(100%-1.5rem)] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent pointer-events-auto">
             <IntelligenceDashboard socket={socket} collapsed={true} />
             <RiverLevelPanel socket={socket} />
-            <DistressPanel socket={socket} operatorId={user?.id || ''} operatorName={user?.displayName || 'Operator'} />
+            <DistressPanel operatorId={user?.id || ''} operatorName={user?.displayName || 'Operator'} />
           </div>
         )}
 

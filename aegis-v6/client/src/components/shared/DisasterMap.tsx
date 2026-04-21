@@ -16,6 +16,7 @@ import MarkerClusterGroup from 'react-leaflet-cluster'
 import { useLocation } from '../../contexts/LocationContext'
 import { useFloodData } from '../../hooks/useFloodData'
 import { useSharedSocket } from '../../contexts/SocketContext'
+import { useEventCallbacks } from '../../hooks/useEventStream'
 import { createMarkerSvg, getSeverityClass } from '../../utils/helpers'
 import type { Report, SeverityLevel } from '../../types'
 import SpatialToolbar from './SpatialToolbar'
@@ -345,33 +346,18 @@ export default function DisasterMap({
     return () => document.removeEventListener('fullscreenchange', onFSChange)
   }, [])
 
-  //Socket.io ? listen for distress:new / distress:updated in real-time
-  useEffect(() => {
-    if (!showDistress || !canReadDistress || !sharedSocket.socket) return
-    const socket = sharedSocket.socket
-
-    const onDistressNew = (beacon: any) => {
-      if (!beacon) return
-      setDistressBeacons(prev => {
-        const exists = prev.some(b => b.id === beacon.id)
-        if (exists) return prev
-        return [beacon, ...prev]
-      })
-    }
-
-    const onDistressUpdated = (beacon: any) => {
-      if (!beacon) return
-      setDistressBeacons(prev => prev.map(b => b.id === beacon.id ? { ...b, ...beacon } : b))
-    }
-
-    socket.on('distress:new', onDistressNew)
-    socket.on('distress:updated', onDistressUpdated)
-
-    return () => {
-      socket.off('distress:new', onDistressNew)
-      socket.off('distress:updated', onDistressUpdated)
-    }
-  }, [canReadDistress, sharedSocket.socket, showDistress])
+  //Socket.io – listen for distress:new / distress:updated in real-time via typed hook
+  const distressEnabled = showDistress && canReadDistress
+  useEventCallbacks(distressEnabled ? {
+    'distress:new': (beacon) => {
+      if (!beacon?.id) return
+      setDistressBeacons(prev => prev.some(b => b.id === beacon.id) ? prev : [beacon as unknown as typeof prev[number], ...prev])
+    },
+    'distress:updated': (beacon) => {
+      if (!beacon?.id) return
+      setDistressBeacons(prev => prev.map(b => b.id === beacon.id ? { ...b, ...(beacon as Partial<typeof b>) } : b))
+    },
+  } : {})
 
   //Export visible report markers as GeoJSON FeatureCollection
   const exportGeoJSON = useCallback(() => {
