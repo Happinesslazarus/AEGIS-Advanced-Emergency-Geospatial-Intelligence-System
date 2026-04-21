@@ -84,7 +84,7 @@ router.post('/region', authMiddleware, requireRole('admin'), async (req: AuthReq
 
     await setConfigValue('configured_region', region.trim())
 
-    res.json({ success: true, configuredRegion: region.trim() })
+    res.success({ configuredRegion: region.trim() })
 })
 
 //POST /api/admin/setup/notifications
@@ -104,7 +104,7 @@ router.post('/notifications', authMiddleware, requireRole('admin'), async (req: 
     await setConfigValue('notification_channels', channels)
     await setConfigValue('notification_channels_configured', true)
 
-    res.json({ success: true, configured: summary })
+    res.success({ configured: summary })
 })
 
 //POST /api/admin/setup/complete
@@ -146,7 +146,7 @@ router.post('/complete', authMiddleware, requireRole('admin'), async (req: AuthR
       //activity_log not critical
     }
 
-    res.json({ success: true, setupCompleted: true })
+    res.success({ setupCompleted: true })
 })
 
 //POST /api/admin/setup/reset
@@ -181,7 +181,7 @@ router.post('/reset', authMiddleware, requireRole('admin'), async (req: AuthRequ
       //non-critical
     }
 
-    res.json({ success: true, message: 'Setup state has been reset.' })
+    res.success({ message: 'Setup state has been reset.' })
 })
 
 export default router

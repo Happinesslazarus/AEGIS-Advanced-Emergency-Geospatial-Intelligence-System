@@ -337,9 +337,7 @@ router.post('/oauth/exchange', async (req: Request, res: Response) => {
   })
   
   //Return access token in response body (secure - not in URL)
-  res.json({
-    success: true,
-    data: {
+  res.success({ data: {
       token,
       user: {
         id: pending.userId,
@@ -348,8 +346,7 @@ router.post('/oauth/exchange', async (req: Request, res: Response) => {
         displayName: pending.displayName,
         avatarUrl: pending.avatarUrl,
       },
-    },
-  })
+    } })
   
   logger.info({ userId: pending.userId }, '[OAuth] Token exchange successful')
 })

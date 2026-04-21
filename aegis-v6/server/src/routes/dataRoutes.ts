@@ -187,7 +187,7 @@ router.post('/activity', authMiddleware, operatorOnly, async (req: AuthRequest, 
        VALUES ($1, $2, $3, $4, $5)`,
       [action, actionType || 'export', reportId || null, req.user!.id, req.user!.displayName]
     )
-    res.status(201).json({ success: true })
+    res.success({}, 201)
 })
 
  /*
@@ -1064,9 +1064,7 @@ router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Req
     if (process.env.NODE_ENV !== 'production') {
       devLog(`[Push] Subscription saved: ${subscription.endpoint.substring(0, 50)}...`)
     }
-    res.status(201).json({
-      success: true,
-      message: 'Subscription saved successfully' })
+    res.success({ message: 'Subscription saved successfully' }, 201)
 })
 
  /*
@@ -1085,9 +1083,7 @@ router.post('/notifications/unsubscribe', pushSubscriptionLimiter, async (req: R
       [endpoint]
     )
 
-    res.json({
-      success: true,
-      message: 'Subscription removed successfully' })
+    res.success({ message: 'Subscription removed successfully' })
 })
 
 export default router

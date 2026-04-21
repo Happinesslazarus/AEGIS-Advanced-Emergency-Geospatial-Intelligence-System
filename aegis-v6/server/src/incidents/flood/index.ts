@@ -39,7 +39,7 @@ class FloodModule extends BaseIncidentModule {
         const assessment = await calculateThreatLevel()
         res.json({ incidentType: 'flood', ...assessment })
       } catch (err: any) {
-        res.status(500).json({ error: 'Could not assess flood threat at this time. Please try again.' })
+        res.fail('Could not assess flood threat at this time. Please try again.', 500)
       }
     })
 
@@ -48,7 +48,7 @@ class FloodModule extends BaseIncidentModule {
       try {
         const { startLat, startLng, floodExtentGeoJSON, destinationType } = req.body
         if (!startLat || !startLng) {
-          res.status(400).json({ error: 'startLat and startLng are required' })
+          res.fail('startLat and startLng are required', 400)
           return
         }
         const result = await calculateEvacuationRoutes(
@@ -57,7 +57,7 @@ class FloodModule extends BaseIncidentModule {
         )
         res.json(result)
       } catch (err: any) {
-        res.status(500).json({ error: 'Could not calculate evacuation routes. Please try again shortly.' })
+        res.fail('Could not calculate evacuation routes. Please try again shortly.', 500)
       }
     })
 
@@ -72,7 +72,7 @@ class FloodModule extends BaseIncidentModule {
         //Validate river name to prevent path traversal
         const river = req.params.river
         if (!/^[a-zA-Z0-9_-]+$/.test(river)) {
-          res.status(400).json({ error: 'Invalid river name' })
+          res.fail('Invalid river name', 400)
           return
         }
         const filename = `${river}.geojson`
@@ -91,9 +91,9 @@ class FloodModule extends BaseIncidentModule {
             return
           }
         }
-        res.status(404).json({ error: 'Flood extent data not found' })
+        res.fail('Flood extent data not found', 404)
       } catch (err: any) {
-        res.status(500).json({ error: 'Could not load flood extent map. Please try again.' })
+        res.fail('Could not load flood extent map. Please try again.', 500)
       }
     })
   }

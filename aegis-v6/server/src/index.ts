@@ -619,7 +619,7 @@ app.use(requestLogger())
 app.use('/uploads', (req, res, next) => {
   //Block directory traversal attempts
   if (req.path.includes('..') || req.path.includes('\0')) {
-    return res.status(400).json({ error: 'Invalid path' })
+    return res.fail('Invalid path', 400)
   }
   //Set security headers for served files
   res.setHeader('X-Content-Type-Options', 'nosniff')
@@ -651,39 +651,39 @@ app.get('/api/health/full', healthHandler)   // Full health with component detai
 
 //Internal introspection endpoints (admin only)
 app.get('/api/internal/circuits', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, circuits: getCircuitStatus() })
+  res.success({ circuits: getCircuitStatus() })
 })
 
 app.get('/api/internal/qos', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, qos: getQosStats() })
+  res.success({ qos: getQosStats() })
 })
 
 app.get('/api/internal/rate-limits', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, rateLimits: getRateLimitStats() })
+  res.success({ rateLimits: getRateLimitStats() })
 })
 
 app.get('/api/internal/self-healing', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, selfHealing: getHealthStatus() })
+  res.success({ selfHealing: getHealthStatus() })
 })
 
 app.get('/api/internal/idempotency', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, idempotency: getIdempotencyStats() })
+  res.success({ idempotency: getIdempotencyStats() })
 })
 
 app.get('/api/internal/bulkheads', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, bulkheads: getBulkheadStatus() })
+  res.success({ bulkheads: getBulkheadStatus() })
 })
 
 app.get('/api/internal/api-gateway', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, apiGateway: getGatewayStats() })
+  res.success({ apiGateway: getGatewayStats() })
 })
 
 app.get('/api/internal/coalescing', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, coalescing: getCoalescingStats() })
+  res.success({ coalescing: getCoalescingStats() })
 })
 
 app.get('/api/internal/streaming', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, streaming: eventStreaming.getEventStreamingStats() })
+  res.success({ streaming: eventStreaming.getEventStreamingStats() })
 })
 
 app.use('/api/auth/login', loginLimiter) // Brute-force protection for login

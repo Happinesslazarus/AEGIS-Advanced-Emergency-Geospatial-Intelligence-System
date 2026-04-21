@@ -308,14 +308,12 @@ router.post('/alerts/transit', authMiddleware, requireOperator, asyncRoute(async
       actionRequired: action_required,
       issuedAt: new Date().toISOString() })
 
-    res.status(201).json({
-      success: true,
-      alert_id: alertId,
+    res.success({ alert_id: alertId,
       transit_type: type,
       delivery: {
         total: deliveryResults.total,
         successful: deliveryResults.successful,
-        failed: deliveryResults.failed } })
+        failed: deliveryResults.failed } }, 201)
 }))
 
 /**

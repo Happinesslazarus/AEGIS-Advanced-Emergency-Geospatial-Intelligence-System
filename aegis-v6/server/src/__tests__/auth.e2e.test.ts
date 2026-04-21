@@ -90,7 +90,7 @@ function createApp() {
   app.post('/login', (req, res) => {
     const { email } = req.body
     const user = [ADMIN_USER, OPERATOR_USER, VIEWER_USER, CITIZEN_USER].find(u => u.email === email)
-    if (!user) { res.status(401).json({ error: 'Invalid credentials' }); return }
+    if (!user) { res.fail('Invalid credentials', 401); return }
 
     const accessToken = generateToken(user)
     const refreshToken = generateRefreshToken(user)
@@ -109,12 +109,12 @@ function createApp() {
   //Simulate refresh endpoint
   app.post('/refresh', (req, res) => {
     const refreshToken = req.cookies?.aegis_refresh
-    if (!refreshToken) { res.status(401).json({ error: 'No refresh token' }); return }
+    if (!refreshToken) { res.fail('No refresh token', 401); return }
 
     try {
       const decoded = verifyRefreshToken(refreshToken)
       const user = [ADMIN_USER, OPERATOR_USER, VIEWER_USER, CITIZEN_USER].find(u => u.id === decoded.id)
-      if (!user) { res.status(401).json({ error: 'User not found' }); return }
+      if (!user) { res.fail('User not found', 401); return }
 
       const newAccessToken = generateToken(user)
       const newRefreshToken = generateRefreshToken(user)
@@ -129,7 +129,7 @@ function createApp() {
 
       res.json({ token: newAccessToken })
     } catch {
-      res.status(401).json({ error: 'Invalid refresh token' })
+      res.fail('Invalid refresh token', 401)
     }
   })
 

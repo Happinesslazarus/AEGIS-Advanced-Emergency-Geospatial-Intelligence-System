@@ -824,7 +824,7 @@ router.post('/change-password', authMiddleware, changePasswordLimiter, async (re
       userId: req.user!.id, userType: 'citizen', eventType: 'password_changed',
       ipAddress: clientIp, userAgent: req.headers['user-agent'] as string })
 
-    res.json({ success: true, message: 'Password changed successfully. All other sessions have been signed out.' })
+    res.success({ message: 'Password changed successfully. All other sessions have been signed out.' })
 })
 
 //POST /forgot-password - Request a password reset token
@@ -842,7 +842,7 @@ router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Resp
 
     if (result.rows.length === 0) {
       //Don't reveal whether the email exists - always return success
-      res.json({ success: true, message: 'If an account with that email exists, a password reset link has been generated.' })
+      res.success({ message: 'If an account with that email exists, a password reset link has been generated.' })
       return
     }
 
@@ -871,9 +871,7 @@ router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Resp
       userId: citizen.id, userType: 'citizen', eventType: 'password_reset_requested',
       ipAddress: getClientIp(req), userAgent: req.headers['user-agent'] as string })
 
-    res.json({
-      success: true,
-      message: 'If an account with that email exists, a password reset link has been generated.' })
+    res.success({ message: 'If an account with that email exists, a password reset link has been generated.' })
 })
 
 //POST /reset-password - Reset password using a token
@@ -942,7 +940,7 @@ router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Respo
 
     logger.info({ email: citizen.email }, '[CitizenAuth] Password reset successful')
 
-    res.json({ success: true, message: 'Password has been reset successfully. You can now sign in.' })
+    res.success({ message: 'Password has been reset successfully. You can now sign in.' })
 })
 
 //POST /refresh - Get new access token using refresh token cookie (#24)
@@ -1019,7 +1017,7 @@ router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> =
     res.json({ token: newToken })
   } catch {
     res.clearCookie('aegis_refresh', { path: '/api/citizen-auth' })
-    res.status(401).json({ error: 'Invalid or expired refresh token.' })
+    res.fail('Invalid or expired refresh token.', 401)
   }
 })
 
@@ -1037,7 +1035,7 @@ router.post('/logout', async (req: AuthRequest, res: Response): Promise<void> =>
     ).catch(() => {})
   }
   res.clearCookie('aegis_refresh', { path: '/api/citizen-auth' })
-  res.json({ success: true, message: 'Logged out.' })
+  res.success({ message: 'Logged out.' })
 })
 
 //GET /verify-email?token=xxx - Verify citizen email address (#23)
@@ -1076,7 +1074,7 @@ router.get('/verify-email', async (req: AuthRequest, res: Response): Promise<voi
       userId: result.rows[0].id, userType: 'citizen', eventType: 'email_verified',
       ipAddress: getClientIp(req), userAgent: req.headers['user-agent'] as string })
 
-    res.json({ success: true, message: 'Email verified successfully! You can now access all features.' })
+    res.success({ message: 'Email verified successfully! You can now access all features.' })
 })
 
 //POST /resend-verification - Resend email verification token (#23)
@@ -1098,7 +1096,7 @@ router.post('/resend-verification', authMiddleware, resendLimiter, async (req: A
     }
 
     if (citizen.rows[0].email_verified) {
-      res.json({ success: true, message: 'Email is already verified.' })
+      res.success({ message: 'Email is already verified.' })
       return
     }
 
@@ -1123,7 +1121,7 @@ router.post('/resend-verification', authMiddleware, resendLimiter, async (req: A
       userId, userType: 'citizen', eventType: 'email_verification_sent',
       ipAddress: getClientIp(req), userAgent: req.headers['user-agent'] as string })
 
-    res.json({ success: true, message: 'Verification email has been sent.' })
+    res.success({ message: 'Verification email has been sent.' })
 })
 
 export default router

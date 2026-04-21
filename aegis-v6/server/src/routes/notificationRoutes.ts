@@ -193,7 +193,7 @@ router.post('/notifications/unsubscribe', asyncRoute(async (req: Request, res: R
       [endpoint]
     )
 
-    res.json({ message: 'Push subscription removed successfully' })
+    res.fail('Push subscription removed successfully')
 }))
 
 //Broadcast custom alert (admin only)
@@ -361,16 +361,13 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, asyncRoute(async 
       actionRequired: action_required,
       issuedAt: new Date().toISOString() })
 
-    res.json({
-      success: true,
-      alert_id: alertId,
+    res.success({ alert_id: alertId,
       broadcast_at: new Date().toISOString(),
       delivery_summary: {
         matching_subscribers: subscriptions.rows.length,
         total_attempts: deliveryResults.total,
         successful_deliveries: deliveryResults.successful,
-        failed_deliveries: deliveryResults.failed }
-    })
+        failed_deliveries: deliveryResults.failed } })
 }))
 
 //ALERT DELIVERY LOG extracted to alertDeliveryRoutes.ts (C3)

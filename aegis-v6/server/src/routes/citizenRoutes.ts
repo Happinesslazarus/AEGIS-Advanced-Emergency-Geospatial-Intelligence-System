@@ -376,7 +376,7 @@ router.put('/threads/:id/read', async (req: AuthRequest, res: Response, next: Ne
       [req.params.id]
     )
 
-    res.json({ success: true })
+    res.success({})
 })
 
 //ALERT HISTORY
@@ -532,10 +532,7 @@ router.delete('/data-erasure', async (req: AuthRequest, res: Response, next: Nex
 
     await client.query('COMMIT')
 
-    res.json({
-      success: true,
-      message: 'Your account and personal data have been permanently deleted. Reports have been anonymised for public safety records.',
-    })
+    res.success({ message: 'Your account and personal data have been permanently deleted. Reports have been anonymised for public safety records.' })
   } catch (err) {
     await client.query('ROLLBACK')
     next(err)
@@ -559,12 +556,9 @@ router.post('/request-deletion', async (req: AuthRequest, res: Response, next: N
       throw AppError.notFound('Account not found')
     }
     if (existing.rows[0].deletion_requested_at) {
-      res.json({
-        success: true,
-        already_requested: true,
+      res.success({ already_requested: true,
         deletion_scheduled_at: existing.rows[0].deletion_scheduled_at,
-        message: 'Account deletion already requested.',
-      })
+        message: 'Account deletion already requested.' })
       return
     }
 
@@ -591,11 +585,8 @@ router.post('/request-deletion', async (req: AuthRequest, res: Response, next: N
 
     logger.info({ citizenName: citizen.display_name, scheduledAt: citizen.deletion_scheduled_at }, '[AccountDeletion] Deletion requested')
 
-    res.json({
-      success: true,
-      deletion_scheduled_at: citizen.deletion_scheduled_at,
-      message: `Your account will be permanently deleted on ${new Date(citizen.deletion_scheduled_at).toLocaleDateString()}. You can cancel by logging back in within 30 days.`,
-    })
+    res.success({ deletion_scheduled_at: citizen.deletion_scheduled_at,
+      message: `Your account will be permanently deleted on ${new Date(citizen.deletion_scheduled_at).toLocaleDateString()}. You can cancel by logging back in within 30 days.` })
 })
 
 //POST /cancel-deletion -- Cancel pending account deletion
@@ -612,7 +603,7 @@ router.post('/cancel-deletion', async (req: AuthRequest, res: Response, next: Ne
     )
 
     if (result.rows.length === 0) {
-      res.json({ success: true, message: 'No pending deletion to cancel.' })
+      res.success({ message: 'No pending deletion to cancel.' })
       return
     }
 
@@ -627,10 +618,7 @@ router.post('/cancel-deletion', async (req: AuthRequest, res: Response, next: Ne
 
     logger.info({ citizenName: citizen.display_name }, '[AccountDeletion] Deletion cancelled')
 
-    res.json({
-      success: true,
-      message: 'Account deletion has been cancelled. Welcome back!',
-    })
+    res.success({ message: 'Account deletion has been cancelled. Welcome back!' })
 })
 
 //GET /deletion-status -- Check deletion status
@@ -761,7 +749,7 @@ router.delete('/safety-groups/:id/leave', async (req: AuthRequest, res: Response
     if (parseInt(remaining.rows[0].count) === 0) {
       await pool.query('DELETE FROM safety_groups WHERE id = $1', [groupId])
     }
-    res.json({ success: true })
+    res.success({})
 })
 
 export default router

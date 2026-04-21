@@ -52,7 +52,7 @@ router.delete('/devices/:id', authMiddleware, securityLimiter, async (req: AuthR
       throw AppError.notFound('Device not found or already revoked.')
     }
 
-    res.json({ success: true, message: 'Device trust revoked.' })
+    res.success({ message: 'Device trust revoked.' })
 })
 
 router.delete('/devices', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -60,7 +60,7 @@ router.delete('/devices', authMiddleware, securityLimiter, async (req: AuthReque
       req.user!.id,
       getClientIp(req), req.headers['user-agent'] as string
     )
-    res.json({ success: true, devicesRevoked: count })
+    res.success({ devicesRevoked: count })
 })
 
 //Operator Security Summary
@@ -137,7 +137,7 @@ router.put('/preferences', authMiddleware, securityLimiter, async (req: AuthRequ
       ]
     )
 
-    res.json({ success: true, message: 'Security preferences updated.' })
+    res.success({ message: 'Security preferences updated.' })
 })
 
 //Admin Security Dashboard

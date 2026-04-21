@@ -132,11 +132,11 @@ function buildFloodTestApp() {
   router.get('/flood/extents/:river', (req: Request, res: Response) => {
     const river = req.params.river
     if (!SAFE_RIVER_NAME.test(river)) {
-      res.status(400).json({ error: 'Invalid river name. Only alphanumeric characters, hyphens and underscores are allowed.' })
+      res.fail('Invalid river name. Only alphanumeric characters, hyphens and underscores are allowed.', 400)
       return
     }
     //In tests we don't have GeoJSON files -- return 404 after validation passes
-    res.status(404).json({ error: `Flood extent data not found for: ${river}` })
+    res.fail(`Flood extent data not found for: ${river}`, 404)
   })
 
   //POST /flood/evacuation/route -- validate inputs

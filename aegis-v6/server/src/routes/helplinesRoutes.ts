@@ -88,7 +88,7 @@ router.get('/', helplinesLimiter, async (req: Request, res: Response): Promise<v
   const country = ((req.query.country as string) || '').trim().toUpperCase()
 
   if (!country || !VALID_CC.test(country)) {
-    res.status(400).json({ error: 'Invalid country code. Use ISO 3166-1 alpha-2 (e.g. GB, US, AU).' })
+    res.fail('Invalid country code. Use ISO 3166-1 alpha-2 (e.g. GB, US, AU).', 400)
     return
   }
 

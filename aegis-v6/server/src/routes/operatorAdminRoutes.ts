@@ -40,7 +40,7 @@ router.post('/operators/:id/deactivate', authMiddleware, requireAdmin, asyncRout
       JSON.stringify({ is_active: false }),
     ]
   )
-  res.json({ success: true })
+  res.success({})
 }))
 
 //Reactivate operator account
@@ -55,7 +55,7 @@ router.post('/operators/:id/reactivate', authMiddleware, requireAdmin, asyncRout
      VALUES ($1, $2, 'Reactivated operator account', 'reactivate', 'operator', $3, $4, $5)`,
     [actorId, actorName, id, JSON.stringify({ reason: reason || '' }), JSON.stringify({ is_active: true, is_suspended: false })]
   )
-  res.json({ success: true })
+  res.success({})
 }))
 
 //Suspend operator temporarily
@@ -72,7 +72,7 @@ router.post('/operators/:id/suspend', authMiddleware, requireAdmin, asyncRoute(a
      VALUES ($1, $2, 'Suspended operator account', 'suspend', 'operator', $3, $4, $5)`,
     [actorId, actorName, id, JSON.stringify({ reason }), JSON.stringify({ is_suspended: true, suspended_until: until || null })]
   )
-  res.json({ success: true })
+  res.success({})
 }))
 
 //GDPR-safe anonymise operator (preferred over hard delete)
@@ -102,7 +102,7 @@ router.post('/operators/:id/anonymise', authMiddleware, requireAdmin, asyncRoute
       JSON.stringify({ anonymised_at: new Date().toISOString(), is_active: false }),
     ]
   )
-  res.json({ success: true })
+  res.success({})
 }))
 
 //List all operators (for admin management)
@@ -126,7 +126,7 @@ router.put('/operators/:id/profile', authMiddleware, requireAdmin, asyncRoute(as
       updated_at = NOW()
      WHERE id = $4`, [displayName, email, phone, id]
   )
-  res.json({ success: true })
+  res.success({})
 }))
 
 export default router

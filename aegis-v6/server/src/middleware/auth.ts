@@ -60,7 +60,7 @@ const REFRESH_SECRET: string = (() => {
 export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction): void {
   const header = req.headers.authorization
   if (!header || !header.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Authentication required. Please log in.' })
+    res.fail('Authentication required. Please log in.', 401)
     return
   }
 
@@ -72,7 +72,7 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
     req.user = decoded
     next()
   } catch {
-    res.status(401).json({ error: 'Invalid or expired token. Please log in again.' })
+    res.fail('Invalid or expired token. Please log in again.', 401)
   }
 }
 
@@ -83,11 +83,11 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
 export function requireRole(...allowedRoles: string[]) {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      res.status(401).json({ error: 'Authentication required.' })
+      res.fail('Authentication required.', 401)
       return
     }
     if (!allowedRoles.includes(req.user.role)) {
-      res.status(403).json({ error: 'Insufficient permissions for this action.' })
+      res.fail('Insufficient permissions for this action.', 403)
       return
     }
     next()
@@ -139,7 +139,7 @@ export function verifyRefreshToken(token: string): { id: string; role: string; t
  */
 export function requireVerifiedEmail(req: AuthRequest, res: Response, next: NextFunction): void {
   if (!req.user) {
-    res.status(401).json({ error: 'Authentication required.' })
+    res.fail('Authentication required.', 401)
     return
   }
 
@@ -150,7 +150,7 @@ export function requireVerifiedEmail(req: AuthRequest, res: Response, next: Next
     [req.user.id]
   ).then(result => {
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Account not found.' })
+      res.fail('Account not found.', 404)
       return
     }
     if (!result.rows[0].email_verified) {
@@ -163,7 +163,7 @@ export function requireVerifiedEmail(req: AuthRequest, res: Response, next: Next
     next()
   }).catch((err) => {
     logger.error({ err, userId: req.user?.id }, '[Auth] Failed to check email verification status')
-    res.status(500).json({ error: 'Failed to check email verification status.' })
+    res.fail('Failed to check email verification status.', 500)
   })
 }
 

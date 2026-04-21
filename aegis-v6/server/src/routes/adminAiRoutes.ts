@@ -135,7 +135,7 @@ router.post('/canned-replies', async (req: AuthRequest, res: Response, next: Nex
   try {
     const { title, content, category, shortcut } = req.body
     if (!title || !content) {
-      return res.status(400).json({ error: 'Both a title and content are required to save a canned reply.' })
+      return res.fail('Both a title and content are required to save a canned reply.', 400)
     }
 
     const { rows } = await pool.query(
@@ -173,7 +173,7 @@ router.put('/canned-replies/:id', async (req: AuthRequest, res: Response, next: 
        category?.trim().slice(0, 50), shortcut?.trim().slice(0, 20),
        req.params.id],
     )
-    if (rows.length === 0) return res.status(404).json({ error: 'Canned reply not found' })
+    if (rows.length === 0) return res.fail('Canned reply not found', 404)
     res.json(rows[0])
 })
 
@@ -185,7 +185,7 @@ router.delete('/canned-replies/:id', async (req: AuthRequest, res: Response, nex
       `UPDATE canned_replies SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`,
       [req.params.id],
     )
-    if (rowCount === 0) return res.status(404).json({ error: 'Canned reply not found' })
+    if (rowCount === 0) return res.fail('Canned reply not found', 404)
     res.json({ ok: true })
 })
 
@@ -198,7 +198,7 @@ router.post('/draft-reply', async (req: AuthRequest, res: Response, next: NextFu
   try {
     const { threadId, citizenMessage, context } = req.body
     if (!citizenMessage) {
-      return res.status(400).json({ error: 'A citizen message is required to generate a suggested reply.' })
+      return res.fail('A citizen message is required to generate a suggested reply.', 400)
     }
 
     //Load thread context if threadId provided

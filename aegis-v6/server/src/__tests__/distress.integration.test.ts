@@ -126,7 +126,7 @@ beforeAll(async () => {
          VALUES ($1,$2,$3,$4,$5,$6)`,
         [distressId, latitude, longitude, accuracy || null, heading || null, speed || null],
       ).catch(() => {})
-      res.json({ success: true })
+      res.success({})
     } catch (err) { next(err) }
   })
 
@@ -141,7 +141,7 @@ beforeAll(async () => {
         [distressId, citizenId],
       )
       if (result.rows.length === 0) throw AppError.notFound('Active distress call not found')
-      res.json({ success: true, distress: result.rows[0] })
+      res.success({ distress: result.rows[0] })
     } catch (err) { next(err) }
   })
 
@@ -181,7 +181,7 @@ beforeAll(async () => {
         [req.params.id, operatorId, triageLevel || 'medium'],
       )
       if (result.rows.length === 0) throw AppError.notFound('Active distress call not found')
-      res.json({ success: true, distress: result.rows[0] })
+      res.success({ distress: result.rows[0] })
     } catch (err) { next(err) }
   })
 
@@ -195,7 +195,7 @@ beforeAll(async () => {
         [req.params.id, operatorId, resolution || 'Resolved by operator'],
       )
       if (result.rows.length === 0) throw AppError.notFound('Active distress call not found')
-      res.json({ success: true, distress: result.rows[0] })
+      res.success({ distress: result.rows[0] })
     } catch (err) { next(err) }
   })
 

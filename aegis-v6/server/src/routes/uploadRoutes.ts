@@ -104,13 +104,10 @@ router.post('/upload',
     const uploadType = (req as any).uploadType || 'general'
     const url = `/uploads/${uploadType}/${req.file.filename}`
 
-    res.json({
-      success: true,
-      url,
+    res.success({ url,
       filename: req.file.filename,
       size: req.file.size,
-      mimetype: req.file.mimetype,
-    })
+      mimetype: req.file.mimetype })
   }
 )
 
@@ -130,11 +127,8 @@ router.post('/upload/avatar',
 
     const url = `/uploads/avatars/${req.file.filename}`
 
-    res.json({
-      success: true,
-      url,
-      filename: req.file.filename,
-    })
+    res.success({ url,
+      filename: req.file.filename })
   }
 )
 
@@ -154,11 +148,8 @@ router.post('/upload/community',
 
     const url = `/uploads/community/${req.file.filename}`
 
-    res.json({
-      success: true,
-      url,
-      filename: req.file.filename,
-    })
+    res.success({ url,
+      filename: req.file.filename })
   }
 )
 

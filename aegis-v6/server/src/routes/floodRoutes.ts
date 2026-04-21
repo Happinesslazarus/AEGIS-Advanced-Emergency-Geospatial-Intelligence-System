@@ -199,7 +199,7 @@ function loadExtentFile(riverParam: string, res: Response): boolean {
 router.get('/flood/extents/:river', (req: Request, res: Response) => {
   const found = loadExtentFile(req.params.river, res)
   if (!found && !res.headersSent) {
-    res.status(404).json({ error: `Flood extent data not found for: ${req.params.river}` })
+    res.fail(`Flood extent data not found for: ${req.params.river}`, 404)
   }
 })
 
@@ -237,7 +237,7 @@ router.get('/incidents/:incidentType/extents/:river', (req: Request, res: Respon
     }
   }
 
-  res.status(404).json({ error: `Incident extent data not found for: ${riverParam}` })
+  res.fail(`Incident extent data not found for: ${riverParam}`, 404)
 })
 
 //Evacuation -- canonical paths under /flood/ prefix + legacy aliases

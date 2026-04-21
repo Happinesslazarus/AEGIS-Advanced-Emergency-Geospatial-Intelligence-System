@@ -33,7 +33,7 @@ function createTestApp() {
   
   //Public route
   app.get('/public', (req, res) => {
-    res.json({ message: 'public' })
+    res.fail('public')
   })
   
   //Protected route

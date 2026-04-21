@@ -97,7 +97,7 @@ router.post('/', validate(chatMessageSchema), async (req: Request, res: Response
     const user = optionalAuth(req)
     const rateLimitKey = user?.id || req.ip || 'anonymous'
     if (!checkChatRateLimit(rateLimitKey)) {
-      return res.status(429).json({ error: 'Rate limit exceeded. Please wait before sending more messages.' })
+      return res.fail('Rate limit exceeded. Please wait before sending more messages.', 429)
     }
     const { message, sessionId, preferredProvider } = req.body
 
@@ -147,9 +147,7 @@ router.post('/upload-image', chatImageUpload.single('image'), (req: Request, res
       throw AppError.badRequest('No image file provided')
     }
     const imageUrl = `/uploads/chat/${req.file.filename}`
-    res.json({
-      success: true,
-      imageUrl,
+    res.success({ imageUrl,
       filename: req.file.filename,
       size: req.file.size,
       mimetype: req.file.mimetype })
@@ -326,9 +324,7 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
       extractedText = extractedText.slice(0, 50000) + '\n\n[...truncated -- file too large for full analysis]'
     }
 
-    res.json({
-      success: true,
-      filename: req.file.originalname,
+    res.success({ filename: req.file.originalname,
       size: req.file.size,
       mimetype: req.file.mimetype,
       extractedText,
@@ -554,7 +550,7 @@ router.post('/sessions/:id/end', async (req: Request, res: Response) => {
 router.post('/feedback', async (req: Request, res: Response) => {
     const { messageId, rating, sessionId } = req.body
     if (!messageId || !['up', 'down'].includes(rating)) {
-      return res.status(400).json({ error: 'messageId and rating (up/down) required' })
+      return res.fail('messageId and rating (up/down) required', 400)
     }
 
     //Update cache boost score based on feedback

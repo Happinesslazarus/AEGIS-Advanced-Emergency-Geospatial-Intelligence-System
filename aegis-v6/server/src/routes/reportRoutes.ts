@@ -1650,7 +1650,7 @@ router.put('/bulk/status', authMiddleware, operatorOnly, bulkStatusLimiter, asyn
 
       await client.query('COMMIT')
 
-      res.json({ success: true, status, updated })
+      res.success({ status, updated })
 
       //Broadcast updates via WebSocket
       try {
@@ -1763,7 +1763,7 @@ router.put('/:id/status', authMiddleware, operatorOnly, asyncRoute(async (req: A
     released = true
     client.release()
 
-    res.json({ success: true, status })
+    res.success({ status })
 
     //Broadcast status update via WebSocket
     try {
@@ -1797,7 +1797,7 @@ router.put('/:id/notes', authMiddleware, operatorOnly, asyncRoute(async (req: Au
       ['Added operator notes', 'note', req.params.id, req.user!.id, req.user!.displayName]
     )
 
-    res.json({ success: true })
+    res.success({})
 }))
 
  /*

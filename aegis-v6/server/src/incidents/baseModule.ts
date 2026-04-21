@@ -54,7 +54,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
         const reports = await this.getActiveReports(region)
         res.json({ incidentType: this.id, reports, count: reports.length })
       } catch (err: any) {
-        res.status(500).json({ error: `Could not load active ${this.id} incidents. The database may be temporarily unavailable -- please try again.` })
+        res.fail(`Could not load active ${this.id} incidents. The database may be temporarily unavailable -- please try again.`, 500)
       }
     })
 
@@ -65,7 +65,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
         const predictions = await this.getPredictions(region)
         res.json({ incidentType: this.id, predictions, count: predictions.length })
       } catch (err: any) {
-        res.status(500).json({ error: `Could not generate ${this.id} predictions. The AI service may be temporarily unavailable -- please try again shortly.` })
+        res.fail(`Could not generate ${this.id} predictions. The AI service may be temporarily unavailable -- please try again shortly.`, 500)
       }
     })
 
@@ -75,7 +75,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
         const report = await this.submitReport(req.body)
         res.status(201).json({ incidentType: this.id, report, success: true })
       } catch (err: any) {
-        res.status(500).json({ error: `Could not submit your ${this.id} report. Please check your connection and try again.` })
+        res.fail(`Could not submit your ${this.id} report. Please check your connection and try again.`, 500)
       }
     })
 
@@ -87,7 +87,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
         const history = await this.getHistory(region, days)
         res.json({ incidentType: this.id, history, count: history.length })
       } catch (err: any) {
-        res.status(500).json({ error: `Could not load ${this.id} historical data. Please try again.` })
+        res.fail(`Could not load ${this.id} historical data. Please try again.`, 500)
       }
     })
 
@@ -98,7 +98,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
         const alerts = await this.getAlerts(region)
         res.json({ incidentType: this.id, alerts, count: alerts.length })
       } catch (err: any) {
-        res.status(500).json({ error: `Could not load ${this.id} alerts. Please refresh or try again shortly.` })
+        res.fail(`Could not load ${this.id} alerts. Please refresh or try again shortly.`, 500)
       }
     })
 
@@ -109,7 +109,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
         const mapData = await this.getMapData(region)
         res.json({ incidentType: this.id, ...mapData })
       } catch (err: any) {
-        res.status(500).json({ error: `Could not load ${this.id} map data. Please refresh or try again shortly.` })
+        res.fail(`Could not load ${this.id} map data. Please refresh or try again shortly.`, 500)
       }
     })
 

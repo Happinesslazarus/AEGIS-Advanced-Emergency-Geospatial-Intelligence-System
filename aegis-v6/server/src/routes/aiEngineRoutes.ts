@@ -238,7 +238,7 @@ router.get('/map/heatmap-data', asyncRoute(async (_req: Request, res: Response) 
     if (result.rows.length > 0) {
       res.json(result.rows[0])
     } else {
-      res.status(404).json({ error: 'No heatmap data available. Historical events needed for computation.' })
+      res.fail('No heatmap data available. Historical events needed for computation.', 404)
     }
 }))
 
@@ -264,7 +264,7 @@ router.post('/ai/labels', authMiddleware, requireOperator, asyncRoute(async (req
       throw AppError.badRequest('report_id, label_type, label_value, and operator_id are required')
     }
     await addTrainingLabel(report_id, label_type, label_value, operator_id, confidence)
-    res.json({ success: true })
+    res.success({})
 }))
 
 //POST /api/ai/damage-estimate - Economic damage estimation model
@@ -396,7 +396,7 @@ router.post('/rag/expand', requireAdmin, asyncRoute(async (_req: Request, res: R
 //POST /api/rag/query - Query RAG knowledge base (OPERATOR ONLY)
 router.post('/rag/query', authMiddleware, requireOperator, asyncRoute(async (req: Request, res: Response) => {
     const { query, limit } = req.body
-    if (!query) { res.status(400).json({ error: 'query is required' }); return }
+    if (!query) { res.fail('query is required', 400); return }
     const safeLimit = Math.min(Math.max(parseInt(limit) || 5, 1), 50)
     const results = await ragRetrieve(query, safeLimit)
     res.json({ query, results, count: results.length })

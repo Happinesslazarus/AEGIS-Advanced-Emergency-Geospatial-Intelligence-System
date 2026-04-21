@@ -235,9 +235,7 @@ router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthReq
       userId: operatorId, userType: 'operator', eventType: '2fa_setup_initiated',
       ipAddress: clientIp, userAgent })
 
-    res.json({
-      success: true,
-      manualKey: secret,
+    res.success({ manualKey: secret,
       otpAuthUrl,
       qrCodeDataUrl,
       reusedExistingSecret })
@@ -317,9 +315,7 @@ router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthR
       ['Two-factor authentication enabled', 'note', operatorId]
     )
 
-    res.json({
-      success: true,
-      backupCodes: plainCodes })
+    res.success({ backupCodes: plainCodes })
 })
 
 //POST /api/auth/2fa/authenticate
@@ -658,7 +654,7 @@ router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: Aut
       ['Two-factor authentication disabled', 'note', operatorId]
     )
 
-    res.json({ success: true, message: 'Two-factor authentication has been disabled.' })
+    res.success({ message: 'Two-factor authentication has been disabled.' })
 })
 
 //POST /api/auth/2fa/regenerate-backup-codes
@@ -745,9 +741,7 @@ router.post('/regenerate-backup-codes', authMiddleware, twoFactorRegenLimiter, a
       ['Backup recovery codes regenerated', 'note', operatorId]
     )
 
-    res.json({
-      success: true,
-      backupCodes: plainCodes })
+    res.success({ backupCodes: plainCodes })
 })
 
 export default router

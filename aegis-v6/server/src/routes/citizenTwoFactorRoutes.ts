@@ -171,7 +171,7 @@ router.post('/setup', authMiddleware, setupLimiter, async (req: AuthRequest, res
 
     await logSecurityEvent({ userId: citizenId, userType: 'citizen', eventType: '2fa_setup_initiated', ipAddress: clientIp, userAgent })
 
-    res.json({ success: true, manualKey: secret, otpAuthUrl, qrCodeDataUrl, reusedExistingSecret })
+    res.success({ manualKey: secret, otpAuthUrl, qrCodeDataUrl, reusedExistingSecret })
   } catch (err) { next(err) }
 })
 
@@ -213,7 +213,7 @@ router.post('/verify', authMiddleware, verifyLimiter, async (req: AuthRequest, r
 
     await logSecurityEvent({ userId: citizenId, userType: 'citizen', eventType: '2fa_enabled', ipAddress: clientIp, userAgent })
 
-    res.json({ success: true, backupCodes: plainCodes })
+    res.success({ backupCodes: plainCodes })
   } catch (err) { next(err) }
 })
 
@@ -421,7 +421,7 @@ router.post('/disable', authMiddleware, disableLimiter, async (req: AuthRequest,
     )
 
     await logSecurityEvent({ userId: citizenId, userType: 'citizen', eventType: '2fa_disabled', ipAddress: clientIp, userAgent })
-    res.json({ success: true, message: 'Two-factor authentication has been disabled.' })
+    res.success({ message: 'Two-factor authentication has been disabled.' })
   } catch (err) { next(err) }
 })
 
@@ -472,7 +472,7 @@ router.post('/regenerate-backup-codes', authMiddleware, regenLimiter, async (req
 
     await logSecurityEvent({ userId: citizenId, userType: 'citizen', eventType: '2fa_backup_codes_regenerated', ipAddress: clientIp, userAgent })
 
-    res.json({ success: true, backupCodes: plainCodes })
+    res.success({ backupCodes: plainCodes })
   } catch (err) { next(err) }
 })
 

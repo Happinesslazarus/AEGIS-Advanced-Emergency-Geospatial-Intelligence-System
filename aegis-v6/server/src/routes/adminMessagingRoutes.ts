@@ -180,7 +180,7 @@ router.put('/:id/read', async (req: AuthRequest, res: Response): Promise<void> =
       [req.params.id]
     )
 
-    res.json({ success: true })
+    res.success({})
 })
 
 export default router

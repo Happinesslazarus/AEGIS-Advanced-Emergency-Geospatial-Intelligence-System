@@ -114,7 +114,7 @@ router.post('/location', citizenOnly, async (req: AuthRequest, res: Response) =>
       [distressId, latitude, longitude, accuracy || null, heading || null, speed || null]
     ).catch(() => {}) // Location history table might not exist yet, that's ok
 
-    res.json({ success: true })
+    res.success({})
 })
 
 //Citizen: Cancel SOS
@@ -137,7 +137,7 @@ router.post('/cancel', citizenOnly, async (req: AuthRequest, res: Response) => {
       throw AppError.notFound('Active distress call not found')
     }
 
-    res.json({ success: true, distress: result.rows[0] })
+    res.success({ distress: result.rows[0] })
 })
 
 //Operator: List Active Distress Calls
@@ -208,7 +208,7 @@ router.post('/:id/acknowledge', operatorOnly, async (req: AuthRequest, res: Resp
       throw AppError.notFound('Active distress call not found')
     }
 
-    res.json({ success: true, distress: result.rows[0] })
+    res.success({ distress: result.rows[0] })
 })
 
 //Operator: Resolve
@@ -228,7 +228,7 @@ router.post('/:id/resolve', operatorOnly, async (req: AuthRequest, res: Response
       throw AppError.notFound('Active distress call not found')
     }
 
-    res.json({ success: true, distress: result.rows[0] })
+    res.success({ distress: result.rows[0] })
 })
 
 export default router

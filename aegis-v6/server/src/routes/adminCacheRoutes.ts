@@ -45,11 +45,11 @@ router.post('/clear', async (req: AuthRequest, res: Response) => {
 router.post('/clear-namespace', async (req: AuthRequest, res: Response) => {
     const { namespace, dryRun } = req.body
     if (!namespace || typeof namespace !== 'string') {
-      return res.status(400).json({ error: 'A cache namespace is required.' })
+      return res.fail('A cache namespace is required.', 400)
     }
     //Sanitise namespace: allow only alphanumeric, underscore, hyphen
     if (!/^[a-z0-9_-]{1,64}$/i.test(namespace)) {
-      return res.status(400).json({ error: 'Invalid namespace format. Use only letters, numbers, hyphens, and underscores.' })
+      return res.fail('Invalid namespace format. Use only letters, numbers, hyphens, and underscores.', 400)
     }
     const pattern = `aegis:v1:${namespace}:*`
     const isDry = dryRun === true
@@ -69,11 +69,11 @@ router.post('/clear-namespace', async (req: AuthRequest, res: Response) => {
 router.post('/clear-key', async (req: AuthRequest, res: Response) => {
     const { key, dryRun } = req.body
     if (!key || typeof key !== 'string') {
-      return res.status(400).json({ error: 'A cache key is required.' })
+      return res.fail('A cache key is required.', 400)
     }
     //Only allow keys within our namespace prefix
     if (!key.startsWith('aegis:v1:')) {
-      return res.status(400).json({ error: 'Key must start with aegis:v1:' })
+      return res.fail('Key must start with aegis:v1:', 400)
     }
     const isDry = dryRun === true
     if (!isDry) {

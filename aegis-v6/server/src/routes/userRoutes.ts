@@ -389,7 +389,7 @@ router.delete('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest
       JSON.stringify(before.rows[0])
     ])
 
-    res.json({ message: 'User deleted successfully.' })
+    res.fail('User deleted successfully.')
 })
 
 /*
@@ -400,16 +400,16 @@ router.post('/bulk', authMiddleware, requireSuperAdmin, async (req: AuthRequest,
     const { userIds, action, until, reason } = req.body
 
     if (!Array.isArray(userIds) || userIds.length === 0) {
-      res.status(400).json({ error: 'userIds array is required.' }); return
+      res.fail('userIds array is required.', 400); return
     }
     if (userIds.length > 50) {
-      res.status(400).json({ error: 'Cannot perform bulk operations on more than 50 users at once.' }); return
+      res.fail('Cannot perform bulk operations on more than 50 users at once.', 400); return
     }
     if (!['suspend', 'activate', 'delete'].includes(action)) {
-      res.status(400).json({ error: 'action must be: suspend, activate, or delete' }); return
+      res.fail('action must be: suspend, activate, or delete', 400); return
     }
     if (userIds.includes(req.user!.id)) {
-      res.status(400).json({ error: 'Cannot perform bulk operations on your own account.' }); return
+      res.fail('Cannot perform bulk operations on your own account.', 400); return
     }
 
     const processed: string[] = []
@@ -453,7 +453,7 @@ router.post('/bulk', authMiddleware, requireSuperAdmin, async (req: AuthRequest,
     const io = req.app.get('io')
     if (io) io.to('admins').emit('users:bulk_updated', { action, count: processed.length })
 
-    res.json({ success: true, processed: processed.length, failed: failed.length, failedIds: failed })
+    res.success({ processed: processed.length, failed: failed.length, failedIds: failed })
 })
 
 export default router

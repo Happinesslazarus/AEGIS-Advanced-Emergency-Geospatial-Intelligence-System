@@ -112,7 +112,7 @@ export function internalApiKeyAuth(req: Request, res: Response, next: NextFuncti
     )
     if (!isValid) throw new Error()
   } catch {
-    res.status(403).json({ error: 'Invalid internal API key' })
+    res.fail('Invalid internal API key', 403)
     return
   }
 
@@ -143,7 +143,7 @@ export function n8nWebhookAuth(req: Request, res: Response, next: NextFunction):
   const payload = JSON.stringify(req.body)
   if (!validateWebhookSignature(payload, signature)) {
     logger.warn({ ip: req.ip }, '[Security] Invalid webhook signature')
-    res.status(403).json({ error: 'Invalid webhook signature' })
+    res.fail('Invalid webhook signature', 403)
     return
   }
 
@@ -181,7 +181,7 @@ export function internalAuth(req: Request, res: Response, next: NextFunction): v
   }
 
   logger.warn({ ip: req.ip, path: req.path }, '[Security] Unauthorized internal API access')
-  res.status(401).json({ error: 'Authentication required for internal endpoints' })
+  res.fail('Authentication required for internal endpoints', 401)
 }
 
 /**
@@ -189,12 +189,12 @@ export function internalAuth(req: Request, res: Response, next: NextFunction): v
  */
 export function adminOnly(req: AuthRequest, res: Response, next: NextFunction): void {
   if (!req.user) {
-    res.status(401).json({ error: 'Authentication required' })
+    res.fail('Authentication required', 401)
     return
   }
   
   if (req.user.role !== 'admin') {
-    res.status(403).json({ error: 'Admin access required' })
+    res.fail('Admin access required', 403)
     return
   }
   
@@ -206,12 +206,12 @@ export function adminOnly(req: AuthRequest, res: Response, next: NextFunction): 
  */
 export function operatorOnly(req: AuthRequest, res: Response, next: NextFunction): void {
   if (!req.user) {
-    res.status(401).json({ error: 'Authentication required' })
+    res.fail('Authentication required', 401)
     return
   }
   
   if (!['admin', 'operator', 'manager'].includes(req.user.role)) {
-    res.status(403).json({ error: 'Operator access required' })
+    res.fail('Operator access required', 403)
     return
   }
   

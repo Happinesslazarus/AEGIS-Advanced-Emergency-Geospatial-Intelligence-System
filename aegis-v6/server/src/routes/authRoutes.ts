@@ -487,15 +487,12 @@ router.post('/forgot-password', async (req: AuthRequest, res: Response, next: Ne
       }
 
       //Return generic success message (never expose token or link)
-      res.json({
-        success: true,
-        message: 'If the email exists in our system, a password reset link has been sent.'
-      })
+      res.success({ message: 'If the email exists in our system, a password reset link has been sent.' })
       return
     }
 
     //Same response for non-existent accounts (prevents user enumeration)
-    res.json({ success: true, message: 'If the email exists in our system, a password reset link has been sent.' })
+    res.success({ message: 'If the email exists in our system, a password reset link has been sent.' })
 })
 
 /*
@@ -573,7 +570,7 @@ router.post('/reset-password', resetPasswordLimiter, async (req: AuthRequest, re
       ['Password reset completed', 'note', resetToken.operator_id, JSON.stringify({ ip: req.ip || null })]
     ).catch(() => {})
 
-    res.json({ success: true, message: 'Password reset successful. You can now log in.' })
+    res.success({ message: 'Password reset successful. You can now log in.' })
 })
 
 /*
@@ -753,7 +750,7 @@ router.get('/verify-email', async (req: AuthRequest, res: Response, next: NextFu
       ipAddress: getClientIp(req), userAgent: req.headers['user-agent'] as string,
     })
 
-    res.json({ success: true, message: 'Email verified successfully!' })
+    res.success({ message: 'Email verified successfully!' })
 })
 
 /*
@@ -779,7 +776,7 @@ router.post('/resend-verification', authMiddleware, operatorResendLimiter, async
     }
 
     if (op.rows[0].email_verified) {
-      res.json({ success: true, message: 'Email is already verified.' })
+      res.success({ message: 'Email is already verified.' })
       return
     }
 
@@ -803,7 +800,7 @@ router.post('/resend-verification', authMiddleware, operatorResendLimiter, async
       ipAddress: getClientIp(req), userAgent: req.headers['user-agent'] as string,
     })
 
-    res.json({ success: true, message: 'Verification email has been sent.' })
+    res.success({ message: 'Verification email has been sent.' })
 })
 
 //POST /api/auth/bootstrap
@@ -824,14 +821,14 @@ router.post('/bootstrap', bootstrapLimiter, async (req: any, res: Response, next
       `SELECT COUNT(*)::int AS c FROM operators WHERE role = 'admin' AND deleted_at IS NULL`,
     )
     if ((rows[0]?.c || 0) > 0) {
-      res.status(403).json({ error: 'An admin account already exists. Use the login page.' })
+      res.fail('An admin account already exists. Use the login page.', 403)
       return
     }
 
     const { email, password, displayName } = req.body
 
     if (!email || !password || !displayName) {
-      res.status(400).json({ error: 'Email, password, and your name are required.' })
+      res.fail('Email, password, and your name are required.', 400)
       return
     }
 

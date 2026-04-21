@@ -57,7 +57,7 @@ export function validateMagicBytes(req: Request, res: Response, next: NextFuncti
       const signatures = MAGIC_BYTES[ext]
       if (!signatures) {
         fs.unlinkSync(file.path)
-        res.status(400).json({ error: `Unsupported file type: ${ext}` })
+        res.fail(`Unsupported file type: ${ext}`, 400)
         return
       }
       const buf = Buffer.alloc(12)
@@ -73,13 +73,13 @@ export function validateMagicBytes(req: Request, res: Response, next: NextFuncti
       )
       if (!valid) {
         fs.unlinkSync(file.path)
-        res.status(400).json({ error: `File appears to have incorrect format. Expected ${ext} but magic bytes don't match.` })
+        res.fail(`File appears to have incorrect format. Expected ${ext} but magic bytes don't match.`, 400)
         return
       }
     } catch (err) {
       logger.error({ err, file: file.originalname }, '[Upload] File validation failed')
       try { fs.unlinkSync(file.path) } catch {}
-      res.status(400).json({ error: 'File validation failed.' })
+      res.fail('File validation failed.', 400)
       return
     }
   }

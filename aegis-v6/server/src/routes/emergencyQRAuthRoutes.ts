@@ -120,16 +120,13 @@ router.post('/generate', async (_req: Request, res: Response) => {
 
   logger.info({ sessionId, scanUrl }, '[QR Auth] Session generated')
 
-  res.json({
-    success: true,
-    data: {
+  res.success({ data: {
       sessionId,
       qrCode: qrDataUrl,
       scanUrl,
       lanUrl: serverBase,
       expiresIn: 180,
-    },
-  })
+    } })
 })
 
 /**
@@ -177,15 +174,12 @@ router.post('/scan', (req: Request, res: Response) => {
 
   session.status = 'scanned'
 
-  res.json({
-    success: true,
-    data: {
+  res.success({ data: {
       sessionId,
       status: 'scanned',
       message: 'Confirm sign-in to authorize this session',
       expiresIn: Math.max(0, Math.round((session.expiresAt - Date.now()) / 1000)),
-    },
-  })
+    } })
 })
 
 /**
@@ -224,10 +218,7 @@ router.post('/approve', authMiddleware, (req: Request, res: Response) => {
     userId: authReq.user!.id,
   }, '[QR Auth] Session approved')
 
-  res.json({
-    success: true,
-    message: 'Session authorized. The other device will be signed in shortly.',
-  })
+  res.success({ message: 'Session authorized. The other device will be signed in shortly.' })
 })
 
 //TOTP (Authenticator App) Mode
@@ -336,16 +327,13 @@ router.post('/totp/generate', async (req: Request, res: Response) => {
 
   logger.info({ sessionId, userId: user.id, isNewSetup }, '[QR Auth] TOTP session generated')
 
-  res.json({
-    success: true,
-    data: {
+  res.success({ data: {
       sessionId,
       qrCode: qrDataUrl,
       label,
       expiresIn: 180,
       isNewSetup,
-    },
-  })
+    } })
 })
 
 /**
@@ -427,9 +415,7 @@ router.post('/totp/verify', async (req: Request, res: Response) => {
 
   logger.info({ userId: user.id, sessionId }, '[QR Auth] TOTP verified -- user signed in')
 
-  res.json({
-    success: true,
-    data: {
+  res.success({ data: {
       token,
       user: {
         id: user.id,
@@ -437,8 +423,7 @@ router.post('/totp/verify', async (req: Request, res: Response) => {
         role: user.role,
         displayName: user.display_name || user.email,
       },
-    },
-  })
+    } })
 })
 
 /**
