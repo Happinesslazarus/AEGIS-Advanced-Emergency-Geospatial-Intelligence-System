@@ -264,6 +264,7 @@ import mapTileRoutes from './routes/mapTileRoutes.js'
 import helplinesRoutes from './routes/helplinesRoutes.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { requestIdMiddleware } from './middleware/requestId.js'
+import { responseHelpersMiddleware } from './middleware/responseHelpers.js'
 import pool from './models/db.js'
 import { initSocketServer } from './services/socket.js'
 import { requestLogger } from './services/logger.js'
@@ -525,6 +526,9 @@ const loginLimiter = rateLimit({
 //Must be registered BEFORE the request logger so log lines include the ID.
 //Must also be before route handlers so they can read req.id for tracing.
 app.use(requestIdMiddleware)
+
+//Attach res.success() / res.fail() convenience helpers to every response object.
+app.use(responseHelpersMiddleware)
 
 //Prometheus metrics middleware - records request duration/count for all routes.
 //Must come after requestIdMiddleware so per-request labels are available.
