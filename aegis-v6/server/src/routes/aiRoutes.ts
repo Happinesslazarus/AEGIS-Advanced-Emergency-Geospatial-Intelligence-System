@@ -43,6 +43,7 @@ import {
 import { AppError } from '../utils/AppError.js'
 import { logger } from '../services/logger.js'
 import { regionRegistry } from '../adapters/regions/index.js'
+import { asyncRoute } from '../utils/asyncRoute.js'
 
 const router = Router()
 
@@ -60,8 +61,7 @@ function alertLevelToMetric(alertLevel: string): number {
  * Generate AI-powered hazard prediction for a location.
  * Stores the prediction in PostgreSQL for audit and historical analysis.
  */
-router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/predict', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const {
       hazard_type,
       region_id,
@@ -215,17 +215,13 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       ...prediction,
       prediction_id: result.rows[0].id
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/predictions
  * Get historical AI predictions with optional filters
  */
-router.get('/predictions', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/predictions', authMiddleware, operatorOnly, asyncRoute(async (req: Request, res: Response) => {
     const {
       hazard_type,
       region_id,
@@ -281,17 +277,13 @@ router.get('/predictions', authMiddleware, operatorOnly, async (req: Request, re
     const result = await pool.query(query, params)
 
     res.json(result.rows)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/status
  * Get AI Engine and model status
  */
-router.get('/status', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/status', asyncRoute(async (_req: Request, res: Response) => {
     //Check AI Engine availability
     const isAvailable = await aiClient.isAvailable()
 
@@ -312,30 +304,22 @@ router.get('/status', async (_req: Request, res: Response, next: NextFunction): 
       ai_engine_available: true,
       ...modelStatus
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/hazard-types
  * Get supported hazard types
  */
-router.get('/hazard-types', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/hazard-types', asyncRoute(async (_req: Request, res: Response) => {
     const hazardTypes = await aiClient.getHazardTypes()
     res.json(hazardTypes)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * POST /api/ai/retrain
  * Trigger model retraining (admin only)
  */
-router.post('/retrain', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/retrain', authMiddleware, adminOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { hazard_type, region_id } = req.body
 
     if (!hazard_type) {
@@ -359,17 +343,13 @@ router.post('/retrain', authMiddleware, adminOnly, async (req: AuthRequest, res:
     )
 
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * POST /api/ai/classify-image
  * Classify disaster image using CNN (HuggingFace ViT + DETR)
  */
-router.post('/classify-image', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/classify-image', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { image_path, latitude, longitude, report_id } = req.body
 
     if (!image_path) {
@@ -391,17 +371,13 @@ router.post('/classify-image', authMiddleware, operatorOnly, async (req: AuthReq
       modelUsed: result.modelUsed,
       processingTimeMs: result.processingTimeMs,
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * POST /api/ai/classify-report
  * Classify disaster report into hazard type
  */
-router.post('/classify-report', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/classify-report', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { text, description, location } = req.body
 
     if (!text) {
@@ -413,17 +389,13 @@ router.post('/classify-report', authMiddleware, operatorOnly, async (req: AuthRe
     const result = await aiClient.classifyReport(text, description || '', location || '')
 
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * POST /api/ai/predict-severity
  * Predict severity level for a report
  */
-router.post('/predict-severity', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/predict-severity', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const {
       text,
       description,
@@ -449,17 +421,13 @@ router.post('/predict-severity', authMiddleware, operatorOnly, async (req: AuthR
     })
 
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * POST /api/ai/detect-fake
  * Detect if a report is fake/spam
  */
-router.post('/detect-fake', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/detect-fake', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const {
       text,
       description,
@@ -489,10 +457,7 @@ router.post('/detect-fake', authMiddleware, operatorOnly, async (req: AuthReques
     })
 
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-â-
@@ -504,37 +469,28 @@ router.post('/detect-fake', authMiddleware, operatorOnly, async (req: AuthReques
  * GET /api/ai/models
  * List all governed models with active versions
  */
-router.get('/models', authMiddleware, operatorOnly, async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/models', authMiddleware, operatorOnly, asyncRoute(async (_req: Request, res: Response) => {
     const result = await aiClient.listGovernedModels()
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/models/:modelName/versions
  * List all versions for a specific model
  */
-router.get('/models/:modelName/versions', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/models/:modelName/versions', authMiddleware, operatorOnly, asyncRoute(async (req: Request, res: Response) => {
     const { modelName } = req.params
     const parsedLimit = parseInt(req.query.limit as string)
     const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 20
     const result = await aiClient.listModelVersions(modelName, limit)
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * POST /api/ai/models/rollback
  * Roll back a model to its previous stable version (admin only)
  */
-router.post('/models/rollback', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/models/rollback', authMiddleware, adminOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { model_name, target_version } = req.body
 
     if (!model_name) {
@@ -558,33 +514,25 @@ router.post('/models/rollback', authMiddleware, adminOnly, async (req: AuthReque
     )
 
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/drift
  * Run drift detection on models
  */
-router.get('/drift', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/drift', authMiddleware, operatorOnly, asyncRoute(async (req: Request, res: Response) => {
     const model_name = req.query.model_name as string | undefined
     const parsedHours = parseInt(req.query.hours as string)
     const hours = Number.isFinite(parsedHours) && parsedHours > 0 ? Math.min(parsedHours, 8760) : 24
     const result = await aiClient.checkDrift(model_name, hours)
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * POST /api/ai/predictions/:predictionId/feedback
  * Submit feedback for a prediction (correct/incorrect/uncertain)
  */
-router.post('/predictions/:predictionId/feedback', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/predictions/:predictionId/feedback', authMiddleware, operatorOnly, asyncRoute(async (req: Request, res: Response) => {
     const { predictionId } = req.params
     const { feedback } = req.body
 
@@ -594,46 +542,34 @@ router.post('/predictions/:predictionId/feedback', authMiddleware, operatorOnly,
 
     const result = await aiClient.submitPredictionFeedback(predictionId, feedback)
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/predictions/stats
  * Get prediction statistics for monitoring
  */
-router.get('/predictions/stats', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/predictions/stats', authMiddleware, operatorOnly, asyncRoute(async (req: Request, res: Response) => {
     const model_name = req.query.model_name as string | undefined
     const parsedHours2 = parseInt(req.query.hours as string)
     const hours = Number.isFinite(parsedHours2) && parsedHours2 > 0 ? Math.min(parsedHours2, 8760) : 24
     const result = await aiClient.getPredictionStats(model_name, hours)
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/governance/models
  * Alias for /api/ai/models â€" governance dashboard entry point
  */
-router.get('/governance/models', authMiddleware, operatorOnly, async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/governance/models', authMiddleware, operatorOnly, asyncRoute(async (_req: Request, res: Response) => {
     const result = await aiClient.listGovernedModels()
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/governance/drift
  * Governance-level drift report â€" returns drift status for all models
  */
-router.get('/governance/drift', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/governance/drift', authMiddleware, operatorOnly, asyncRoute(async (req: Request, res: Response) => {
     const parsedHours3 = parseInt(req.query.hours as string)
     const hours = Number.isFinite(parsedHours3) && parsedHours3 > 0 ? Math.min(parsedHours3, 8760) : 24
     const result = await aiClient.checkDrift(undefined, hours)
@@ -647,17 +583,13 @@ router.get('/governance/drift', authMiddleware, operatorOnly, async (req: Reques
       LIMIT 20
     `).catch(() => ({ rows: [] }))
     res.json({ ...result, persisted_drift: dbDrift.rows })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/confidence-distribution?model=<name>
  * Returns confidence histogram for a model from prediction_logs
  */
-router.get('/confidence-distribution', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/confidence-distribution', authMiddleware, operatorOnly, asyncRoute(async (req: Request, res: Response) => {
     const modelName = (req.query.model as string) || null
     const parsedHours4 = parseInt(req.query.hours as string)
     const hours = Number.isFinite(parsedHours4) && parsedHours4 > 0 ? Math.min(parsedHours4, 8760) : 168 // 7 days default
@@ -710,17 +642,13 @@ router.get('/confidence-distribution', authMiddleware, operatorOnly, async (req:
     }
 
     res.json(result.rows)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/audit?limit=N&offset=N&model=<name>
  * Returns AI prediction audit log entries
  */
-router.get('/audit', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/audit', authMiddleware, operatorOnly, asyncRoute(async (req: Request, res: Response) => {
     const limit = Math.min(100, parseInt(req.query.limit as string) || 50)
     const offset = Math.max(0, parseInt(req.query.offset as string) || 0)
     const modelName = req.query.model as string | undefined
@@ -757,10 +685,7 @@ router.get('/audit', authMiddleware, operatorOnly, async (req: Request, res: Res
     }
 
     res.json({ entries: result.rows, total: result.rowCount ?? result.rows.length })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  *  Model Lifecycle Management Endpoints
@@ -770,22 +695,17 @@ router.get('/audit', authMiddleware, operatorOnly, async (req: Request, res: Res
  * GET /api/ai/registry/versions/:hazardType/:regionId
  * List all versions for a hazard+region from on-disk model registry
  */
-router.get('/registry/versions/:hazardType/:regionId', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/registry/versions/:hazardType/:regionId', authMiddleware, operatorOnly, asyncRoute(async (req: Request, res: Response) => {
     const { hazardType, regionId } = req.params
     const result = await aiClient.listRegistryVersions(hazardType, regionId)
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * POST /api/ai/registry/promote/:hazardType/:regionId/:version
  * Promote a specific model version as active (admin only)
  */
-router.post('/registry/promote/:hazardType/:regionId/:version', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/registry/promote/:hazardType/:regionId/:version', authMiddleware, adminOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { hazardType, regionId, version } = req.params
     const result = await aiClient.promoteRegistryModel(hazardType, regionId, version)
 
@@ -801,17 +721,13 @@ router.post('/registry/promote/:hazardType/:regionId/:version', authMiddleware, 
     )
 
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * POST /api/ai/registry/demote/:hazardType/:regionId
  * Remove manual promotion override (admin only)
  */
-router.post('/registry/demote/:hazardType/:regionId', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/registry/demote/:hazardType/:regionId', authMiddleware, adminOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { hazardType, regionId } = req.params
     const result = await aiClient.demoteRegistryModel(hazardType, regionId)
 
@@ -827,62 +743,46 @@ router.post('/registry/demote/:hazardType/:regionId', authMiddleware, adminOnly,
     )
 
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/registry/validate/:hazardType/:regionId/:version
  * Validate integrity of a specific model version
  */
-router.get('/registry/validate/:hazardType/:regionId/:version', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/registry/validate/:hazardType/:regionId/:version', authMiddleware, operatorOnly, asyncRoute(async (req: Request, res: Response) => {
     const { hazardType, regionId, version } = req.params
     const result = await aiClient.validateRegistryModel(hazardType, regionId, version)
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * POST /api/ai/registry/cleanup/:hazardType/:regionId
  * Remove old model versions (admin only)
  */
-router.post('/registry/cleanup/:hazardType/:regionId', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/registry/cleanup/:hazardType/:regionId', authMiddleware, adminOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { hazardType, regionId } = req.params
     const keep = parseInt(req.query.keep as string) || 3
     const dryRun = req.query.dry_run === 'true'
     const result = await aiClient.cleanupRegistryVersions(hazardType, regionId, keep, dryRun)
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * POST /api/ai/registry/cleanup-all
  * Run cleanup across all hazard+region combinations (admin only)
  */
-router.post('/registry/cleanup-all', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/registry/cleanup-all', authMiddleware, adminOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const keep = parseInt(req.query.keep as string) || 3
     const dryRun = req.query.dry_run !== 'false' // default to dry-run for safety -- must explicitly pass dry_run=false to actually delete
     const result = await aiClient.cleanupAllRegistry(keep, dryRun)
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/registry/health/:hazardType/:regionId
  * Get active model health for a hazard+region
  */
-router.get('/registry/health/:hazardType/:regionId', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/registry/health/:hazardType/:regionId', authMiddleware, operatorOnly, asyncRoute(async (req: Request, res: Response) => {
     const { hazardType, regionId } = req.params
     const result = await aiClient.getRegistryHealth(hazardType, regionId)
 
@@ -898,17 +798,13 @@ router.get('/registry/health/:hazardType/:regionId', authMiddleware, operatorOnl
     }
 
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/registry/health
  * Get active model health for all hazard+region pairs
  */
-router.get('/registry/health', authMiddleware, operatorOnly, async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/registry/health', authMiddleware, operatorOnly, asyncRoute(async (_req: Request, res: Response) => {
     const result = await aiClient.getAllRegistryHealth()
     for (const item of result?.items || []) {
       if (!item?.current_version) continue
@@ -921,17 +817,13 @@ router.get('/registry/health', authMiddleware, operatorOnly, async (_req: Reques
       aegisModelAlertStatus.set(labels, alertLevelToMetric(item.health_status || 'HEALTHY'))
     }
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/registry/drift/:hazardType/:regionId/:version
  * Compute drift snapshot for a model version
  */
-router.get('/registry/drift/:hazardType/:regionId/:version', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/registry/drift/:hazardType/:regionId/:version', authMiddleware, operatorOnly, asyncRoute(async (req: Request, res: Response) => {
     const { hazardType, regionId, version } = req.params
     const result = await aiClient.getRegistryDrift(hazardType, regionId, version)
 
@@ -944,17 +836,13 @@ router.get('/registry/drift/:hazardType/:regionId/:version', authMiddleware, ope
     }
 
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * POST /api/ai/registry/mark-degraded/:hazardType/:regionId/:version
  * Manually mark model as degraded/rollback_recommended (admin only)
  */
-router.post('/registry/mark-degraded/:hazardType/:regionId/:version', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/registry/mark-degraded/:hazardType/:regionId/:version', authMiddleware, adminOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { hazardType, regionId, version } = req.params
     const driftScore = Number(req.body?.drift_score ?? 0.8)
     const reason = String(req.body?.reason || 'manual_mark_degraded')
@@ -973,23 +861,16 @@ router.post('/registry/mark-degraded/:hazardType/:regionId/:version', authMiddle
     )
 
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/ai/registry/recommend-rollback/:hazardType/:regionId
  * Get deterministic rollback recommendation for active model
  */
-router.get('/registry/recommend-rollback/:hazardType/:regionId', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/registry/recommend-rollback/:hazardType/:regionId', authMiddleware, operatorOnly, asyncRoute(async (req: Request, res: Response) => {
     const { hazardType, regionId } = req.params
     const result = await aiClient.recommendRegistryRollback(hazardType, regionId)
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 export default router

@@ -9,7 +9,6 @@ export * from './ui'
 export * from './layout'
 
 //Root-level Components
-export { default as RiskAssessment } from './RiskAssessment'
 export { default as SocketDebugBar } from './SocketDebugBar'
 export { default as FloatingChatWidget } from './FloatingChatWidget'
 

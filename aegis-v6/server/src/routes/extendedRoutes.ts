@@ -42,6 +42,7 @@ import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
 import { AppError } from '../utils/AppError.js'
 import { logger } from '../services/logger.js'
 import { broadcastAlert } from '../services/socket.js'
+import { asyncRoute } from '../utils/asyncRoute.js'
 
 const router = Router()
 
@@ -102,20 +103,15 @@ function getResourceRecommendation(hazardType: string, priority: 'Critical' | 'H
   //Fallback for unknown hazard types
   return { ambulances: isCritical ? 3 : 2, fire_engines: isCritical ? 2 : 1, rescue_boats: isCritical ? 1 : 0 }
 }
-router.get('/departments', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get('/departments', asyncRoute(async (_req: Request, res: Response) => {
     const { rows } = await pool.query('SELECT id, name, description FROM departments ORDER BY name')
     res.json(rows)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //ALERT SUBSCRIPTIONS
 
 //Subscribe to alerts
-router.post('/subscriptions', subscriptionLimiter, async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.post('/subscriptions', subscriptionLimiter, asyncRoute(async (req: Request, res: Response) => {
     const { email, phone, telegram_id, whatsapp, channels, location_lat, location_lng, radius_km, severity_filter, topic_filter, subscriber_name } = req.body
     const normalizedChannels = normalizeChannels(channels)
 
@@ -219,14 +215,10 @@ router.post('/subscriptions', subscriptionLimiter, async (req: Request, res: Res
     }
 
     res.status(201).json({ subscription: rows[0], verificationToken })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Verify subscription
-router.post('/subscriptions/verify', async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.post('/subscriptions/verify', asyncRoute(async (req: Request, res: Response) => {
     const { token } = req.body
     if (!token) {
       throw AppError.badRequest('Verification token is required.')
@@ -245,40 +237,28 @@ router.post('/subscriptions/verify', async (req: Request, res: Response, next: N
     }
 
     res.json({ verified: true, subscription: rows[0] })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Get subscriptions by email
-router.get('/subscriptions', async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get('/subscriptions', asyncRoute(async (req: Request, res: Response) => {
     const { email } = req.query
     const { rows } = await pool.query(
       'SELECT id, email, phone, channels, verified, severity_filter, created_at FROM alert_subscriptions WHERE email = $1 ORDER BY created_at DESC',
       [email]
     )
     res.json(rows)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Unsubscribe (requires auth to prevent IDOR)
-router.delete('/subscriptions/:id', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.delete('/subscriptions/:id', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
     await pool.query('DELETE FROM alert_subscriptions WHERE id = $1', [req.params.id])
     res.json({ deleted: true })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //AUDIT LOG
 
 //Log an action
-router.post('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.post('/audit', authMiddleware, requireAdmin, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { operator_id, operator_name, action, action_type, target_type, target_id, before_state, after_state } = req.body
     const ip = req.ip || 'unknown'
     const ua = req.headers['user-agent'] || 'unknown'
@@ -289,14 +269,10 @@ router.post('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res
       [operator_id, operator_name, action, action_type, target_type, target_id, before_state ? JSON.stringify(before_state) : null, after_state ? JSON.stringify(after_state) : null, ip, ua]
     )
     res.status(201).json(rows[0])
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Get audit log with filtering
-router.get('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.get('/audit', authMiddleware, requireAdmin, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { action_type, operator_id, limit, offset, date_from, date_to, search } = req.query
     let query = 'SELECT id, action_type, action, operator_id, operator_name, target_id, target_type, ip_address, metadata, created_at FROM audit_log WHERE 1=1'
     const params: any[] = []
@@ -316,16 +292,12 @@ router.get('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res:
 
     const { rows } = await pool.query(query, params)
     res.json(rows)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //COMMUNITY HELP
 
 //List all active help offers/requests
-router.get('/community', async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get('/community', asyncRoute(async (req: Request, res: Response) => {
     const { type, category, status } = req.query
     let query = 'SELECT id, type, category, title, description, location_text, location_lat, location_lng, contact_info, capacity, status, citizen_id, created_at, updated_at FROM community_help WHERE 1=1' // fix: was user_id
     const params: any[] = []
@@ -338,14 +310,10 @@ router.get('/community', async (req: Request, res: Response, next: NextFunction)
 
     const { rows } = await pool.query(query, params)
     res.json(rows)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Create a help offer or request (requires authentication)
-router.post('/community', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.post('/community', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { type, category, title, description, location_text, location_lat, location_lng, contact_info, capacity, consent_given } = req.body
 
     if (!type || !['offer', 'request'].includes(type)) {
@@ -364,14 +332,10 @@ router.post('/community', authMiddleware, async (req: AuthRequest, res: Response
       [type, category || null, title, description, location_text || null, location_lat || null, location_lng || null, contact_info || null, capacity || null, consent_given || false, req.user!.id]
     )
     res.status(201).json(rows[0])
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Update status (fulfil, cancel, expire)
-router.put('/community/:id/status', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.put('/community/:id/status', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { status } = req.body
     if (!status || !['fulfilled', 'cancelled', 'expired', 'active'].includes(status)) {
       throw AppError.badRequest('Invalid status.')
@@ -390,15 +354,12 @@ router.put('/community/:id/status', authMiddleware, async (req: AuthRequest, res
       throw AppError.notFound('Entry not found or you do not have permission to update it.')
     }
     res.json(rows[0])
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //FLOOD PREDICTIONS
 
 //Get all active flood predictions, deduplicated to latest per area
-router.get('/predictions', async (_req: Request, res: Response, next: NextFunction) => {
+router.get('/predictions', asyncRoute(async (_req: Request, res: Response) => {
   //Reusable SQL fragment: DISTINCT ON (area) keeps the most recent run per area
   const latestPerAreaSQL = `
     SELECT id, area, probability, time_to_flood, matched_pattern, next_areas,
@@ -418,7 +379,6 @@ router.get('/predictions', async (_req: Request, res: Response, next: NextFuncti
     ) latest
     ORDER BY probability DESC`
 
-  try {
     const { rows } = await pool.query(latestPerAreaSQL)
 
     //If no recent predictions, trigger a fresh calculation
@@ -455,14 +415,10 @@ router.get('/predictions', async (_req: Request, res: Response, next: NextFuncti
     }
 
     res.json(rows)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Send pre-alert for a prediction
-router.post('/predictions/:id/pre-alert', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.post('/predictions/:id/pre-alert', authMiddleware, requireOperator, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { operator_id, operator_name } = req.body
 
     //Get prediction details
@@ -614,14 +570,10 @@ router.post('/predictions/:id/pre-alert', authMiddleware, requireOperator, async
         subscribers_notified: subscriptions.rows.length
       }
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Test notification service (admin only)
-router.post('/notifications/test', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.post('/notifications/test', authMiddleware, requireAdmin, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { channel, recipient } = req.body
 
     if (!channel || !recipient) {
@@ -665,10 +617,7 @@ router.post('/notifications/test', authMiddleware, requireAdmin, async (req: Aut
       recipient,
       result
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Get notification service status
 router.get('/notifications/status', (_req: Request, res: Response) => {
@@ -678,8 +627,7 @@ router.get('/notifications/status', (_req: Request, res: Response) => {
 
 //Verify that a Web Push endpoint is still active in the database.
 //Called by the client on load to detect stale FCM subscriptions.
-router.get('/notifications/verify-subscription', async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get('/notifications/verify-subscription', asyncRoute(async (req: Request, res: Response) => {
     const { endpoint } = req.query
     if (!endpoint || typeof endpoint !== 'string') {
       res.status(400).json({ active: false, error: 'endpoint query parameter is required' })
@@ -694,14 +642,10 @@ router.get('/notifications/verify-subscription', async (req: Request, res: Respo
     } else {
       res.json({ active: rows[0].active === true })
     }
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Subscribe to Web Push notifications
-router.post('/notifications/subscribe', subscriptionLimiter, async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.post('/notifications/subscribe', subscriptionLimiter, asyncRoute(async (req: Request, res: Response) => {
     const { subscription, email } = req.body
 
     //Derive user_id from auth token if present - never trust the body
@@ -773,14 +717,10 @@ router.post('/notifications/subscribe', subscriptionLimiter, async (req: Request
       subscription: { id: rows[0].id, active: rows[0].active },
       message: 'Push subscription saved successfully'
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Unsubscribe from Web Push
-router.post('/notifications/unsubscribe', async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.post('/notifications/unsubscribe', asyncRoute(async (req: Request, res: Response) => {
     const { endpoint } = req.body
 
     if (!endpoint) {
@@ -793,14 +733,10 @@ router.post('/notifications/unsubscribe', async (req: Request, res: Response, ne
     )
 
     res.json({ message: 'Push subscription removed successfully' })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Broadcast custom alert (admin only)
-router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.post('/alerts/broadcast', authMiddleware, requireAdmin, asyncRoute(async (req: AuthRequest, res: Response) => {
     const {
       operator_id,
       operator_name,
@@ -865,8 +801,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
       )
       alertId = alertRows[0].id
     } catch (err) {
-      next(err)
-      return
+      throw err
     }
 
     const alert: notificationService.Alert = {
@@ -979,10 +914,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
         failed_deliveries: deliveryResults.failed,
       }
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //ALERT DELIVERY LOG
 
@@ -1002,9 +934,8 @@ function buildDeliveryWhere(q: Record<string, any>): { where: string; params: an
 }
 
 //GET /api/alerts/delivery - paginated, filtered, joined with alert title
-router.get('/alerts/delivery', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/alerts/delivery', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
-  try {
     const limit  = Math.min(parseInt(String(req.query.limit  || '100')), 1000)
     const offset = parseInt(String(req.query.offset || '0'))
     const { where, params, nextIdx } = buildDeliveryWhere(req.query as any)
@@ -1021,15 +952,11 @@ router.get('/alerts/delivery', authMiddleware, async (req: AuthRequest, res: Res
         [...params, limit, offset]),
     ])
     res.json({ rows: dataRes.rows, total: parseInt(countRes.rows[0].count), limit, offset })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GET /api/alerts/delivery/stats - analytics dashboard data
-router.get('/alerts/delivery/stats', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/alerts/delivery/stats', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
-  try {
     const [overall, byChannel, hourly, topFailing, recentErrors, subscriberStats] = await Promise.all([
       pool.query(`SELECT COUNT(*) AS total,
         COUNT(*) FILTER (WHERE status IN ('sent','delivered')) AS sent,
@@ -1069,15 +996,11 @@ router.get('/alerts/delivery/stats', authMiddleware, async (req: AuthRequest, re
         FROM alert_subscriptions`),
     ])
     res.json({ overall: overall.rows[0], by_channel: byChannel.rows, hourly_trend: hourly.rows, top_failing: topFailing.rows, recent_errors: recentErrors.rows, subscribers: subscriberStats.rows[0] })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GET /api/alerts/delivery/grouped - per-alert summary with all channel deliveries
-router.get('/alerts/delivery/grouped', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/alerts/delivery/grouped', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
-  try {
     const limit  = Math.min(parseInt(String(req.query.limit  || '50')), 200)
     const offset = parseInt(String(req.query.offset || '0'))
     const clauses: string[] = []
@@ -1107,15 +1030,11 @@ router.get('/alerts/delivery/grouped', authMiddleware, async (req: AuthRequest, 
       pool.query(`SELECT COUNT(DISTINCT adl.alert_id) FROM alert_delivery_log adl LEFT JOIN alerts a ON a.id=adl.alert_id ${whereStr}`, params),
     ])
     res.json({ groups: dataRes.rows, total: parseInt(countRes.rows[0].count), limit, offset })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //POST /api/alerts/delivery/:id/retry - retry a single failed delivery
-router.post('/alerts/delivery/:id/retry', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/alerts/delivery/:id/retry', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
-  try {
     const { rows } = await pool.query(
       `SELECT adl.*, a.title, a.message, a.severity, a.alert_type
        FROM alert_delivery_log adl LEFT JOIN alerts a ON a.id=adl.alert_id WHERE adl.id=$1`, [req.params.id])
@@ -1131,15 +1050,11 @@ router.post('/alerts/delivery/:id/retry', authMiddleware, async (req: AuthReques
     await pool.query(`UPDATE alert_delivery_log SET status=$1,error_message=$2,sent_at=$3,retry_count=COALESCE(retry_count,0)+1,last_retry_at=NOW() WHERE id=$4`,
       [newStatus, r.error||null, r.success?new Date():null, req.params.id])
     res.json({ success: r.success, status: newStatus, error: r.error||null })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //POST /api/alerts/delivery/retry-failed - bulk retry failed deliveries
-router.post('/alerts/delivery/retry-failed', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/alerts/delivery/retry-failed', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
-  try {
     const { alert_id, channel } = req.body
     const clauses = [`adl.status='failed'`, `COALESCE(adl.retry_count,0)<3`]
     const params: any[] = []
@@ -1163,15 +1078,11 @@ router.post('/alerts/delivery/retry-failed', authMiddleware, async (req: AuthReq
         [r.success?'sent':'failed', r.error||null, r.success?new Date():null, e.id])
     }
     res.json({ attempted: failed.length, succeeded, failed: failedCount })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GET /api/alerts/delivery/export.csv - stream CSV download
-router.get('/alerts/delivery/export.csv', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/alerts/delivery/export.csv', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
-  try {
     const { where, params, nextIdx } = buildDeliveryWhere(req.query as any)
     const { rows } = await pool.query(`
       SELECT adl.id, adl.alert_id, a.title AS alert_title, a.severity AS alert_severity,
@@ -1185,19 +1096,15 @@ router.get('/alerts/delivery/export.csv', authMiddleware, async (req: AuthReques
     res.setHeader('Content-Type','text/csv')
     res.setHeader('Content-Disposition',`attachment; filename="delivery_log_${Date.now()}.csv"`)
     res.send(csv)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //RESOURCE DEPLOYMENTS
 
 //Get all resource deployments
-router.get('/deployments', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/deployments', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) {
     throw AppError.forbidden('Insufficient permissions.')
   }
-  try {
     const { rows } = await pool.query(
       `SELECT d.id, d.zone, d.priority, d.active_reports, d.estimated_affected,
               d.ai_recommendation, d.ambulances, d.fire_engines, d.rescue_boats,
@@ -1213,17 +1120,13 @@ router.get('/deployments', authMiddleware, async (req: AuthRequest, res: Respons
          CASE d.priority WHEN 'Critical' THEN 0 WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END`
     )
     res.json(rows)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Deploy resources to a zone
-router.post('/deployments/:id/deploy', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/deployments/:id/deploy', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) {
     throw AppError.forbidden('Insufficient permissions for deployment operations.')
   }
-  try {
     const { reason, report_id } = req.body
     const operator_id = req.user!.id
     const operator_name = req.user!.displayName || 'Operator'
@@ -1255,17 +1158,13 @@ router.post('/deployments/:id/deploy', authMiddleware, async (req: AuthRequest, 
     )
 
     res.json(rows[0] || { id: req.params.id, deployed: true })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Recall resources
-router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/deployments/:id/recall', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) {
     throw AppError.forbidden('Insufficient permissions for deployment operations.')
   }
-  try {
     const { reason, outcome_summary, ai_feedback } = req.body
     const operator_id = req.user!.id
     const operator_name = req.user!.displayName || 'Operator'
@@ -1331,17 +1230,13 @@ router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, 
     )
 
     res.json({ ...zone, report_resolved: reportResolved, feedback_logged: feedbackLogged })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Create a new deployment zone
-router.post('/deployments', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/deployments', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) {
     throw AppError.forbidden('Insufficient permissions.')
   }
-  try {
     const { zone, priority, active_reports, estimated_affected, ai_recommendation, ambulances, fire_engines, rescue_boats, lat, lng, report_id, prediction_id, is_ai_draft, hazard_type } = req.body
 
     const zoneName = (zone || '').toString().trim()
@@ -1442,17 +1337,13 @@ router.post('/deployments', authMiddleware, async (req: AuthRequest, res: Respon
     }
 
     res.status(201).json(rows[0])
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Delete a deployment zone
-router.delete('/deployments/:id', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.delete('/deployments/:id', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== 'admin') {
     throw AppError.forbidden('Only admins can delete deployment zones.')
   }
-  try {
     const { rows } = await pool.query(
       `DELETE FROM resource_deployments WHERE id = $1 RETURNING id, zone`,
       [req.params.id]
@@ -1473,17 +1364,13 @@ router.delete('/deployments/:id', authMiddleware, async (req: AuthRequest, res: 
     )
 
     res.json({ deleted: true, id: rows[0].id })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Update a deployment zone (inline edit)
-router.patch('/deployments/:id', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.patch('/deployments/:id', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) {
     throw AppError.forbidden('Insufficient permissions.')
   }
-  try {
     const { zone, priority, active_reports, estimated_affected, ai_recommendation,
             ambulances, fire_engines, rescue_boats, hazard_type, incident_commander } = req.body
     const validPriorities = ['Critical', 'High', 'Medium', 'Low']
@@ -1549,15 +1436,11 @@ router.patch('/deployments/:id', authMiddleware, async (req: AuthRequest, res: R
     )
 
     res.json(rows[0])
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Acknowledge an AI draft deployment zone (operator review step)
-router.patch('/deployments/:id/acknowledge', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.patch('/deployments/:id/acknowledge', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
-  try {
     const { rows } = await pool.query(
       `UPDATE resource_deployments
        SET ai_draft_acknowledged_at = NOW(),
@@ -1574,13 +1457,11 @@ router.patch('/deployments/:id/acknowledge', authMiddleware, async (req: AuthReq
        req.params.id, JSON.stringify({ ai_draft_acknowledged_at: null }), JSON.stringify({ ai_draft_acknowledged_at: rows[0].ai_draft_acknowledged_at })]
     )
     res.json(rows[0])
-  } catch (err) { next(err) }
-})
+}))
 
 //Add an ICS ops-log entry to a deployment zone
-router.patch('/deployments/:id/ops-log', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.patch('/deployments/:id/ops-log', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
-  try {
     const { note } = req.body
     const trimmedNote = (note || '').toString().trim().slice(0, 500)
     if (!trimmedNote) throw AppError.badRequest('note is required.')
@@ -1594,13 +1475,11 @@ router.patch('/deployments/:id/ops-log', authMiddleware, async (req: AuthRequest
     )
     if (!rows.length) throw AppError.notFound('Deployment zone not found.')
     res.json({ id: rows[0].id, ops_log: rows[0].ops_log })
-  } catch (err) { next(err) }
-})
+}))
 
 //Toggle mutual aid flag on a deployment zone
-router.patch('/deployments/:id/mutual-aid', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.patch('/deployments/:id/mutual-aid', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
-  try {
     const { needs_mutual_aid, incident_commander } = req.body
     const updates: string[] = []
     const params: any[] = []
@@ -1619,15 +1498,13 @@ router.patch('/deployments/:id/mutual-aid', authMiddleware, async (req: AuthRequ
     )
     if (!rows.length) throw AppError.notFound('Deployment zone not found.')
     res.json(rows[0])
-  } catch (err) { next(err) }
-})
+}))
 
 //DEPLOYMENT ASSETS (per-vehicle GPS tracking)
 
 //List assets for a zone
-router.get('/deployments/:id/assets', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/deployments/:id/assets', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
-  try {
     const { rows } = await pool.query(
       `SELECT id, deployment_id, asset_type, call_sign, status, crew_count,
               last_lat, last_lng, last_seen_at, notes, created_at
@@ -1635,13 +1512,11 @@ router.get('/deployments/:id/assets', authMiddleware, async (req: AuthRequest, r
       [req.params.id]
     )
     res.json(rows)
-  } catch (err) { next(err) }
-})
+}))
 
 //Add asset to a zone
-router.post('/deployments/:id/assets', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/deployments/:id/assets', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
-  try {
     const { asset_type, call_sign, status, crew_count, notes } = req.body
     const validTypes = ['ambulance', 'fire_engine', 'rescue_boat', 'helicopter', 'hazmat_unit', 'police', 'medical_unit', 'urban_search_rescue', 'other']
     const validStatuses = ['staging', 'en_route', 'on_site', 'returning', 'available', 'off_duty']
@@ -1658,13 +1533,11 @@ router.post('/deployments/:id/assets', authMiddleware, async (req: AuthRequest, 
        (notes || '').toString().trim().slice(0, 500) || null]
     )
     res.status(201).json(rows[0])
-  } catch (err) { next(err) }
-})
+}))
 
 //Update asset status / GPS - must precede /:id routes to avoid conflicts
-router.patch('/deployments/assets/:assetId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.patch('/deployments/assets/:assetId', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
-  try {
     const { status, last_lat, last_lng, crew_count, notes } = req.body
     const validStatuses = ['staging', 'en_route', 'on_site', 'returning', 'available', 'off_duty']
     const updates: string[] = []
@@ -1688,27 +1561,23 @@ router.patch('/deployments/assets/:assetId', authMiddleware, async (req: AuthReq
     )
     if (!rows.length) throw AppError.notFound('Asset not found.')
     res.json(rows[0])
-  } catch (err) { next(err) }
-})
+}))
 
 //Delete an asset
-router.delete('/deployments/assets/:assetId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.delete('/deployments/assets/:assetId', authMiddleware, asyncRoute(async (req: AuthRequest, res: Response) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
-  try {
     const { rows } = await pool.query(
       `DELETE FROM deployment_assets WHERE id = $1 RETURNING id`,
       [req.params.assetId]
     )
     if (!rows.length) throw AppError.notFound('Asset not found.')
     res.json({ deleted: true, id: rows[0].id })
-  } catch (err) { next(err) }
-})
+}))
 
 //REPORT MEDIA
 
 //Get media for a specific report
-router.get('/reports/:id/media', async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get('/reports/:id/media', asyncRoute(async (req: Request, res: Response) => {
     const { rows } = await pool.query(
       `SELECT id, file_url, file_type, file_size, ai_processed,
               ai_classification, ai_water_depth, ai_authenticity_score,
@@ -1717,14 +1586,11 @@ router.get('/reports/:id/media', async (req: Request, res: Response, next: NextF
       [req.params.id]
     )
     res.json(rows)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //AI MODEL STATUS (detailed model endpoints moved to aiRoutes.ts)
 
-router.get('/ai/status', async (_req: Request, res: Response, next: NextFunction) => {
+router.get('/ai/status', asyncRoute(async (_req: Request, res: Response) => {
   try {
     const available = await aiClient.isAvailable()
     if (!available) {
@@ -1737,83 +1603,55 @@ router.get('/ai/status', async (_req: Request, res: Response, next: NextFunction
   } catch (err: any) {
     res.status(502).json({ status: 'error', error: err.message || 'Failed to retrieve AI status.' })
   }
-})
+}))
 
 //AI GOVERNANCE ENDPOINTS
 
 //GET /api/ai/governance/models - used by AITransparencyDashboard for accuracy, F1, etc.
-router.get('/ai/governance/models', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.get('/ai/governance/models', authMiddleware, requireOperator, asyncRoute(async (_req: AuthRequest, res: Response) => {
     const metrics = await getModelMetrics()
     res.json(metrics)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GET /api/ai/governance/drift - model drift detection
-router.get('/ai/governance/drift', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.get('/ai/governance/drift', authMiddleware, requireOperator, asyncRoute(async (_req: AuthRequest, res: Response) => {
     const drift = await checkModelDrift()
     res.json(drift)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GET /api/ai/governance/bias - bias report (location, severity, temporal, language)
-router.get('/ai/governance/bias', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.get('/ai/governance/bias', authMiddleware, requireOperator, asyncRoute(async (_req: AuthRequest, res: Response) => {
     const report = await generateBiasReport()
     res.json(report)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GET /api/ai/governance/health - auto-verifications, flagging rates, backlog
-router.get('/ai/governance/health', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.get('/ai/governance/health', authMiddleware, requireOperator, asyncRoute(async (_req: AuthRequest, res: Response) => {
     const health = await checkGovernanceHealth()
     res.json(health)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GET /api/ai/classifier/health - circuit breaker status for HF classifiers
-router.get('/ai/classifier/health', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.get('/ai/classifier/health', authMiddleware, requireOperator, asyncRoute(async (_req: AuthRequest, res: Response) => {
     const health = getClassifierHealth()
     res.json({ models: health, timestamp: new Date().toISOString() })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GET /api/ai/confidence-distribution - computed from real predictions
-router.get('/ai/confidence-distribution', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.get('/ai/confidence-distribution', authMiddleware, requireOperator, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { model } = req.query
     const distribution = await computeConfidenceDistribution(model as string | undefined)
     res.json(distribution)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GET /api/ai/audit - AI execution audit log
-router.get('/ai/audit', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.get('/ai/audit', authMiddleware, requireOperator, asyncRoute(async (req: AuthRequest, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 50
     const offset = parseInt(req.query.offset as string) || 0
     const model = req.query.model as string | undefined
     const result = await getExecutionAuditLog(limit, offset, model)
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Safe Zone / Shelter Capacity Alerts
 
@@ -1823,8 +1661,7 @@ router.get('/ai/audit', authMiddleware, requireOperator, async (req: AuthRequest
  * or becomes full, an alert is automatically broadcast to all verified
  * subscribers within the shelter's vicinity.
  */
-router.patch('/shelters/:id/occupancy', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.patch('/shelters/:id/occupancy', authMiddleware, requireOperator, asyncRoute(async (req: AuthRequest, res: Response) => {
     const shelterId = parseInt(req.params.id, 10)
     const { current_occupancy, operator_name } = req.body
 
@@ -1939,17 +1776,13 @@ router.patch('/shelters/:id/occupancy', authMiddleware, requireOperator, async (
       occupancy_pct: Math.round(occupancyPct),
       alert_sent: alertSent,
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /**
  * POST /api/shelters/:id/close
  * Mark a shelter as inactive and notify nearby subscribers.
  */
-router.post('/shelters/:id/close', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.post('/shelters/:id/close', authMiddleware, requireOperator, asyncRoute(async (req: AuthRequest, res: Response) => {
     const shelterId = parseInt(req.params.id, 10)
     if (!Number.isInteger(shelterId) || shelterId < 1) throw AppError.badRequest('Invalid shelter id')
 
@@ -1996,10 +1829,7 @@ router.post('/shelters/:id/close', authMiddleware, requireOperator, async (req: 
     }
 
     res.json({ id: shelter.id, name: shelter.name, closed: true, subscribers_notified: subResult.rows.length })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Metro / Transit Disruption Alerts
 
@@ -2008,8 +1838,7 @@ router.post('/shelters/:id/close', authMiddleware, requireOperator, async (req: 
  * Operator creates a transit disruption alert (metro, bus, train, ferry).
  * Broadcasts to all verified subscribers; web push included.
  */
-router.post('/alerts/transit', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.post('/alerts/transit', authMiddleware, requireOperator, asyncRoute(async (req: AuthRequest, res: Response) => {
     const {
       operator_id,
       operator_name,
@@ -2136,17 +1965,13 @@ router.post('/alerts/transit', authMiddleware, requireOperator, async (req: Auth
         failed: deliveryResults.failed,
       },
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /**
  * GET /api/alerts/transit
  * List recent transit disruption alerts (public).
  */
-router.get('/alerts/transit', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get('/alerts/transit', asyncRoute(async (_req: Request, res: Response) => {
     const { rows } = await pool.query(
       `SELECT id, title, message, severity, alert_type, location_text as area, created_at, expires_at
        FROM alerts
@@ -2156,10 +1981,7 @@ router.get('/alerts/transit', async (_req: Request, res: Response, next: NextFun
        LIMIT 20`
     )
     res.json({ alerts: rows })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 export default router
 
@@ -2179,8 +2001,7 @@ function normalizeChannels(channels: unknown): string[] {
 // ACCOUNT GOVERNANCE ENDPOINTS
 
 //Deactivate operator account
-router.post('/operators/:id/deactivate', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.post('/operators/:id/deactivate', authMiddleware, requireAdmin, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { id } = req.params
     const { reason, actorId, actorName } = req.body
     if (!reason) throw AppError.badRequest('Reason is required')
@@ -2202,14 +2023,10 @@ router.post('/operators/:id/deactivate', authMiddleware, requireAdmin, async (re
       ]
     )
     res.json({ success: true })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Reactivate operator account
-router.post('/operators/:id/reactivate', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.post('/operators/:id/reactivate', authMiddleware, requireAdmin, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { id } = req.params
     const { reason, actorId, actorName } = req.body
     await pool.query(
@@ -2221,14 +2038,10 @@ router.post('/operators/:id/reactivate', authMiddleware, requireAdmin, async (re
       [actorId, actorName, id, JSON.stringify({ reason: reason || '' }), JSON.stringify({ is_active: true, is_suspended: false })]
     )
     res.json({ success: true })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Suspend operator temporarily
-router.post('/operators/:id/suspend', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.post('/operators/:id/suspend', authMiddleware, requireAdmin, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { id } = req.params
     const { reason, actorId, actorName, until } = req.body
     if (!reason) throw AppError.badRequest('Reason is required')
@@ -2242,14 +2055,10 @@ router.post('/operators/:id/suspend', authMiddleware, requireAdmin, async (req: 
       [actorId, actorName, id, JSON.stringify({ reason }), JSON.stringify({ is_suspended: true, suspended_until: until || null })]
     )
     res.json({ success: true })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GDPR-safe anonymise operator (preferred over hard delete)
-router.post('/operators/:id/anonymise', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.post('/operators/:id/anonymise', authMiddleware, requireAdmin, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { id } = req.params
     const { actorId, actorName, reason } = req.body
     await pool.query(
@@ -2276,27 +2085,19 @@ router.post('/operators/:id/anonymise', authMiddleware, requireAdmin, async (req
       ]
     )
     res.json({ success: true })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //List all operators (for admin management)
-router.get('/operators', authMiddleware, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.get('/operators', authMiddleware, requireAdmin, asyncRoute(async (_req: AuthRequest, res: Response) => {
     const result = await pool.query(
       `SELECT id, email, display_name, role, department, phone, is_active, is_suspended, suspended_until, last_login, created_at
        FROM operators WHERE deleted_at IS NULL ORDER BY created_at DESC`
     )
     res.json(result.rows)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //Update operator profile
-router.put('/operators/:id/profile', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.put('/operators/:id/profile', authMiddleware, requireAdmin, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { id } = req.params
     const { displayName, email, phone } = req.body
     await pool.query(
@@ -2308,15 +2109,12 @@ router.put('/operators/:id/profile', authMiddleware, requireAdmin, async (req: A
        WHERE id = $4`, [displayName, email, phone, id]
     )
     res.json({ success: true })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 // AI PREDICTION ENGINE - Plug & Play Architecture
 
 //POST /api/predictions/run - Runs a hazard prediction via the AI engine
-router.post('/predictions/run', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/predictions/run', authMiddleware, requireOperator, asyncRoute(async (req: AuthRequest, res: Response) => {
   try {
     const { area, latitude, longitude, weather_data, historical_indicators, region_id } = req.body
     const startTime = Date.now()
@@ -2439,13 +2237,12 @@ router.post('/predictions/run', authMiddleware, requireOperator, async (req: Aut
     const statusCode = err?.message?.includes('not available') || err?.message?.includes('timed out') ? 503 : 502
     res.status(statusCode).json({ error: err.message || 'Failed to run live prediction.' })
   }
-})
+}))
 
 // SPATIAL INTELLIGENCE - GeoJSON endpoints for QGIS + Heatmaps
 
 //GET /api/map/risk-layer - Returns structured GeoJSON risk layer
-router.get('/map/risk-layer', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get('/map/risk-layer', asyncRoute(async (_req: Request, res: Response) => {
     const result = await pool.query(
       `SELECT id, name, layer_type, ST_AsGeoJSON(geometry_data) as geojson, properties, model_version, valid_from
        FROM risk_layers WHERE valid_until IS NULL OR valid_until > NOW()
@@ -2457,14 +2254,10 @@ router.get('/map/risk-layer', async (_req: Request, res: Response, next: NextFun
       properties: { ...r.properties, id: r.id, name: r.name, layer_type: r.layer_type, model_version: r.model_version }
     }))
     res.json({ type: 'FeatureCollection', features })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GET /api/map/heatmap-data - Returns dynamically computed heatmap intensity data
-router.get('/map/heatmap-data', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get('/map/heatmap-data', asyncRoute(async (_req: Request, res: Response) => {
     //First try live computation from historical + report data
     const computed = await computeRiskHeatmap()
     if (computed.length > 0) {
@@ -2486,14 +2279,10 @@ router.get('/map/heatmap-data', async (_req: Request, res: Response, next: NextF
     } else {
       res.status(404).json({ error: 'No heatmap data available. Historical events needed for computation.' })
     }
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GET /api/ai/status/detail - Returns detailed DB execution analytics
-router.get('/ai/status/detail', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.get('/ai/status/detail', authMiddleware, requireOperator, asyncRoute(async (_req: AuthRequest, res: Response) => {
     const models = await pool.query(
       `SELECT model_name, MAX(model_version) as version, COUNT(*) as executions,
               AVG(execution_time_ms) as avg_ms, MAX(created_at) as last_run
@@ -2502,31 +2291,23 @@ router.get('/ai/status/detail', authMiddleware, requireOperator, async (_req: Au
     res.json({
       execution_history: models.rows
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GET /api/ai/drift - MOVED to aiRoutes.ts (Phase 5 Governance)
 //Now served by aiRoutes with live AI engine drift detection
 
 //POST /api/ai/labels - Add training label (human-in-the-loop)
-router.post('/ai/labels', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.post('/ai/labels', authMiddleware, requireOperator, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { report_id, label_type, label_value, operator_id, confidence } = req.body
     if (!report_id || !label_type || !label_value || !operator_id) {
       throw AppError.badRequest('report_id, label_type, label_value, and operator_id are required')
     }
     await addTrainingLabel(report_id, label_type, label_value, operator_id, confidence)
     res.json({ success: true })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //POST /api/ai/damage-estimate - Economic damage estimation model
-router.post('/ai/damage-estimate', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
+router.post('/ai/damage-estimate', authMiddleware, requireOperator, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { severity, affected_area_km2, population_density, duration_hours, water_depth_m } = req.body
     const estimate = await estimateDamageCost(
       severity || 'medium',
@@ -2536,16 +2317,12 @@ router.post('/ai/damage-estimate', authMiddleware, requireOperator, async (req: 
       water_depth_m || 0.5,
     )
     res.json(estimate)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 // MULTI-SOURCE FUSION ENGINE (Features #16-25)
 
 //POST /api/fusion/run - Run full 10-source fusion analysis (ADMIN ONLY)
-router.post('/fusion/run', requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.post('/fusion/run', requireAdmin, asyncRoute(async (req: Request, res: Response) => {
     const { region_id, latitude, longitude } = req.body
     if (!region_id || latitude === undefined || longitude === undefined) {
       throw AppError.badRequest('region_id, latitude, and longitude are required')
@@ -2556,16 +2333,12 @@ router.post('/fusion/run', requireAdmin, async (req: Request, res: Response, nex
     //Run weighted fusion algorithm
     const result = await runFusion(fusionInput)
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 // FLOOD FINGERPRINTING ENGINE (Features #26-27)
 
 //POST /api/fingerprint/run - Run cosine-similarity flood fingerprinting (OPERATOR ONLY)
-router.post('/fingerprint/run', requireOperator, async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.post('/fingerprint/run', requireOperator, asyncRoute(async (req: Request, res: Response) => {
     const { region_id, latitude, longitude, area } = req.body
     if (!region_id || latitude === undefined || longitude === undefined) {
       throw AppError.badRequest('region_id, latitude, and longitude are required')
@@ -2575,26 +2348,18 @@ router.post('/fingerprint/run', requireOperator, async (req: Request, res: Respo
       region_id, latitude, longitude, area || 'Unknown Area',
     )
     res.json(prediction)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 // DATA INGESTION PIPELINE (ADMIN ONLY)
 
 //POST /api/ingestion/run - Run full data ingestion from all sources (ADMIN ONLY)
-router.post('/ingestion/run', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
-  try {
+router.post('/ingestion/run', requireAdmin, asyncRoute(async (_req: Request, res: Response) => {
     const result = await runFullIngestion()
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //POST /api/ingestion/source/:source - Run single source ingestion (ADMIN ONLY)
-router.post('/ingestion/source/:source', requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.post('/ingestion/source/:source', requireAdmin, asyncRoute(async (req: Request, res: Response) => {
     const source = req.params.source
     let result
     switch (source) {
@@ -2607,14 +2372,10 @@ router.post('/ingestion/source/:source', requireAdmin, async (req: Request, res:
         throw AppError.badRequest(`Unknown source: ${source}. Valid: ea, nasa, openmeteo, floodhistory, wikipedia`)
     }
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //GET /api/ingestion/status - Get ingestion history and table counts (OPERATOR ONLY)
-router.get('/ingestion/status', authMiddleware, requireOperator, async (_req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get('/ingestion/status', authMiddleware, requireOperator, asyncRoute(async (_req: Request, res: Response) => {
     await ensureIngestionSchema()
 
     const tables = [
@@ -2647,74 +2408,50 @@ router.get('/ingestion/status', authMiddleware, requireOperator, async (_req: Re
     } catch { /* table may not exist */ }
 
     res.json({ tableCounts: counts, recentIngestions: logs, totalRows: Object.values(counts).reduce((a, b) => a + b, 0) })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 // ML TRAINING PIPELINE (ADMIN ONLY)
 
 //POST /api/training/run - Train all ML models (ADMIN ONLY)
-router.post('/training/run', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
-  try {
+router.post('/training/run', requireAdmin, asyncRoute(async (_req: Request, res: Response) => {
     const result = await trainAllModels()
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //POST /api/training/fusion-weights - Train fusion weight optimizer (ADMIN ONLY)
-router.post('/training/fusion-weights', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
-  try {
+router.post('/training/fusion-weights', requireAdmin, asyncRoute(async (_req: Request, res: Response) => {
     const result = await trainFusionWeights()
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 // RAG KNOWLEDGE BASE (ADMIN ONLY)
 
 //POST /api/rag/expand - Expand RAG knowledge base (ADMIN ONLY)
-router.post('/rag/expand', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
-  try {
+router.post('/rag/expand', requireAdmin, asyncRoute(async (_req: Request, res: Response) => {
     const result = await expandRAGKnowledgeBase()
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //POST /api/rag/query - Query RAG knowledge base (OPERATOR ONLY)
-router.post('/rag/query', authMiddleware, requireOperator, async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.post('/rag/query', authMiddleware, requireOperator, asyncRoute(async (req: Request, res: Response) => {
     const { query, limit } = req.body
     if (!query) { res.status(400).json({ error: 'query is required' }); return }
     const safeLimit = Math.min(Math.max(parseInt(limit) || 5, 1), 50)
     const results = await ragRetrieve(query, safeLimit)
     res.json({ query, results, count: results.length })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 // RESILIENCE MONITORING (OPERATOR ONLY)
 
 //GET /api/resilience/status - Get cache, rate limit, circuit breaker status (OPERATOR ONLY)
-router.get('/resilience/status', requireOperator, (_req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get('/resilience/status', requireOperator, asyncRoute(async (_req: Request, res: Response) => {
     res.json(getResilienceStatus())
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 // SYSTEM REPORT (OPERATOR ONLY)
 
 //GET /api/system/report - Generate comprehensive system status report (OPERATOR ONLY)
-router.get('/system/report', requireOperator, async (_req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get('/system/report', requireOperator, asyncRoute(async (_req: Request, res: Response) => {
     //Table row counts
     const tables = [
       'reports', 'river_gauge_readings', 'climate_observations',
@@ -2786,8 +2523,5 @@ router.get('/system/report', requireOperator, async (_req: Request, res: Respons
         features: 37,
       },
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 

@@ -41,6 +41,7 @@ import { reportSubmissionsTotal } from '../services/metrics.js'
 import { AppError } from '../utils/AppError.js'
 import { validate, paginationSchema } from '../middleware/validate.js'
 import { logger } from '../services/logger.js'
+import { asyncRoute } from '../utils/asyncRoute.js'
 
 /* Attempt to extract auth user from request without rejecting unauthenticated callers. */
 function tryExtractUser(req: Request): AuthRequest['user'] | null {
@@ -170,8 +171,7 @@ async function fetchRecentSignals(minutes: number): Promise<SignalFetchResult> {
  * Returns all reports, optionally filtered by status, severity, or category.
  * Newest reports appear first. Results include extracted lat/lng from PostGIS.
   */
-router.get('/', validate({ query: paginationSchema }), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/', validate({ query: paginationSchema }), asyncRoute(async (req: Request, res: Response) => {
     const user = tryExtractUser(req)
     const isOp = isOperatorRole(user?.role)
     const { status, severity, category } = req.query
@@ -266,18 +266,14 @@ router.get('/', validate({ query: paginationSchema }), async (req: Request, res:
       }))
       res.json({ data: reports, total, page, limit })
     }
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
  /*
  * GET /api/reports/stats
  * Returns aggregate statistics for the analytics dashboard.
  * Includes counts by status, severity, category, hour, and confidence.
   */
-router.get('/stats', authMiddleware, operatorOnly, async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/stats', authMiddleware, operatorOnly, asyncRoute(async (_req: AuthRequest, res: Response) => {
     //Run multiple count queries in parallel for performance
     const [byStatus, bySeverity, byCategory, byHour, totals] = await Promise.all([
       pool.query(`SELECT status, COUNT(*)::int as count FROM reports GROUP BY status`),
@@ -296,17 +292,14 @@ router.get('/stats', authMiddleware, operatorOnly, async (_req: AuthRequest, res
       byHour: byHour.rows,
       totals: totals.rows[0],
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
  /*
  * GET /api/reports/clusters
  * Spatiotemporal clustering of recent reports for incident intelligence.
  * Query params: minutes, radiusMeters, minReports
   */
-router.get('/clusters', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/clusters', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
   try {
     const minutes = Math.min(24 * 60, Math.max(10, parseInt(String(req.query.minutes || '120'), 10) || 120))
     const radiusMeters = Math.min(5000, Math.max(100, parseInt(String(req.query.radiusMeters || '1000'), 10) || 1000))
@@ -341,13 +334,13 @@ router.get('/clusters', authMiddleware, operatorOnly, async (req: AuthRequest, r
     logger.error({ err }, '[Reports] Clusters error')
     res.json({ ok: true, data: [], clusters: [], warnings: ['clusters unavailable -- check server logs'] })
   }
-})
+}))
 
  /*
  * GET /api/reports/cascading-insights
  * Detect likely cascading disaster chains from recent incident signals.
   */
-router.get('/cascading-insights', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/cascading-insights', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
   try {
     const windowMinutes = Math.min(24 * 60, Math.max(30, parseInt(String(req.query.windowMinutes || '180'), 10) || 180))
     const forecastHorizonMinutes = Math.min(24 * 60, Math.max(30, parseInt(String(req.query.forecastHorizonMinutes || '180'), 10) || 180))
@@ -370,14 +363,13 @@ router.get('/cascading-insights', authMiddleware, operatorOnly, async (req: Auth
     logger.error({ err }, '[Reports] Cascading insights error')
     res.json({ ok: true, data: [], inferred_cascades: [], warnings: ['cascading insights unavailable -- check server logs'] })
   }
-})
+}))
 
  /*
  * GET /api/reports/cascading-forecast
  * Live-data cascading forecast over current evidence only.
   */
-router.get('/cascading-forecast', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/cascading-forecast', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const windowMinutes = Math.min(24 * 60, Math.max(30, parseInt(String(req.query.windowMinutes || '180'), 10) || 180))
     const forecastHorizonMinutes = Math.min(24 * 60, Math.max(30, parseInt(String(req.query.forecastHorizonMinutes || '180'), 10) || 180))
 
@@ -396,16 +388,13 @@ router.get('/cascading-forecast', authMiddleware, operatorOnly, async (req: Auth
       },
       warnings,
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
  /*
  * GET /api/reports/incident-objects
  * Promote clustered evidence into incident objects with confidence lifecycle state.
   */
-router.get('/incident-objects', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/incident-objects', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
   try {
     const minutes = Math.min(24 * 60, Math.max(10, parseInt(String(req.query.minutes || '180'), 10) || 180))
     const radiusMeters = Math.min(5000, Math.max(100, parseInt(String(req.query.radiusMeters || '1000'), 10) || 1000))
@@ -429,13 +418,13 @@ router.get('/incident-objects', authMiddleware, operatorOnly, async (req: AuthRe
     logger.error({ err }, '[Reports] Incident objects error')
     res.json({ ok: true, data: [], incidents: [], warnings: ['incident objects unavailable -- check server logs'] })
   }
-})
+}))
 
  /*
  * GET /api/reports/incident-objects/:id/explanation
  * Returns confidence trace and drivers for one promoted incident object.
   */
-router.get('/incident-objects/:id/explanation', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/incident-objects/:id/explanation', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
   try {
     const minutes = 180
     const radiusMeters = 1000
@@ -467,14 +456,13 @@ router.get('/incident-objects/:id/explanation', authMiddleware, operatorOnly, as
     logger.error({ err }, '[Reports] Incident explanation error')
     res.json({ ok: true, data: null, warnings: ['incident explanation unavailable -- check server logs'] })
   }
-})
+}))
 
  /*
  * GET /api/reports/incident-objects/:id/timeline
  * Returns confidence/lifecycle evolution for one live incident object across recent windows.
   */
-router.get('/incident-objects/:id/timeline', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/incident-objects/:id/timeline', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const incidentId = String(req.params.id || '')
     const radiusMeters = Math.min(5000, Math.max(100, parseInt(String(req.query.radiusMeters || '1000'), 10) || 1000))
     const minReports = Math.min(20, Math.max(2, parseInt(String(req.query.minReports || '3'), 10) || 3))
@@ -510,16 +498,13 @@ router.get('/incident-objects/:id/timeline', authMiddleware, operatorOnly, async
       data: timeline,
       warnings,
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
  /*
  * GET /api/reports/incident-objects/changes
  * Diff incident objects between current and previous windows.
   */
-router.get('/incident-objects/changes', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/incident-objects/changes', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
   try {
     const minutes = Math.min(120, Math.max(5, parseInt(String(req.query.minutes || '15'), 10) || 15))
     const baselineMinutes = Math.min(120, Math.max(5, parseInt(String(req.query.baselineMinutes || String(minutes)), 10) || minutes))
@@ -620,15 +605,14 @@ router.get('/incident-objects/changes', authMiddleware, operatorOnly, async (req
     logger.error({ err }, '[Reports] Incident object changes error')
     res.json({ ok: true, data: { new_incidents: [], escalated: [], downgraded: [], resolved: [] }, warnings: ['incident object changes unavailable -- check server logs'] })
   }
-})
+}))
 
  /*
  * GET /api/reports/analytics
  * Advanced live analytics for admin dashboard with time-range support.
  * Query params: range=24h|7d|30d|all (default: 24h)
   */
-router.get('/analytics', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/analytics', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const rangeParam = String(req.query.range || '24h').toLowerCase()
     const range = ['24h', '7d', '30d', 'all'].includes(rangeParam) ? rangeParam : '24h'
 
@@ -1014,18 +998,14 @@ router.get('/analytics', authMiddleware, operatorOnly, async (req: AuthRequest, 
         verificationCoverageRate: total > 0 ? Math.round((verifiedCount / total) * 100) : 0,
       },
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/reports/historical-events
  * Returns resolved/archived reports shaped as HistoricalEvent[] for the History page.
  * Also incorporates historical_flood_events table data.
  */
-router.get('/historical-events', authMiddleware, operatorOnly, async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/historical-events', authMiddleware, operatorOnly, asyncRoute(async (_req: AuthRequest, res: Response) => {
     const [reportsRes, historicalRes] = await Promise.all([
       pool.query(
         `SELECT id, report_number, incident_category, incident_subtype, description,
@@ -1078,17 +1058,13 @@ router.get('/historical-events', authMiddleware, operatorOnly, async (_req: Auth
       .slice(0, 200)
 
     res.json({ events: combined, total: combined.length, source: combined.length > 0 ? 'database' : 'empty' })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * GET /api/reports/seasonal-trends
  * Returns per-month aggregates for the seasonal trends chart.
  */
-router.get('/seasonal-trends', authMiddleware, operatorOnly, async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/seasonal-trends', authMiddleware, operatorOnly, asyncRoute(async (_req: AuthRequest, res: Response) => {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
     const [reportsMonthly, historicalMonthly] = await Promise.all([
@@ -1131,17 +1107,13 @@ router.get('/seasonal-trends', authMiddleware, operatorOnly, async (_req: AuthRe
 
     const hasData = trends.some(t => t.floodCount > 0)
     res.json({ trends, source: hasData ? 'database' : 'empty' })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
  /*
  * GET /api/reports/command-center
  * Executive command-center payload for the main admin dashboard.
   */
-router.get('/command-center', authMiddleware, operatorOnly, async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/command-center', authMiddleware, operatorOnly, asyncRoute(async (_req: AuthRequest, res: Response) => {
     const [activityRes, leaderboardRes, recommendationRes, comparativeRes] = await Promise.all([
       pool.query(
         `SELECT id, action, action_type, report_id, operator_name, created_at
@@ -1259,10 +1231,7 @@ router.get('/command-center', authMiddleware, operatorOnly, async (_req: AuthReq
         weekDeltaPct,
       },
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
  /*
  * GET /api/reports/nearby
@@ -1270,8 +1239,7 @@ router.get('/command-center', authMiddleware, operatorOnly, async (_req: AuthReq
  * Uses PostGIS ST_DWithin for efficient spatial filtering.
  * Query params: lat, lng, radius (in metres, default 5000)
   */
-router.get('/nearby', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/nearby', asyncRoute(async (req: Request, res: Response) => {
     const { lat, lng, radius = '5000' } = req.query
     if (!lat || !lng) {
       throw AppError.badRequest('lat and lng query parameters are required.')
@@ -1292,17 +1260,13 @@ router.get('/nearby', async (req: Request, res: Response, next: NextFunction): P
       ...formatReport(r),
       distanceMetres: Math.round(r.distance_m),
     })))
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
  /*
  * GET /api/reports/:id
  * Returns a single report by its UUID.
   */
-router.get('/:id', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/:id', asyncRoute(async (req: Request, res: Response) => {
     const user = tryExtractUser(req)
     const isOp = isOperatorRole(user?.role)
 
@@ -1361,18 +1325,14 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction): Prom
       }))
       res.json({ ...formatReportPublic(result.rows[0]), media })
     }
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * POST /api/reports/:id/reanalyse
  * Re-runs the full AI analysis pipeline on an existing report.
  * Admin/operator only. Returns updated aiAnalysis object.
  */
-router.post('/:id/reanalyse', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/:id/reanalyse', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const reportId = String(req.params.id)
     const exists = await pool.query('SELECT id FROM reports WHERE id = $1', [reportId])
     if (exists.rows.length === 0) {
@@ -1384,10 +1344,7 @@ router.post('/:id/reanalyse', authMiddleware, operatorOnly, async (req: AuthRequ
       return
     }
     res.json({ ok: true, aiAnalysis: result })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
  /*
  * POST /api/reports
@@ -1395,8 +1352,7 @@ router.post('/:id/reanalyse', authMiddleware, operatorOnly, async (req: AuthRequ
  * Accepts multipart form data to allow evidence photo/video upload.
  * Automatically runs AI confidence scoring based on available data.
   */
-router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, asyncRoute(async (req: Request, res: Response) => {
     const submitter = tryExtractUser(req)
     const {
       incidentCategory, incidentSubtype, displayType,
@@ -1694,17 +1650,13 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
         },
       } : {}),
     })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * PUT /api/reports/bulk/status
  * Bulk update status for multiple reports (admin only).
   */
-router.put('/bulk/status', authMiddleware, operatorOnly, bulkStatusLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.put('/bulk/status', authMiddleware, operatorOnly, bulkStatusLimiter, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { reportIds, status, reason } = req.body
 
     if (!Array.isArray(reportIds) || reportIds.length === 0) {
@@ -1796,10 +1748,7 @@ router.put('/bulk/status', authMiddleware, operatorOnly, bulkStatusLimiter, asyn
     } finally {
       client.release()
     }
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 /*
  * PUT /api/reports/:id/status
@@ -1807,7 +1756,7 @@ router.put('/bulk/status', authMiddleware, operatorOnly, bulkStatusLimiter, asyn
  * Valid statuses: Verified, Urgent, Flagged, Resolved
  * Uses transaction + SELECT FOR UPDATE to prevent race conditions.
   */
-router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.put('/:id/status', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
   const client = await pool.connect()
   let released = false
   try {
@@ -1909,18 +1858,17 @@ router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest,
     }
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {})
-    next(err)
+    throw err
   } finally {
     if (!released) client.release()
   }
-})
+}))
 
  /*
  * PUT /api/reports/:id/notes
  * Add or update operator notes on a report (admin only).
   */
-router.put('/:id/notes', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.put('/:id/notes', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const { notes } = req.body
     await pool.query('UPDATE reports SET operator_notes = $1 WHERE id = $2', [notes, req.params.id])
 
@@ -1931,17 +1879,13 @@ router.put('/:id/notes', authMiddleware, operatorOnly, async (req: AuthRequest, 
     )
 
     res.json({ success: true })
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
  /*
  * GET /api/reports/export
  * Export all reports as JSON (admin only).
   */
-router.get('/export/json', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
+router.get('/export/json', authMiddleware, operatorOnly, asyncRoute(async (req: AuthRequest, res: Response) => {
     const result = await pool.query(
       `SELECT id, report_number, incident_category, incident_subtype, display_type,
               description, severity, status, trapped_persons, location_text,
@@ -1957,10 +1901,7 @@ router.get('/export/json', authMiddleware, operatorOnly, async (req: AuthRequest
     )
 
     res.json(result.rows.map(formatReport))
-  } catch (err) {
-    next(err)
-  }
-})
+}))
 
 //REPORT DEDUPLICATION  (Feature #9)
 
