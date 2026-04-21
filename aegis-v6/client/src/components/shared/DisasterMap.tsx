@@ -23,6 +23,7 @@ import SpatialToolbar from './SpatialToolbar'
 import IncidentMapLayers from './IncidentMapLayers'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { simpleSeverityPopup, simpleStationPopup, riskAreaPopup } from '../../utils/leafletPopups'
 import { getAnyToken } from '../../utils/api'
 import { useApiResource } from '../../hooks/useAsync'
 import { TILE_LAYERS } from '../../utils/mapTileProviders'
@@ -615,7 +616,7 @@ export default function DisasterMap({
           const props = feature.properties || {}
           const name = props.ta_name || props.fws_taname || 'Flood Area'
           const severity = props.severity || 'watch'
-          layer.bindPopup(`<strong>${name}</strong><br/><span style="font-size:11px">${'Severity'}: ${severity.toUpperCase()}</span>`)
+          layer.bindPopup(simpleSeverityPopup(name, severity))
         }}
       />
     )
@@ -631,13 +632,8 @@ export default function DisasterMap({
         onEachFeature={(feature: any, layer: any) => {
           const props = feature.properties || {}
           const name = props.station_name || 'Unknown Station'
-          const level = props.level_m ? `${props.level_m.toFixed(2)}m` : 'N/A'
           const status = props.level_status || 'normal'
-          layer.bindPopup(
-            `<strong>${name}</strong><br/>` +
-            `<span style="font-size:11px">${'Level'}: ${level}</span><br/>` +
-            `<span style="font-size:11px">${'Status'}: ${status.toUpperCase()}</span>`,
-          )
+          layer.bindPopup(simpleStationPopup(name, props.level_m, status))
         }}
       />
     )
@@ -896,7 +892,7 @@ export default function DisasterMap({
           const p = feature.properties || {}
           const name = p.name || p.area_name || 'Risk Zone'
           const risk = p.risk_level || p.severity || 'medium'
-          layer.bindPopup(`<strong>${name}</strong><br/><span style="font-size:11px;">${'Risk'}: ${risk.toUpperCase()}</span>${p.description ? `<br/><span style="font-size:10px;">${p.description}</span>` : ''}`)
+          layer.bindPopup(riskAreaPopup(name, risk, p.description))
         }}
       />
     )

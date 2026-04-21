@@ -6,6 +6,15 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { apiFetch } from '../../utils/api'
+import {
+  reportPopup,
+  riverPopup,
+  distressPopup,
+  evacuationRoutePopup,
+  stationPopup,
+  predictionPopup,
+  riskZonePopup,
+} from '../../utils/leafletPopups'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Navigation, ZoomIn, ZoomOut, Satellite, Map as MapIcon, Mountain, RefreshCw, Layers, Eye, EyeOff } from 'lucide-react'
@@ -307,22 +316,7 @@ export default function LiveMap({
       const severity = r.severity || 'Low'
       const marker = L.marker([lat, lng], { icon: createSeverityIcon(severity) })
 
-      const popupContent = `
-        <div style="min-width:180px;">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-            <span style="background:${SEV_COLOURS[severity] || '#6b7280'};color:white;font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;">${severity}</span>
-            <span style="color:#9ca3af;font-size:9px;">#${r.id}</span>
-          </div>
-          <p style="font-weight:600;font-size:13px;margin:0 0 4px;">${r.title || r.category || r.type || 'Incident Report'}</p>
-          <p style="color:#9ca3af;font-size:11px;margin:0 0 4px;">${r.location || ''}</p>
-          ${r.description ? `<p style="color:#d1d5db;font-size:10px;margin:0 0 6px;max-height:40px;overflow:hidden;">${r.description.substring(0, 120)}${r.description.length > 120 ? '--' : ''}</p>` : ''}
-          <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #374151;padding-top:6px;margin-top:4px;">
-            <span style="font-size:9px;color:#6b7280;">${r.status || ''}</span>
-            <span style="font-size:9px;color:#6b7280;">${r.created_at ? new Date(r.created_at).toLocaleString() : ''}</span>
-          </div>
-        </div>
-      `
-      marker.bindPopup(popupContent, { maxWidth: 280, closeButton: true })
+      marker.bindPopup(reportPopup(r as any), { maxWidth: 280, closeButton: true })
 
       if (onReportClickRef.current) {
         marker.on('click', () => onReportClickRef.current!(r))
@@ -351,41 +345,7 @@ export default function LiveMap({
         const colour = STATUS_COLOURS[station.status] || '#22c55e'
         const marker = L.marker([lat, lng], { icon: createRiverIcon(station.status) })
 
-        const pctOfFlood = station.percentageOfFloodLevel || 0
-        const barWidth = Math.min(pctOfFlood, 100)
-
-        marker.bindPopup(`
-          <div style="min-width:200px;">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${colour}" stroke-width="2"><path d="M7 16.3c2.2 0 4-1.83 6.2-1.83 2.2 0 4 1.83 6.2 1.83"/><path d="M7 11.3c2.2 0 4-1.83 6.2-1.83 2.2 0 4 1.83 6.2 1.83"/></svg>
-              <span style="font-weight:700;font-size:13px;">${station.stationName || station.riverName}</span>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-              <div>
-                <span style="font-size:9px;color:#9ca3af;text-transform:uppercase;">${'Level'}</span>
-                <div style="font-size:18px;font-weight:800;font-family:monospace;">${station.levelMetres?.toFixed(2)}m</div>
-              </div>
-              <div>
-                <span style="font-size:9px;color:#9ca3af;text-transform:uppercase;">${'Flow'}</span>
-                <div style="font-size:14px;font-weight:700;font-family:monospace;">${station.flowCumecs?.toFixed(1) ?? '--'} m--/s</div>
-              </div>
-            </div>
-            <div style="margin-bottom:6px;">
-              <div style="display:flex;justify-content:space-between;font-size:9px;color:#9ca3af;margin-bottom:2px;">
-                <span>${'Flood Risk'}</span>
-                <span style="color:${colour};font-weight:600;">${pctOfFlood}%</span>
-              </div>
-              <div style="height:6px;background:#374151;border-radius:99px;overflow:hidden;">
-                <div style="height:100%;width:${barWidth}%;background:${colour};border-radius:99px;transition:width 0.5s;"></div>
-              </div>
-            </div>
-            <div style="display:flex;justify-content:space-between;border-top:1px solid #374151;padding-top:6px;">
-              <span style="background:${colour}30;color:${colour};font-size:9px;font-weight:600;padding:2px 8px;border-radius:99px;">${station.status}</span>
-              <span style="font-size:9px;color:#6b7280;">${'Trend'}: ${station.trend || 'Steady'}</span>
-            </div>
-            <div style="margin-top:4px;font-size:8px;color:#4b5563;">${station.dataSource || ''}</div>
-          </div>
-        `, { maxWidth: 300 })
+        marker.bindPopup(riverPopup(station), { maxWidth: 300 })
 
         marker.addTo(layer)
         count++
@@ -414,16 +374,7 @@ export default function LiveMap({
         if (!lat || !lng) continue
 
         const marker = L.marker([lat, lng], { icon: createDistressIcon() })
-        marker.bindPopup(`
-          <div style="min-width:180px;">
-            <div style="color:#ef4444;font-weight:700;font-size:14px;margin-bottom:4px;">🚨 ${'DISTRESS BEACON'}</div>
-            <p style="font-size:12px;margin:0 0 4px;">${b.citizenName || b.citizen_name || 'Citizen'}</p>
-            <p style="font-size:10px;color:#9ca3af;margin:0;">${b.message || 'Emergency assistance requested'}</p>
-            <div style="margin-top:6px;border-top:1px solid #374151;padding-top:4px;font-size:9px;color:#6b7280;">
-              ${b.activatedAt ? new Date(b.activatedAt).toLocaleString() : ''}
-            </div>
-          </div>
-        `)
+        marker.bindPopup(distressPopup(b))
         marker.addTo(layer)
         count++
       }
@@ -460,12 +411,7 @@ export default function LiveMap({
         dashArray: '10 6',
       })
 
-      line.bindPopup(`
-        <div>
-          <p style="font-weight:700;font-size:13px;margin:0 0 4px;">${route.name || 'Evacuation Route'}</p>
-          <p style="font-size:10px;color:#9ca3af;margin:0;">${route.description || ''}</p>
-        </div>
-      `)
+      line.bindPopup(evacuationRoutePopup(route))
       line.addTo(layer)
     }
   }, [showEvacuationRoutes, evacuationData])
@@ -497,14 +443,10 @@ export default function LiveMap({
         if (!lat || !lng) continue
 
         const p = f.properties || {}
-        const level = parseFloat(p.level_m) || 0
-        const typical = parseFloat(p.typical_high_m) || 0
-        const pct = typical > 0 ? Math.round((level / typical) * 100) : 0
         const status = p.level_status || 'normal'
         const colour = status === 'high' || status === 'severe' ? '#f97316'
           : status === 'above normal' ? '#eab308'
           : '#22c55e'
-        const barWidth = Math.min(pct, 100)
 
         const icon = L.divIcon({
           className: 'custom-marker',
@@ -525,30 +467,7 @@ export default function LiveMap({
         })
 
         const marker = L.marker([lat, lng], { icon })
-        marker.bindPopup(`
-          <div style="min-width:190px;">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${colour}" stroke-width="2"><path d="M7 16.3c2.2 0 4-1.83 6.2-1.83 2.2 0 4 1.83 6.2 1.83"/><path d="M7 11.3c2.2 0 4-1.83 6.2-1.83 2.2 0 4 1.83 6.2 1.83"/></svg>
-              <span style="font-weight:700;font-size:12px;">${p.station_name || p.station_id}</span>
-            </div>
-            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;">${p.river_name || ''} -- ${p.jurisdiction || 'EA'}</div>
-            ${level > 0 ? `
-              <div style="margin-bottom:6px;">
-                <div style="display:flex;justify-content:space-between;font-size:9px;color:#9ca3af;margin-bottom:2px;">
-                  <span>${'Level'}: ${level.toFixed(2)}m</span>
-                  <span style="color:${colour};font-weight:600;">${pct}% ${'of typical high'}</span>
-                </div>
-                <div style="height:5px;background:#374151;border-radius:99px;overflow:hidden;">
-                  <div style="height:100%;width:${barWidth}%;background:${colour};border-radius:99px;"></div>
-                </div>
-              </div>
-            ` : `<div style="font-size:9px;color:#6b7280;margin-bottom:4px;">${'No level reading available'}</div>`}
-            <div style="display:flex;justify-content:space-between;border-top:1px solid #374151;padding-top:4px;">
-              <span style="background:${colour}30;color:${colour};font-size:8px;font-weight:600;padding:1px 6px;border-radius:99px;">${status.toUpperCase()}</span>
-              <span style="font-size:8px;color:#6b7280;">${'Trend'}: ${p.trend || 'Steady'}</span>
-            </div>
-          </div>
-        `, { maxWidth: 260 })
+        marker.bindPopup(stationPopup(p), { maxWidth: 260 })
         marker.addTo(layer)
         count++
       }
@@ -584,32 +503,7 @@ export default function LiveMap({
           fillOpacity: 0.12,
         })
 
-        const pctLabel = `${Math.round(prob * 100)}%`
-        const severityBg = prob >= 0.75 ? '#dc262630' : prob >= 0.5 ? '#f9731630' : '#eab30830'
-        circle.bindPopup(`
-          <div style="min-width:210px;">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-              <span style="background:${severityBg};color:${colour};font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;">${p.severity || 'MEDIUM'} ${'RISK'}</span>
-              <span style="font-size:9px;color:#9ca3af;">${'AI Prediction'}</span>
-            </div>
-            <p style="font-weight:700;font-size:13px;margin:0 0 2px;">${p.area}</p>
-            <div style="margin-bottom:6px;">
-              <div style="display:flex;justify-content:space-between;font-size:9px;color:#9ca3af;margin-bottom:2px;">
-                <span>${'Flood Probability'}</span>
-                <span style="color:${colour};font-weight:700;">${pctLabel}</span>
-              </div>
-              <div style="height:5px;background:#374151;border-radius:99px;overflow:hidden;">
-                <div style="height:100%;width:${pctLabel};background:${colour};border-radius:99px;"></div>
-              </div>
-            </div>
-            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;display:flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${p.time_to_flood || 'Unknown'}</div>
-            <div style="font-size:9px;color:#60a5fa;margin-bottom:4px;display:flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" style="flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>${p.matched_pattern || ''}</div>
-            ${p.next_areas?.length ? `<div style="font-size:9px;color:#fbbf24;display:flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" style="flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>${'Downstream'}: ${p.next_areas.join(', ')}</div>` : ''}
-            <div style="border-top:1px solid #374151;padding-top:4px;margin-top:4px;font-size:8px;color:#6b7280;">
-              ${'Confidence'}: ${p.confidence}% -- ${p.model_version}
-            </div>
-          </div>
-        `, { maxWidth: 300 })
+        circle.bindPopup(predictionPopup(p), { maxWidth: 300 })
         circle.addTo(layer)
         count++
       }
@@ -637,20 +531,7 @@ export default function LiveMap({
           return { color: c.color, weight: 2, fillColor: c.fill, fillOpacity: 0.25, dashArray: risk === 'critical' ? '' : '5 3' }
         },
         onEachFeature: (feature: any, lyr: any) => {
-          const p = feature.properties || {}
-          const name = p.name || p.area_name || 'Risk Zone'
-          const risk: string = p.risk_level || p.severity || 'medium'
-          const riskColourMap: Record<string, string> = { critical: '#dc2626', high: '#f97316', medium: '#eab308', low: '#3b82f6' }
-          const riskColour = riskColourMap[risk] || '#eab308'
-          lyr.bindPopup(`
-            <div style="min-width:180px;">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-                <span style="background:${riskColour}30;color:${riskColour};font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;">${risk} ${'RISK'}</span>
-              </div>
-              <p style="font-weight:700;font-size:13px;margin:0 0 2px;">${name}</p>
-              ${p.description ? `<p style="color:#9ca3af;font-size:10px;margin:0;">${p.description}</p>` : ''}
-            </div>
-          `, { maxWidth: 260 })
+          lyr.bindPopup(riskZonePopup(feature.properties || {}), { maxWidth: 260 })
         },
       })
       geoLayer.addTo(layer)
