@@ -1490,56 +1490,9 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, asyncR
       }
     }
 
-    //Broadcast the rich report shape via WebSocket so the existing admin
-    //dashboard updates in real time. The frontend currently depends on the
-    //full formatReport() shape; once it migrates to the typed event channel
-    //below, this manual broadcast can be removed.
-    try {
-      const io = req.app.get('io')
-      if (io) {
-        const fullReport = {
-          ...formatReport({
-            ...report,
-            incident_category: incidentCategory,
-            incident_subtype: incidentSubtype || '',
-            display_type: displayType || '',
-            description,
-            severity: dbSeverity,
-            trapped_persons: trappedPersons || 'no',
-            location_text: locationText,
-            lat: parseFloat(lat),
-            lng: parseFloat(lng),
-            has_media: hasMedia,
-            media_type: mediaType,
-            media_url: mediaUrl,
-            reporter_name: submitter?.displayName || null,
-            ai_confidence: aiResult.confidence,
-            ai_analysis: aiResult.analysis,
-            location_metadata: locationMetadata,
-            operator_notes: null,
-            updated_at: null,
-            verified_at: null,
-            resolved_at: null }),
-          media: hasFiles ? files!.map(f => ({
-            id: null,
-            url: `/uploads/evidence/${f.filename}`,
-            file_url: `/uploads/evidence/${f.filename}`,
-            fileType: f.mimetype,
-            fileSize: f.size,
-            originalFilename: f.originalname,
-            aiAnalysis: null })) : [] }
-        io.emit('report:new', fullReport)
-        devLog(`[Reports] Broadcast report:new ${report.report_number}`)
-      }
-    } catch (wsErr: any) {
-      logger.warn({ err: wsErr }, '[Reports] WebSocket broadcast failed')
-    }
-
-    //Publish typed event onto the Aegis event spine. The auditSubscriber
-    //records it automatically and any future subscriber (notifications,
-    //n8n workflows, AI cascade engine) reacts without requiring changes
-    //to this route. The slim payload is the stable contract; the rich
-    //broadcast above will be retired once the frontend migrates.
+    //Publish typed event onto the Aegis event spine. The socketBroadcastSubscriber
+    //fetches the full report from DB and emits 'report:new' to all connected clients.
+    //The auditSubscriber records the event automatically.
     const dbSeverityEvt = dbSeverity === 'high' ? 'high' : dbSeverity === 'medium' ? 'medium' : 'low'
     await eventBus.publish(
       AegisEventNames.REPORT_CREATED,

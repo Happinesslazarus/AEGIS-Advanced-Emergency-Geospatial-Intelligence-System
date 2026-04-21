@@ -70,24 +70,9 @@ export function registerDistressHandlers(
       //Join distress room for real-time updates
       socket.join(`distress:${distressCall.id}`)
 
-      // ?? ALERT ALL OPERATORS -- with alarm-level urgency
-      io.to('admins').emit('distress:new_alert', {
-        ...distressCall,
-        citizenName: user.displayName,
-        isVulnerable,
-        urgency: isVulnerable ? 'CRITICAL' : 'HIGH',
-      })
+      // ?? ALERT ALL OPERATORS -- event bus subscriber handles socket broadcast
+      // (distress:new_alert and distress:alarm to admins room)
 
-      //Play alarm sound notification on admin clients
-      io.to('admins').emit('distress:alarm', {
-        distressId: distressCall.id,
-        citizenName: user.displayName,
-        isVulnerable,
-        latitude,
-        longitude,
-      })
-
-      auditLog('Distress', `SOS ACTIVATED by ${user.displayName}`, { latitude, longitude, isVulnerable })
       distressEventsTotal.inc({ event: 'activate' })
       distressActiveGauge.inc()
 
@@ -101,6 +86,8 @@ export function registerDistressHandlers(
           {
             sosId: String(distressCall.id),
             userId: String(user.id),
+            citizenName: user.displayName,
+            isVulnerable,
             latitude,
             longitude,
             message: typeof message === 'string' ? message.slice(0, 500) : undefined,

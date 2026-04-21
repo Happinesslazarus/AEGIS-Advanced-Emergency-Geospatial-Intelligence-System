@@ -8,11 +8,12 @@
  * subscriber decides what to broadcast and to whom.
  *
  * Mapping rules:
- *   report.created      -> 'report:created'      (all clients)
+ *   report.created      -> 'report:new'          (all clients, full row fetched from DB)
  *   report.updated      -> 'report:updated'      (all clients)
  *   report.assigned     -> 'report:assigned'     (admins room only)
  *   report.resolved     -> 'report:resolved'     (all clients)
- *   sos.activated       -> 'distress:new'        (admins room only)
+ *   sos.activated       -> 'distress:new_alert'  (admins room) +
+ *                          'distress:alarm'      (admins room)
  *   alert.created       -> 'alert:new'           (all clients)
  *   alert.broadcast     -> 'alert:broadcast'     (all clients)
  *   alert.acknowledged  -> 'alert:acknowledged'  (admins room only)
@@ -25,6 +26,15 @@ import { eventBus } from '../events/eventBus.js'
 import { AegisEventNames } from '../events/eventTypes.js'
 import { getIO } from '../services/socket.js'
 import { logger } from '../services/logger.js'
+import pool from '../models/db.js'
+
+const SEVERITY_MAP: Record<string, string> = {
+  low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical',
+}
+const STATUS_MAP: Record<string, string> = {
+  unverified: 'Unverified', verified: 'Verified',
+  urgent: 'Urgent', flagged: 'Flagged', resolved: 'Resolved',
+}
 
 function emit(channel: string, payload: unknown, room?: string): void {
   const io = getIO()
@@ -41,7 +51,54 @@ export function registerSocketBroadcastSubscriber(): () => void {
 
   unsubs.push(
     eventBus.subscribe(AegisEventNames.REPORT_CREATED, async (evt) => {
-      emit('report:created', { ...evt.payload, correlationId: evt.correlationId })
+      try {
+        const result = await pool.query<{
+          id: number; report_number: string; incident_category: string
+          incident_subtype: string; display_type: string; description: string
+          severity: string; status: string; trapped_persons: string
+          location_text: string; lat: number; lng: number
+          has_media: boolean; media_type: string | null; media_url: string | null
+          ai_confidence: number | null; ai_analysis: unknown
+          location_metadata: unknown; operator_notes: string | null
+          created_at: string; updated_at: string | null
+          verified_at: string | null; resolved_at: string | null
+          reporter_name: string | null
+          media: Array<{ id: number; url: string; file_url: string; fileType: string; fileSize: number; originalFilename: string }>
+        }>(
+          `SELECT r.id, r.report_number, r.incident_category, r.incident_subtype, r.display_type,
+                  r.description, r.severity, r.status, r.trapped_persons, r.location_text,
+                  r.lat, r.lng, r.has_media, r.media_type, r.media_url,
+                  r.ai_confidence, r.ai_analysis, r.location_metadata, r.operator_notes,
+                  r.created_at, r.updated_at, r.verified_at, r.resolved_at,
+                  c.display_name AS reporter_name,
+                  COALESCE(
+                    JSON_AGG(JSON_BUILD_OBJECT(
+                      'id', rm.id, 'url', rm.file_url, 'file_url', rm.file_url,
+                      'fileType', rm.file_type, 'fileSize', rm.file_size,
+                      'originalFilename', rm.original_filename, 'aiAnalysis', null
+                    )) FILTER (WHERE rm.id IS NOT NULL), '[]'
+                  ) AS media
+           FROM reports r
+           LEFT JOIN citizens c ON r.citizen_id = c.id
+           LEFT JOIN report_media rm ON rm.report_id = r.id
+           WHERE r.id = $1
+           GROUP BY r.id, c.display_name`,
+          [evt.payload.reportId],
+        )
+        if (result.rows.length === 0) {
+          logger.warn({ reportId: evt.payload.reportId }, '[socketBroadcast] REPORT_CREATED: report not found')
+          return
+        }
+        const row = result.rows[0]
+        emit('report:new', {
+          ...row,
+          severity: SEVERITY_MAP[row.severity] ?? row.severity,
+          status: STATUS_MAP[row.status] ?? row.status,
+          correlationId: evt.correlationId,
+        })
+      } catch (err) {
+        logger.error({ err, reportId: evt.payload.reportId }, '[socketBroadcast] REPORT_CREATED fetch failed')
+      }
     }),
   )
 
@@ -65,7 +122,28 @@ export function registerSocketBroadcastSubscriber(): () => void {
 
   unsubs.push(
     eventBus.subscribe(AegisEventNames.SOS_ACTIVATED, async (evt) => {
-      emit('distress:new', { ...evt.payload, correlationId: evt.correlationId }, 'admins')
+      const { sosId, citizenName, isVulnerable, latitude, longitude, message } = evt.payload
+      emit('distress:new_alert', {
+        id: sosId,
+        citizenName,
+        citizen_name: citizenName,
+        isVulnerable: isVulnerable ?? false,
+        is_vulnerable: isVulnerable ?? false,
+        latitude,
+        longitude,
+        message,
+        status: 'active',
+        urgency: isVulnerable ? 'CRITICAL' : 'HIGH',
+        correlationId: evt.correlationId,
+      }, 'admins')
+      emit('distress:alarm', {
+        distressId: sosId,
+        citizenName,
+        isVulnerable: isVulnerable ?? false,
+        latitude,
+        longitude,
+        correlationId: evt.correlationId,
+      }, 'admins')
     }),
   )
 

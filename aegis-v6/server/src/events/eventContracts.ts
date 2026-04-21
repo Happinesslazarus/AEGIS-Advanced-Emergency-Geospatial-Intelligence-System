@@ -50,6 +50,8 @@ export interface ReportResolvedPayload {
 export interface SosActivatedPayload {
   sosId: string
   userId: string
+  citizenName?: string
+  isVulnerable?: boolean
   latitude: number
   longitude: number
   message?: string
