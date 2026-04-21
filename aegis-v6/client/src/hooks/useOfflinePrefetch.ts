@@ -21,7 +21,13 @@
 import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { apiGetAlerts, apiGetReports, apiGetPredictions, apiGetHeatmapData } from '../utils/api'
-import { queryKeys } from './useApiQueries'
+
+const queryKeys = {
+  alerts: ['alerts'] as const,
+  reports: ['reports'] as const,
+  predictions: ['predictions'] as const,
+  heatmap: ['heatmap'] as const,
+}
 
 /**
  * Prefetch critical emergency data so the offline cache is warm.
