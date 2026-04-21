@@ -4,11 +4,11 @@
  * icons and relative timestamps.
  */
 
-import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, Droplet, Flame, Wind, TrendingUp, Clock, MapPin, Eye, ChevronRight } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { useAsync } from '../../hooks/useAsync'
 import { SEVERITY_CLASSES } from '../../utils/colorTokens'
 
 export interface Alert {
@@ -44,46 +44,23 @@ const SEVERITY_BADGES: Record<string, string> = {
 
 export function IncomingAlertsWidget() {
   const lang = useLanguage()
-  const [alerts, setAlerts] = useState<Alert[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
 
-  useEffect(() => {
-    const fetchAlerts = async () => {
-      abortRef.current?.abort()
-      const controller = new AbortController()
-      abortRef.current = controller
-      try {
-        setLoading(true)
-        setError(null)
-        const response = await fetch('/api/alerts', { signal: controller.signal })
-        if (!response.ok) throw new Error('Failed to fetch alerts')
-        const data = await response.json()
-        const list = Array.isArray(data) ? data : (data.alerts || data.data || [])
-        const normalized = list.slice(0, 5).map((a: any) => ({
-          ...a,
-          locationText: a.locationText || a.location || '',
-          hazardType: a.hazardType || a.type || 'default',
-        }))
-        setAlerts(normalized)
-      } catch (err: any) {
-        if (err?.name !== 'AbortError') {
-          console.error('Error fetching alerts:', err)
-          setError(t('alerts.loadError', lang))
-        }
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchAlerts()
-    const interval = setInterval(fetchAlerts, 30000)
-    return () => {
-      clearInterval(interval)
-      abortRef.current?.abort()
-    }
-  }, [])
+  const { data, loading, error } = useAsync<Alert[]>(
+    async ({ signal }) => {
+      const response = await fetch('/api/alerts', { signal })
+      if (!response.ok) throw new Error('Failed to fetch alerts')
+      const json = await response.json()
+      const list = Array.isArray(json) ? json : (json.alerts || json.data || [])
+      return list.slice(0, 5).map((a: any) => ({
+        ...a,
+        locationText: a.locationText || a.location || '',
+        hazardType: a.hazardType || a.type || 'default',
+      })) as Alert[]
+    },
+    [],
+    { pollMs: 30000 },
+  )
+  const alerts = data ?? []
 
   if (loading) {
     return (

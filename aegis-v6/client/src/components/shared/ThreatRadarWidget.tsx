@@ -4,7 +4,8 @@
  * positioned by category and coloured by severity.
  */
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useAsync } from '../../hooks/useAsync'
 import { AlertTriangle, Activity, Droplets, Flame, Wind, CloudLightning, RefreshCw, MapPin, Clock, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 import { useLocation } from '../../contexts/LocationContext'
 import { t } from '../../utils/i18n'
@@ -95,56 +96,35 @@ function RadarViz({ threats }: { threats: ThreatItem[] }) {
 export default function ThreatRadarWidget(): JSX.Element {
   const lang = useLanguage()
   const { activeLocation } = useLocation()
-  const [threats, setThreats] = useState<ThreatItem[]>([])
-  const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval>>()
 
-  const fetchThreats = async () => {
-    setLoading(true)
-    try {
-      //Fetch from alerts API
-      const res = await fetch('/api/alerts')
-      if (res.ok) {
-        const data = await res.json()
-        const alerts: any[] = Array.isArray(data) ? data : data?.alerts || []
-
-        const mapped: ThreatItem[] = alerts.slice(0, 10).map((alert: any, i: number) => {
-          const type = detectThreatType(alert.type || alert.incident_type || alert.title || '')
-          const severity = mapSeverity(alert.severity || alert.priority || 'low')
-          return {
-            id: String(alert.id || i),
-            type,
-            severity,
-            title: String(alert.title || alert.message || 'Alert'),
-            description: String(alert.description || alert.message || ''),
-            distance: alert.distance_km || Math.round(Math.random() * 80 + 5),
-            timestamp: alert.created_at || alert.timestamp || new Date().toISOString(),
-            source: String(alert.source || 'AEGIS'),
-          }
-        })
-
-        setThreats(mapped.sort((a, b) => {
-          const sevOrder = { extreme: 0, severe: 1, moderate: 2, low: 3 }
-          return (sevOrder[a.severity] ?? 3) - (sevOrder[b.severity] ?? 3)
-        }))
-      }
-    } catch {
-      //Use empty state
-    }
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    fetchThreats()
-    const id = setInterval(fetchThreats, 120000) // refresh every 2 min
-    intervalRef.current = id
-    return () => {
-      clearInterval(id)
-      intervalRef.current = undefined
-    }
-  }, [activeLocation]) // eslint-disable-line react-hooks/exhaustive-deps
-
+  const { data, loading, refresh } = useAsync<ThreatItem[]>(
+    async ({ signal }) => {
+      const res = await fetch('/api/alerts', { signal })
+      if (!res.ok) return []
+      const data = await res.json()
+      const alerts: any[] = Array.isArray(data) ? data : data?.alerts || []
+      const mapped: ThreatItem[] = alerts.slice(0, 10).map((alert: any, i: number) => {
+        const type = detectThreatType(alert.type || alert.incident_type || alert.title || '')
+        const severity = mapSeverity(alert.severity || alert.priority || 'low')
+        return {
+          id: String(alert.id || i),
+          type,
+          severity,
+          title: String(alert.title || alert.message || 'Alert'),
+          description: String(alert.description || alert.message || ''),
+          distance: alert.distance_km || Math.round(Math.random() * 80 + 5),
+          timestamp: alert.created_at || alert.timestamp || new Date().toISOString(),
+          source: String(alert.source || 'AEGIS'),
+        }
+      })
+      const sevOrder = { extreme: 0, severe: 1, moderate: 2, low: 3 } as const
+      return mapped.sort((a, b) => (sevOrder[a.severity] ?? 3) - (sevOrder[b.severity] ?? 3))
+    },
+    [activeLocation],
+    { pollMs: 120000 },
+  )
+  const threats: ThreatItem[] = data ?? []
   const severeCount = threats.filter(t => t.severity === 'severe' || t.severity === 'extreme').length
 
   return (
@@ -161,7 +141,7 @@ export default function ThreatRadarWidget(): JSX.Element {
           )}
         </h3>
         <div className="flex items-center gap-1">
-          <button onClick={fetchThreats} disabled={loading} className="btn-ghost p-1.5" aria-label="Refresh">
+          <button onClick={refresh} disabled={loading} className="btn-ghost p-1.5" aria-label="Refresh">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button onClick={() => setExpanded(!expanded)} className="btn-ghost p-1.5">

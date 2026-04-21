@@ -41,6 +41,8 @@ export const AegisChannels = {
   DISTRESS_RESOLVED: 'distress:resolved',
   // Alert variants
   ALERT_UPDATE: 'alert:update',
+  // Sensor streams
+  RIVER_LEVELS_UPDATED: 'river:levels_updated',
 } as const
 
 export type AegisChannel = typeof AegisChannels[keyof typeof AegisChannels]
@@ -167,6 +169,7 @@ export interface AegisChannelMap {
   [AegisChannels.DISTRESS_ACKNOWLEDGED]: DistressEvent
   [AegisChannels.DISTRESS_RESOLVED]: DistressEvent
   [AegisChannels.ALERT_UPDATE]: IncidentAlertEvent
+  [AegisChannels.RIVER_LEVELS_UPDATED]: { levels?: unknown[]; readings?: unknown[] }
 }
 
 /** Strongly-typed subscribe helper. Returns an unsubscribe function. */

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { useEventCallback } from '../../hooks/useEventStream'
 
 const API = ''
 
@@ -106,19 +107,10 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
     }
   }, [fetchLevels])
 
-  //Socket.IO live updates
-  useEffect(() => {
-    if (!socket) return
-    const handler = (data: any) => {
-      const levels = data?.levels || data?.readings
-      if (levels) {
-        setReadings(levels)
-        setLastUpdated(new Date())
-      }
-    }
-    socket.on('river:levels_updated', handler)
-    return () => { socket.off('river:levels_updated', handler) }
-  }, [socket])
+  useEventCallback('river:levels_updated', (data) => {
+    const levels = (data as any)?.levels || (data as any)?.readings
+    if (levels) { setReadings(levels); setLastUpdated(new Date()) }
+  })
 
   const toggle = () => {
     setCollapsed(!collapsed)

@@ -7,7 +7,7 @@
  *
  * - Used across both admin and citizen interfaces */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Waves, RefreshCw, TrendingUp, TrendingDown, Minus, AlertTriangle,
   Droplets, Clock, MapPin, Info, Activity, ChevronDown, ChevronUp,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { fetchRiverLevels, getGaugeColor, getGaugeBg } from '../../utils/sepaApi'
 import { useLocation } from '../../contexts/LocationContext'
+import { useAsync } from '../../hooks/useAsync'
 import type { RiverGauge } from '../../utils/sepaApi'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -30,46 +31,33 @@ const STATUS_CFG: Record<string, { label: string; bg: string; text: string; bord
 export default function RiverGaugePanel(): JSX.Element {
   const lang = useLanguage()
   const { activeLocation } = useLocation()
-  const [gauges, setGauges] = useState<RiverGauge[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [userLat, setUserLat] = useState<number | null>(null)
   const [userLng, setUserLng] = useState<number | null>(null)
   const [collapsed, setCollapsed] = useState(false)
+  const [manualError, setManualError] = useState('')
 
-  const refresh = async (): Promise<void> => {
-    setLoading(true)
-    setError('')
-    try {
-      const data = await fetchRiverLevels(activeLocation, userLat ?? undefined, userLng ?? undefined)
-      setGauges(data)
-      setLastUpdated(new Date())
-    } catch (err: any) {
-      setGauges([])
-      setError(err?.message || 'Failed to fetch live river gauge data.')
-    }
-    setLoading(false)
-  }
+  const { data, loading, error: asyncError, refresh } = useAsync<{ gauges: RiverGauge[]; at: Date }>(
+    async () => {
+      const g = await fetchRiverLevels(activeLocation, userLat ?? undefined, userLng ?? undefined)
+      return { gauges: g, at: new Date() }
+    },
+    [activeLocation, userLat, userLng],
+    { pollMs: 300000 },
+  )
+  const gauges = data?.gauges ?? []
+  const lastUpdated = data?.at ?? null
+  const error = manualError || (asyncError ? (asyncError.message || 'Failed to fetch live river gauge data.') : '')
 
   const detectLocation = () => {
-    if (!('geolocation' in navigator)) { setError(t('river.gpsNotSupported', lang)); return }
-    setError('')
+    if (!('geolocation' in navigator)) { setManualError(t('river.gpsNotSupported', lang)); return }
+    setManualError('')
     navigator.geolocation.getCurrentPosition(
       pos => { setUserLat(pos.coords.latitude); setUserLng(pos.coords.longitude) },
-      (err) => { if (err.code === 1) setError(t('river.locationDenied', lang)); else setError(t('river.locationUnavailable', lang)) },
+      (err) => { if (err.code === 1) setManualError(t('river.locationDenied', lang)); else setManualError(t('river.locationUnavailable', lang)) },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
     )
   }
-
-  useEffect(() => { refresh() }, [activeLocation, userLat, userLng])
-
-  //Auto-refresh every 5 minutes
-  useEffect(() => {
-    const id = setInterval(refresh, 300000)
-    return () => clearInterval(id)
-  }, [activeLocation, userLat, userLng])
 
   //Sort by severity
   const sorted = useMemo(() =>
