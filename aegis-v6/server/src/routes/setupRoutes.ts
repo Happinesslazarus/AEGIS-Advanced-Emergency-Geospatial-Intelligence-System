@@ -8,7 +8,7 @@
  * - After setup, the wizard endpoints return "already configured"
  * */
 
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Request, Response } from 'express'
 import pool from '../models/db.js'
 import { authMiddleware, requireRole, AuthRequest } from '../middleware/auth.js'
 import { AppError } from '../utils/AppError.js'
@@ -39,7 +39,7 @@ async function setConfigValue(key: string, value: unknown): Promise<void> {
 //GET /api/admin/setup/status
 //Publicly readable (used by frontend to decide whether to show setup wizard).
 //Does NOT leak sensitive data.
-router.get('/status', async (_req: Request, res: Response, next: NextFunction) => {
+router.get('/status', async (_req: Request, res: Response) => {
     //Check if system_config table exists (handles first migration not yet applied)
     const tableCheck = await pool.query(
       `SELECT to_regclass('public.system_config') AS t`,
@@ -54,8 +54,7 @@ router.get('/status', async (_req: Request, res: Response, next: NextFunction) =
         setupCompleted: false,
         hasAdmin: (adminCount.rows[0]?.c || 0) > 0,
         configuredRegion: null,
-        notificationChannelsConfigured: false,
-      })
+        notificationChannelsConfigured: false })
     }
 
     const setupCompleted = await getConfigValue('setup_completed')
@@ -73,12 +72,11 @@ router.get('/status', async (_req: Request, res: Response, next: NextFunction) =
       setupCompleted: isComplete,
       hasAdmin,
       configuredRegion: configuredRegion ?? null,
-      notificationChannelsConfigured: notifConfig === true,
-    })
+      notificationChannelsConfigured: notifConfig === true })
 })
 
 //POST /api/admin/setup/region
-router.post('/region', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/region', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response) => {
     const { region } = req.body
     if (!region || typeof region !== 'string' || region.trim().length === 0) {
       throw AppError.badRequest('A valid region identifier is required.')
@@ -91,7 +89,7 @@ router.post('/region', authMiddleware, requireRole('admin'), async (req: AuthReq
 
 //POST /api/admin/setup/notifications
 //Saves which notification channels are configured (not the secrets themselves).
-router.post('/notifications', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/notifications', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response) => {
     const { channels } = req.body
     if (!channels || typeof channels !== 'object') {
       throw AppError.badRequest('channels object is required.')
@@ -111,7 +109,7 @@ router.post('/notifications', authMiddleware, requireRole('admin'), async (req: 
 
 //POST /api/admin/setup/complete
 //Marks first-run setup as finished. Stores who completed it and when.
-router.post('/complete', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/complete', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response) => {
     const userId = req.user!.id
 
     //Verify an admin account exists
@@ -153,7 +151,7 @@ router.post('/complete', authMiddleware, requireRole('admin'), async (req: AuthR
 
 //POST /api/admin/setup/reset
 //Resets setup state. Only for recovery / development.
-router.post('/reset', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/reset', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response) => {
     const keysToReset = [
       'setup_completed',
       'setup_completed_at',

@@ -14,7 +14,7 @@
  * PUT  /api/admin/threads/:id/read  -- Mark as read
  * */
 
-import { Router, Response, NextFunction } from 'express'
+import { Router, Response } from 'express'
 import pool from '../models/db.js'
 import { authMiddleware, AuthRequest, requireRole } from '../middleware/auth.js'
 import { AppError } from '../utils/AppError.js'
@@ -28,7 +28,7 @@ router.use(requireRole('admin', 'operator', 'super_admin', 'superadmin'))
 /**
  * GET /api/admin/threads - List all message threads (paginated)
  */
-router.get('/', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
     const page = Math.max(1, parseInt(String(req.query.page || '1'), 10) || 1)
     const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit || '50'), 10) || 50))
     const offset = (page - 1) * limit
@@ -65,7 +65,7 @@ router.get('/', async (req: AuthRequest, res: Response, next: NextFunction): Pro
 /**
  * GET /api/admin/threads/:id - Get thread with all messages
  */
-router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
     //Get thread metadata
     const threadResult = await pool.query(`
       SELECT 
@@ -118,7 +118,7 @@ router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction): 
 /**
  * POST /api/admin/threads/:id/messages - Send message from admin to citizen
  */
-router.post('/:id/messages', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/messages', async (req: AuthRequest, res: Response): Promise<void> => {
     const { content, image_url } = req.body
 
     if (!content?.trim() && !image_url) {
@@ -163,7 +163,7 @@ router.post('/:id/messages', async (req: AuthRequest, res: Response, next: NextF
 /**
  * PUT /api/admin/threads/:id/read - Mark thread as read (for operator)
  */
-router.put('/:id/read', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.put('/:id/read', async (req: AuthRequest, res: Response): Promise<void> => {
     //Verify thread exists
     const threadCheck = await pool.query(
       'SELECT id FROM message_threads WHERE id = $1',

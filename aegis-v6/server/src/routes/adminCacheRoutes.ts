@@ -13,7 +13,7 @@
  * GET  /api/admin/cache/stats           -- Cache diagnostics
  * */
 
-import { Router, Response, NextFunction } from 'express'
+import { Router, Response } from 'express'
 import { authMiddleware, adminOnly, AuthRequest } from '../middleware/auth.js'
 import { cacheInvalidatePattern, getCacheStats, cacheDel } from '../services/cacheService.js'
 import { auditLog } from '../utils/logger.js'
@@ -28,13 +28,12 @@ router.use(authMiddleware, adminOnly)
  * Flush the entire aegis cache.
  * Body: { dryRun?: boolean }
  */
-router.post('/clear', async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/clear', async (req: AuthRequest, res: Response) => {
     const dryRun = req.body.dryRun === true
     const removed = await cacheInvalidatePattern('aegis:v1:*', dryRun)
     auditLog('admin-cache', dryRun ? 'flush-all (dry-run)' : 'flush-all', {
       removedKeys: removed,
-      operator: req.user?.displayName ?? req.user?.id,
-    })
+      operator: req.user?.displayName ?? req.user?.id })
     res.json({ ok: true, dryRun, keysRemoved: removed })
 })
 
@@ -43,7 +42,7 @@ router.post('/clear', async (req: AuthRequest, res: Response, next: NextFunction
  * Flush all keys within a single namespace (e.g. "weather", "river_levels").
  * Body: { namespace: string, dryRun?: boolean }
  */
-router.post('/clear-namespace', async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/clear-namespace', async (req: AuthRequest, res: Response) => {
     const { namespace, dryRun } = req.body
     if (!namespace || typeof namespace !== 'string') {
       return res.status(400).json({ error: 'A cache namespace is required.' })
@@ -58,8 +57,7 @@ router.post('/clear-namespace', async (req: AuthRequest, res: Response, next: Ne
     auditLog('admin-cache', isDry ? 'flush-namespace (dry-run)' : 'flush-namespace', {
       namespace,
       removedKeys: removed,
-      operator: req.user?.displayName ?? req.user?.id,
-    })
+      operator: req.user?.displayName ?? req.user?.id })
     res.json({ ok: true, namespace, dryRun: isDry, keysRemoved: removed })
 })
 
@@ -68,7 +66,7 @@ router.post('/clear-namespace', async (req: AuthRequest, res: Response, next: Ne
  * Delete a single cache key.
  * Body: { key: string, dryRun?: boolean }
  */
-router.post('/clear-key', async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/clear-key', async (req: AuthRequest, res: Response) => {
     const { key, dryRun } = req.body
     if (!key || typeof key !== 'string') {
       return res.status(400).json({ error: 'A cache key is required.' })
@@ -83,8 +81,7 @@ router.post('/clear-key', async (req: AuthRequest, res: Response, next: NextFunc
     }
     auditLog('admin-cache', isDry ? 'delete-key (dry-run)' : 'delete-key', {
       key,
-      operator: req.user?.displayName ?? req.user?.id,
-    })
+      operator: req.user?.displayName ?? req.user?.id })
     res.json({ ok: true, key, dryRun: isDry, deleted: !isDry })
 })
 
@@ -92,7 +89,7 @@ router.post('/clear-key', async (req: AuthRequest, res: Response, next: NextFunc
  * GET /api/admin/cache/stats
  * Return cache connection status, memory usage, and keyspace info.
  */
-router.get('/stats', async (_req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/stats', async (_req: AuthRequest, res: Response) => {
     const stats = await getCacheStats()
     res.json(stats)
 })

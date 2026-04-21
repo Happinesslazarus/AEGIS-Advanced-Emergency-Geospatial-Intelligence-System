@@ -14,7 +14,7 @@
  * GET /api/rivers/config             -- Region river config
  * */
 
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Request, Response } from 'express'
 import { getCurrentLevels, getStationWithHistory, getStationHistory } from '../services/riverLevelService.js'
 import { getActiveCityRegion } from '../config/regions/index.js'
 import { AppError } from '../utils/AppError.js'
@@ -25,7 +25,7 @@ const router = Router()
 /**
  * GET /api/rivers/levels -- Current levels for all stations in the active region
  */
-router.get('/levels', async (_req: Request, res: Response, next: NextFunction) => {
+router.get('/levels', async (_req: Request, res: Response) => {
     const region = getActiveCityRegion()
     const key = buildCacheKey('river', [region.id, 'levels'])
     const { data: result, meta } = await remember(key, CACHE_TTL.RIVER_LEVELS, async () => {
@@ -35,8 +35,7 @@ router.get('/levels', async (_req: Request, res: Response, next: NextFunction) =
         regionName: region.name,
         stationCount: levels.length,
         levels,
-        updatedAt: new Date().toISOString(),
-      }
+        updatedAt: new Date().toISOString() }
     }, { staleOnError: true, provider: 'sepa-openmeteo' })
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
@@ -46,7 +45,7 @@ router.get('/levels', async (_req: Request, res: Response, next: NextFunction) =
 /**
  * GET /api/rivers/levels/:stationId -- Specific station with 24hr history
  */
-router.get('/levels/:stationId', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/levels/:stationId', async (req: Request, res: Response) => {
     const { stationId } = req.params
     const hours = Math.min(parseInt(req.query.hours as string) || 24, 168) // Max 7 days
     const region = getActiveCityRegion()
@@ -60,8 +59,7 @@ router.get('/levels/:stationId', async (req: Request, res: Response, next: NextF
       return {
         station: data.current,
         history: data.history,
-        historyHours: hours,
-      }
+        historyHours: hours }
     }, { staleOnError: true, provider: 'sepa-openmeteo' })
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
@@ -71,7 +69,7 @@ router.get('/levels/:stationId', async (req: Request, res: Response, next: NextF
 /**
  * GET /api/rivers/history/:stationId -- Historical readings for a station
  */
-router.get('/history/:stationId', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/history/:stationId', async (req: Request, res: Response) => {
     const { stationId } = req.params
     const hours = Math.min(parseInt(req.query.hours as string) || 24, 168)
     const region = getActiveCityRegion()
@@ -83,8 +81,7 @@ router.get('/history/:stationId', async (req: Request, res: Response, next: Next
         stationId,
         hours,
         readingCount: history.length,
-        readings: history,
-      }
+        readings: history }
     }, { staleOnError: true, provider: 'db' })
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
@@ -108,9 +105,7 @@ router.get('/config', async (_req: Request, res: Response) => {
           dataProvider: r.dataProvider,
           thresholds: r.floodThresholds,
           historicalFloodLevel: r.historicalFloodLevel,
-          coordinates: r.coordinates,
-        })),
-      }
+          coordinates: r.coordinates })) }
     })
     res.json(result)
   } catch {
@@ -123,9 +118,7 @@ router.get('/config', async (_req: Request, res: Response) => {
         dataProvider: r.dataProvider,
         thresholds: r.floodThresholds,
         historicalFloodLevel: r.historicalFloodLevel,
-        coordinates: r.coordinates,
-      })),
-    })
+        coordinates: r.coordinates })) })
   }
 })
 

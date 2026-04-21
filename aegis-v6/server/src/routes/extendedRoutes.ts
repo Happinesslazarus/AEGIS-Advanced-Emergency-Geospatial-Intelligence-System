@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Extended API surface: alert subscriptions, audit logs, department
  * listings, community help coordination, flood predictions, AI
  * governance, fusion engine, and resilience infrastructure endpoints.
@@ -18,7 +18,7 @@
  * - /governance -- AI governance dashboard
  * - /fusion -- Multi-source data fusion
  * */
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Request, Response } from 'express'
 import rateLimit from 'express-rate-limit'
 import { authMiddleware, AuthRequest, verifyToken } from '../middleware/auth.js'
 import { requireAdmin, requireOperator, operatorOnly } from '../middleware/internalAuth.js'
@@ -52,8 +52,7 @@ const subscriptionLimiter = rateLimit({
   max: 10,
   message: { error: 'Too many subscription requests, please try again later.' },
   standardHeaders: true,
-  legacyHeaders: false,
-})
+  legacyHeaders: false })
 
 //Maps hazard type + priority to recommended resource counts per deployment zone
 function getResourceRecommendation(hazardType: string, priority: 'Critical' | 'High'): { ambulances: number; fire_engines: number; rescue_boats: number } {
@@ -189,8 +188,7 @@ router.post('/subscriptions', subscriptionLimiter, asyncRoute(async (req: Reques
           title: 'Verify Your AEGIS Alert Subscription',
           message: `Thank you for subscribing to AEGIS emergency alerts. To complete your subscription, please verify your email address by clicking the link below:\n\n${verificationUrl}\n\nThis link will expire in 24 hours.`,
           area: 'Subscription Service',
-          actionRequired: 'Click the verification link to activate your subscription.',
-        }
+          actionRequired: 'Click the verification link to activate your subscription.' }
 
         const emailResult = await notificationService.sendEmailAlert(email, verificationAlert)
         if (emailResult.success) {
@@ -498,9 +496,7 @@ router.post('/predictions/:id/pre-alert', authMiddleware, requireOperator, async
       metadata: {
         confidence: prediction.confidence,
         model_version: prediction.model_version,
-        data_sources: prediction.data_sources,
-      },
-    }
+        data_sources: prediction.data_sources } }
 
     //Send to all subscribers (email, SMS, WhatsApp, Telegram)
     const deliveryResults = await notificationService.sendAlertToSubscribers(
@@ -588,8 +584,7 @@ router.post('/notifications/test', authMiddleware, requireAdmin, asyncRoute(asyn
       title: 'AEGIS Test Alert',
       message: 'This is a test alert from the AEGIS Emergency Management System. If you received this, your notification channel is working correctly.',
       area: 'Test Area',
-      actionRequired: 'No action required - this is only a test.',
-    }
+      actionRequired: 'No action required - this is only a test.' }
 
     let result: notificationService.DeliveryResult
 
@@ -815,9 +810,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, asyncRoute(async 
       expiresAt: expires_at ? new Date(expires_at) : undefined,
       metadata: {
         broadcast_by: operator_name,
-        broadcast_at: new Date().toISOString(),
-      },
-    }
+        broadcast_at: new Date().toISOString() } }
 
     //Send to all matching subscribers (email, SMS, WhatsApp, Telegram)
     const deliveryResults = await notificationService.sendAlertToSubscribers(
@@ -900,8 +893,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, asyncRoute(async 
       message,
       area,
       actionRequired: action_required,
-      issuedAt: new Date().toISOString(),
-    })
+      issuedAt: new Date().toISOString() })
 
     res.json({
       success: true,
@@ -911,8 +903,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, asyncRoute(async 
         matching_subscribers: subscriptions.rows.length,
         total_attempts: deliveryResults.total,
         successful_deliveries: deliveryResults.successful,
-        failed_deliveries: deliveryResults.failed,
-      }
+        failed_deliveries: deliveryResults.failed }
     })
 }))
 
@@ -1324,13 +1315,11 @@ router.post('/deployments', authMiddleware, asyncRoute(async (req: AuthRequest, 
           title: `CRITICAL Zone Activated: ${zoneName}`,
           message: `Deployment zone "${zoneName}" created at CRITICAL priority. Immediate command attention required.`,
           area: zoneName,
-          actionRequired: 'Review zone immediately and dispatch resources.',
-        }
+          actionRequired: 'Review zone immediately and dispatch resources.' }
         for (const staff of staffRows) {
           const channels = Array.isArray(staff.channels) && staff.channels.length > 0 ? staff.channels : ['email']
           const recipient: notificationService.AlertRecipient = {
-            email: staff.email, phone: staff.phone || undefined, telegram_id: staff.telegram_id || undefined,
-          }
+            email: staff.email, phone: staff.phone || undefined, telegram_id: staff.telegram_id || undefined }
           notificationService.sendMultiChannelAlert(recipient, criticalAlert, channels).catch(() => {})
         }
       } catch { /* notification failure must not block zone creation */ }
@@ -1727,8 +1716,7 @@ router.patch('/shelters/:id/occupancy', authMiddleware, requireOperator, asyncRo
           title,
           message,
           area: shelter.name,
-          actionRequired: isFull ? 'Seek an alternative shelter immediately.' : 'Consider alternative shelters if possible.',
-        }
+          actionRequired: isFull ? 'Seek an alternative shelter immediately.' : 'Consider alternative shelters if possible.' }
 
         await notificationService.sendAlertToSubscribers(alert, subResult.rows)
 
@@ -1763,8 +1751,7 @@ router.patch('/shelters/:id/occupancy', authMiddleware, requireOperator, asyncRo
           message,
           area: shelter.name,
           actionRequired: isFull ? 'Seek an alternative shelter immediately.' : 'Consider alternative shelters if possible.',
-          issuedAt: new Date().toISOString(),
-        })
+          issuedAt: new Date().toISOString() })
       }
     }
 
@@ -1774,8 +1761,7 @@ router.patch('/shelters/:id/occupancy', authMiddleware, requireOperator, asyncRo
       capacity: shelter.capacity,
       current_occupancy: shelter.current_occupancy,
       occupancy_pct: Math.round(occupancyPct),
-      alert_sent: alertSent,
-    })
+      alert_sent: alertSent })
 }))
 
 /**
@@ -1814,8 +1800,7 @@ router.post('/shelters/:id/close', authMiddleware, requireOperator, asyncRoute(a
         title: `Safe Zone Closed: ${shelter.name}`,
         message: `${shelter.name} is no longer accepting people. Please proceed to the nearest alternative shelter.`,
         area: shelter.name,
-        actionRequired: 'Locate and proceed to an alternative shelter.',
-      }
+        actionRequired: 'Locate and proceed to an alternative shelter.' }
       await notificationService.sendAlertToSubscribers(alert, subResult.rows)
       const pushSubs = await pool.query(`SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE active = true`)
       const expired: string[] = []
@@ -1850,8 +1835,7 @@ router.post('/alerts/transit', authMiddleware, requireOperator, asyncRoute(async
       affected_area,
       action_required,
       estimated_resume, // ISO string or null
-      expires_at,
-    } = req.body
+      expires_at } = req.body
 
     if (!title || !message || !severity || !affected_area) {
       throw AppError.badRequest('title, message, severity, and affected_area are required')
@@ -1887,8 +1871,7 @@ router.post('/alerts/transit', authMiddleware, requireOperator, asyncRoute(async
       area: affected_area,
       actionRequired: action_required,
       expiresAt: expires_at ? new Date(expires_at) : undefined,
-      metadata: { transit_type: type, line: line || null },
-    }
+      metadata: { transit_type: type, line: line || null } }
 
     //Get all verified subscribers who include transit topics or haven't filtered it out
     const subResult = await pool.query(
@@ -1952,8 +1935,7 @@ router.post('/alerts/transit', authMiddleware, requireOperator, asyncRoute(async
       message: fullMessage,
       area: affected_area,
       actionRequired: action_required,
-      issuedAt: new Date().toISOString(),
-    })
+      issuedAt: new Date().toISOString() })
 
     res.status(201).json({
       success: true,
@@ -1962,9 +1944,7 @@ router.post('/alerts/transit', authMiddleware, requireOperator, asyncRoute(async
       delivery: {
         total: deliveryResults.total,
         successful: deliveryResults.successful,
-        failed: deliveryResults.failed,
-      },
-    })
+        failed: deliveryResults.failed } })
 }))
 
 /**
@@ -2134,8 +2114,7 @@ router.post('/predictions/run', authMiddleware, requireOperator, asyncRoute(asyn
       region_id: resolvedRegionId,
       latitude: safeLat,
       longitude: safeLng,
-      include_contributing_factors: true,
-    })
+      include_contributing_factors: true })
 
     const executionMs = Date.now() - startTime
 
@@ -2264,8 +2243,7 @@ router.get('/map/heatmap-data', asyncRoute(async (_req: Request, res: Response) 
       res.json({
         source: 'computed',
         generated_at: new Date().toISOString(),
-        intensity_data: computed,
-      })
+        intensity_data: computed })
       return
     }
 
@@ -2489,8 +2467,7 @@ router.get('/system/report', requireOperator, asyncRoute(async (_req: Request, r
       HF_API_KEY: !!process.env.HF_API_KEY,
       WEATHER_API_KEY: !!(process.env.WEATHER_API_KEY || process.env.OPENWEATHERMAP_API_KEY),
       NEWSAPI_KEY: !!process.env.NEWSAPI_KEY,
-      DATABASE_URL: !!process.env.DATABASE_URL,
-    }
+      DATABASE_URL: !!process.env.DATABASE_URL }
 
     //Resilience status
     const resilience = getResilienceStatus()
@@ -2510,8 +2487,7 @@ router.get('/system/report', requireOperator, asyncRoute(async (_req: Request, r
       generatedAt: new Date().toISOString(),
       database: {
         totalRows,
-        tableCounts,
-      },
+        tableCounts },
       models: modelMetrics,
       apiKeys,
       resilience,
@@ -2520,8 +2496,6 @@ router.get('/system/report', requireOperator, asyncRoute(async (_req: Request, r
         llmProviders: ['Gemini Flash', 'Groq Llama 3.1', 'OpenRouter', 'HuggingFace'],
         mlModels: ['flood_classifier', 'fake_detector', 'severity_predictor', 'damage_regression', 'fusion_engine'],
         dataSources: ['UK EA', 'SEPA KiWIS', 'NASA POWER', 'Open-Meteo', 'NewsAPI', 'Wikipedia', 'UK Gov Archives'],
-        features: 37,
-      },
-    })
+        features: 37 } })
 }))
 

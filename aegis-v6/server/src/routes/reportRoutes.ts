@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CRUD endpoints for emergency incident reports. Citizens submit disaster
  * reports (with optional photo/video evidence), and operators review,
  * triage, and update them. New reports are automatically sent through the
@@ -24,7 +24,7 @@
  * - server/src/services/socket.ts              -- real-time notifications to operators
  * */
 
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Request, Response } from 'express'
 import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
 import { authMiddleware, operatorOnly, AuthRequest } from '../middleware/auth.js'
@@ -71,8 +71,7 @@ const reportSubmitLimiter = rateLimit({
   skip: (req) => {
     //Skip rate limiting for authenticated operators (bulk submissions)
     return !!(req as AuthRequest).user
-  },
-})
+  } })
 
 //Limit bulk operations: max 5 bulk status updates per operator per 10 minutes
 const bulkStatusLimiter = rateLimit({
@@ -81,8 +80,7 @@ const bulkStatusLimiter = rateLimit({
   keyGenerator: (req) => (req as AuthRequest).user?.id || req.ip || 'unknown',
   message: { error: 'Too many bulk status updates. Please wait before submitting again.' },
   standardHeaders: true,
-  legacyHeaders: false,
-})
+  legacyHeaders: false })
 
 const router = Router()
 
@@ -155,14 +153,12 @@ async function fetchRecentSignals(minutes: number): Promise<SignalFetchResult> {
       const fallback = await pool.query(legacyQuery, [String(minutes)])
       return {
         rows: fallback.rows,
-        warnings: ['legacy schema fallback: reports table missing modern status/deleted columns'],
-      }
+        warnings: ['legacy schema fallback: reports table missing modern status/deleted columns'] }
     }
     if (err?.code === '42P01' || /relation .*reports.* does not exist/i.test(String(err?.message || ''))) {
       return {
         rows: [],
-        warnings: ['legacy schema: missing reports table'],
-      }
+        warnings: ['legacy schema: missing reports table'] }
     }
     throw err
   }
@@ -230,15 +226,12 @@ router.get('/', validate({ query: paginationSchema }), asyncRoute(async (req: Re
               classification: m.ai_classification,
               waterDepth: m.ai_water_depth,
               authenticityScore: m.ai_authenticity_score,
-              reasoning: m.ai_reasoning,
-            } : null,
-          })
+              reasoning: m.ai_reasoning } : null })
         }
       }
       const reports = result.rows.map((row: any) => ({
         ...formatReport(row),
-        media: mediaMap[row.id] || [],
-      }))
+        media: mediaMap[row.id] || [] }))
       res.json({ data: reports, total, page, limit })
     } else {
       //Public/citizen access: include media thumbnails but redact operator-only fields
@@ -258,14 +251,12 @@ router.get('/', validate({ query: paginationSchema }), asyncRoute(async (req: Re
             file_url: m.file_url,
             fileType: m.file_type,
             fileSize: m.file_size,
-            originalFilename: m.original_filename,
-          })
+            originalFilename: m.original_filename })
         }
       }
       const reports = result.rows.map((row: any) => ({
         ...formatReportPublic(row),
-        media: mediaMap[row.id] || [],
-      }))
+        media: mediaMap[row.id] || [] }))
       res.json({ data: reports, total, page, limit })
     }
 }))
@@ -292,8 +283,7 @@ router.get('/stats', authMiddleware, operatorOnly, asyncRoute(async (_req: AuthR
       bySeverity: Object.fromEntries(bySeverity.rows.map(r => [r.severity, r.count])),
       byCategory: byCategory.rows.map(r => ({ category: r.incident_category, count: r.count })),
       byHour: byHour.rows,
-      totals: totals.rows[0],
-    })
+      totals: totals.rows[0] })
 }))
 
  /*
@@ -315,23 +305,20 @@ router.get('/clusters', authMiddleware, operatorOnly, asyncRoute(async (req: Aut
         data: [],
         clusters: [],
         warnings,
-        params: { minutes, radiusMeters, minReports },
-      })
+        params: { minutes, radiusMeters, minReports } })
       return
     }
 
     const clusters = intelligenceCore.clusterEvidence(evidence, {
       radiusMeters,
-      minReports,
-    })
+      minReports })
 
     res.json({
       ok: true,
       data: clusters,
       clusters,
       warnings,
-      params: { minutes, radiusMeters, minReports },
-    })
+      params: { minutes, radiusMeters, minReports } })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Clusters error')
     res.json({ ok: true, data: [], clusters: [], warnings: ['clusters unavailable -- check server logs'] })
@@ -359,8 +346,7 @@ router.get('/cascading-insights', authMiddleware, operatorOnly, asyncRoute(async
       signal_count: evidence.length,
       active_signals: cascade.activeSignals,
       inferred_cascades: cascade.inferred,
-      warnings,
-    })
+      warnings })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Cascading insights error')
     res.json({ ok: true, data: [], inferred_cascades: [], warnings: ['cascading insights unavailable -- check server logs'] })
@@ -386,10 +372,8 @@ router.get('/cascading-forecast', authMiddleware, operatorOnly, asyncRoute(async
       signal_count: evidence.length,
       data: {
         activeSignals: baseline.activeSignals,
-        inferred: baseline.inferred,
-      },
-      warnings,
-    })
+        inferred: baseline.inferred },
+      warnings })
 }))
 
  /*
@@ -406,16 +390,14 @@ router.get('/incident-objects', authMiddleware, operatorOnly, asyncRoute(async (
     const evidence = intelligenceCore.buildEvidenceEvents(rows)
     const incidents = intelligenceCore.promoteIncidentObjects(evidence, {
       radiusMeters,
-      minReports,
-    })
+      minReports })
 
     res.json({
       ok: true,
       data: incidents,
       incidents,
       warnings,
-      params: { minutes, radiusMeters, minReports },
-    })
+      params: { minutes, radiusMeters, minReports } })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Incident objects error')
     res.json({ ok: true, data: [], incidents: [], warnings: ['incident objects unavailable -- check server logs'] })
@@ -437,8 +419,7 @@ router.get('/incident-objects/:id/explanation', authMiddleware, operatorOnly, as
     const evidence = intelligenceCore.buildEvidenceEvents(rows)
     const incidents = intelligenceCore.promoteIncidentObjects(evidence, {
       radiusMeters,
-      minReports,
-    })
+      minReports })
 
     const incident = incidents.find((item) => item.incident_id === incidentId)
     if (!incident) {
@@ -452,8 +433,7 @@ router.get('/incident-objects/:id/explanation', authMiddleware, operatorOnly, as
       lifecycle_state: incident.lifecycle_state,
       confidence: incident.confidence,
       explanation: intelligenceCore.explainIncidentObject(incident),
-      warnings,
-    })
+      warnings })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Incident explanation error')
     res.json({ ok: true, data: null, warnings: ['incident explanation unavailable -- check server logs'] })
@@ -485,8 +465,7 @@ router.get('/incident-objects/:id/timeline', authMiddleware, operatorOnly, async
         present: Boolean(incident),
         lifecycle_state: incident?.lifecycle_state || null,
         confidence: incident?.confidence || null,
-        evidence_count: incident?.evidence_count || 0,
-      }
+        evidence_count: incident?.evidence_count || 0 }
     })
 
     const found = timeline.some((point) => point.present)
@@ -498,8 +477,7 @@ router.get('/incident-objects/:id/timeline', authMiddleware, operatorOnly, async
       ok: true,
       incident_id: incidentId,
       data: timeline,
-      warnings,
-    })
+      warnings })
 }))
 
  /*
@@ -540,8 +518,7 @@ router.get('/incident-objects/changes', authMiddleware, operatorOnly, asyncRoute
       possible: 2,
       probable: 3,
       high: 4,
-      confirmed: 5,
-    }
+      confirmed: 5 }
 
     //Geospatial key: round to 3dp (≈111m resolution) so incidents at the same location
     //are recognised as the same incident across time windows.
@@ -582,8 +559,7 @@ router.get('/incident-objects/changes', authMiddleware, operatorOnly, asyncRoute
         new_incidents: newIncidents,
         escalated,
         downgraded,
-        resolved: resolvedIncidents,
-      },
+        resolved: resolvedIncidents },
       window_minutes: minutes,
       baseline_minutes: baselineMinutes,
       current_count: currentIncidents.length,
@@ -593,16 +569,13 @@ router.get('/incident-objects/changes', authMiddleware, operatorOnly, asyncRoute
         new_incidents: newIncidents,
         escalated,
         downgraded,
-        resolved: resolvedIncidents,
-      },
+        resolved: resolvedIncidents },
       totals: {
         new_count: newIncidents.length,
         escalated_count: escalated.length,
         downgraded_count: downgraded.length,
-        resolved_count: resolvedIncidents.length,
-      },
-      warnings,
-    })
+        resolved_count: resolvedIncidents.length },
+      warnings })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Incident object changes error')
     res.json({ ok: true, data: { new_incidents: [], escalated: [], downgraded: [], resolved: [] }, warnings: ['incident object changes unavailable -- check server logs'] })
@@ -622,8 +595,7 @@ router.get('/analytics', authMiddleware, operatorOnly, asyncRoute(async (req: Au
       '24h': '24 hours',
       '7d': '7 days',
       '30d': '30 days',
-      'all': null,
-    }
+      'all': null }
 
     const whereClause = intervalByRange[range]
       ? `WHERE created_at >= NOW() - INTERVAL '${intervalByRange[range]}'`
@@ -955,13 +927,11 @@ router.get('/analytics', authMiddleware, operatorOnly, asyncRoute(async (req: Au
         investigationCompletionMinutes: Number(operational.investigation_completion_minutes || 0),
         aiAccuracyRate,
         geoCoverageKm,
-        threatLevelIndex,
-      },
+        threatLevelIndex },
       trend: {
         current: currentCount,
         previous: previousCount,
-        percent: trendPct,
-      },
+        percent: trendPct },
       byStatus,
       bySeverity,
       byCategory,
@@ -972,8 +942,7 @@ router.get('/analytics', authMiddleware, operatorOnly, asyncRoute(async (req: Au
         verifiedRate: verificationRate,
         falseReportRate,
         avgVerificationTime: Number(timingRes.rows[0]?.avg_verify_minutes || 0),
-        avgResolutionTime: Number(timingRes.rows[0]?.avg_resolve_minutes || 0),
-      },
+        avgResolutionTime: Number(timingRes.rows[0]?.avg_resolve_minutes || 0) },
       intelligenceMetrics: {
         severityDistribution: bySeverity,
         categoryHeatmap: Array.from(heatmapMap.values()).sort((a, b) => b.total - a.total).slice(0, 8),
@@ -981,25 +950,19 @@ router.get('/analytics', authMiddleware, operatorOnly, asyncRoute(async (req: Au
           lat: Number(r.lat),
           lng: Number(r.lng),
           count: Number(r.count),
-          label: `${Number(r.lat_bin).toFixed(2)}, ${Number(r.lng_bin).toFixed(2)}`,
-        })),
-      },
+          label: `${Number(r.lat_bin).toFixed(2)}, ${Number(r.lng_bin).toFixed(2)}` })) },
       performanceMetrics: {
         adminResponseTime: Number(operational.admin_response_minutes || 0),
         investigationCompletionTime: Number(operational.investigation_completion_minutes || 0),
-        reportsPerOfficer: officerPerfRes.rows.map((r) => ({ officer: r.officer, count: Number(r.count) })),
-      },
+        reportsPerOfficer: officerPerfRes.rows.map((r) => ({ officer: r.officer, count: Number(r.count) })) },
       trendMetrics: {
         weekOverWeekGrowth,
         monthlyTrend,
-        incidentSpikes,
-      },
+        incidentSpikes },
       dataQuality: {
         aiCoverageRate: total > 0 ? Math.round((aiScored / total) * 100) : 0,
         mediaCoverageRate: mediaRate,
-        verificationCoverageRate: total > 0 ? Math.round((verifiedCount / total) * 100) : 0,
-      },
-    })
+        verificationCoverageRate: total > 0 ? Math.round((verifiedCount / total) * 100) : 0 } })
 }))
 
 /*
@@ -1039,8 +1002,7 @@ router.get('/historical-events', authMiddleware, operatorOnly, asyncRoute(async 
       description: r.description || '',
       affectedPeople: 0,
       damage: '',
-      source: 'database',
-    }))
+      source: 'database' }))
 
     const histEvents = historicalRes.rows.map((h: any) => ({
       id: `HFE-${h.id?.toString().slice(0, 8)}`,
@@ -1052,8 +1014,7 @@ router.get('/historical-events', authMiddleware, operatorOnly, asyncRoute(async 
       description: h.event_name || '',
       affectedPeople: h.affected_people || 0,
       damage: h.damage_gbp ? `£${Number(h.damage_gbp) >= 1000000 ? (Number(h.damage_gbp) / 1000000).toFixed(1) + 'M' : Number(h.damage_gbp) >= 1000 ? Math.round(Number(h.damage_gbp) / 1000) + 'K' : h.damage_gbp}` : '',
-      source: 'historical_flood_events',
-    }))
+      source: 'historical_flood_events' }))
 
     const combined = [...events, ...histEvents]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -1221,8 +1182,7 @@ router.get('/command-center', authMiddleware, operatorOnly, asyncRoute(async (_r
         operator: r.operator,
         actions: Number(r.actions || 0),
         handled: Number(r.handled || 0),
-        avgResponseMinutes: Number(r.avg_response_minutes || 0),
-      })),
+        avgResponseMinutes: Number(r.avg_response_minutes || 0) })),
       recommendations,
       comparative: {
         today: todayCount,
@@ -1230,9 +1190,7 @@ router.get('/command-center', authMiddleware, operatorOnly, asyncRoute(async (_r
         dayDeltaPct,
         thisWeek: thisWeekCount,
         previousWeek: previousWeekCount,
-        weekDeltaPct,
-      },
-    })
+        weekDeltaPct } })
 }))
 
  /*
@@ -1260,8 +1218,7 @@ router.get('/nearby', asyncRoute(async (req: Request, res: Response) => {
 
     res.json(result.rows.map(r => ({
       ...formatReport(r),
-      distanceMetres: Math.round(r.distance_m),
-    })))
+      distanceMetres: Math.round(r.distance_m) })))
 }))
 
  /*
@@ -1306,9 +1263,7 @@ router.get('/:id', asyncRoute(async (req: Request, res: Response) => {
           classification: m.ai_classification,
           waterDepth: m.ai_water_depth,
           authenticityScore: m.ai_authenticity_score,
-          reasoning: m.ai_reasoning,
-        } : null,
-      }))
+          reasoning: m.ai_reasoning } : null }))
       res.json({ ...formatReport(result.rows[0]), media })
     } else {
       //Public access: include media but redact operator-only fields
@@ -1323,8 +1278,7 @@ router.get('/:id', asyncRoute(async (req: Request, res: Response) => {
         file_url: m.file_url,
         fileType: m.file_type,
         fileSize: m.file_size,
-        originalFilename: m.original_filename,
-      }))
+        originalFilename: m.original_filename }))
       res.json({ ...formatReportPublic(result.rows[0]), media })
     }
 }))
@@ -1361,8 +1315,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, asyncR
       description, severity, trappedPersons,
       locationText, lat, lng,
       locationMetadata: rawLocationMetadata,
-      customFields: rawCustomFields,
-    } = req.body
+      customFields: rawCustomFields } = req.body
 
     //Safely parse customFields -- sent as JSON string from FormData
     //whitelistfilter prevents nested objects/arrays from being stored unintentionally.
@@ -1402,8 +1355,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, asyncR
               accuracy: parsedAccuracy,
               source,
               confidence: parsedConfidence,
-              user_corrected: Boolean(parsed.user_corrected),
-            }
+              user_corrected: Boolean(parsed.user_corrected) }
           }
         }
       } catch {
@@ -1414,8 +1366,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, asyncR
     if (locationMetadata) {
       customFields = {
         ...customFields,
-        location_metadata: locationMetadata,
-      }
+        location_metadata: locationMetadata }
     }
 
     //Validate required fields
@@ -1468,8 +1419,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, asyncR
     if (dupCheck) {
       aiResult.analysis = {
         ...aiResult.analysis,
-        deduplication: dupCheck,
-      }
+        deduplication: dupCheck }
     }
 
     const dbSeverity = toDbSeverity(severity)
@@ -1570,8 +1520,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, asyncR
             operator_notes: null,
             updated_at: null,
             verified_at: null,
-            resolved_at: null,
-          }),
+            resolved_at: null }),
           media: hasFiles ? files!.map(f => ({
             id: null,
             url: `/uploads/evidence/${f.filename}`,
@@ -1579,9 +1528,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, asyncR
             fileType: f.mimetype,
             fileSize: f.size,
             originalFilename: f.originalname,
-            aiAnalysis: null,
-          })) : [],
-        }
+            aiAnalysis: null })) : [] }
         io.emit('report:new', fullReport)
         devLog(`[Reports] Broadcast report:new ${report.report_number}`)
       }
@@ -1605,8 +1552,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, asyncR
         longitude: parsedLng,
         description: typeof description === 'string' ? description.slice(0, 500) : undefined,
         mediaCount: hasFiles ? files!.length : 0,
-        severity: dbSeverityEvt,
-      },
+        severity: dbSeverityEvt },
       { source: 'citizen', severity: dbSeverityEvt },
     )
 
@@ -1672,10 +1618,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, asyncR
         possibleDuplicate: {
           reportNumber: dupCheck.duplicateReportNumber,
           similarityPct: dupCheck.confidencePct,
-          message: `This report may be a duplicate of ${dupCheck.duplicateReportNumber} (${dupCheck.confidencePct}% similarity). It has been submitted and will be reviewed.`,
-        },
-      } : {}),
-    })
+          message: `This report may be a duplicate of ${dupCheck.duplicateReportNumber} (${dupCheck.confidencePct}% similarity). It has been submitted and will be reviewed.` } } : {}) })
 }))
 
 /*
@@ -1706,8 +1649,7 @@ router.put('/bulk/status', authMiddleware, operatorOnly, bulkStatusLimiter, asyn
 
       const typeMap: Record<string, string> = {
         Verified: 'verify', Urgent: 'urgent', Flagged: 'flag', Resolved: 'resolve',
-        Archived: 'archive', False_Report: 'false_report',
-      }
+        Archived: 'archive', False_Report: 'false_report' }
 
       let updated = 0
       for (const reportId of reportIds) {
@@ -1850,8 +1792,7 @@ router.put('/:id/status', authMiddleware, operatorOnly, asyncRoute(async (req: A
     //Map status to activity log action type
     const typeMap: Record<string, string> = {
       Verified: 'verify', Urgent: 'urgent', Flagged: 'flag', Resolved: 'resolve',
-      Archived: 'archive', False_Report: 'false_report',
-    }
+      Archived: 'archive', False_Report: 'false_report' }
     await client.query(
       `INSERT INTO activity_log (action, action_type, report_id, operator_id, operator_name)
        VALUES ($1, $2, $3, $4, $5)`,
@@ -2004,8 +1945,7 @@ async function checkDuplicate(
         duplicateOf: bestRow.id,
         duplicateReportNumber: bestRow.report_number,
         similarityScore: Math.round(bestSim * 1000) / 1000,
-        confidencePct: Math.round(bestSim * 100),
-      }
+        confidencePct: Math.round(bestSim * 100) }
     }
 
     return { isDuplicate: false, duplicateOf: null, duplicateReportNumber: null, similarityScore: bestSim, confidencePct: 0 }
@@ -2075,9 +2015,7 @@ async function computeAIScore(
             `Confidence ${confidence}% from ${modelsUsed.length} local models. ` +
             `Fake probability: ${Math.round(fakeProbability * 100)}%.`,
           predictedCategory: cat?.hazard_type || null,
-          predictedSeverity: sev?.predicted_severity || null,
-        },
-      }
+          predictedSeverity: sev?.predicted_severity || null } }
     } catch {
       return computeAIScoreFallback(description, severity, trapped, hasMedia, lat, lng)
     }
@@ -2163,9 +2101,7 @@ async function computeAIScore(
           `Fake probability: ${Math.round(fakeProbability * 100)}%. ` +
           (hasMedia ? 'Photo evidence provided. ' : '') +
           (wordCount > 20 ? 'Detailed description. ' : '') +
-          (trapped === 'yes' ? 'Trapped persons reported. ' : ''),
-      },
-    }
+          (trapped === 'yes' ? 'Trapped persons reported. ' : '') } }
   } catch (err: any) {
     logger.warn({ err }, '[Reports] ML scoring failed, using heuristic')
     return computeAIScoreFallback(description, severity, trapped, hasMedia, lat, lng)
@@ -2210,9 +2146,7 @@ function computeAIScoreFallback(
       keyEntities,
       modelsUsed: [],
       mlPowered: false,
-      reasoning: `Heuristic scoring (ML unavailable). Confidence based on description quality and metadata.`,
-    },
-  }
+      reasoning: `Heuristic scoring (ML unavailable). Confidence based on description quality and metadata.` } }
 }
 
  /*
@@ -2278,8 +2212,7 @@ function formatReport(row: any): any {
     timestamp: row.created_at,
     updatedAt: row.updated_at,
     verifiedAt: row.verified_at,
-    resolvedAt: row.resolved_at,
-  }
+    resolvedAt: row.resolved_at }
 }
 
 async function generateReportNumberSafe(): Promise<string> {
@@ -2336,8 +2269,7 @@ function toDbSeverity(severity: string): string {
     critical: 'high',
     Critical: 'high',
     emergency: 'high',
-    Emergency: 'high',
-  }
+    Emergency: 'high' }
   return map[severity] || 'medium'
 }
 

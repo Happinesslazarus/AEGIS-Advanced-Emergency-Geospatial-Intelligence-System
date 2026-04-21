@@ -8,7 +8,7 @@
  * - Responses cached via cacheService
  * */
 
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Request, Response } from 'express'
 import pool from '../models/db.js'
 import { AppError } from '../utils/AppError.js'
 import { remember, buildCacheKey, CACHE_TTL } from '../services/cacheService.js'
@@ -29,7 +29,7 @@ function addSpatialWarning(warnings: string[], scope: string, err: unknown): voi
  * POST /api/spatial/distance
  * Calculate geodesic distance between two points using PostGIS.
  */
-router.post('/distance', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/distance', async (req: Request, res: Response) => {
     const lat1 = parseFloat(req.body.lat1)
     const lng1 = parseFloat(req.body.lng1)
     const lat2 = parseFloat(req.body.lat2)
@@ -55,8 +55,7 @@ router.post('/distance', async (req: Request, res: Response, next: NextFunction)
     res.json({
       distance_km: parseFloat(rows[0]?.distance_km) || 0,
       from: { lat: lat1, lng: lng1 },
-      to: { lat: lat2, lng: lng2 },
-    })
+      to: { lat: lat2, lng: lng2 } })
 })
 
 /**
@@ -64,7 +63,7 @@ router.post('/distance', async (req: Request, res: Response, next: NextFunction)
  * Find all features (reports, shelters, alerts) within a given radius of a point.
  * Uses PostGIS ST_DWithin for accurate geodesic radius queries.
  */
-router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/buffer-analysis', async (req: Request, res: Response) => {
     const { lat, lng, radius_km } = req.body
     if (!lat || !lng) throw AppError.badRequest('lat, lng required')
     const radiusM = (radius_km || 5) * 1000
@@ -143,8 +142,7 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
       alerts: { count: alerts.length, items: alerts },
       flood_zones: { count: floodZones.length, items: floodZones },
       degraded: warnings.length > 0,
-      warnings,
-    }
+      warnings }
 
     //Cache the result for spatial queries (1 hour TTL)
     const key = buildCacheKey('spatial', ['buffer-analysis'], { lat, lng, radius_km })
@@ -159,7 +157,7 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
  * POST /api/spatial/nearest
  * Find the nearest feature of a given type (shelter, report, gauge station).
  */
-router.post('/nearest', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/nearest', async (req: Request, res: Response) => {
     const { lat, lng, type } = req.body
     if (!lat || !lng) throw AppError.badRequest('lat, lng required')
     const featureType = type || 'shelter'
@@ -201,15 +199,14 @@ router.post('/nearest', async (req: Request, res: Response, next: NextFunction) 
       query: { lat, lng, type: featureType },
       result: result || null,
       degraded: warnings.length > 0,
-      warnings,
-    })
+      warnings })
 })
 
 /**
  * POST /api/spatial/flood-risk
  * Check flood risk at a point using PostGIS ST_Contains / ST_DWithin against flood zone polygons.
  */
-router.post('/flood-risk', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/flood-risk', async (req: Request, res: Response) => {
     const { lat, lng } = req.body
     if (!lat || !lng) throw AppError.badRequest('lat, lng required')
     const warnings: string[] = []
@@ -274,8 +271,7 @@ router.post('/flood-risk', async (req: Request, res: Response, next: NextFunctio
       nearby_zones: nearbyZones,
       predictions,
       degraded: warnings.length > 0,
-      warnings,
-    }
+      warnings }
     })
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
@@ -287,7 +283,7 @@ router.post('/flood-risk', async (req: Request, res: Response, next: NextFunctio
  * Generate a point density / heatmap intensity grid using PostGIS.
  * Returns a grid of cells with report/incident counts.
  */
-router.post('/density', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/density', async (req: Request, res: Response) => {
     const { bounds, cell_size_km } = req.body
     const cellSize = cell_size_km || 1
     const warnings: string[] = []
@@ -315,8 +311,7 @@ router.post('/density', async (req: Request, res: Response, next: NextFunction) 
       points = rows.map((r: any) => ({
         lat: parseFloat(r.lat),
         lng: parseFloat(r.lng),
-        intensity: r.severity === 'High' ? 1.0 : r.severity === 'Medium' ? 0.6 : 0.3,
-      }))
+        intensity: r.severity === 'High' ? 1.0 : r.severity === 'Medium' ? 0.6 : 0.3 }))
     } catch (err) { addSpatialWarning(warnings, 'density query failed', err) }
 
     res.json({
@@ -324,15 +319,14 @@ router.post('/density', async (req: Request, res: Response, next: NextFunction) 
       point_count: points.length,
       points,
       degraded: warnings.length > 0,
-      warnings,
-    })
+      warnings })
 })
 
 /**
  * POST /api/spatial/area
  * Calculate the area of a polygon using PostGIS ST_Area on geography type.
  */
-router.post('/area', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/area', async (req: Request, res: Response) => {
     const { coordinates } = req.body
     if (!Array.isArray(coordinates) || coordinates.length < 3) {
       throw AppError.badRequest('At least 3 [lat, lng] coordinates required')
@@ -350,8 +344,7 @@ router.post('/area', async (req: Request, res: Response, next: NextFunction) => 
 
     res.json({
       area_km2: parseFloat(rows[0]?.area_km2) || 0,
-      vertices: coordinates.length,
-    })
+      vertices: coordinates.length })
 })
 
 export default router

@@ -25,7 +25,7 @@
  * - server/src/middleware/validate.ts    -- chatMessageSchema validates message length/content
  * */
 
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Request, Response } from 'express'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
@@ -93,7 +93,7 @@ function optionalAuth(req: Request): { id: string; type: 'citizen' | 'operator' 
  * Body: { message: string, sessionId?: string }
  * Returns: { sessionId, reply, model, tokensUsed, toolsUsed, sources, safetyFlags }
  */
-router.post('/', validate(chatMessageSchema), async (req: Request, res: Response, next: NextFunction) => {
+router.post('/', validate(chatMessageSchema), async (req: Request, res: Response) => {
     const user = optionalAuth(req)
     const rateLimitKey = user?.id || req.ip || 'anonymous'
     if (!checkChatRateLimit(rateLimitKey)) {
@@ -107,8 +107,7 @@ router.post('/', validate(chatMessageSchema), async (req: Request, res: Response
       citizenId: user?.type === 'citizen' ? user.id : undefined,
       operatorId: user?.type === 'operator' ? user.id : undefined,
       adminMode: user?.type === 'operator',
-      preferredProvider: typeof preferredProvider === 'string' ? preferredProvider : undefined,
-    })
+      preferredProvider: typeof preferredProvider === 'string' ? preferredProvider : undefined })
 
     res.json(result)
 })
@@ -130,8 +129,7 @@ const chatImageStorage = multer.diskStorage({
     const rand = crypto.randomUUID().replace(/-/g, '').substring(0, 8)
     const ext = path.extname(file.originalname).toLowerCase()
     cb(null, `${ts}-${rand}${ext}`)
-  },
-})
+  } })
 
 const chatImageUpload = multer({
   storage: chatImageStorage,
@@ -142,10 +140,9 @@ const chatImageUpload = multer({
       return cb(new Error('Only image files are allowed (JPEG, PNG, GIF, WebP)'))
     }
     cb(null, true)
-  },
-})
+  } })
 
-router.post('/upload-image', chatImageUpload.single('image'), (req: Request, res: Response, next: NextFunction) => {
+router.post('/upload-image', chatImageUpload.single('image'), (req: Request, res: Response) => {
     if (!req.file) {
       throw AppError.badRequest('No image file provided')
     }
@@ -155,8 +152,7 @@ router.post('/upload-image', chatImageUpload.single('image'), (req: Request, res
       imageUrl,
       filename: req.file.filename,
       size: req.file.size,
-      mimetype: req.file.mimetype,
-    })
+      mimetype: req.file.mimetype })
 })
 
 /**
@@ -171,8 +167,7 @@ const chatFileStorage = multer.diskStorage({
     const rand = crypto.randomUUID().replace(/-/g, '').substring(0, 8)
     const ext = path.extname(file.originalname).toLowerCase()
     cb(null, `${ts}-${rand}${ext}`)
-  },
-})
+  } })
 
 const chatFileUpload = multer({
   storage: chatFileStorage,
@@ -190,10 +185,9 @@ const chatFileUpload = multer({
       return cb(new Error('Supported files: PDF, CSV, TXT, JSON, Markdown, Excel'))
     }
     cb(null, true)
-  },
-})
+  } })
 
-router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, res: Response, next: NextFunction) => {
+router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, res: Response) => {
     if (!req.file) {
       throw AppError.badRequest('No file provided')
     }
@@ -213,7 +207,7 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
         if (readable / text.length < 0.4) return true
         const tokens = text.match(/\S+/g) || []
         if (tokens.length > 0 && tokens.filter(t => t.length <= 2).length / tokens.length > 0.55) return true
-        if ((text.match(/[a-zA-Z]{4,}/g) || []).length < 10 * Math.max(pages, 1)) return true
+        if ((text.match(/[a-zA-Z]{4 }/g) || []).length < 10 * Math.max(pages, 1)) return true
         return false
       }
 
@@ -244,8 +238,7 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
         const data = new Uint8Array(buffer)
         const doc = await getDocument({
           data, cMapUrl: cmapUrl, cMapPacked: true,
-          standardFontDataUrl: fontUrl, disableFontFace: true,
-        }).promise
+          standardFontDataUrl: fontUrl, disableFontFace: true }).promise
 
         pageCount = doc.numPages
 
@@ -274,8 +267,7 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
         try {
           const worker = await Tesseract.createWorker('eng', 1, {
             cachePath: path.join(process.cwd(), '.tesseract-cache'),
-            logger: () => {},
-          })
+            logger: () => {} })
 
           const totalPages = Math.min(pageCount || MAX_OCR_PAGES, MAX_OCR_PAGES)
           const ocrParts: string[] = []
@@ -287,8 +279,7 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
                 useSystemFonts: false,
                 viewportScale: 1.5,
                 pagesToProcess: [pageNum],
-                concurrencyLimit: 1,
-              })
+                concurrencyLimit: 1 })
               if (rendered[0]?.content) {
                 const { data } = await worker.recognize(rendered[0].content)
                 if (data.text.trim()) ocrParts.push(data.text.trim())
@@ -341,8 +332,7 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
       size: req.file.size,
       mimetype: req.file.mimetype,
       extractedText,
-      charCount: extractedText.length,
-    })
+      charCount: extractedText.length })
 })
 
 /**
@@ -395,8 +385,7 @@ router.post('/stream', validate(chatMessageSchema), async (req: Request, res: Re
         citizenId: user?.type === 'citizen' ? user.id : undefined,
         operatorId: user?.type === 'operator' ? user.id : undefined,
         adminMode: user?.type === 'operator',
-        preferredProvider: typeof preferredProvider === 'string' ? preferredProvider : undefined,
-      },
+        preferredProvider: typeof preferredProvider === 'string' ? preferredProvider : undefined },
       {
         onToken: (token) => {
             if (!res.writableEnded) writeEvent('token', { token })
@@ -409,8 +398,7 @@ router.post('/stream', validate(chatMessageSchema), async (req: Request, res: Re
         },
         onThinking: (phase) => {
             if (!res.writableEnded) writeEvent('thinking', { phase })
-        },
-      },
+        } },
     )
 
       if (!res.writableEnded) {
@@ -433,8 +421,7 @@ router.post('/stream', validate(chatMessageSchema), async (req: Request, res: Re
         suggestedActions: result.emergency?.suggestedActions,
         qualityScore: result.qualityScore,
         smartSuggestions: result.smartSuggestions || [],
-        isPersonalized: result.isPersonalized || false,
-      })
+        isPersonalized: result.isPersonalized || false })
       res.end()
     }
     chatStreamTotal.inc({ status: 'success' })
@@ -458,8 +445,7 @@ router.post('/stream', validate(chatMessageSchema), async (req: Request, res: Re
             model: result.model,
             tokens: result.tokensUsed,
             tools: result.toolsUsed,
-            quality: result.qualityScore,
-          }),
+            quality: result.qualityScore }),
         ],
       ).catch((err: Error) => logger.warn({ err }, '[Chat] Admin audit log write failed (non-fatal)'))
     }
@@ -477,7 +463,7 @@ router.post('/stream', validate(chatMessageSchema), async (req: Request, res: Re
 /**
  * GET /api/chat/sessions -- List authenticated user's chat sessions
  */
-router.get('/sessions', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/sessions', async (req: Request, res: Response) => {
   const user = optionalAuth(req)
   if (!user) {
     throw AppError.unauthorized('Authentication required to view chat sessions.')
@@ -491,18 +477,17 @@ router.get('/sessions', async (req: Request, res: Response, next: NextFunction) 
  * GET /api/chat/status -- LLM provider health information
  * (Public endpoint for transparency dashboard)
  */
-router.get('/status', async (_req: Request, res: Response, next: NextFunction) => {
+router.get('/status', async (_req: Request, res: Response) => {
     const status = getProviderStatus()
     res.json({
       providers: status,
-      preferred: status.find((s) => !s.rateLimited && !s.backedOff)?.name || null,
-    })
+      preferred: status.find((s) => !s.rateLimited && !s.backedOff)?.name || null })
 })
 
 /**
  * GET /api/chat/:id/budget -- Session token budget state
  */
-router.get('/:id/budget', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:id/budget', async (req: Request, res: Response) => {
     const user = optionalAuth(req)
     if (!user) {
       throw AppError.unauthorized('Authentication required to view chat budget.')
@@ -518,15 +503,14 @@ router.get('/:id/budget', async (req: Request, res: Response, next: NextFunction
       sessionId: req.params.id,
       budgetUsed: result.budgetUsed,
       budgetLimit: result.budgetLimit,
-      budgetRemaining: result.budgetRemaining,
-    })
+      budgetRemaining: result.budgetRemaining })
 })
 
 /**
  * GET /api/chat/:id -- Get message history for a session
  * SECURITY: Requires authentication and ownership verification
  */
-router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:id', async (req: Request, res: Response) => {
     const user = optionalAuth(req)
     
     //Require authentication for chat history access
@@ -548,7 +532,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
  * POST /api/chat/sessions/:id/end -- End and summarize a chat session
  * Called when user closes the chatbot to trigger auto-summarization
  */
-router.post('/sessions/:id/end', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/sessions/:id/end', async (req: Request, res: Response) => {
     const user = optionalAuth(req)
     if (!user) {
       throw AppError.unauthorized('Authentication required to end a chat session.')
@@ -567,7 +551,7 @@ router.post('/sessions/:id/end', async (req: Request, res: Response, next: NextF
  * POST /api/chat/feedback -- Submit feedback on a chat message
  * Body: { messageId: string, rating: 'up' | 'down', sessionId?: string }
  */
-router.post('/feedback', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/feedback', async (req: Request, res: Response) => {
     const { messageId, rating, sessionId } = req.body
     if (!messageId || !['up', 'down'].includes(rating)) {
       return res.status(400).json({ error: 'messageId and rating (up/down) required' })

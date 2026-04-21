@@ -24,7 +24,7 @@
  * - server/src/middleware/auth.ts          -- citizenOnly / operatorOnly guards used here
  * */
 
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Request, Response } from 'express'
 import pool from '../models/db.js'
 import { authMiddleware, citizenOnly, operatorOnly, AuthRequest } from '../middleware/auth.js'
 import { AppError } from '../utils/AppError.js'
@@ -37,7 +37,7 @@ router.use(authMiddleware)
 
 //Citizen: Activate SOS
 
-router.post('/activate', citizenOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/activate', citizenOnly, async (req: AuthRequest, res: Response) => {
     const { latitude, longitude, message, contactNumber } = req.body
     const citizenId = req.user!.id
     const citizenName = req.user!.displayName
@@ -54,8 +54,7 @@ router.post('/activate', citizenOnly, async (req: AuthRequest, res: Response, ne
     if (existing.rows.length > 0) {
       res.status(409).json({
         error: 'You already have an active distress call',
-        distressId: existing.rows[0].id,
-      })
+        distressId: existing.rows[0].id })
       return
     }
 
@@ -89,7 +88,7 @@ router.post('/activate', citizenOnly, async (req: AuthRequest, res: Response, ne
 
 //Citizen: Push GPS Location Update
 
-router.post('/location', citizenOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/location', citizenOnly, async (req: AuthRequest, res: Response) => {
     const { distressId, latitude, longitude, accuracy, heading, speed } = req.body
 
     if (!distressId || latitude == null || longitude == null) {
@@ -120,7 +119,7 @@ router.post('/location', citizenOnly, async (req: AuthRequest, res: Response, ne
 
 //Citizen: Cancel SOS
 
-router.post('/cancel', citizenOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/cancel', citizenOnly, async (req: AuthRequest, res: Response) => {
     const { distressId } = req.body
 
     if (!distressId) {
@@ -143,7 +142,7 @@ router.post('/cancel', citizenOnly, async (req: AuthRequest, res: Response, next
 
 //Operator: List Active Distress Calls
 
-router.get('/active', operatorOnly, async (_req: Request, res: Response, next: NextFunction) => {
+router.get('/active', operatorOnly, async (_req: Request, res: Response) => {
     const result = await pool.query(
       `SELECT dc.*, c.phone, c.email, c.avatar_url, c.is_vulnerable
        FROM distress_calls dc
@@ -156,7 +155,7 @@ router.get('/active', operatorOnly, async (_req: Request, res: Response, next: N
 
 //Historical Distress Calls
 
-router.get('/history', operatorOnly, async (req: Request, res: Response, next: NextFunction) => {
+router.get('/history', operatorOnly, async (req: Request, res: Response) => {
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 200)
     const result = await pool.query(
       `SELECT dc.*, c.display_name, c.is_vulnerable
@@ -171,7 +170,7 @@ router.get('/history', operatorOnly, async (req: Request, res: Response, next: N
 
 //Operator: Get Single Distress Call
 
-router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/:id', async (req: AuthRequest, res: Response) => {
     const userRole = req.user?.role || ''
     const citizenScope = userRole === 'citizen'
     if (!citizenScope && !operatorRoles.has(userRole)) {
@@ -194,7 +193,7 @@ router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction) =
 
 //Operator: Acknowledge
 
-router.post('/:id/acknowledge', operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/:id/acknowledge', operatorOnly, async (req: AuthRequest, res: Response) => {
     const { triageLevel } = req.body
 
     const result = await pool.query(
@@ -214,7 +213,7 @@ router.post('/:id/acknowledge', operatorOnly, async (req: AuthRequest, res: Resp
 
 //Operator: Resolve
 
-router.post('/:id/resolve', operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/:id/resolve', operatorOnly, async (req: AuthRequest, res: Response) => {
     const { resolution } = req.body
 
     const result = await pool.query(

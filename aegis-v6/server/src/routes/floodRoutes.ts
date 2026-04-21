@@ -13,7 +13,7 @@
  * GET  /api/flood/extents/:river    -- Flood extent GeoJSON
  * */
 
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Request, Response } from 'express'
 import { getFloodPredictions } from '../services/floodPredictionService.js'
 import { calculateEvacuationRoutes, getOperationalEvacuationOverview } from '../services/evacuationService.js'
 import { calculateThreatLevel } from '../services/threatLevelService.js'
@@ -56,7 +56,7 @@ function validateIncidentType(req: Request, res: Response): string | null {
 
 //Flood Prediction (canonical flood path)
 
-router.get('/flood/prediction', async (_req: Request, res: Response, next: NextFunction) => {
+router.get('/flood/prediction', async (_req: Request, res: Response) => {
     const region = getActiveCityRegion()
     const key = buildCacheKey('flood', [region.id, 'predictions'])
     const { data: predictions, meta } = await remember(key, CACHE_TTL.FLOOD_PREDICTIONS, async () => {
@@ -71,7 +71,7 @@ router.get('/flood/prediction', async (_req: Request, res: Response, next: NextF
  * Delegates to flood service for 'flood' type; for all others delegates to the
  * incident module registry (wildfire, heatwave, drought, etc.).
   */
-router.get('/incidents/:incidentType/prediction', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/incidents/:incidentType/prediction', async (req: Request, res: Response) => {
   const incidentType = validateIncidentType(req, res)
   if (!incidentType) return
 
@@ -92,12 +92,12 @@ router.get('/incidents/:incidentType/prediction', async (req: Request, res: Resp
     res.json({ predictions, count: predictions.length, incidentType })
 })
 
-router.post('/flood/prediction/refresh', async (_req: Request, res: Response, next: NextFunction) => {
+router.post('/flood/prediction/refresh', async (_req: Request, res: Response) => {
     const predictions = await getFloodPredictions()
     res.json({ predictions, count: predictions.length, refreshed: true })
 })
 
-router.post('/incidents/:incidentType/prediction/refresh', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/incidents/:incidentType/prediction/refresh', async (req: Request, res: Response) => {
   const incidentType = validateIncidentType(req, res)
   if (!incidentType) return
 
@@ -119,7 +119,7 @@ router.post('/incidents/:incidentType/prediction/refresh', async (req: Request, 
 
 //Threat Level
 
-router.get('/flood/threat', async (_req: Request, res: Response, next: NextFunction) => {
+router.get('/flood/threat', async (_req: Request, res: Response) => {
     const region = getActiveCityRegion()
     const key = buildCacheKey('flood', [region.id, 'threat'])
     const { data: assessment, meta } = await remember(key, CACHE_TTL.FLOOD_WARNINGS, async () => {
@@ -129,7 +129,7 @@ router.get('/flood/threat', async (_req: Request, res: Response, next: NextFunct
     res.json(assessment)
 })
 
-router.get('/incidents/:incidentType/threat', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/incidents/:incidentType/threat', async (req: Request, res: Response) => {
   const incidentType = validateIncidentType(req, res)
   if (!incidentType) return
 
@@ -155,8 +155,7 @@ router.get('/incidents/:incidentType/threat', async (req: Request, res: Response
       incidentType,
       level: maxSeverity,
       alertCount: alerts.length,
-      assessedAt: new Date().toISOString(),
-    })
+      assessedAt: new Date().toISOString() })
 })
 
 //Flood Extents -- SAFE file loading with allowlist validation
@@ -243,7 +242,7 @@ router.get('/incidents/:incidentType/extents/:river', (req: Request, res: Respon
 
 //Evacuation -- canonical paths under /flood/ prefix + legacy aliases
 
-const evacuationPostHandler = async (req: Request, res: Response, next: NextFunction) => {
+const evacuationPostHandler = async (req: Request, res: Response) => {
     const {
       startLat,
       startLng,
@@ -251,8 +250,7 @@ const evacuationPostHandler = async (req: Request, res: Response, next: NextFunc
       destinationType,
       optimizeFor,
       refreshWindowSeconds,
-      liveClosures,
-    } = req.body
+      liveClosures } = req.body
 
     const parsedLat = parseFloat(startLat)
     const parsedLng = parseFloat(startLng)
@@ -275,38 +273,35 @@ const evacuationPostHandler = async (req: Request, res: Response, next: NextFunc
       {
         optimizeFor,
         refreshWindowSeconds,
-        liveClosures,
-      },
+        liveClosures },
     )
 
     res.json(result)
 }
 
-const evacuationGetHandler = async (req: Request, res: Response, next: NextFunction) => {
+const evacuationGetHandler = async (req: Request, res: Response) => {
     const destinationType = String(req.query.destinationType || 'both') as 'shelter' | 'high_ground' | 'both'
     const optimizeFor = String(req.query.optimizeFor || 'balanced') as 'fastest' | 'safest' | 'balanced'
     const refreshWindowSeconds = parseInt(String(req.query.refreshWindowSeconds || '30'), 10) || 30
     const result = await getOperationalEvacuationOverview(destinationType, {
       optimizeFor,
-      refreshWindowSeconds,
-    })
+      refreshWindowSeconds })
     res.json({
       ...result,
       count: result.routes.length,
-      note: 'Operational evacuation corridors ranked against live nearby hazards',
-    })
+      note: 'Operational evacuation corridors ranked against live nearby hazards' })
 }
 
 //Canonical paths
 router.post('/flood/evacuation/route', evacuationPostHandler)
 router.get('/flood/evacuation/routes', evacuationGetHandler)
-router.post('/incidents/:incidentType/evacuation/route', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/incidents/:incidentType/evacuation/route', async (req: Request, res: Response) => {
   if (!validateIncidentType(req, res)) return
-  await evacuationPostHandler(req, res, next)
+  await evacuationPostHandler(req, res)
 })
-router.get('/incidents/:incidentType/evacuation/routes', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/incidents/:incidentType/evacuation/routes', async (req: Request, res: Response) => {
   if (!validateIncidentType(req, res)) return
-  await evacuationGetHandler(req, res, next)
+  await evacuationGetHandler(req, res)
 })
 
 //Legacy aliases

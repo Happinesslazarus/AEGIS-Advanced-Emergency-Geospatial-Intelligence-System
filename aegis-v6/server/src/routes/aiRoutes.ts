@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Proxies AI prediction requests from the frontend to the Python FastAPI
  * engine. Operators can trigger hazard predictions, view model status,
  * and manage AI pipeline configuration. Also exposes model governance
@@ -24,7 +24,7 @@
  * - Operator/admin authenticated endpoints
  * */
 
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
 import pool from '../models/db.js'
 import { adminOnly, authMiddleware, operatorOnly, AuthRequest } from '../middleware/auth.js'
@@ -38,8 +38,7 @@ import {
   aegisModelAvgConfidence,
   aegisModelDriftScore,
   aegisModelAlertStatus,
-  aegisModelDegradedGauge,
-} from '../services/metrics.js'
+  aegisModelDegradedGauge } from '../services/metrics.js'
 import { AppError } from '../utils/AppError.js'
 import { logger } from '../services/logger.js'
 import { regionRegistry } from '../adapters/regions/index.js'
@@ -162,8 +161,7 @@ router.post('/predict', authMiddleware, operatorOnly, asyncRoute(async (req: Aut
         latitude,
         longitude,
         forecast_horizon: forecast_horizon || 48,
-        include_contributing_factors: include_contributing_factors !== false,
-      }))
+        include_contributing_factors: include_contributing_factors !== false }))
       .digest('hex')
 
     const result = await pool.query(insertQuery, [
@@ -206,8 +204,7 @@ router.post('/predict', authMiddleware, operatorOnly, asyncRoute(async (req: Aut
         risk_level: prediction.risk_level,
         confidence: prediction.confidence,
         model_version: prediction.model_version,
-        generated_at: new Date().toISOString(),
-      })
+        generated_at: new Date().toISOString() })
     }
 
     //Return prediction to frontend
@@ -369,8 +366,7 @@ router.post('/classify-image', authMiddleware, operatorOnly, asyncRoute(async (r
       photoValidation: result.photoValidation,
       exifAnalysis: result.exifAnalysis,
       modelUsed: result.modelUsed,
-      processingTimeMs: result.processingTimeMs,
-    })
+      processingTimeMs: result.processingTimeMs })
 }))
 
 /*
@@ -790,8 +786,7 @@ router.get('/registry/health/:hazardType/:regionId', authMiddleware, operatorOnl
       const labels = {
         hazard: hazardType,
         region: regionId,
-        version: result.current_version,
-      }
+        version: result.current_version }
       aegisModelAvgConfidence.set(labels, Number(result.avg_confidence ?? 0))
       aegisModelDriftScore.set(labels, Number(result.drift_score ?? 0))
       aegisModelAlertStatus.set(labels, alertLevelToMetric(result.alert_level || result.health_status || 'HEALTHY'))
@@ -811,8 +806,7 @@ router.get('/registry/health', authMiddleware, operatorOnly, asyncRoute(async (_
       const labels = {
         hazard: item.hazard_type,
         region: item.region_id,
-        version: item.current_version,
-      }
+        version: item.current_version }
       aegisModelDriftScore.set(labels, Number(item.drift_score ?? 0))
       aegisModelAlertStatus.set(labels, alertLevelToMetric(item.health_status || 'HEALTHY'))
     }

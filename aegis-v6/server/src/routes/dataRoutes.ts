@@ -8,7 +8,7 @@
  * - Flood zone checks use PostGIS spatial queries on the local database
  * */
 
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Request, Response } from 'express'
 import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
 import { adminOnly, authMiddleware, operatorOnly, AuthRequest, verifyToken } from '../middleware/auth.js'
@@ -34,8 +34,7 @@ const pushSubscriptionLimiter = rateLimit({
   max: 10,
   message: { error: 'Too many subscription requests, please try again later.' },
   standardHeaders: true,
-  legacyHeaders: false,
-})
+  legacyHeaders: false })
 
  /*
  * ALERTS ENDPOINTS
@@ -45,7 +44,7 @@ const pushSubscriptionLimiter = rateLimit({
  * GET /api/alerts
  * Returns all active alerts, newest first.
   */
-router.get('/alerts', validate({ query: paginationSchema }), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/alerts', validate({ query: paginationSchema }), async (req: Request, res: Response): Promise<void> => {
     const { page, limit } = (req as any).validatedQuery as { page: number; limit: number }
     const offset = (page - 1) * limit
     const key = buildCacheKey('alerts', [activeRegion.id, 'active-list', `p${page}`, `l${limit}`])
@@ -69,12 +68,10 @@ router.get('/alerts', validate({ query: paginationSchema }), async (req: Request
           location: a.location_text,
           coordinates: a.lat ? [parseFloat(a.lat), parseFloat(a.lng)] : null,
           radiusKm: a.radius_km, expiresAt: a.expires_at,
-          createdAt: a.created_at,
-        })),
+          createdAt: a.created_at })),
         total,
         page,
-        limit,
-      }
+        limit }
     })
     if (meta.stale) res.set('X-Cache-Stale', 'true')
     res.json(data)
@@ -84,7 +81,7 @@ router.get('/alerts', validate({ query: paginationSchema }), async (req: Request
  * POST /api/alerts
  * Create a new alert (admin only).
   */
-router.post('/alerts', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/alerts', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response): Promise<void> => {
     const { title, message, severity, alertType, locationText, lat, lng, radiusKm, expiresAt, channels } = req.body
 
     if (!title || !message || !severity) {
@@ -157,7 +154,7 @@ router.post('/alerts', authMiddleware, operatorOnly, async (req: AuthRequest, re
  * GET /api/activity
  * Returns the last 100 activity log entries (admin only).
   */
-router.get('/activity', authMiddleware, adminOnly, validate({ query: paginationSchema }), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/activity', authMiddleware, adminOnly, validate({ query: paginationSchema }), async (req: Request, res: Response): Promise<void> => {
     const { page, limit } = (req as any).validatedQuery as { page: number; limit: number }
     const offset = (page - 1) * limit
 
@@ -173,19 +170,17 @@ router.get('/activity', authMiddleware, adminOnly, validate({ query: paginationS
       data: result.rows.map(a => ({
         id: a.id, action: a.action, type: a.action_type,
         reportId: a.report_id, operator: a.operator_name,
-        metadata: a.metadata, timestamp: a.created_at,
-      })),
+        metadata: a.metadata, timestamp: a.created_at })),
       total,
       page,
-      limit,
-    })
+      limit })
 })
 
  /*
  * POST /api/activity
  * Record a new activity entry (admin only).
   */
-router.post('/activity', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/activity', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response): Promise<void> => {
     const { action, actionType, reportId } = req.body
     await pool.query(
       `INSERT INTO activity_log (action, action_type, report_id, operator_id, operator_name)
@@ -210,7 +205,7 @@ router.post('/activity', authMiddleware, operatorOnly, async (req: AuthRequest, 
  * Requires WEATHER_API_KEY to be set in .env
  * Returns current weather + 24h forecast.
   */
-router.get('/weather/:lat/:lng', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/weather/:lat/:lng', async (req: Request, res: Response): Promise<void> => {
   try {
     const { lat, lng } = req.params
     const apiKey = process.env.WEATHER_API_KEY
@@ -239,8 +234,7 @@ router.get('/weather/:lat/:lng', async (req: Request, res: Response, next: NextF
                 temp: Math.round(hourly.temperature_2m?.[idx * 3] ?? 0),
                 rainfall: hourly.rain?.[idx * 3] ?? 0,
                 windSpeed: Math.round(hourly.wind_speed_10m?.[idx * 3] ?? 0),
-                description: typeof hourly.weather_code?.[idx * 3] === 'number' ? `WMO ${hourly.weather_code[idx * 3]}` : 'Unknown',
-              }))
+                description: typeof hourly.weather_code?.[idx * 3] === 'number' ? `WMO ${hourly.weather_code[idx * 3]}` : 'Unknown' }))
           : []
 
         return {
@@ -255,10 +249,8 @@ router.get('/weather/:lat/:lng', async (req: Request, res: Response, next: NextF
             icon: '03d',
             rainfall1h: current.rain ?? current.precipitation ?? 0,
             rainfall3h: (current.rain ?? current.precipitation ?? 0) * 3,
-            clouds: current.cloud_cover ?? 0,
-          },
-          forecast,
-        }
+            clouds: current.cloud_cover ?? 0 },
+          forecast }
       }
 
       //Secondary: OpenWeatherMap (optional, requires key)
@@ -290,16 +282,13 @@ router.get('/weather/:lat/:lng', async (req: Request, res: Response, next: NextF
           icon: current.weather[0].icon,
           rainfall1h: current.rain?.['1h'] || 0,
           rainfall3h: current.rain?.['3h'] || 0,
-          clouds: current.clouds.all,
-        },
+          clouds: current.clouds.all },
         forecast: forecast.list.map((f: any) => ({
           time: new Date(f.dt * 1000).toISOString(),
           temp: Math.round(f.main.temp),
           rainfall: f.rain?.['3h'] || 0,
           windSpeed: Math.round(f.wind.speed * 3.6),
-          description: f.weather[0].description,
-        })),
-      }
+          description: f.weather[0].description })) }
     }, { staleOnError: true, provider: 'openmeteo+owm' })
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
@@ -317,7 +306,7 @@ router.get('/weather/:lat/:lng', async (req: Request, res: Response, next: NextF
  * location yet (ClimateRiskDashboard, PublicSafetyMode) call this route.
  * Active region centre used as the default; override with ?lat=X&lng=Y.
   */
-router.get('/weather/current', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/weather/current', async (req: Request, res: Response): Promise<void> => {
   const lat = String(req.query.lat || defaultLat)
   const lng = String(req.query.lng || defaultLng)
   const key = buildCacheKey('weather', [activeRegion.id, 'current'], { lat, lng })
@@ -347,9 +336,7 @@ router.get('/weather/current', async (req: Request, res: Response, next: NextFun
           temperature: hourly.temperature_2m?.[idx] ?? null,
           rain: hourly.rain?.[idx] ?? 0,
           windSpeed: hourly.wind_speed_10m?.[idx] ?? null,
-          description: typeof hourly.weather_code?.[idx] === 'number' ? `WMO ${hourly.weather_code[idx]}` : 'Unknown',
-        })),
-      }
+          description: typeof hourly.weather_code?.[idx] === 'number' ? `WMO ${hourly.weather_code[idx]}` : 'Unknown' })) }
     }, { staleOnError: true, provider: 'openmeteo' })
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
@@ -371,7 +358,7 @@ router.get('/weather/current', async (req: Request, res: Response, next: NextFun
  * Returns list of matching zones with their risk levels.
  * This is the plug-and-play endpoint for QGIS-imported flood data.
   */
-router.get('/flood-check', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/flood-check', async (req: Request, res: Response): Promise<void> => {
     const { lat, lng } = req.query
     if (!lat || !lng) {
       throw AppError.badRequest('lat and lng are required.')
@@ -396,13 +383,11 @@ router.get('/flood-check', async (req: Request, res: Response, next: NextFunctio
         inZone: zones.length > 0,
         zones: zones.map(z => ({
           name: z.zone_name, type: z.flood_type,
-          probability: z.probability, returnPeriod: z.return_period,
-        })),
+          probability: z.probability, returnPeriod: z.return_period })),
         highestRisk,
         //Confidence boost fed into the AI report scoring pipeline when a report
         //comes from inside a known flood zone with high overlap probability.
-        confidenceBoost: highestRisk === 'high' ? 25 : highestRisk === 'medium' ? 15 : highestRisk === 'low' ? 8 : 0,
-      }
+        confidenceBoost: highestRisk === 'high' ? 25 : highestRisk === 'medium' ? 15 : highestRisk === 'low' ? 8 : 0 }
     })
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
@@ -413,11 +398,11 @@ router.get('/flood-check', async (req: Request, res: Response, next: NextFunctio
  * REGION-AWARE FLOOD DATA ROUTES (SEPA/EA/NRW/NIEA)
   */
 
-router.get('/flood-data/enabled-regions', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/flood-data/enabled-regions', async (_req: Request, res: Response): Promise<void> => {
     res.json({ regions: floodDataClient.getEnabledRegions() })
 })
 
-router.get('/flood-data/areas', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/flood-data/areas', async (req: Request, res: Response): Promise<void> => {
   try {
     const region = typeof req.query.region === 'string' ? req.query.region : undefined
     const key = buildCacheKey('flood', [region || activeRegion.id, 'areas'])
@@ -431,12 +416,11 @@ router.get('/flood-data/areas', async (req: Request, res: Response, next: NextFu
     res.status(502).json({
       type: 'FeatureCollection',
       features: [],
-      sepa_status: 'unavailable',
-    })
+      sepa_status: 'unavailable' })
   }
 })
 
-router.get('/flood-data/stations', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/flood-data/stations', async (req: Request, res: Response): Promise<void> => {
   try {
     const region = typeof req.query.region === 'string' ? req.query.region : undefined
     const lat = typeof req.query.lat === 'string' ? parseFloat(req.query.lat) : undefined
@@ -454,7 +438,7 @@ router.get('/flood-data/stations', async (req: Request, res: Response, next: Nex
   }
 })
 
-router.get('/flood-data/stations/:stationId/readings', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/flood-data/stations/:stationId/readings', async (req: Request, res: Response): Promise<void> => {
   try {
     const stationId = req.params.stationId
     const region = typeof req.query.region === 'string' ? req.query.region : undefined
@@ -473,7 +457,7 @@ router.get('/flood-data/stations/:stationId/readings', async (req: Request, res:
   }
 })
 
-router.get('/flood-data/active-alerts', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/flood-data/active-alerts', async (req: Request, res: Response): Promise<void> => {
   try {
     const region = typeof req.query.region === 'string' ? req.query.region : undefined
     const key = buildCacheKey('flood', [region || activeRegion.id, 'active-alerts'])
@@ -488,7 +472,7 @@ router.get('/flood-data/active-alerts', async (req: Request, res: Response, next
   }
 })
 
-router.get('/flood-data/risk-overlay', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/flood-data/risk-overlay', async (req: Request, res: Response): Promise<void> => {
   const requestedRegion = typeof req.query.region === 'string' ? req.query.region : 'scotland'
 
   try {
@@ -507,12 +491,11 @@ router.get('/flood-data/risk-overlay', async (req: Request, res: Response, next:
       cached_at: null,
       areas: { type: 'FeatureCollection', features: [] },
       stations: { type: 'FeatureCollection', features: [] },
-      alerts: { type: 'FeatureCollection', features: [] },
-    })
+      alerts: { type: 'FeatureCollection', features: [] } })
   }
 })
 
-router.get('/news', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/news', async (_req: Request, res: Response): Promise<void> => {
     const aegisRegion = (process.env.AEGIS_REGION || '').toLowerCase()
     const key = buildCacheKey('news', [aegisRegion || 'global', 'rss-feeds'])
     const forceRefresh = _req.query.fresh === 'true'
@@ -655,8 +638,7 @@ router.get('/news', async (_req: Request, res: Response, next: NextFunction): Pr
     return {
       items: sorted,
       fetched_at: new Date().toISOString(),
-      total: sorted.length,
-    }
+      total: sorted.length }
     }, { staleOnError: true, provider: 'rss-feeds' })
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
@@ -676,8 +658,7 @@ router.get('/news', async (_req: Request, res: Response, next: NextFunction): Pr
       total: totalItems,
       page,
       pageSize,
-      totalPages,
-    })
+      totalPages })
 })
 
 function sanitizeChannels(channels: unknown): string[] {
@@ -729,8 +710,7 @@ async function dispatchAlertDeliveries(
     severity: severityLevel,
     title,
     message,
-    area: locationText || 'AEGIS Coverage Area',
-  }
+    area: locationText || 'AEGIS Coverage Area' }
 
   let webPushSubs: { rows: any[] } = { rows: [] }
   if (channels.includes('web')) {
@@ -763,8 +743,7 @@ async function dispatchAlertDeliveries(
         ...alertPayload,
         subscriberName: subscriber.subscriber_name || undefined,
         subscriberAuthStatus: subscriber.subscriber_name ? 'Signed in user' : 'Anonymous / not signed in',
-        issuedAt: new Date(),
-      }
+        issuedAt: new Date() }
 
       let status = 'failed'
       let error: string | undefined
@@ -830,9 +809,7 @@ async function dispatchAlertDeliveries(
           endpoint: sub.endpoint,
           keys: {
             p256dh: sub.p256dh,
-            auth: sub.auth,
-          },
-        } as any,
+            auth: sub.auth } } as any,
         alertPayload
       )
       status = delivery.success ? 'sent' : 'failed'
@@ -937,8 +914,7 @@ function parseRssItems(xml: string, source: string): Array<{ title: string; sour
       time,
       url: link,
       type,
-      publishedAt: Number.isFinite(pubDate.getTime()) ? pubDate.toISOString() : new Date().toISOString(),
-    }
+      publishedAt: Number.isFinite(pubDate.getTime()) ? pubDate.toISOString() : new Date().toISOString() }
   })
 }
 
@@ -965,31 +941,25 @@ function decodeXml(text: string): string {
  * GET /api/notifications/status
  * Returns notification service configuration status and VAPID public key
   */
-router.get('/notifications/status', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/notifications/status', async (_req: Request, res: Response): Promise<void> => {
     const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || ''
     res.json({
       email: {
         enabled: !!process.env.SENDGRID_API_KEY || !!process.env.SMTP_HOST,
-        configured: !!process.env.SENDGRID_API_KEY || (!!process.env.SMTP_HOST && !!process.env.SMTP_USER),
-      },
+        configured: !!process.env.SENDGRID_API_KEY || (!!process.env.SMTP_HOST && !!process.env.SMTP_USER) },
       sms: {
         enabled: !!process.env.TWILIO_ACCOUNT_SID,
-        configured: !!process.env.TWILIO_ACCOUNT_SID && !!process.env.TWILIO_AUTH_TOKEN,
-      },
+        configured: !!process.env.TWILIO_ACCOUNT_SID && !!process.env.TWILIO_AUTH_TOKEN },
       telegram: {
         enabled: !!process.env.TELEGRAM_BOT_TOKEN,
-        configured: !!process.env.TELEGRAM_BOT_TOKEN,
-      },
+        configured: !!process.env.TELEGRAM_BOT_TOKEN },
       whatsapp: {
         enabled: !!process.env.TWILIO_ACCOUNT_SID,
-        configured: !!process.env.TWILIO_ACCOUNT_SID && !!process.env.TWILIO_AUTH_TOKEN,
-      },
+        configured: !!process.env.TWILIO_ACCOUNT_SID && !!process.env.TWILIO_AUTH_TOKEN },
       web: {
         enabled: !!vapidPublicKey,
         configured: !!vapidPublicKey,
-        publicKey: vapidPublicKey || undefined,
-      },
-    })
+        publicKey: vapidPublicKey || undefined } })
 })
 
  /*
@@ -997,7 +967,7 @@ router.get('/notifications/status', async (_req: Request, res: Response, next: N
  * Check whether a push endpoint is registered and active in the database.
  * Used by the client to detect stale browser subscriptions that need renewal.
  */
-router.get('/notifications/verify-subscription', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/notifications/verify-subscription', async (req: Request, res: Response): Promise<void> => {
   try {
     const endpoint = req.query.endpoint as string | undefined
     if (!endpoint) {
@@ -1024,7 +994,7 @@ router.get('/notifications/verify-subscription', async (req: Request, res: Respo
  * Save browser push subscription for authenticated user or guest
  * Stores endpoint, p256dh, and auth in push_subscriptions table
   */
-router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Request, res: Response): Promise<void> => {
     const { subscription } = req.body
 
     //Derive user_id from auth token if present (never trust body)
@@ -1096,15 +1066,14 @@ router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Req
     }
     res.status(201).json({
       success: true,
-      message: 'Subscription saved successfully',
-    })
+      message: 'Subscription saved successfully' })
 })
 
  /*
  * POST /api/notifications/unsubscribe
  * Remove browser push subscription
   */
-router.post('/notifications/unsubscribe', pushSubscriptionLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/notifications/unsubscribe', pushSubscriptionLimiter, async (req: Request, res: Response): Promise<void> => {
     const { endpoint } = req.body
 
     if (!endpoint) {
@@ -1118,8 +1087,7 @@ router.post('/notifications/unsubscribe', pushSubscriptionLimiter, async (req: R
 
     res.json({
       success: true,
-      message: 'Subscription removed successfully',
-    })
+      message: 'Subscription removed successfully' })
 })
 
 export default router

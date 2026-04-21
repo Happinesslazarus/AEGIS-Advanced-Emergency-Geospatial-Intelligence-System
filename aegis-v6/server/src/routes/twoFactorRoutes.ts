@@ -9,7 +9,7 @@
  * - Requires authentication (operators only)
  * */
 
-import { Router, Response, NextFunction } from 'express'
+import { Router, Response } from 'express'
 import bcrypt from 'bcryptjs'
 import rateLimit from 'express-rate-limit'
 import { generateSecret, generateSync, verifySync, generateURI } from 'otplib'
@@ -19,8 +19,7 @@ import { authMiddleware, generateToken, generateRefreshToken, createSession, Aut
 import {
   encrypt2FASecret, decrypt2FASecret, generateBackupCodes,
   verifyBackupCode, hashTempToken, hashTOTPCode, isTOTPReplay,
-  check2FALockout, should2FALockout,
-} from '../utils/twoFactorCrypto.js'
+  check2FALockout, should2FALockout } from '../utils/twoFactorCrypto.js'
 import { getClientIp } from '../utils/securityUtils.js'
 import { logSecurityEvent } from '../services/securityLogger.js'
 import { isDeviceTrusted, trustDevice } from '../services/deviceTrustService.js'
@@ -55,40 +54,35 @@ const twoFactorSetupLimiter = rateLimit({
   max: 5,
   message: { error: 'Too many 2FA setup attempts. Please try again later.' },
   standardHeaders: true,
-  legacyHeaders: false,
-})
+  legacyHeaders: false })
 
 const twoFactorVerifyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   message: { error: 'Too many 2FA verification attempts. Please try again later.' },
   standardHeaders: true,
-  legacyHeaders: false,
-})
+  legacyHeaders: false })
 
 const twoFactorAuthLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   message: { error: 'Too many 2FA authentication attempts. Please try again later.' },
   standardHeaders: true,
-  legacyHeaders: false,
-})
+  legacyHeaders: false })
 
 const twoFactorDisableLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 3,
   message: { error: 'Too many 2FA disable attempts. Please try again later.' },
   standardHeaders: true,
-  legacyHeaders: false,
-})
+  legacyHeaders: false })
 
 const twoFactorRegenLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 3,
   message: { error: 'Too many backup code regeneration attempts. Please try again later.' },
   standardHeaders: true,
-  legacyHeaders: false,
-})
+  legacyHeaders: false })
 
 //Helpers
 
@@ -119,16 +113,14 @@ async function record2FAFailure(
     await logSecurityEvent({
       userId: operatorId, userType: 'operator', eventType: '2fa_auth_failed',
       ipAddress: clientIp, userAgent,
-      metadata: { ...metadata, locked: true, lockout_minutes: lockoutMinutes, attempts },
-    })
+      metadata: { ...metadata, locked: true, lockout_minutes: lockoutMinutes, attempts } })
     return { locked: true, lockoutMinutes }
   }
 
   await logSecurityEvent({
     userId: operatorId, userType: 'operator', eventType: '2fa_auth_failed',
     ipAddress: clientIp, userAgent,
-    metadata: { ...metadata, attempts },
-  })
+    metadata: { ...metadata, attempts } })
   return { locked: false, lockoutMinutes: 0 }
 }
 
@@ -159,7 +151,7 @@ async function enforce2FALockout(operatorId: string): Promise<void> {
 
 //GET /api/auth/2fa/status
 
-router.get('/status', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/status', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
     const result = await pool.query(
       `SELECT two_factor_enabled, two_factor_enabled_at, two_factor_last_verified_at,
               two_factor_recovery_generated_at, two_factor_backup_codes
@@ -177,13 +169,12 @@ router.get('/status', authMiddleware, async (req: AuthRequest, res: Response, ne
       recoveryCodesGeneratedAt: row.two_factor_recovery_generated_at,
       backupCodesRemaining: row.two_factor_enabled
         ? (row.two_factor_backup_codes?.length ?? 0)
-        : null,
-    })
+        : null })
 })
 
 //POST /api/auth/2fa/setup
 
-router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
     const operatorId = req.user!.id
     const clientIp = getClientIp(req)
     const userAgent = req.headers['user-agent'] as string
@@ -238,26 +229,23 @@ router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthReq
     const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl, {
       width: 256,
       margin: 2,
-      color: { dark: '#000000', light: '#ffffff' },
-    })
+      color: { dark: '#000000', light: '#ffffff' } })
 
     await logSecurityEvent({
       userId: operatorId, userType: 'operator', eventType: '2fa_setup_initiated',
-      ipAddress: clientIp, userAgent,
-    })
+      ipAddress: clientIp, userAgent })
 
     res.json({
       success: true,
       manualKey: secret,
       otpAuthUrl,
       qrCodeDataUrl,
-      reusedExistingSecret,
-    })
+      reusedExistingSecret })
 })
 
 //POST /api/auth/2fa/verify
 
-router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
     const operatorId = req.user!.id
     const { code } = req.body
     const clientIp = getClientIp(req)
@@ -293,8 +281,7 @@ router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthR
     if (!isValid) {
       await logSecurityEvent({
         userId: operatorId, userType: 'operator', eventType: '2fa_verify_failed',
-        ipAddress: clientIp, userAgent, metadata: { stage: 'setup_verification' },
-      })
+        ipAddress: clientIp, userAgent, metadata: { stage: 'setup_verification' } })
       twoFactorAuthTotal.inc({ outcome: 'failure', method: 'totp_setup' })
       throw AppError.unauthorized('Invalid verification code. Please try again with a fresh code from your authenticator app.')
     }
@@ -321,8 +308,7 @@ router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthR
 
     await logSecurityEvent({
       userId: operatorId, userType: 'operator', eventType: '2fa_enabled',
-      ipAddress: clientIp, userAgent,
-    })
+      ipAddress: clientIp, userAgent })
     twoFactorAuthTotal.inc({ outcome: 'success', method: 'totp' })
 
     await pool.query(
@@ -333,13 +319,12 @@ router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthR
 
     res.json({
       success: true,
-      backupCodes: plainCodes,
-    })
+      backupCodes: plainCodes })
 })
 
 //POST /api/auth/2fa/authenticate
 
-router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
     const { tempToken, code, rememberDevice } = req.body
     const clientIp = getClientIp(req)
     const userAgent = req.headers['user-agent'] as string
@@ -370,8 +355,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
     if (tempRecord.consumed) {
       await logSecurityEvent({
         userId: tempRecord.user_id, userType: 'operator', eventType: '2fa_auth_failed',
-        ipAddress: clientIp, userAgent, metadata: { reason: 'temp_token_reused' },
-      })
+        ipAddress: clientIp, userAgent, metadata: { reason: 'temp_token_reused' } })
       throw AppError.unauthorized('This temporary token has already been used. Please log in again.')
     }
 
@@ -380,8 +364,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       await pool.query('UPDATE two_factor_temp_tokens SET consumed = true WHERE id = $1', [tempRecord.id])
       await logSecurityEvent({
         userId: tempRecord.user_id, userType: 'operator', eventType: '2fa_temp_token_expired',
-        ipAddress: clientIp, userAgent,
-      })
+        ipAddress: clientIp, userAgent })
       throw AppError.unauthorized('Temporary token has expired. Please log in again.')
     }
 
@@ -391,8 +374,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       await logSecurityEvent({
         userId: tempRecord.user_id, userType: 'operator', eventType: '2fa_auth_failed',
         ipAddress: clientIp, userAgent,
-        metadata: { reason: 'ip_mismatch', expected_ip: tempRecord.ip_address },
-      })
+        metadata: { reason: 'ip_mismatch', expected_ip: tempRecord.ip_address } })
       throw AppError.unauthorized('Session mismatch. Please log in again.')
     }
     if (tempRecord.user_agent && userAgent && tempRecord.user_agent !== userAgent) {
@@ -400,8 +382,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       await logSecurityEvent({
         userId: tempRecord.user_id, userType: 'operator', eventType: '2fa_auth_failed',
         ipAddress: clientIp, userAgent,
-        metadata: { reason: 'user_agent_mismatch' },
-      })
+        metadata: { reason: 'user_agent_mismatch' } })
       throw AppError.unauthorized('Session mismatch. Please log in again.')
     }
 
@@ -462,8 +443,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       await logSecurityEvent({
         userId: user.id, userType: 'operator', eventType: '2fa_backup_code_used',
         ipAddress: clientIp, userAgent,
-        metadata: { remaining_codes: backupCodesRemaining },
-      })
+        metadata: { remaining_codes: backupCodesRemaining } })
 
       backupCodeUsed = true
     } else {
@@ -486,8 +466,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       if (isTOTPReplay(codeHash, user.two_factor_last_totp_hash, user.two_factor_last_totp_at)) {
         await logSecurityEvent({
           userId: user.id, userType: 'operator', eventType: '2fa_auth_failed',
-          ipAddress: clientIp, userAgent, metadata: { reason: 'totp_replay' },
-        })
+          ipAddress: clientIp, userAgent, metadata: { reason: 'totp_replay' } })
         throw AppError.unauthorized('This code has already been used. Please wait for a new code.')
       }
 
@@ -522,20 +501,17 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
     const token = generateToken({
       id: user.id, email: user.email,
       role: user.role, displayName: user.display_name,
-      department: user.department,
-    })
+      department: user.department })
     const refreshToken = generateRefreshToken({ id: user.id, role: user.role })
 
     await createSession({
       userId: user.id, userType: 'operator', refreshToken,
-      ipAddress: clientIp, userAgent, ttlDays: 30,
-    }).catch(() => {})
+      ipAddress: clientIp, userAgent, ttlDays: 30 }).catch(() => {})
 
     await logSecurityEvent({
       userId: user.id, userType: 'operator', eventType: '2fa_auth_success',
       ipAddress: clientIp, userAgent,
-      metadata: { method: isBackupCode ? 'backup_code' : 'totp' },
-    })
+      metadata: { method: isBackupCode ? 'backup_code' : 'totp' } })
 
     await pool.query(
       `INSERT INTO activity_log (action, action_type, operator_id, operator_name)
@@ -548,8 +524,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000,
-      path: '/api/auth',
-    })
+      path: '/api/auth' })
 
     //Trust device if requested (30-day remember-me)
     let deviceTrusted = false
@@ -568,11 +543,9 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       user: {
         id: user.id, email: user.email,
         displayName: user.display_name, role: user.role,
-        avatarUrl: user.avatar_url, department: user.department,
-      },
+        avatarUrl: user.avatar_url, department: user.department },
       backupCodeUsed,
-      deviceTrusted,
-    }
+      deviceTrusted }
 
     //Generic warning without disclosing exact count
     if (backupCodeUsed) {
@@ -586,7 +559,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
 
 //POST /api/auth/2fa/disable
 
-router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
     const operatorId = req.user!.id
     const { password, code } = req.body
     const clientIp = getClientIp(req)
@@ -674,8 +647,7 @@ router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: Aut
 
     await logSecurityEvent({
       userId: operatorId, userType: 'operator', eventType: '2fa_disabled',
-      ipAddress: clientIp, userAgent,
-    })
+      ipAddress: clientIp, userAgent })
 
     //Fire security alert -- 2FA disabled is a critical event
     alert2FADisabled(operatorId, clientIp).catch(() => {})
@@ -691,7 +663,7 @@ router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: Aut
 
 //POST /api/auth/2fa/regenerate-backup-codes
 
-router.post('/regenerate-backup-codes', authMiddleware, twoFactorRegenLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/regenerate-backup-codes', authMiddleware, twoFactorRegenLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
     const operatorId = req.user!.id
     const { password, code } = req.body
     const clientIp = getClientIp(req)
@@ -765,8 +737,7 @@ router.post('/regenerate-backup-codes', authMiddleware, twoFactorRegenLimiter, a
 
     await logSecurityEvent({
       userId: operatorId, userType: 'operator', eventType: '2fa_backup_codes_regenerated',
-      ipAddress: clientIp, userAgent,
-    })
+      ipAddress: clientIp, userAgent })
 
     await pool.query(
       `INSERT INTO activity_log (action, action_type, operator_id, operator_name)
@@ -776,8 +747,7 @@ router.post('/regenerate-backup-codes', authMiddleware, twoFactorRegenLimiter, a
 
     res.json({
       success: true,
-      backupCodes: plainCodes,
-    })
+      backupCodes: plainCodes })
 })
 
 export default router
