@@ -241,6 +241,7 @@ import dataRoutes from './routes/dataRoutes.js'
 import extendedRoutes from './routes/extendedRoutes.js'
 import aiGovernanceRoutes from './routes/aiGovernanceRoutes.js'
 import operatorAdminRoutes from './routes/operatorAdminRoutes.js'
+import alertDeliveryRoutes from './routes/alertDeliveryRoutes.js'
 import aiRoutes from './routes/aiRoutes.js'
 import userRoutes from './routes/userRoutes.js'
 import chatRoutes from './routes/chatRoutes.js'
@@ -696,6 +697,7 @@ app.use('/api', dataRoutes) // Alerts, activity, AI metrics, weather
 app.use('/api', extendedRoutes) // Subscriptions, audit, community, departments
 app.use('/api', aiGovernanceRoutes) // AI governance, classifier health, audit log
 app.use('/api', operatorAdminRoutes) // Operator account governance (admin only)
+app.use('/api', alertDeliveryRoutes) // Alert delivery log, retries, CSV export
 app.use('/api/ai', aiRoutes) // AI prediction engine integration
 app.use('/api/chat', chatRoutes) // LLM chatbot with RAG
 app.use('/api/admin/setup', setupRoutes) // First-run onboarding wizard
