@@ -1,4 +1,4 @@
-﻿/**
+/**
  * PostGIS spatial analysis endpoints: heatmaps, clustering, buffer zones,
  * proximity searches, and spatial statistics for the disaster map.
  *
@@ -30,7 +30,6 @@ function addSpatialWarning(warnings: string[], scope: string, err: unknown): voi
  * Calculate geodesic distance between two points using PostGIS.
  */
 router.post('/distance', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const lat1 = parseFloat(req.body.lat1)
     const lng1 = parseFloat(req.body.lng1)
     const lat2 = parseFloat(req.body.lat2)
@@ -58,9 +57,6 @@ router.post('/distance', async (req: Request, res: Response, next: NextFunction)
       from: { lat: lat1, lng: lng1 },
       to: { lat: lat2, lng: lng2 },
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -69,7 +65,6 @@ router.post('/distance', async (req: Request, res: Response, next: NextFunction)
  * Uses PostGIS ST_DWithin for accurate geodesic radius queries.
  */
 router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const { lat, lng, radius_km } = req.body
     if (!lat || !lng) throw AppError.badRequest('lat, lng required')
     const radiusM = (radius_km || 5) * 1000
@@ -158,9 +153,6 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
     await cacheSet(key, responseData, CACHE_TTL.SPATIAL).catch(() => {})
 
     res.json(responseData)
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -168,7 +160,6 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
  * Find the nearest feature of a given type (shelter, report, gauge station).
  */
 router.post('/nearest', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const { lat, lng, type } = req.body
     if (!lat || !lng) throw AppError.badRequest('lat, lng required')
     const featureType = type || 'shelter'
@@ -212,9 +203,6 @@ router.post('/nearest', async (req: Request, res: Response, next: NextFunction) 
       degraded: warnings.length > 0,
       warnings,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -222,7 +210,6 @@ router.post('/nearest', async (req: Request, res: Response, next: NextFunction) 
  * Check flood risk at a point using PostGIS ST_Contains / ST_DWithin against flood zone polygons.
  */
 router.post('/flood-risk', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const { lat, lng } = req.body
     if (!lat || !lng) throw AppError.badRequest('lat, lng required')
     const warnings: string[] = []
@@ -293,9 +280,6 @@ router.post('/flood-risk', async (req: Request, res: Response, next: NextFunctio
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -304,7 +288,6 @@ router.post('/flood-risk', async (req: Request, res: Response, next: NextFunctio
  * Returns a grid of cells with report/incident counts.
  */
 router.post('/density', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const { bounds, cell_size_km } = req.body
     const cellSize = cell_size_km || 1
     const warnings: string[] = []
@@ -343,9 +326,6 @@ router.post('/density', async (req: Request, res: Response, next: NextFunction) 
       degraded: warnings.length > 0,
       warnings,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -353,7 +333,6 @@ router.post('/density', async (req: Request, res: Response, next: NextFunction) 
  * Calculate the area of a polygon using PostGIS ST_Area on geography type.
  */
 router.post('/area', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const { coordinates } = req.body
     if (!Array.isArray(coordinates) || coordinates.length < 3) {
       throw AppError.badRequest('At least 3 [lat, lng] coordinates required')
@@ -373,9 +352,6 @@ router.post('/area', async (req: Request, res: Response, next: NextFunction) => 
       area_km2: parseFloat(rows[0]?.area_km2) || 0,
       vertices: coordinates.length,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

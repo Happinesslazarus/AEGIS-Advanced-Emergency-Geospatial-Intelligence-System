@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Admin AI management: token usage analytics, LLM provider health
  * monitoring, chat session analytics, and canned reply templates
  * for admin messaging.
@@ -32,19 +32,14 @@ router.use(requireRole('admin', 'operator', 'super_admin', 'superadmin'))
  * Returns today/week breakdown of local vs API usage, per-provider totals.
  */
 router.get('/token-usage', async (_req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const stats = getTokenUsageStats()
     res.json(stats)
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
  * GET /api/admin/ai/provider-health -- All LLM provider health statuses
  */
 router.get('/provider-health', async (_req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const status = getProviderStatus()
     const preferred = status.find(s => !s.rateLimited && !s.backedOff)?.name || null
     const localProviders = status.filter(s => s.name.startsWith('ollama'))
@@ -63,9 +58,6 @@ router.get('/provider-health', async (_req: AuthRequest, res: Response, next: Ne
         configured: cloudProviders.filter(p => p.enabled).length,
       },
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -73,7 +65,6 @@ router.get('/provider-health', async (_req: AuthRequest, res: Response, next: Ne
  * Returns conversation metrics: total sessions, avg quality, agent distribution, etc.
  */
 router.get('/analytics', async (_req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     //Aggregate from chat_sessions and chat_messages
     const [sessionStats, recentMessages, modelDistribution] = await Promise.all([
       pool.query(`
@@ -112,9 +103,6 @@ router.get('/analytics', async (_req: AuthRequest, res: Response, next: NextFunc
       modelDistribution: modelDistribution.rows,
       tokenUsage,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -170,7 +158,6 @@ router.post('/canned-replies', async (req: AuthRequest, res: Response, next: Nex
  * PUT /api/admin/ai/canned-replies/:id -- Update a canned reply
  */
 router.put('/canned-replies/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const { title, content, category, shortcut } = req.body
     const { rows } = await pool.query(
       `UPDATE canned_replies
@@ -187,25 +174,18 @@ router.put('/canned-replies/:id', async (req: AuthRequest, res: Response, next: 
     )
     if (rows.length === 0) return res.status(404).json({ error: 'Canned reply not found' })
     res.json(rows[0])
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
  * DELETE /api/admin/ai/canned-replies/:id -- Soft-delete a canned reply
  */
 router.delete('/canned-replies/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const { rowCount } = await pool.query(
       `UPDATE canned_replies SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`,
       [req.params.id],
     )
     if (rowCount === 0) return res.status(404).json({ error: 'Canned reply not found' })
     res.json({ ok: true })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**

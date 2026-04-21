@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Citizen-specific features: safety check-ins, message threads with
  * operators, and the citizen dashboard with personalised alerts.
  *
@@ -157,7 +157,6 @@ router.post('/safety', safetyLimiter, async (req: AuthRequest, res: Response, ne
 
 //GET /safety/history -- Get safety check-in history
 router.get('/safety/history', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 100)
     const result = await pool.query(
       `SELECT s.*, o.display_name as acknowledged_by_name
@@ -169,14 +168,10 @@ router.get('/safety/history', async (req: AuthRequest, res: Response, next: Next
       [req.user!.id, limit]
     )
     res.json(result.rows)
-  } catch (err) {
-    next(err)
-  }
 })
 
 //GET /safety/latest -- Get latest safety status
 router.get('/safety/latest', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const result = await pool.query(
       `SELECT s.*, o.display_name as acknowledged_by_name
        FROM safety_check_ins s
@@ -187,16 +182,12 @@ router.get('/safety/latest', async (req: AuthRequest, res: Response, next: NextF
       [req.user!.id]
     )
     res.json(result.rows[0] || null)
-  } catch (err) {
-    next(err)
-  }
 })
 
 //MESSAGING
 
 //GET /threads -- List citizen's message threads (paginated)
 router.get('/threads', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 50)
     const offset = Math.max(parseInt(req.query.offset as string) || 0, 0)
     const result = await pool.query(
@@ -213,14 +204,10 @@ router.get('/threads', async (req: AuthRequest, res: Response, next: NextFunctio
       [req.user!.id, limit, offset]
     )
     res.json(result.rows)
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /threads -- Create a new message thread
 router.post('/threads', threadLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { subject, message } = req.body
 
     if (!subject || !message) {
@@ -261,14 +248,10 @@ router.post('/threads', threadLimiter, async (req: AuthRequest, res: Response, n
     )
 
     res.status(201).json(thread)
-  } catch (err) {
-    next(err)
-  }
 })
 
 //GET /threads/:id -- Get thread with messages
 router.get('/threads/:id', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const threadResult = await pool.query(
       `SELECT t.*, o.display_name as assigned_to_name
        FROM message_threads t
@@ -323,14 +306,10 @@ router.get('/threads/:id', async (req: AuthRequest, res: Response, next: NextFun
       hasMore,
       oldestId: messages.length > 0 ? messages[0].id : null,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /threads/:id/messages -- Send message in thread
 router.post('/threads/:id/messages', messageLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { content } = req.body
     if (!content) {
       throw AppError.badRequest('Message content is required.')
@@ -369,14 +348,10 @@ router.post('/threads/:id/messages', messageLimiter, async (req: AuthRequest, re
     )
 
     res.status(201).json(msgResult.rows[0])
-  } catch (err) {
-    next(err)
-  }
 })
 
 //PUT /threads/:id/read -- Mark all messages in thread as read
 router.put('/threads/:id/read', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     //Verify thread belongs to citizen
     const threadCheck = await pool.query(
       `SELECT id FROM message_threads WHERE id = $1 AND citizen_id = $2`,
@@ -402,16 +377,12 @@ router.put('/threads/:id/read', async (req: AuthRequest, res: Response, next: Ne
     )
 
     res.json({ success: true })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //ALERT HISTORY
 
 //GET /alert-history -- Get citizen's alert interaction history
 router.get('/alert-history', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const result = await pool.query(
       `SELECT ah.*, a.title, a.message, a.severity, a.alert_type, a.location_text
        FROM citizen_alert_history ah
@@ -422,14 +393,10 @@ router.get('/alert-history', async (req: AuthRequest, res: Response, next: NextF
       [req.user!.id]
     )
     res.json(result.rows)
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /alert-history -- Record that citizen saw/played an alert
 router.post('/alert-history', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { alertId, audioPlayed } = req.body
     if (!alertId) {
       throw AppError.badRequest('Alert ID is required.')
@@ -444,16 +411,12 @@ router.post('/alert-history', async (req: AuthRequest, res: Response, next: Next
     )
 
     res.json({ recorded: true })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //PERSONALIZED DASHBOARD
 
 //GET /dashboard-stats -- Get personalized dashboard data
 router.get('/dashboard-stats', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     //Run all dashboard queries in parallel for performance
     const [citizenResult, alertsResult, criticalResult, reportsResult, safetyResult, unreadResult, recentAlerts, helpResult] = await Promise.all([
       pool.query('SELECT preferred_region, location_lat, location_lng FROM citizens WHERE id = $1', [req.user!.id]),
@@ -478,15 +441,11 @@ router.get('/dashboard-stats', async (req: AuthRequest, res: Response, next: Nex
       communityHelp: parseInt(helpResult.rows[0].count),
       region: citizen?.preferred_region || null,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //GDPR Data Export -- GET /api/citizen/data-export
 
 router.get('/data-export', async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const userId = req.user!.id
 
     //Gather all user data from every table in parallel
@@ -518,9 +477,6 @@ router.get('/data-export', async (req: AuthRequest, res: Response, next: NextFun
 
     res.setHeader('Content-Disposition', `attachment; filename="aegis-data-export-${new Date().toISOString().slice(0, 10)}.json"`)
     res.json(exportData)
-  } catch (err) {
-    next(err)
-  }
 })
 
 //GDPR Data Erasure -- DELETE /api/citizen/data-erasure
@@ -592,7 +548,6 @@ router.delete('/data-erasure', async (req: AuthRequest, res: Response, next: Nex
 
 //POST /request-deletion -- Request account deletion with 30-day grace period
 router.post('/request-deletion', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const userId = req.user!.id
 
     //Check if already requested
@@ -641,14 +596,10 @@ router.post('/request-deletion', async (req: AuthRequest, res: Response, next: N
       deletion_scheduled_at: citizen.deletion_scheduled_at,
       message: `Your account will be permanently deleted on ${new Date(citizen.deletion_scheduled_at).toLocaleDateString()}. You can cancel by logging back in within 30 days.`,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /cancel-deletion -- Cancel pending account deletion
 router.post('/cancel-deletion', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const userId = req.user!.id
 
     const result = await pool.query(
@@ -680,14 +631,10 @@ router.post('/cancel-deletion', async (req: AuthRequest, res: Response, next: Ne
       success: true,
       message: 'Account deletion has been cancelled. Welcome back!',
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //GET /deletion-status -- Check deletion status
 router.get('/deletion-status', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const userId = req.user!.id
     const result = await pool.query(
       'SELECT deletion_requested_at, deletion_scheduled_at FROM citizens WHERE id = $1',
@@ -701,9 +648,6 @@ router.get('/deletion-status', async (req: AuthRequest, res: Response, next: Nex
       deletion_requested_at: result.rows[0].deletion_requested_at,
       deletion_scheduled_at: result.rows[0].deletion_scheduled_at,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //FAMILY / GROUP SAFETY (#37)
@@ -713,7 +657,6 @@ import { AppError } from '../utils/AppError.js'
 
 //POST /safety-groups -- Create a new safety group
 router.post('/safety-groups', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const userId = req.user!.id
     const { name, description } = req.body
     if (!name || typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 100) {
@@ -731,14 +674,10 @@ router.post('/safety-groups', async (req: AuthRequest, res: Response, next: Next
       [result.rows[0].id, userId]
     )
     res.status(201).json(result.rows[0])
-  } catch (err) {
-    next(err)
-  }
 })
 
 //GET /safety-groups -- List groups the citizen belongs to
 router.get('/safety-groups', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const userId = req.user!.id
     const result = await pool.query(
       `SELECT g.*, sgm.role AS my_role,
@@ -749,14 +688,10 @@ router.get('/safety-groups', async (req: AuthRequest, res: Response, next: NextF
       [userId]
     )
     res.json(result.rows)
-  } catch (err) {
-    next(err)
-  }
 })
 
 //GET /safety-groups/:id/members -- Get group members with latest safety status
 router.get('/safety-groups/:id/members', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const userId = req.user!.id
     const groupId = req.params.id
     //Verify membership
@@ -778,14 +713,10 @@ router.get('/safety-groups/:id/members', async (req: AuthRequest, res: Response,
       [groupId]
     )
     res.json(result.rows)
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /safety-groups/join -- Join a group via invite code
 router.post('/safety-groups/join', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const userId = req.user!.id
     const { inviteCode } = req.body
     if (!inviteCode || typeof inviteCode !== 'string') {
@@ -812,14 +743,10 @@ router.post('/safety-groups/join', async (req: AuthRequest, res: Response, next:
       [group.rows[0].id, userId]
     )
     res.status(201).json({ message: 'Joined group successfully', group: group.rows[0] })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //DELETE /safety-groups/:id/leave -- Leave a safety group
 router.delete('/safety-groups/:id/leave', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const userId = req.user!.id
     const groupId = req.params.id
     await pool.query(
@@ -835,9 +762,6 @@ router.delete('/safety-groups/:id/leave', async (req: AuthRequest, res: Response
       await pool.query('DELETE FROM safety_groups WHERE id = $1', [groupId])
     }
     res.json({ success: true })
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

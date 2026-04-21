@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Admin cache management: flush the entire cache, clear a specific
  * namespace, delete individual keys, and view cache diagnostics.
  * All operations are audit-logged.
@@ -29,7 +29,6 @@ router.use(authMiddleware, adminOnly)
  * Body: { dryRun?: boolean }
  */
 router.post('/clear', async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const dryRun = req.body.dryRun === true
     const removed = await cacheInvalidatePattern('aegis:v1:*', dryRun)
     auditLog('admin-cache', dryRun ? 'flush-all (dry-run)' : 'flush-all', {
@@ -37,9 +36,6 @@ router.post('/clear', async (req: AuthRequest, res: Response, next: NextFunction
       operator: req.user?.displayName ?? req.user?.id,
     })
     res.json({ ok: true, dryRun, keysRemoved: removed })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -48,7 +44,6 @@ router.post('/clear', async (req: AuthRequest, res: Response, next: NextFunction
  * Body: { namespace: string, dryRun?: boolean }
  */
 router.post('/clear-namespace', async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const { namespace, dryRun } = req.body
     if (!namespace || typeof namespace !== 'string') {
       return res.status(400).json({ error: 'A cache namespace is required.' })
@@ -66,9 +61,6 @@ router.post('/clear-namespace', async (req: AuthRequest, res: Response, next: Ne
       operator: req.user?.displayName ?? req.user?.id,
     })
     res.json({ ok: true, namespace, dryRun: isDry, keysRemoved: removed })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -77,7 +69,6 @@ router.post('/clear-namespace', async (req: AuthRequest, res: Response, next: Ne
  * Body: { key: string, dryRun?: boolean }
  */
 router.post('/clear-key', async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const { key, dryRun } = req.body
     if (!key || typeof key !== 'string') {
       return res.status(400).json({ error: 'A cache key is required.' })
@@ -95,9 +86,6 @@ router.post('/clear-key', async (req: AuthRequest, res: Response, next: NextFunc
       operator: req.user?.displayName ?? req.user?.id,
     })
     res.json({ ok: true, key, dryRun: isDry, deleted: !isDry })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -105,12 +93,8 @@ router.post('/clear-key', async (req: AuthRequest, res: Response, next: NextFunc
  * Return cache connection status, memory usage, and keyspace info.
  */
 router.get('/stats', async (_req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const stats = await getCacheStats()
     res.json(stats)
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Telegram bot integration: receives webhook updates from the Telegram
  * Bot API, handles /start commands to capture chat IDs, and links
  * Telegram accounts to citizen profiles for alert delivery.
@@ -123,7 +123,6 @@ router.get('/updates', async (_req: Request, res: Response, next: NextFunction):
     throw AppError.serviceUnavailable('Telegram bot token not configured.')
   }
 
-  try {
     const r = await fetch(`${API}/getUpdates?offset=${_lastOffset}&limit=100&timeout=0`)
     const data: any = await r.json()
 
@@ -141,9 +140,6 @@ router.get('/updates', async (_req: Request, res: Response, next: NextFunction):
     }
 
     res.json({ ok: true, updates: data.result?.length || 0, nextOffset: _lastOffset })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Register webhook with Telegram (admin-only, validated, audited)

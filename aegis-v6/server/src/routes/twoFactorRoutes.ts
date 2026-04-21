@@ -1,4 +1,4 @@
-﻿/**
+/**
  * TOTP two-factor authentication for operator accounts. Handles setup
  * (generates secret + QR code), verification, login completion with
  * 2FA codes, and backup code management.
@@ -160,7 +160,6 @@ async function enforce2FALockout(operatorId: string): Promise<void> {
 //GET /api/auth/2fa/status
 
 router.get('/status', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const result = await pool.query(
       `SELECT two_factor_enabled, two_factor_enabled_at, two_factor_last_verified_at,
               two_factor_recovery_generated_at, two_factor_backup_codes
@@ -180,15 +179,11 @@ router.get('/status', authMiddleware, async (req: AuthRequest, res: Response, ne
         ? (row.two_factor_backup_codes?.length ?? 0)
         : null,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /api/auth/2fa/setup
 
 router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const operatorId = req.user!.id
     const clientIp = getClientIp(req)
     const userAgent = req.headers['user-agent'] as string
@@ -258,15 +253,11 @@ router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthReq
       qrCodeDataUrl,
       reusedExistingSecret,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /api/auth/2fa/verify
 
 router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const operatorId = req.user!.id
     const { code } = req.body
     const clientIp = getClientIp(req)
@@ -344,15 +335,11 @@ router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthR
       success: true,
       backupCodes: plainCodes,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /api/auth/2fa/authenticate
 
 router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { tempToken, code, rememberDevice } = req.body
     const clientIp = getClientIp(req)
     const userAgent = req.headers['user-agent'] as string
@@ -595,15 +582,11 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
     }
 
     res.json(responseData)
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /api/auth/2fa/disable
 
 router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const operatorId = req.user!.id
     const { password, code } = req.body
     const clientIp = getClientIp(req)
@@ -704,15 +687,11 @@ router.post('/disable', authMiddleware, twoFactorDisableLimiter, async (req: Aut
     )
 
     res.json({ success: true, message: 'Two-factor authentication has been disabled.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /api/auth/2fa/regenerate-backup-codes
 
 router.post('/regenerate-backup-codes', authMiddleware, twoFactorRegenLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const operatorId = req.user!.id
     const { password, code } = req.body
     const clientIp = getClientIp(req)
@@ -799,9 +778,6 @@ router.post('/regenerate-backup-codes', authMiddleware, twoFactorRegenLimiter, a
       success: true,
       backupCodes: plainCodes,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

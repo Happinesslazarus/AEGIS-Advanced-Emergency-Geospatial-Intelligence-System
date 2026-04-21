@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Admin-side messaging: operators view citizen message threads, send
  * replies, and mark conversations as read. This is the operator half
  * of the citizen <-> admin messaging system.
@@ -29,7 +29,6 @@ router.use(requireRole('admin', 'operator', 'super_admin', 'superadmin'))
  * GET /api/admin/threads - List all message threads (paginated)
  */
 router.get('/', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const page = Math.max(1, parseInt(String(req.query.page || '1'), 10) || 1)
     const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit || '50'), 10) || 50))
     const offset = (page - 1) * limit
@@ -61,16 +60,12 @@ router.get('/', async (req: AuthRequest, res: Response, next: NextFunction): Pro
     const total = parseInt(countResult.rows[0].count, 10)
 
     res.json({ threads: result.rows, total, page, limit, pages: Math.ceil(total / limit) })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
  * GET /api/admin/threads/:id - Get thread with all messages
  */
 router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     //Get thread metadata
     const threadResult = await pool.query(`
       SELECT 
@@ -118,16 +113,12 @@ router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction): 
       thread: threadResult.rows[0],
       messages: messagesResult.rows
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
  * POST /api/admin/threads/:id/messages - Send message from admin to citizen
  */
 router.post('/:id/messages', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { content, image_url } = req.body
 
     if (!content?.trim() && !image_url) {
@@ -167,16 +158,12 @@ router.post('/:id/messages', async (req: AuthRequest, res: Response, next: NextF
     `, [req.params.id])
 
     res.json({ message: result.rows[0] })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
  * PUT /api/admin/threads/:id/read - Mark thread as read (for operator)
  */
 router.put('/:id/read', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     //Verify thread exists
     const threadCheck = await pool.query(
       'SELECT id FROM message_threads WHERE id = $1',
@@ -194,9 +181,6 @@ router.put('/:id/read', async (req: AuthRequest, res: Response, next: NextFuncti
     )
 
     res.json({ success: true })
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

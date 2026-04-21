@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Security management endpoints: trusted devices, security event logs,
  * and per-operator security dashboards.
  *
@@ -35,16 +35,11 @@ const securityLimiter = rateLimit({
 //Device Trust Management (authenticated operator)
 
 router.get('/devices', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const devices = await listTrustedDevices(req.user!.id)
     res.json({ devices })
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.delete('/devices/:id', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { id } = req.params
     if (!id) throw AppError.badRequest('Device ID is required.')
 
@@ -58,38 +53,26 @@ router.delete('/devices/:id', authMiddleware, securityLimiter, async (req: AuthR
     }
 
     res.json({ success: true, message: 'Device trust revoked.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.delete('/devices', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const count = await revokeAllDevices(
       req.user!.id,
       getClientIp(req), req.headers['user-agent'] as string
     )
     res.json({ success: true, devicesRevoked: count })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Operator Security Summary
 
 router.get('/summary', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const summary = await getOperatorSecuritySummary(req.user!.id)
     res.json(summary)
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Alert Preferences
 
 router.get('/preferences', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const result = await pool.query(
       'SELECT * FROM operator_security_preferences WHERE operator_id = $1',
       [req.user!.id]
@@ -117,13 +100,9 @@ router.get('/preferences', authMiddleware, securityLimiter, async (req: AuthRequ
       alert_on_suspicious_access: prefs.alert_on_suspicious_access,
       alert_on_lockout: prefs.alert_on_lockout,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.put('/preferences', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const operatorId = req.user!.id
     const {
       alert_on_2fa_disabled,
@@ -159,9 +138,6 @@ router.put('/preferences', authMiddleware, securityLimiter, async (req: AuthRequ
     )
 
     res.json({ success: true, message: 'Security preferences updated.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Admin Security Dashboard
@@ -177,33 +153,21 @@ function requireAdmin(req: AuthRequest, _res: Response, next: NextFunction): voi
 }
 
 router.get('/dashboard/alerts', authMiddleware, requireAdmin, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 200)
     const alerts = await getRecentSecurityAlerts(limit)
     res.json({ alerts })
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.get('/dashboard/stats', authMiddleware, requireAdmin, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const hours = Math.min(parseInt(req.query.hours as string) || 24, 720) // max 30 days
     const stats = await getSecurityEventStats(hours)
     res.json({ stats, hours })
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.get('/dashboard/failures', authMiddleware, requireAdmin, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 50)
     const operators = await getMostFailedOperators(limit)
     res.json({ operators })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Password Breach Checking (HIBP Integration)
@@ -212,7 +176,6 @@ router.get('/dashboard/failures', authMiddleware, requireAdmin, securityLimiter,
 //a proposed password before account creation or from a password reset flow.
 //The securityLimiter still guards against enumeration abuse.
 router.post('/check-password', securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { password } = req.body
     
     if (!password || typeof password !== 'string') {
@@ -228,23 +191,16 @@ router.post('/check-password', securityLimiter, async (req: AuthRequest, res: Re
         ? `This password has appeared in ${result.count > 1000 ? result.count.toLocaleString() : 'multiple'} data breaches. Choose a different password.`
         : 'This password has not been found in known data breaches.',
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Admin Security Stats
 
 router.get('/admin/security-stats', authMiddleware, requireAdmin, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const hibpStats = getHIBPStats()
     
     res.json({
       hibp: hibpStats,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

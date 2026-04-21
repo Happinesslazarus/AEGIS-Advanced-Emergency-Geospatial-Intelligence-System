@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Internal service endpoints: frontend error logging (React error boundaries POST
  * here), system health status, live region configuration, and circuit breaker states.
  *
@@ -113,7 +113,6 @@ router.post('/errors/frontend', frontendErrorLimiter, async (req: Request, res: 
 // ?3  System health dashboard
 
 router.get('/health/system', authMiddleware, operatorOnly, async (_req: Request, res: Response, next: NextFunction) => {
-  try {
     //Database
     let dbOk = false
     let dbLatency = 0
@@ -180,9 +179,6 @@ router.get('/health/system', authMiddleware, operatorOnly, async (_req: Request,
       recent_errors: recentErrors,
       recent_jobs: recentJobs,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 // ?4  n8n Webhook Callbacks
@@ -194,7 +190,6 @@ router.get('/health/system', authMiddleware, operatorOnly, async (_req: Request,
  * Receives weather data from n8n WF2 and broadcasts via Socket.IO.
  */
 router.post('/n8n-webhook/weather', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const data = req.body
     const io = req.app.get('io')
 
@@ -213,9 +208,6 @@ router.post('/n8n-webhook/weather', async (req: Request, res: Response, next: Ne
     }
 
     res.json({ ok: true, source: 'n8n_wf2' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -223,7 +215,6 @@ router.post('/n8n-webhook/weather', async (req: Request, res: Response, next: Ne
  * Receives flood alert data from n8n WF3 and processes it.
  */
 router.post('/n8n-webhook/alerts', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const { source, ea_data, sepa_data } = req.body
     const io = req.app.get('io')
     let alertCount = 0
@@ -275,9 +266,6 @@ router.post('/n8n-webhook/alerts', async (req: Request, res: Response, next: Nex
 
     devLog(`[n8n-webhook/alerts] Processed ${alertCount} alerts from ${source || 'n8n'}`)
     res.json({ ok: true, alerts_processed: alertCount })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -285,7 +273,6 @@ router.post('/n8n-webhook/alerts', async (req: Request, res: Response, next: Nex
  * Receives river gauge data from n8n WF1.
  */
 router.post('/n8n-webhook/gauges', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const data = req.body
     const io = req.app.get('io')
 
@@ -294,9 +281,6 @@ router.post('/n8n-webhook/gauges', async (req: Request, res: Response, next: Nex
     }
 
     res.json({ ok: true, source: 'n8n_wf1' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 // ?5  Multi-incident n8n webhook endpoints
@@ -306,7 +290,6 @@ router.post('/n8n-webhook/gauges', async (req: Request, res: Response, next: Nex
  * n8n posts evaluated multi-hazard weather alerts here.
  */
 router.post('/n8n-webhook/multi-hazard', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const { hazard_type, severity, region, description, data } = req.body
     if (!hazard_type || !severity) {
       throw AppError.badRequest('Missing hazard_type or severity')
@@ -328,16 +311,12 @@ router.post('/n8n-webhook/multi-hazard', async (req: Request, res: Response, nex
 
     devLog(`[n8n-webhook/multi-hazard] ${hazard_type} alert (${severity}) ingested`)
     res.json({ ok: true, source: 'n8n_wf4', hazard_type, severity })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
  * WF5 ? Air quality monitoring alerts
  */
 router.post('/n8n-webhook/air-quality', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const { aqi, pollutant, severity, region, description, data } = req.body
     if (!severity) {
       throw AppError.badRequest('Missing severity')
@@ -358,9 +337,6 @@ router.post('/n8n-webhook/air-quality', async (req: Request, res: Response, next
 
     devLog(`[n8n-webhook/air-quality] AQI alert (${severity}) ingested`)
     res.json({ ok: true, source: 'n8n_wf5', severity, aqi })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -368,7 +344,6 @@ router.post('/n8n-webhook/air-quality', async (req: Request, res: Response, next
  * Receives compound/cascading emergency alerts from the incident alert evaluator.
  */
 router.post('/n8n-webhook/escalation', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const { escalation_type, severity, involved_incidents, description, data } = req.body
     if (!escalation_type || !severity) {
       throw AppError.badRequest('Missing escalation_type or severity')
@@ -391,9 +366,6 @@ router.post('/n8n-webhook/escalation', async (req: Request, res: Response, next:
 
     devLog(`[n8n-webhook/escalation] ${escalation_type} (${severity}) ? involves: ${(involved_incidents || []).join(', ')}`)
     res.json({ ok: true, source: 'n8n_wf6', escalation_type, severity })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //
@@ -401,7 +373,6 @@ router.post('/n8n-webhook/escalation', async (req: Request, res: Response, next:
 //Body: { incidentType, severity, probability, message, source, metadata }
 
 router.post('/incident-alert', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const { incidentType, severity, probability, message, source, metadata } = req.body
 
     if (!incidentType || !severity) {
@@ -471,9 +442,6 @@ router.post('/incident-alert', async (req: Request, res: Response, next: NextFun
 
     devLog(`[incident-alert] ${incidentType} (${normSeverity}) from ${source || 'n8n'} -- inserted:${inserted}`)
     res.json({ ok: true, incidentType, severity: normSeverity, inserted, source: source || 'n8n' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

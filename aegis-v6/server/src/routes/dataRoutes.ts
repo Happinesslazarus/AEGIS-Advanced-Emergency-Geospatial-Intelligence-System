@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Data-centric API routes: emergency alerts CRUD, operator activity logs,
  * AI model metrics, weather proxying (OpenWeatherMap / Open-Meteo),
  * flood zone checks (PostGIS), and SEPA river gauge data.
@@ -46,7 +46,6 @@ const pushSubscriptionLimiter = rateLimit({
  * Returns all active alerts, newest first.
   */
 router.get('/alerts', validate({ query: paginationSchema }), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { page, limit } = (req as any).validatedQuery as { page: number; limit: number }
     const offset = (page - 1) * limit
     const key = buildCacheKey('alerts', [activeRegion.id, 'active-list', `p${page}`, `l${limit}`])
@@ -79,9 +78,6 @@ router.get('/alerts', validate({ query: paginationSchema }), async (req: Request
     })
     if (meta.stale) res.set('X-Cache-Stale', 'true')
     res.json(data)
-  } catch (err) {
-    next(err)
-  }
 })
 
  /*
@@ -89,7 +85,6 @@ router.get('/alerts', validate({ query: paginationSchema }), async (req: Request
  * Create a new alert (admin only).
   */
 router.post('/alerts', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { title, message, severity, alertType, locationText, lat, lng, radiusKm, expiresAt, channels } = req.body
 
     if (!title || !message || !severity) {
@@ -152,9 +147,6 @@ router.post('/alerts', authMiddleware, operatorOnly, async (req: AuthRequest, re
         results: deliveryResults
       }
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
  /*
@@ -166,7 +158,6 @@ router.post('/alerts', authMiddleware, operatorOnly, async (req: AuthRequest, re
  * Returns the last 100 activity log entries (admin only).
   */
 router.get('/activity', authMiddleware, adminOnly, validate({ query: paginationSchema }), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { page, limit } = (req as any).validatedQuery as { page: number; limit: number }
     const offset = (page - 1) * limit
 
@@ -188,9 +179,6 @@ router.get('/activity', authMiddleware, adminOnly, validate({ query: paginationS
       page,
       limit,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
  /*
@@ -198,7 +186,6 @@ router.get('/activity', authMiddleware, adminOnly, validate({ query: paginationS
  * Record a new activity entry (admin only).
   */
 router.post('/activity', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { action, actionType, reportId } = req.body
     await pool.query(
       `INSERT INTO activity_log (action, action_type, report_id, operator_id, operator_name)
@@ -206,9 +193,6 @@ router.post('/activity', authMiddleware, operatorOnly, async (req: AuthRequest, 
       [action, actionType || 'export', reportId || null, req.user!.id, req.user!.displayName]
     )
     res.status(201).json({ success: true })
-  } catch (err) {
-    next(err)
-  }
 })
 
  /*
@@ -388,7 +372,6 @@ router.get('/weather/current', async (req: Request, res: Response, next: NextFun
  * This is the plug-and-play endpoint for QGIS-imported flood data.
   */
 router.get('/flood-check', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { lat, lng } = req.query
     if (!lat || !lng) {
       throw AppError.badRequest('lat and lng are required.')
@@ -424,9 +407,6 @@ router.get('/flood-check', async (req: Request, res: Response, next: NextFunctio
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
 })
 
  /*
@@ -434,11 +414,7 @@ router.get('/flood-check', async (req: Request, res: Response, next: NextFunctio
   */
 
 router.get('/flood-data/enabled-regions', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     res.json({ regions: floodDataClient.getEnabledRegions() })
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.get('/flood-data/areas', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -537,7 +513,6 @@ router.get('/flood-data/risk-overlay', async (req: Request, res: Response, next:
 })
 
 router.get('/news', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const aegisRegion = (process.env.AEGIS_REGION || '').toLowerCase()
     const key = buildCacheKey('news', [aegisRegion || 'global', 'rss-feeds'])
     const forceRefresh = _req.query.fresh === 'true'
@@ -703,9 +678,6 @@ router.get('/news', async (_req: Request, res: Response, next: NextFunction): Pr
       pageSize,
       totalPages,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 function sanitizeChannels(channels: unknown): string[] {
@@ -994,7 +966,6 @@ function decodeXml(text: string): string {
  * Returns notification service configuration status and VAPID public key
   */
 router.get('/notifications/status', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || ''
     res.json({
       email: {
@@ -1019,9 +990,6 @@ router.get('/notifications/status', async (_req: Request, res: Response, next: N
         publicKey: vapidPublicKey || undefined,
       },
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
  /*
@@ -1057,7 +1025,6 @@ router.get('/notifications/verify-subscription', async (req: Request, res: Respo
  * Stores endpoint, p256dh, and auth in push_subscriptions table
   */
 router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { subscription } = req.body
 
     //Derive user_id from auth token if present (never trust body)
@@ -1131,9 +1098,6 @@ router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Req
       success: true,
       message: 'Subscription saved successfully',
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
  /*
@@ -1141,7 +1105,6 @@ router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Req
  * Remove browser push subscription
   */
 router.post('/notifications/unsubscribe', pushSubscriptionLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { endpoint } = req.body
 
     if (!endpoint) {
@@ -1157,9 +1120,6 @@ router.post('/notifications/unsubscribe', pushSubscriptionLimiter, async (req: R
       success: true,
       message: 'Subscription removed successfully',
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

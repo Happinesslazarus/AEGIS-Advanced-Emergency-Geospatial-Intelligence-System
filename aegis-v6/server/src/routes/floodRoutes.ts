@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Flood prediction, threat assessment, and evacuation route endpoints.
  * Combines river level data, weather forecasts, and ML predictions to
  * assess flood risk and calculate safe evacuation paths.
@@ -57,7 +57,6 @@ function validateIncidentType(req: Request, res: Response): string | null {
 //Flood Prediction (canonical flood path)
 
 router.get('/flood/prediction', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
     const region = getActiveCityRegion()
     const key = buildCacheKey('flood', [region.id, 'predictions'])
     const { data: predictions, meta } = await remember(key, CACHE_TTL.FLOOD_PREDICTIONS, async () => {
@@ -65,9 +64,6 @@ router.get('/flood/prediction', async (_req: Request, res: Response, next: NextF
     }, { staleOnError: true, provider: 'owm+openmeteo+ai' })
     if (meta.stale) res.set('X-Cache-Stale', 'true')
     res.json({ predictions, count: predictions.length })
-  } catch (err) {
-    next(err)
-  }
 })
 
  /*
@@ -79,7 +75,6 @@ router.get('/incidents/:incidentType/prediction', async (req: Request, res: Resp
   const incidentType = validateIncidentType(req, res)
   if (!incidentType) return
 
-  try {
     if (incidentType === 'flood') {
       const predictions = await getFloodPredictions()
       res.json({ predictions, count: predictions.length, incidentType })
@@ -95,25 +90,17 @@ router.get('/incidents/:incidentType/prediction', async (req: Request, res: Resp
     const region = getActiveCityRegion()
     const predictions = await mod.getPredictions(region.id)
     res.json({ predictions, count: predictions.length, incidentType })
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.post('/flood/prediction/refresh', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
     const predictions = await getFloodPredictions()
     res.json({ predictions, count: predictions.length, refreshed: true })
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.post('/incidents/:incidentType/prediction/refresh', async (req: Request, res: Response, next: NextFunction) => {
   const incidentType = validateIncidentType(req, res)
   if (!incidentType) return
 
-  try {
     if (incidentType === 'flood') {
       const predictions = await getFloodPredictions()
       res.json({ predictions, count: predictions.length, refreshed: true, incidentType })
@@ -128,15 +115,11 @@ router.post('/incidents/:incidentType/prediction/refresh', async (req: Request, 
     const region = getActiveCityRegion()
     const predictions = await mod.getPredictions(region.id)
     res.json({ predictions, count: predictions.length, refreshed: true, incidentType })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Threat Level
 
 router.get('/flood/threat', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
     const region = getActiveCityRegion()
     const key = buildCacheKey('flood', [region.id, 'threat'])
     const { data: assessment, meta } = await remember(key, CACHE_TTL.FLOOD_WARNINGS, async () => {
@@ -144,16 +127,12 @@ router.get('/flood/threat', async (_req: Request, res: Response, next: NextFunct
     }, { staleOnError: true, provider: 'threat-calc' })
     if (meta.stale) res.set('X-Cache-Stale', 'true')
     res.json(assessment)
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.get('/incidents/:incidentType/threat', async (req: Request, res: Response, next: NextFunction) => {
   const incidentType = validateIncidentType(req, res)
   if (!incidentType) return
 
-  try {
     if (incidentType === 'flood') {
       const assessment = await calculateThreatLevel()
       res.json({ ...assessment, incidentType })
@@ -178,9 +157,6 @@ router.get('/incidents/:incidentType/threat', async (req: Request, res: Response
       alertCount: alerts.length,
       assessedAt: new Date().toISOString(),
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Flood Extents -- SAFE file loading with allowlist validation
@@ -268,7 +244,6 @@ router.get('/incidents/:incidentType/extents/:river', (req: Request, res: Respon
 //Evacuation -- canonical paths under /flood/ prefix + legacy aliases
 
 const evacuationPostHandler = async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const {
       startLat,
       startLng,
@@ -305,13 +280,9 @@ const evacuationPostHandler = async (req: Request, res: Response, next: NextFunc
     )
 
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
 }
 
 const evacuationGetHandler = async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const destinationType = String(req.query.destinationType || 'both') as 'shelter' | 'high_ground' | 'both'
     const optimizeFor = String(req.query.optimizeFor || 'balanced') as 'fastest' | 'safest' | 'balanced'
     const refreshWindowSeconds = parseInt(String(req.query.refreshWindowSeconds || '30'), 10) || 30
@@ -324,9 +295,6 @@ const evacuationGetHandler = async (req: Request, res: Response, next: NextFunct
       count: result.routes.length,
       note: 'Operational evacuation corridors ranked against live nearby hazards',
     })
-  } catch (err) {
-    next(err)
-  }
 }
 
 //Canonical paths

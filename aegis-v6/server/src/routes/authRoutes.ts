@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Operator/admin authentication: invite-based registration, login with
  * lockout protection, JWT token refresh with rotation, password reset
  * via email, profile management, and email verification.
@@ -78,7 +78,6 @@ const resetPasswordLimiter = rateLimit({
  * Role is always 'operator' - admin promotion requires a separate super-admin action.
  */
 router.post('/invite', authMiddleware, adminOnly, registerLimiter, uploadAvatar, validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { email, password, displayName, department, phone, role } = req.body
     const normalizedEmail = String(email || '').trim().toLowerCase()
 
@@ -167,9 +166,6 @@ router.post('/invite', authMiddleware, adminOnly, registerLimiter, uploadAvatar,
       },
       message: 'Operator account created. Verification email sent.',
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
@@ -178,7 +174,6 @@ router.post('/invite', authMiddleware, adminOnly, registerLimiter, uploadAvatar,
  * Returns a JWT token valid for 24 hours.
  */
 router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { email, password } = req.body
     const normalizedEmail = String(email || '').trim().toLowerCase()
     const clientIp = getClientIp(req)
@@ -434,9 +429,6 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
         avatarUrl: user.avatar_url, department: user.department,
       },
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
@@ -444,7 +436,6 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
  * Generates password reset token and records reset attempt.
  */
 router.post('/forgot-password', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { email } = req.body
     if (!email) {
       throw AppError.badRequest('Email is required.')
@@ -507,9 +498,6 @@ router.post('/forgot-password', async (req: AuthRequest, res: Response, next: Ne
 
     //Same response for non-existent accounts (prevents user enumeration)
     res.json({ success: true, message: 'If the email exists in our system, a password reset link has been sent.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
@@ -517,7 +505,6 @@ router.post('/forgot-password', async (req: AuthRequest, res: Response, next: Ne
  * Resets password using one-time token.
  */
 router.post('/reset-password', resetPasswordLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { token, password } = req.body
     if (!token || !password) {
       throw AppError.badRequest('Token and new password are required.')
@@ -589,9 +576,6 @@ router.post('/reset-password', resetPasswordLimiter, async (req: AuthRequest, re
     ).catch(() => {})
 
     res.json({ success: true, message: 'Password reset successful. You can now log in.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
@@ -599,7 +583,6 @@ router.post('/reset-password', resetPasswordLimiter, async (req: AuthRequest, re
  * Returns the current operator's profile (requires authentication).
  */
 router.get('/me', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const result = await pool.query(
       `SELECT id, email, display_name, role, avatar_url, department, phone, created_at, last_login,
               two_factor_enabled
@@ -616,9 +599,6 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response, next: 
       phone: u.phone, createdAt: u.created_at, lastLogin: u.last_login,
       twoFactorEnabled: u.two_factor_enabled,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
@@ -626,7 +606,6 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response, next: 
  * Updates operator profile including avatar upload.
  */
 router.put('/profile', authMiddleware, uploadAvatar, validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { displayName, department, phone } = req.body
     const avatarUrl = req.file ? `/uploads/avatars/${req.file.filename}` : undefined
 
@@ -656,9 +635,6 @@ router.put('/profile', authMiddleware, uploadAvatar, validateMagicBytes, async (
       id: u.id, email: u.email, displayName: u.display_name,
       role: u.role, avatarUrl: u.avatar_url, department: u.department,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
@@ -755,7 +731,6 @@ router.post('/logout', async (req: AuthRequest, res: Response, next: NextFunctio
  * Verify operator email address using hashed token.
  */
 router.get('/verify-email', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { token } = req.query
     if (!token || typeof token !== 'string' || token.length !== 64) {
       throw AppError.badRequest('Invalid verification token.')
@@ -781,9 +756,6 @@ router.get('/verify-email', async (req: AuthRequest, res: Response, next: NextFu
     })
 
     res.json({ success: true, message: 'Email verified successfully!' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
@@ -797,7 +769,6 @@ const operatorResendLimiter = rateLimit({
 })
 
 router.post('/resend-verification', authMiddleware, operatorResendLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const userId = req.user!.id
 
     const op = await pool.query(
@@ -835,9 +806,6 @@ router.post('/resend-verification', authMiddleware, operatorResendLimiter, async
     })
 
     res.json({ success: true, message: 'Verification email has been sent.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /api/auth/bootstrap
@@ -853,7 +821,6 @@ const bootstrapLimiter = rateLimit({
 })
 
 router.post('/bootstrap', bootstrapLimiter, async (req: any, res: Response, next: NextFunction): Promise<void> => {
-  try {
     //Hard gate: only works when zero admins exist
     const { rows } = await pool.query(
       `SELECT COUNT(*)::int AS c FROM operators WHERE role = 'admin' AND deleted_at IS NULL`,
@@ -941,9 +908,6 @@ router.post('/bootstrap', bootstrapLimiter, async (req: any, res: Response, next
         avatarUrl: newAdmin.avatar_url ?? null,
       },
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

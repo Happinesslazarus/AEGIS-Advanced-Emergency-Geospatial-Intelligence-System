@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Unified API for the multi-incident module system. Dynamically mounts
  * routes for all 11 hazard types (flood, wildfire, earthquake, etc.)
  * and provides cross-incident queries, dashboard summaries, and
@@ -48,20 +48,15 @@ router.get('/registry', (_req: Request, res: Response) => {
  * GET /api/v1/incidents/all/dashboard -- Cross-incident dashboard summary
  */
 router.get('/all/dashboard', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const region = getRequestRegion(req)
     const summary = await getDashboardSummary(region)
     res.json({ region, ...summary })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
  * GET /api/v1/incidents/all/predictions -- All predictions across incident types
  */
 router.get('/all/predictions', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const region = getRequestRegion(req)
     const modules = getOperationalModules()
     const allPredictions = await Promise.all(
@@ -76,16 +71,12 @@ router.get('/all/predictions', authMiddleware, async (req: Request, res: Respons
     )
     const flat = allPredictions.flat()
     res.json({ region, predictions: flat, count: flat.length })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
  * GET /api/v1/incidents/all/alerts -- All alerts across incident types
  */
 router.get('/all/alerts', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const region = getRequestRegion(req)
     const modules = getOperationalModules()
     const allAlerts = await Promise.all(
@@ -99,16 +90,12 @@ router.get('/all/alerts', async (req: Request, res: Response, next: NextFunction
     )
     const flat = allAlerts.flat()
     res.json({ region, alerts: flat, count: flat.length })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
  * GET /api/v1/incidents/all/map-data -- Combined map data for all incidents
  */
 router.get('/all/map-data', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const region = getRequestRegion(req)
     const modules = getOperationalModules()
     const allMapData = await Promise.all(
@@ -122,9 +109,6 @@ router.get('/all/map-data', async (req: Request, res: Response, next: NextFuncti
       })
     )
     res.json({ region, layers: allMapData })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Dynamic per-incident routing -- mounts each module's router

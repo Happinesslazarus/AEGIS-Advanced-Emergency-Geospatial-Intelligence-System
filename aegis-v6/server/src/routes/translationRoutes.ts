@@ -1,4 +1,4 @@
-﻿/**
+/**
  * API for translating text between the 9 supported languages.
  * Supports single text, batch translation, and language detection.
  *
@@ -77,7 +77,6 @@ function getSingleTextRequest(req: Request): { text: string; sourceLanguage: str
 }
 
 router.get('/', translateLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const payload = getSingleTextRequest(req)
     if (!payload) {
       throw AppError.badRequest('text and target language are required')
@@ -90,13 +89,9 @@ router.get('/', translateLimiter, async (req: Request, res: Response, next: Next
     }
 
     res.json(await translateText(payload.text, payload.targetLanguage, payload.sourceLanguage))
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.post('/', translateLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const payload = getSingleTextRequest(req)
     if (!payload) {
       throw AppError.badRequest('text and target language are required')
@@ -109,13 +104,9 @@ router.post('/', translateLimiter, async (req: Request, res: Response, next: Nex
     }
 
     res.json(await translateText(payload.text, payload.targetLanguage, payload.sourceLanguage))
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.post('/batch', batchTranslateLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const texts: string[] = Array.isArray(req.body?.texts)
       ? req.body.texts.filter((value: unknown): value is string => typeof value === 'string')
       : []
@@ -150,13 +141,9 @@ router.post('/batch', batchTranslateLimiter, async (req: Request, res: Response,
 
     const translations = await translateTexts(texts, targetLanguage, sourceLanguage)
     res.json({ translations })
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.post('/detect', detectLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const text = typeof req.body?.text === 'string' ? req.body.text : ''
     if (!text.trim()) {
       throw AppError.badRequest('text is required')
@@ -167,9 +154,6 @@ router.post('/detect', detectLimiter, async (req: Request, res: Response, next: 
       return
     }
     res.json({ detectedLanguage: await detectLanguage(text) })
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.get('/languages', (_req: Request, res: Response): void => {

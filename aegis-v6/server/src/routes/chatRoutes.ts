@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Wires up the citizen-facing AI chatbot API. Authentication is optional:
  * anonymous users can ask questions, and signed-in users get persistent
  * chat sessions stored in the database. Supports both standard (JSON) and
@@ -94,7 +94,6 @@ function optionalAuth(req: Request): { id: string; type: 'citizen' | 'operator' 
  * Returns: { sessionId, reply, model, tokensUsed, toolsUsed, sources, safetyFlags }
  */
 router.post('/', validate(chatMessageSchema), async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const user = optionalAuth(req)
     const rateLimitKey = user?.id || req.ip || 'anonymous'
     if (!checkChatRateLimit(rateLimitKey)) {
@@ -112,9 +111,6 @@ router.post('/', validate(chatMessageSchema), async (req: Request, res: Response
     })
 
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -150,7 +146,6 @@ const chatImageUpload = multer({
 })
 
 router.post('/upload-image', chatImageUpload.single('image'), (req: Request, res: Response, next: NextFunction) => {
-  try {
     if (!req.file) {
       throw AppError.badRequest('No image file provided')
     }
@@ -162,9 +157,6 @@ router.post('/upload-image', chatImageUpload.single('image'), (req: Request, res
       size: req.file.size,
       mimetype: req.file.mimetype,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -202,7 +194,6 @@ const chatFileUpload = multer({
 })
 
 router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, res: Response, next: NextFunction) => {
-  try {
     if (!req.file) {
       throw AppError.badRequest('No file provided')
     }
@@ -352,9 +343,6 @@ router.post('/upload-file', chatFileUpload.single('file'), async (req: Request, 
       extractedText,
       charCount: extractedText.length,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -495,12 +483,8 @@ router.get('/sessions', async (req: Request, res: Response, next: NextFunction) 
     throw AppError.unauthorized('Authentication required to view chat sessions.')
   }
 
-  try {
     const sessions = await listSessions(user.id, user.type)
     res.json({ sessions })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -508,22 +492,17 @@ router.get('/sessions', async (req: Request, res: Response, next: NextFunction) 
  * (Public endpoint for transparency dashboard)
  */
 router.get('/status', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
     const status = getProviderStatus()
     res.json({
       providers: status,
       preferred: status.find((s) => !s.rateLimited && !s.backedOff)?.name || null,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
  * GET /api/chat/:id/budget -- Session token budget state
  */
 router.get('/:id/budget', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const user = optionalAuth(req)
     if (!user) {
       throw AppError.unauthorized('Authentication required to view chat budget.')
@@ -541,9 +520,6 @@ router.get('/:id/budget', async (req: Request, res: Response, next: NextFunction
       budgetLimit: result.budgetLimit,
       budgetRemaining: result.budgetRemaining,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -551,7 +527,6 @@ router.get('/:id/budget', async (req: Request, res: Response, next: NextFunction
  * SECURITY: Requires authentication and ownership verification
  */
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const user = optionalAuth(req)
     
     //Require authentication for chat history access
@@ -567,9 +542,6 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     
     const messages = await getChatHistory(req.params.id)
     res.json({ messages })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -577,7 +549,6 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
  * Called when user closes the chatbot to trigger auto-summarization
  */
 router.post('/sessions/:id/end', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const user = optionalAuth(req)
     if (!user) {
       throw AppError.unauthorized('Authentication required to end a chat session.')
@@ -590,9 +561,6 @@ router.post('/sessions/:id/end', async (req: Request, res: Response, next: NextF
 
     await endChatSession(req.params.id)
     res.json({ ok: true })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
@@ -600,7 +568,6 @@ router.post('/sessions/:id/end', async (req: Request, res: Response, next: NextF
  * Body: { messageId: string, rating: 'up' | 'down', sessionId?: string }
  */
 router.post('/feedback', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const { messageId, rating, sessionId } = req.body
     if (!messageId || !['up', 'down'].includes(rating)) {
       return res.status(400).json({ error: 'messageId and rating (up/down) required' })
@@ -626,9 +593,6 @@ router.post('/feedback', async (req: Request, res: Response, next: NextFunction)
 
     logger.info({ messageId, rating, sessionId }, '[Chat] Feedback received')
     res.json({ ok: true })
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

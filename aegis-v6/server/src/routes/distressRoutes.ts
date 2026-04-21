@@ -1,4 +1,4 @@
-﻿/**
+/**
  * SOS distress beacon system. Citizens can activate an emergency beacon
  * with their GPS location, push live location updates, and cancel when
  * safe. Operators receive real-time alerts and can acknowledge/resolve calls.
@@ -38,7 +38,6 @@ router.use(authMiddleware)
 //Citizen: Activate SOS
 
 router.post('/activate', citizenOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const { latitude, longitude, message, contactNumber } = req.body
     const citizenId = req.user!.id
     const citizenName = req.user!.displayName
@@ -86,15 +85,11 @@ router.post('/activate', citizenOnly, async (req: AuthRequest, res: Response, ne
     //The Socket.IO broadcast is handled by the socket handler -- the client
     //emits distress:activate which triggers the broadcast to operators
     res.status(201).json({ distress: distressCall })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Citizen: Push GPS Location Update
 
 router.post('/location', citizenOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const { distressId, latitude, longitude, accuracy, heading, speed } = req.body
 
     if (!distressId || latitude == null || longitude == null) {
@@ -121,15 +116,11 @@ router.post('/location', citizenOnly, async (req: AuthRequest, res: Response, ne
     ).catch(() => {}) // Location history table might not exist yet, that's ok
 
     res.json({ success: true })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Citizen: Cancel SOS
 
 router.post('/cancel', citizenOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const { distressId } = req.body
 
     if (!distressId) {
@@ -148,15 +139,11 @@ router.post('/cancel', citizenOnly, async (req: AuthRequest, res: Response, next
     }
 
     res.json({ success: true, distress: result.rows[0] })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Operator: List Active Distress Calls
 
 router.get('/active', operatorOnly, async (_req: Request, res: Response, next: NextFunction) => {
-  try {
     const result = await pool.query(
       `SELECT dc.*, c.phone, c.email, c.avatar_url, c.is_vulnerable
        FROM distress_calls dc
@@ -165,15 +152,11 @@ router.get('/active', operatorOnly, async (_req: Request, res: Response, next: N
        ORDER BY dc.is_vulnerable DESC, dc.created_at ASC`
     )
     res.json({ distressCalls: result.rows, count: result.rows.length })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Historical Distress Calls
 
 router.get('/history', operatorOnly, async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 200)
     const result = await pool.query(
       `SELECT dc.*, c.display_name, c.is_vulnerable
@@ -184,15 +167,11 @@ router.get('/history', operatorOnly, async (req: Request, res: Response, next: N
       [limit]
     )
     res.json({ distressCalls: result.rows })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Operator: Get Single Distress Call
 
 router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const userRole = req.user?.role || ''
     const citizenScope = userRole === 'citizen'
     if (!citizenScope && !operatorRoles.has(userRole)) {
@@ -211,15 +190,11 @@ router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction) =
       throw AppError.notFound('Distress call not found')
     }
     res.json({ distress: result.rows[0] })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Operator: Acknowledge
 
 router.post('/:id/acknowledge', operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const { triageLevel } = req.body
 
     const result = await pool.query(
@@ -235,15 +210,11 @@ router.post('/:id/acknowledge', operatorOnly, async (req: AuthRequest, res: Resp
     }
 
     res.json({ success: true, distress: result.rows[0] })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Operator: Resolve
 
 router.post('/:id/resolve', operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const { resolution } = req.body
 
     const result = await pool.query(
@@ -259,9 +230,6 @@ router.post('/:id/resolve', operatorOnly, async (req: AuthRequest, res: Response
     }
 
     res.json({ success: true, distress: result.rows[0] })
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

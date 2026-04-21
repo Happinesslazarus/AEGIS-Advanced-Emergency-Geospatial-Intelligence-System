@@ -1,4 +1,4 @@
-﻿/**
+/**
  * First-run setup wizard for new AEGIS installations. Checks whether
  * the platform has been configured, guides admin through initial setup
  * (create first admin account, select region, configure features).
@@ -40,7 +40,6 @@ async function setConfigValue(key: string, value: unknown): Promise<void> {
 //Publicly readable (used by frontend to decide whether to show setup wizard).
 //Does NOT leak sensitive data.
 router.get('/status', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
     //Check if system_config table exists (handles first migration not yet applied)
     const tableCheck = await pool.query(
       `SELECT to_regclass('public.system_config') AS t`,
@@ -76,14 +75,10 @@ router.get('/status', async (_req: Request, res: Response, next: NextFunction) =
       configuredRegion: configuredRegion ?? null,
       notificationChannelsConfigured: notifConfig === true,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /api/admin/setup/region
 router.post('/region', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const { region } = req.body
     if (!region || typeof region !== 'string' || region.trim().length === 0) {
       throw AppError.badRequest('A valid region identifier is required.')
@@ -92,15 +87,11 @@ router.post('/region', authMiddleware, requireRole('admin'), async (req: AuthReq
     await setConfigValue('configured_region', region.trim())
 
     res.json({ success: true, configuredRegion: region.trim() })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /api/admin/setup/notifications
 //Saves which notification channels are configured (not the secrets themselves).
 router.post('/notifications', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const { channels } = req.body
     if (!channels || typeof channels !== 'object') {
       throw AppError.badRequest('channels object is required.')
@@ -116,15 +107,11 @@ router.post('/notifications', authMiddleware, requireRole('admin'), async (req: 
     await setConfigValue('notification_channels_configured', true)
 
     res.json({ success: true, configured: summary })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /api/admin/setup/complete
 //Marks first-run setup as finished. Stores who completed it and when.
 router.post('/complete', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const userId = req.user!.id
 
     //Verify an admin account exists
@@ -162,15 +149,11 @@ router.post('/complete', authMiddleware, requireRole('admin'), async (req: AuthR
     }
 
     res.json({ success: true, setupCompleted: true })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /api/admin/setup/reset
 //Resets setup state. Only for recovery / development.
 router.post('/reset', authMiddleware, requireRole('admin'), async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
     const keysToReset = [
       'setup_completed',
       'setup_completed_at',
@@ -201,9 +184,6 @@ router.post('/reset', authMiddleware, requireRole('admin'), async (req: AuthRequ
     }
 
     res.json({ success: true, message: 'Setup state has been reset.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

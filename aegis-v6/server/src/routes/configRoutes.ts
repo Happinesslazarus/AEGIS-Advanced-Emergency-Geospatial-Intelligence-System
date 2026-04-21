@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Public configuration endpoints: active region, available regions,
  * enabled hazard modules, emergency shelters, and system health.
  * These are fetched by the frontend on initial load.
@@ -119,7 +119,6 @@ router.get('/incidents', (_req: Request, res: Response) => {
 
 /* PUT /api/config/incidents/:incidentId -- Upsert incident type definition (admin only) */
 router.put('/incidents/:incidentId', authMiddleware, requireRole('admin'), (req: Request, res: Response, next: NextFunction) => {
-  try {
     const incidentId = String(req.params.incidentId || '').trim().toLowerCase()
     if (!incidentId) {
       throw AppError.badRequest('incidentId is required.')
@@ -127,14 +126,10 @@ router.put('/incidents/:incidentId', authMiddleware, requireRole('admin'), (req:
 
     const updated = upsertIncidentType(incidentId, req.body || {})
     res.json({ incident: updated })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /* GET /api/config/shelters -- Active emergency shelters */
 router.get('/shelters', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const lat = parseFloat(req.query.lat as string)
     const lng = parseFloat(req.query.lng as string)
     const radius = Math.min(parseFloat(req.query.radius as string) || 50, 200) * 1000
@@ -162,9 +157,6 @@ router.get('/shelters', async (req: Request, res: Response, next: NextFunction) 
 
     const { rows } = await pool.query(query, params)
     res.json({ shelters: rows })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /* -- Shelter OSM Cache ------------------------------------------------------

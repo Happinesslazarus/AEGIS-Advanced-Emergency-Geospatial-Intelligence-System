@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Super-admin user management: list, view, update, suspend, activate,
  * and delete operator accounts. Only super-admins can access these.
  *
@@ -44,7 +44,6 @@ const requireSuperAdmin = (req: AuthRequest, res: Response, next: Function) => {
  * GET /api/users - List operators with pagination + server-side search/filter (M9+M10)
  */
 router.get('/', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const page = Math.max(1, parseInt(req.query.page as string) || 1)
     const limit = Math.min(100, parseInt(req.query.limit as string) || 50)
     const offset = (page - 1) * limit
@@ -84,16 +83,12 @@ router.get('/', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res:
     `, params)
 
     res.json({ users: result.rows, pagination: { page, limit, total, pages: Math.ceil(total / limit) } })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
  * GET /api/users/:id - Get single operator details
  */
 router.get('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { id } = req.params
 
     const result = await pool.query(`
@@ -110,9 +105,6 @@ router.get('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, r
     }
 
     res.json({ user: result.rows[0] })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
@@ -120,7 +112,6 @@ router.get('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, r
  * Allows changing: role, department, phone, display_name
  */
 router.put('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { id } = req.params
     const { role, department, phone, displayName } = req.body
 
@@ -170,9 +161,6 @@ router.put('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, r
     ])
 
     res.json({ user: after, message: 'User updated successfully.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
@@ -180,7 +168,6 @@ router.put('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, r
  * Body: { until?: string (ISO date), reason: string }
  */
 router.put('/:id/suspend', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { id } = req.params
     const { until, reason } = req.body
 
@@ -230,16 +217,12 @@ router.put('/:id/suspend', authMiddleware, requireSuperAdmin, async (req: AuthRe
     if (io) io.to('admins').emit('user:suspended', { id, until: until || null, reason })
 
     res.json({ user: after, message: 'User suspended successfully.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
  * PUT /api/users/:id/activate - Activate suspended account
  */
 router.put('/:id/activate', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { id } = req.params
 
     //Fetch current state
@@ -281,9 +264,6 @@ router.put('/:id/activate', authMiddleware, requireSuperAdmin, async (req: AuthR
     if (io) io.to('admins').emit('user:activated', { id })
 
     res.json({ user: after, message: 'User activated successfully.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
@@ -291,7 +271,6 @@ router.put('/:id/activate', authMiddleware, requireSuperAdmin, async (req: AuthR
  * Admin can force password reset for any user
  */
 router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { id } = req.params
 
     //Check user exists
@@ -367,16 +346,12 @@ router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req
         warning: 'Email service unavailable. Administrator must check server logs for the reset link.'
       })
     }
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
  * DELETE /api/users/:id - Soft-delete operator account
  */
 router.delete('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { id } = req.params
 
     //Prevent self-deletion
@@ -415,9 +390,6 @@ router.delete('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest
     ])
 
     res.json({ message: 'User deleted successfully.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 /*
@@ -425,7 +397,6 @@ router.delete('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest
  * Body: { userIds: string[], action: 'suspend'|'activate'|'delete', until?: string, reason?: string }
  */
 router.post('/bulk', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { userIds, action, until, reason } = req.body
 
     if (!Array.isArray(userIds) || userIds.length === 0) {
@@ -483,9 +454,6 @@ router.post('/bulk', authMiddleware, requireSuperAdmin, async (req: AuthRequest,
     if (io) io.to('admins').emit('users:bulk_updated', { action, count: processed.length })
 
     res.json({ success: true, processed: processed.length, failed: failed.length, failedIds: failed })
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

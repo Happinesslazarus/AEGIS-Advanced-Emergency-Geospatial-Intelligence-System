@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Public citizen authentication: self-service registration, login with
  * lockout protection, email verification, password reset, profile and
  * notification preference management, emergency contacts.
@@ -82,7 +82,6 @@ const MAX_CITY = 100
 
 //POST /register - Create a new citizen account
 router.post('/register', registerLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { email, password, displayName, phone, preferredRegion,
             isVulnerable, vulnerabilityDetails, country, city, dateOfBirth,
             bio, addressLine } = req.body
@@ -275,14 +274,10 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
         createdAt: citizen.created_at,
       },
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /check-availability - Check if email or phone is already registered
 router.post('/check-availability', registerLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { email, phone } = req.body
     const result: Record<string, boolean> = {}
 
@@ -310,14 +305,10 @@ router.post('/check-availability', registerLimiter, async (req: AuthRequest, res
     }
 
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /login - Authenticate citizen
 router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { email, password } = req.body
     const clientIp = getClientIp(req)
     const userAgent = req.headers['user-agent'] as string
@@ -504,14 +495,10 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       },
       preferences: prefsResult.rows[0] || null,
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //GET /me - Get current citizen profile (protected)
 router.get('/me', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const result = await pool.query(
       `SELECT id, email, display_name, role, avatar_url, phone,
               preferred_region, email_verified, location_lat, location_lng,
@@ -579,14 +566,10 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response, next: 
       recentSafetyCheckIns: safetyResult.rows,
       unreadMessages: parseInt(unreadResult.rows[0]?.unread_count || '0'),
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //PUT /profile - Update citizen profile (protected)
 router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { displayName, phone, preferredRegion, locationLat, locationLng,
             bio, country, city, addressLine, isVulnerable, vulnerabilityDetails, dateOfBirth } = req.body
 
@@ -655,14 +638,10 @@ router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response, n
         emailVerified: c.email_verified,
       },
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /avatar - Upload profile photo (protected)
 router.post('/avatar', authMiddleware, uploadAvatar, validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     if (!req.file) {
       throw AppError.badRequest('No image file provided. Accepted: JPG, PNG, GIF, WebP (max 2MB).')
     }
@@ -675,27 +654,19 @@ router.post('/avatar', authMiddleware, uploadAvatar, validateMagicBytes, async (
     )
 
     res.json({ avatarUrl })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //GET /preferences - Get citizen preferences (protected)
 router.get('/preferences', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const result = await pool.query(
       'SELECT * FROM citizen_preferences WHERE citizen_id = $1',
       [req.user!.id]
     )
     res.json(result.rows[0] || {})
-  } catch (err) {
-    next(err)
-  }
 })
 
 //PUT /preferences - Update citizen preferences (protected)
 router.put('/preferences', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const {
       audioAlertsEnabled, audioVoice, audioVolume, autoPlayCritical,
       captionsEnabled, captionFontSize, captionPosition,
@@ -760,26 +731,18 @@ router.put('/preferences', authMiddleware, async (req: AuthRequest, res: Respons
     )
 
     res.json(result.rows[0])
-  } catch (err) {
-    next(err)
-  }
 })
 
 //Emergency Contacts CRUD
 router.get('/emergency-contacts', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const result = await pool.query(
       'SELECT * FROM emergency_contacts WHERE citizen_id = $1 ORDER BY is_primary DESC, created_at ASC',
       [req.user!.id]
     )
     res.json(result.rows)
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.post('/emergency-contacts', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { name, phone, relationship, isPrimary, notifyOnHelp } = req.body
 
     if (!name || !phone) {
@@ -811,13 +774,9 @@ router.post('/emergency-contacts', authMiddleware, async (req: AuthRequest, res:
     )
 
     res.status(201).json(result.rows[0])
-  } catch (err) {
-    next(err)
-  }
 })
 
 router.delete('/emergency-contacts/:id', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const result = await pool.query(
       'DELETE FROM emergency_contacts WHERE id = $1 AND citizen_id = $2 RETURNING id',
       [req.params.id, req.user!.id]
@@ -828,14 +787,10 @@ router.delete('/emergency-contacts/:id', authMiddleware, async (req: AuthRequest
     }
 
     res.json({ deleted: true })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /change-password -- Change citizen password (protected)
 router.post('/change-password', authMiddleware, changePasswordLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { currentPassword, newPassword } = req.body
 
     if (!currentPassword || !newPassword) {
@@ -900,14 +855,10 @@ router.post('/change-password', authMiddleware, changePasswordLimiter, async (re
     })
 
     res.json({ success: true, message: 'Password changed successfully. All other sessions have been signed out.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /forgot-password - Request a password reset token
 router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { email } = req.body
 
     if (!email) {
@@ -955,14 +906,10 @@ router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Resp
       success: true,
       message: 'If an account with that email exists, a password reset link has been generated.',
     })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /reset-password - Reset password using a token
 router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { token, newPassword } = req.body
 
     if (!token || !newPassword) {
@@ -1030,9 +977,6 @@ router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Respo
     logger.info({ email: citizen.email }, '[CitizenAuth] Password reset successful')
 
     res.json({ success: true, message: 'Password has been reset successfully. You can now sign in.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /refresh - Get new access token using refresh token cookie (#24)
@@ -1136,7 +1080,6 @@ router.post('/logout', async (req: AuthRequest, res: Response, next: NextFunctio
 
 //GET /verify-email?token=xxx - Verify citizen email address (#23)
 router.get('/verify-email', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { token } = req.query
     if (!token || typeof token !== 'string' || token.length !== 64) {
       throw AppError.badRequest('Invalid verification token.')
@@ -1173,9 +1116,6 @@ router.get('/verify-email', async (req: AuthRequest, res: Response, next: NextFu
     })
 
     res.json({ success: true, message: 'Email verified successfully! You can now access all features.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 //POST /resend-verification - Resend email verification token (#23)
@@ -1186,7 +1126,6 @@ const resendLimiter = rateLimit({
 })
 
 router.post('/resend-verification', authMiddleware, resendLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const userId = req.user!.id
 
     const citizen = await pool.query(
@@ -1226,9 +1165,6 @@ router.post('/resend-verification', authMiddleware, resendLimiter, async (req: A
     })
 
     res.json({ success: true, message: 'Verification email has been sent.' })
-  } catch (err) {
-    next(err)
-  }
 })
 
 export default router

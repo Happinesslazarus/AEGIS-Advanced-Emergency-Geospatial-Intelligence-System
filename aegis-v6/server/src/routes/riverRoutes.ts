@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Live river level monitoring: current readings for all stations,
  * individual station details with 24-hour history, and river
  * configuration for the active region.
@@ -26,7 +26,6 @@ const router = Router()
  * GET /api/rivers/levels -- Current levels for all stations in the active region
  */
 router.get('/levels', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
     const region = getActiveCityRegion()
     const key = buildCacheKey('river', [region.id, 'levels'])
     const { data: result, meta } = await remember(key, CACHE_TTL.RIVER_LEVELS, async () => {
@@ -42,16 +41,12 @@ router.get('/levels', async (_req: Request, res: Response, next: NextFunction) =
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
  * GET /api/rivers/levels/:stationId -- Specific station with 24hr history
  */
 router.get('/levels/:stationId', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const { stationId } = req.params
     const hours = Math.min(parseInt(req.query.hours as string) || 24, 168) // Max 7 days
     const region = getActiveCityRegion()
@@ -71,16 +66,12 @@ router.get('/levels/:stationId', async (req: Request, res: Response, next: NextF
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
  * GET /api/rivers/history/:stationId -- Historical readings for a station
  */
 router.get('/history/:stationId', async (req: Request, res: Response, next: NextFunction) => {
-  try {
     const { stationId } = req.params
     const hours = Math.min(parseInt(req.query.hours as string) || 24, 168)
     const region = getActiveCityRegion()
@@ -98,9 +89,6 @@ router.get('/history/:stationId', async (req: Request, res: Response, next: Next
 
     if (meta.stale) res.set('X-Cache-Stale', 'true')
     res.json(result)
-  } catch (err) {
-    next(err)
-  }
 })
 
 /**
