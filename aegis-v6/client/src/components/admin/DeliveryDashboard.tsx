@@ -13,6 +13,8 @@ import {
 import { getLanguage, t } from '../../utils/i18n'
 import { getToken as _getToken, clearToken } from '../../utils/api'
 import { useLanguage } from '../../hooks/useLanguage'
+import { DataTable } from '../ui/DataTable'
+import type { DataTableColumn } from '../ui/DataTable'
 
 //Types
 
@@ -314,92 +316,6 @@ function AlertGroupRow({ group, onRetry, onRetryAll, retrying }: {
   )
 }
 
-function FlatTable({ rows, onRetry, retrying, onSort, sortCol, sortDir }: {
-  rows: DeliveryRow[]; onRetry: (id: string) => void; retrying: Set<string>
-  onSort: (col: string) => void; sortCol: string; sortDir: 'asc' | 'desc'
-}) {
-  const lang = getLanguage()
-  const Th = ({ col, children }: { col: string; children: React.ReactNode }) => (
-    <th onClick={() => onSort(col)}
-      className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors select-none whitespace-nowrap">
-      <span className="flex items-center gap-1">{children}
-        {sortCol === col && <span className="text-violet-400">{sortDir === 'asc' ? '\u2191' : '\u2193'}</span>}
-      </span>
-    </th>
-  )
-  return (
-    <div className="overflow-auto rounded-2xl ring-1 ring-gray-200 dark:ring-white/5 max-h-[60vh]">
-      <table className="min-w-full text-sm border-collapse">
-          <thead className="bg-gray-100 dark:bg-gray-900/90 sticky top-0 z-10 shadow-md">
-          <tr>
-            <Th col="created_at">{t('delivery.time', lang)}</Th>
-            <Th col="alert_title">{t('delivery.alert', lang)}</Th>
-            <Th col="channel">{t('delivery.channel', lang)}</Th>
-            <Th col="recipient">{t('delivery.recipient', lang)}</Th>
-            <Th col="status">{t('common.status', lang)}</Th>
-            <Th col="retry_count">{t('delivery.retries', lang)}</Th>
-            <th className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('delivery.error', lang)}</th>
-            <th className="px-3 py-2.5 w-16"/>
-          </tr>
-        </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-white/3">
-          {rows.map((r, i) => {
-            const ok = r.status === 'sent' || r.status === 'delivered'
-            const cfg = chCfg(r.channel)
-            const isRetrying = retrying.has(r.id)
-            return (
-              <tr key={r.id || i} className={`hover:bg-gray-50 dark:hover:bg-white/3 transition-colors ${!ok && r.status !== 'pending' ? 'bg-red-50 dark:bg-red-950/5' : ''}`}>
-                <td className="px-3 py-2 text-[11px] text-gray-500 dark:text-gray-300 whitespace-nowrap font-mono">
-                  {r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' }) : '--'}
-                </td>
-                <td className="px-3 py-2 max-w-[180px]">
-                  <div className="flex items-center gap-1.5">
-                    {r.alert_severity && (
-                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${r.alert_severity === 'critical' ? 'bg-red-400' : r.alert_severity === 'warning' ? 'bg-amber-400' : 'bg-blue-400'}`}/>
-                    )}
-                    <span className="text-xs text-gray-600 dark:text-gray-200 truncate">{r.alert_title || <span className="font-mono text-gray-400 dark:text-gray-300">ALT-{r.alert_id?.slice(0, 6).toUpperCase()}</span>}</span>
-                  </div>
-                </td>
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-1.5">
-                    <ChanIcon ch={r.channel} size="xs"/>
-                    <span className={`text-[11px] font-semibold ${cfg.color}`}>{getChannelLabel(r.channel, lang)}</span>
-                  </div>
-                </td>
-                <td className="px-3 py-2 max-w-[180px]">
-                  <span className="text-[11px] text-gray-500 dark:text-gray-300 font-mono truncate block">{r.recipient || '--'}</span>
-                </td>
-                <td className="px-3 py-2"><StatusBadge status={r.status}/></td>
-                <td className="px-3 py-2 text-center">
-                  {r.retry_count > 0
-                    ? <span className="text-[10px] text-amber-400 font-bold">{r.retry_count}</span>
-                    : <span className="text-[10px] text-gray-700">--</span>}
-                </td>
-                <td className="px-3 py-2 max-w-[160px]">
-                  {r.error_message && (
-                    <span className="text-[10px] text-red-400 truncate block cursor-help" title={r.error_message}>{r.error_message}</span>
-                  )}
-                </td>
-                <td className="px-3 py-2">
-                  {!ok && r.channel !== 'web' && r.retry_count < 3 && (
-                    <button onClick={() => onRetry(r.id)} disabled={isRetrying}
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/8 text-gray-500 dark:text-gray-300 text-[10px] hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-40 transition-all whitespace-nowrap">
-                      <RotateCcw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`}/>
-                      {isRetrying ? '--' : t('delivery.retry', lang)}
-                    </button>
-                  )}
-                </td>
-              </tr>
-            )
-          })}
-          {rows.length === 0 && (
-            <tr><td colSpan={8} className="px-4 py-16 text-center text-sm text-gray-600">{t('delivery.noRecordsMatchFilters', lang)}</td></tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  )
-}
 
 //API
 
@@ -830,7 +746,26 @@ export default function DeliveryDashboard() {
             )}
           </div>
         ) : (
-          <FlatTable rows={sortedFlat} onRetry={handleRetry} retrying={retrying} onSort={handleSort} sortCol={sortCol} sortDir={sortDir}/>
+          <DataTable<DeliveryRow>
+            columns={[
+              { key: 'created_at', header: t('delivery.time', lang), sortable: true, render: r => <span className="text-[11px] text-gray-500 dark:text-gray-300 whitespace-nowrap font-mono">{r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' }) : '--'}</span> },
+              { key: 'alert_title', header: t('delivery.alert', lang), sortable: true, render: r => <div className="flex items-center gap-1.5 max-w-[180px]">{r.alert_severity && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${r.alert_severity === 'critical' ? 'bg-red-400' : r.alert_severity === 'warning' ? 'bg-amber-400' : 'bg-blue-400'}`}/>}<span className="text-xs text-gray-600 dark:text-gray-200 truncate">{r.alert_title || <span className="font-mono text-gray-400 dark:text-gray-300">ALT-{r.alert_id?.slice(0, 6).toUpperCase()}</span>}</span></div> },
+              { key: 'channel', header: t('delivery.channel', lang), sortable: true, render: r => { const cfg = chCfg(r.channel); return <div className="flex items-center gap-1.5"><ChanIcon ch={r.channel} size="xs"/><span className={`text-[11px] font-semibold ${cfg.color}`}>{getChannelLabel(r.channel, lang)}</span></div> } },
+              { key: 'recipient', header: t('delivery.recipient', lang), sortable: true, render: r => <span className="text-[11px] text-gray-500 dark:text-gray-300 font-mono truncate block max-w-[180px]">{r.recipient || '--'}</span> },
+              { key: 'status', header: t('common.status', lang), sortable: true, render: r => <StatusBadge status={r.status}/> },
+              { key: 'retry_count', header: t('delivery.retries', lang), sortable: true, align: 'center', render: r => r.retry_count > 0 ? <span className="text-[10px] text-amber-400 font-bold">{r.retry_count}</span> : <span className="text-[10px] text-gray-700">--</span> },
+              { key: 'error', header: t('delivery.error', lang), render: r => r.error_message ? <span className="text-[10px] text-red-400 truncate block cursor-help max-w-[160px]" title={r.error_message}>{r.error_message}</span> : null },
+              { key: 'actions', header: '', render: r => { const ok = r.status === 'sent' || r.status === 'delivered'; const isRetrying = retrying.has(r.id); return !ok && r.channel !== 'web' && r.retry_count < 3 ? <button onClick={() => handleRetry(r.id)} disabled={isRetrying} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/8 text-gray-500 dark:text-gray-300 text-[10px] hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-40 transition-all whitespace-nowrap"><RotateCcw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`}/>{isRetrying ? '--' : t('delivery.retry', lang)}</button> : null } },
+            ] as DataTableColumn<DeliveryRow>[]}
+            rows={sortedFlat}
+            rowKey={r => r.id}
+            sortField={sortCol}
+            sortDir={sortDir}
+            onSort={col => handleSort(col)}
+            rowClassName={r => { const ok = r.status === 'sent' || r.status === 'delivered'; return !ok && r.status !== 'pending' ? 'bg-red-50 dark:bg-red-950/5' : '' }}
+            emptyMessage={t('delivery.noRecordsMatchFilters', lang)}
+            className="rounded-2xl ring-1 ring-gray-200 dark:ring-white/5 max-h-[60vh] overflow-auto"
+          />
         )}
 
         {/* Pagination */}

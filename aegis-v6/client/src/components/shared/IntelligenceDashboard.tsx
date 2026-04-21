@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useEventBuffer } from '../../hooks/useEventStream'
+import { useEventBuffer, useEventCallbacks } from '../../hooks/useEventStream'
 import {
   Shield, AlertTriangle, Droplets, Users,
   Activity, TrendingUp, TrendingDown, RefreshCw,
@@ -330,44 +330,31 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
     if (hazardEvents.length > 0) fetchAll()
   }, [hazardEvents, fetchAll])
 
-  //Socket.IO live updates (distress / incident alerts -- not yet on typed spine)
-  useEffect(() => {
-    if (!socket) return
+  // Typed live-event subscriptions (replaces the old socket.on/off boilerplate).
+  // Distress + incident-alert channels are still on the legacy rich payload
+  // shape; useEventCallbacks gives them the same hook-based ergonomics as
+  // anything on the spine, so this code never has to change again when those
+  // channels migrate.
+  useEventCallbacks({
+    'distress:new_alert':     () => setDistressCount(prev => prev + 1),
+    'distress:cancelled':     () => setDistressCount(prev => Math.max(0, prev - 1)),
+    'distress:status_changed': (data) => {
+      if (data.status === 'resolved') setDistressCount(prev => Math.max(0, prev - 1))
+    },
+    'incident:alert':          (payload) => handleIncidentAlert(payload),
+    'incident:alert:priority': (payload) => handleIncidentAlert(payload),
+  })
 
-    const onDistressNew  = () => setDistressCount(prev => prev + 1)
-    const onDistressDone = () => setDistressCount(prev => Math.max(0, prev - 1))
-
-    const onIncidentAlert = (payload: any) => {
-      const alert: LiveIncidentAlert = {
-        incidentType: payload.incidentType || 'unknown',
-        riskLevel:    payload.riskLevel || 'Low',
-        title:        payload.title || `${payload.incidentType} alert`,
-        description:  payload.description || '',
-        timestamp:    payload.timestamp || new Date().toISOString(),
-      }
-      setLiveAlerts(prev => [alert, ...prev].slice(0, 5))
-      //Refresh dashboard counts when a high/critical alert arrives
-      if (payload.riskLevel === 'High' || payload.riskLevel === 'Critical') {
-        fetchAll()
-      }
-    }
-
-    const onStatusChanged = (data: any) => { if (data.status === 'resolved') onDistressDone() }
-
-    socket.on('distress:new_alert',      onDistressNew)
-    socket.on('distress:cancelled',      onDistressDone)
-    socket.on('distress:status_changed', onStatusChanged)
-    socket.on('incident:alert',          onIncidentAlert)
-    socket.on('incident:alert:priority', onIncidentAlert)
-
-    return () => {
-      socket.off('distress:new_alert',      onDistressNew)
-      socket.off('distress:cancelled',      onDistressDone)
-      socket.off('distress:status_changed', onStatusChanged)
-      socket.off('incident:alert',          onIncidentAlert)
-      socket.off('incident:alert:priority', onIncidentAlert)
-    }
-  }, [socket, fetchAll])
+  function handleIncidentAlert(payload: { incidentType?: string; riskLevel?: string; title?: string; description?: string; timestamp?: string }) {
+    setLiveAlerts(prev => [{
+      incidentType: payload.incidentType || 'unknown',
+      riskLevel:    payload.riskLevel || 'Low',
+      title:        payload.title || `${payload.incidentType} alert`,
+      description:  payload.description || '',
+      timestamp:    payload.timestamp || new Date().toISOString(),
+    }, ...prev].slice(0, 5))
+    if (payload.riskLevel === 'High' || payload.riskLevel === 'Critical') fetchAll()
+  }
 
   const threatLevel = dashboard?.highestRiskLevel || 'GREEN'
   const threatCfg   = THREAT_CONFIG[threatLevel] || THREAT_CONFIG.GREEN

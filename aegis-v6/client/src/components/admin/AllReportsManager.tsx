@@ -9,13 +9,15 @@ import {
   Brain, Eye, Camera, Send, Flag, Siren, Clock, CheckCircle,
   CheckCircle2, AlertTriangle, MapPin, ChevronRight, ChevronDown,
   ChevronUp, Archive, XCircle, BarChart3, Grid3X3, List,
-  ArrowUpDown, ArrowUp, ArrowDown, Keyboard, Hash, Calendar,
+  ArrowUpDown, Keyboard, Hash, Calendar,
   Droplets, Building2, ShieldAlert, Users, Flame, HeartPulse
 } from 'lucide-react'
 import IncidentFilterPanel from '../shared/IncidentFilterPanel'
 import { t } from '../../utils/i18n'
 import type { Report } from '../../types'
 import { useLanguage } from '../../hooks/useLanguage'
+import { DataTable } from '../ui/DataTable'
+import type { DataTableColumn } from '../ui/DataTable'
 
 const CATEGORY_ICONS: Record<string, any> = {
   natural_disaster: Droplets, infrastructure: Building2,
@@ -213,11 +215,6 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
   const sparkline = sparklineData.normalized
 
   // Sort indicator component
-  const SortIcon = ({ col }: { col: SortKey }) => {
-    if (sortKey !== col) return <ArrowUpDown className="w-3 h-3 text-gray-400 dark:text-gray-300" />
-    return sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-aegis-500" /> : <ArrowDown className="w-3 h-3 text-aegis-500" />
-  }
-
   return (
     <div className="space-y-4 animate-fade-in">
 
@@ -480,112 +477,27 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
       ) : viewMode === 'table' ? (
         /*  TABLE VIEW  */
         <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-                  <th className="w-10 px-3 py-2.5">
-                    <input type="checkbox" checked={selectedReportIds.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll} className="w-3.5 h-3.5 text-aegis-600 border-gray-300 rounded focus:ring-aegis-500" />
-                  </th>
-                  <th className="px-3 py-2.5 text-left">
-                    <button onClick={() => toggleSort('status')} className="flex items-center gap-1 font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-[9px] hover:text-aegis-600 transition-colors">
-                      {t('common.status', lang)} <SortIcon col="status" />
-                    </button>
-                  </th>
-                  <th className="px-3 py-2.5 text-left">
-                    <button onClick={() => toggleSort('severity')} className="flex items-center gap-1 font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-[9px] hover:text-aegis-600 transition-colors">
-                      {t('common.severity', lang)} <SortIcon col="severity" />
-                    </button>
-                  </th>
-                  <th className="px-3 py-2.5 text-left">
-                    <button onClick={() => toggleSort('type')} className="flex items-center gap-1 font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-[9px] hover:text-aegis-600 transition-colors">
-                      {t('common.type', lang)} <SortIcon col="type" />
-                    </button>
-                  </th>
-                  <th className="px-3 py-2.5 text-left">
-                    <button onClick={() => toggleSort('location')} className="flex items-center gap-1 font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-[9px] hover:text-aegis-600 transition-colors">
-                      {t('common.location', lang)} <SortIcon col="location" />
-                    </button>
-                  </th>
-                  <th className="px-3 py-2.5 text-center">
-                    <button onClick={() => toggleSort('confidence')} className="flex items-center gap-1 font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-[9px] hover:text-aegis-600 transition-colors mx-auto">
-                      AI <SortIcon col="confidence" />
-                    </button>
-                  </th>
-                  <th className="px-3 py-2.5 text-right">
-                    <button onClick={() => toggleSort('time')} className="flex items-center gap-1 font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-[9px] hover:text-aegis-600 transition-colors ml-auto">
-                      {t('common.time', lang)} <SortIcon col="time" />
-                    </button>
-                  </th>
-                  <th className="px-3 py-2.5 text-center">
-                    <span className="font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-[9px]">{t('common.actions', lang)}</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
-                {paginatedReports.map(r => {
-                  const statusColors: Record<string, string> = {
-                    Urgent: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-                    Verified: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-                    Flagged: 'bg-aegis-100 text-aegis-700 dark:bg-aegis-900/30 dark:text-aegis-300',
-                    Resolved: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
-                    Archived: 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-                    False_Report: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
-                    Unverified: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-                  }
-                  const sevColors: Record<string, string> = {
-                    High: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-                    Medium: 'bg-aegis-100 text-aegis-700 dark:bg-aegis-900/30 dark:text-aegis-300',
-                    Low: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-                  }
-                  return (
-                    <tr key={r.id} className={`hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition-colors cursor-pointer ${selectedReportIds.has(r.id) ? 'bg-aegis-50/30 dark:bg-aegis-950/10' : ''}`}>
-                      <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
-                        <input type="checkbox" checked={selectedReportIds.has(r.id)} onChange={() => toggleSelection(r.id)} className="w-3.5 h-3.5 text-aegis-600 border-gray-300 rounded focus:ring-aegis-500" />
-                      </td>
-                      <td className="px-3 py-2.5" onClick={() => onSelectReport(r)}>
-                        <span className={`inline-block text-[10px] px-2 py-0.5 rounded-md font-bold ${statusColors[r.status] || 'bg-gray-100 text-gray-600'}`}>{statusLabel(r.status, lang)}</span>
-                        {r.status === 'Urgent' && <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full animate-ping ml-1" />}
-                      </td>
-                      <td className="px-3 py-2.5" onClick={() => onSelectReport(r)}>
-                        <span className={`inline-block text-[10px] px-2 py-0.5 rounded-md font-bold ${sevColors[r.severity] || ''}`}>{severityLabel(r.severity, lang)}</span>
-                      </td>
-                      <td className="px-3 py-2.5" onClick={() => onSelectReport(r)}>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-semibold truncate max-w-[160px]">{r.type || r.incidentCategory}</span>
-                          {r.trappedPersons === 'yes' && <AlertTriangle className="w-3 h-3 text-purple-600 flex-shrink-0" />}
-                          {r.hasMedia && <Camera className="w-3 h-3 text-blue-500 flex-shrink-0" />}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5" onClick={() => onSelectReport(r)}>
-                        <span className="text-[10px] text-gray-600 dark:text-gray-300 truncate max-w-[140px] block">{r.location}</span>
-                      </td>
-                      <td className="px-3 py-2.5 text-center" onClick={() => onSelectReport(r)}>
-                        {(r.confidence || 0) > 0 ? (
-                          <div className="flex items-center justify-center gap-1">
-                            <div className="w-8 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full transition-all ${(r.confidence || 0) >= 80 ? 'bg-emerald-500' : (r.confidence || 0) >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${r.confidence}%` }} />
-                            </div>
-                            <span className="text-[10px] font-bold tabular-nums text-gray-600 dark:text-gray-300">{r.confidence}%</span>
-                          </div>
-                        ) : <span className="text-[10px] text-gray-300 dark:text-gray-300">--</span>}
-                      </td>
-                      <td className="px-3 py-2.5 text-right" onClick={() => onSelectReport(r)}>
-                        <span className="text-[10px] text-gray-600 dark:text-gray-300 tabular-nums">{timeAgo(r.timestamp, lang)}</span>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-1 justify-center">
-                          <button onClick={() => onSelectReport(r)} className="w-6 h-6 rounded bg-aegis-50 dark:bg-aegis-950/30 hover:bg-aegis-100 text-aegis-600 flex items-center justify-center transition-all" title={t('common.view', lang)}><Eye className="w-3 h-3" /></button>
-                          {r.hasMedia && <button onClick={() => onOpenGallery(r)} className="w-6 h-6 rounded bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 text-purple-600 flex items-center justify-center transition-all" title={t('admin.actions.openMedia', lang)}><Camera className="w-3 h-3" /></button>}
-                          <button onClick={() => onPrintReport(r)} className="w-6 h-6 rounded bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 text-gray-500 dark:text-gray-300 flex items-center justify-center transition-all" title={t('common.print', lang)}><Printer className="w-3 h-3" /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataTable<Report>
+            columns={[
+              { key: 'sel', header: <input type="checkbox" checked={selectedReportIds.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll} className="w-3.5 h-3.5 text-aegis-600 border-gray-300 rounded focus:ring-aegis-500" />, headerClassName: 'w-10', render: r => <span onClick={e => e.stopPropagation()}><input type="checkbox" checked={selectedReportIds.has(r.id)} onChange={() => toggleSelection(r.id)} className="w-3.5 h-3.5 text-aegis-600 border-gray-300 rounded focus:ring-aegis-500" /></span> },
+              { key: 'status', header: t('common.status', lang), sortable: true, render: r => <><span className={`inline-block text-[10px] px-2 py-0.5 rounded-md font-bold ${{ Urgent: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', Verified: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300', Flagged: 'bg-aegis-100 text-aegis-700 dark:bg-aegis-900/30 dark:text-aegis-300', Resolved: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300', Archived: 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400', False_Report: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400', Unverified: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }[r.status] || 'bg-gray-100 text-gray-600'}`}>{statusLabel(r.status, lang)}</span>{r.status === 'Urgent' && <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full animate-ping ml-1" />}</> },
+              { key: 'severity', header: t('common.severity', lang), sortable: true, render: r => <span className={`inline-block text-[10px] px-2 py-0.5 rounded-md font-bold ${{ High: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', Medium: 'bg-aegis-100 text-aegis-700 dark:bg-aegis-900/30 dark:text-aegis-300', Low: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }[r.severity] || ''}`}>{severityLabel(r.severity, lang)}</span> },
+              { key: 'type', header: t('common.type', lang), sortable: true, render: r => <div className="flex items-center gap-1.5"><span className="text-xs font-semibold truncate max-w-[160px]">{r.type || r.incidentCategory}</span>{r.trappedPersons === 'yes' && <AlertTriangle className="w-3 h-3 text-purple-600 flex-shrink-0" />}{r.hasMedia && <Camera className="w-3 h-3 text-blue-500 flex-shrink-0" />}</div> },
+              { key: 'location', header: t('common.location', lang), sortable: true, render: r => <span className="text-[10px] text-gray-600 dark:text-gray-300 truncate max-w-[140px] block">{r.location}</span> },
+              { key: 'confidence', header: 'AI', sortable: true, align: 'center', render: r => (r.confidence || 0) > 0 ? <div className="flex items-center justify-center gap-1"><div className="w-8 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all ${(r.confidence || 0) >= 80 ? 'bg-emerald-500' : (r.confidence || 0) >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${r.confidence}%` }} /></div><span className="text-[10px] font-bold tabular-nums text-gray-600 dark:text-gray-300">{r.confidence}%</span></div> : <span className="text-[10px] text-gray-300">--</span> },
+              { key: 'time', header: t('common.time', lang), sortable: true, align: 'right', render: r => <span className="text-[10px] text-gray-600 dark:text-gray-300 tabular-nums">{timeAgo(r.timestamp, lang)}</span> },
+              { key: 'actions', header: t('common.actions', lang), align: 'center', render: r => <div className="flex items-center gap-1 justify-center"><button onClick={e => { e.stopPropagation(); onSelectReport(r) }} className="w-6 h-6 rounded bg-aegis-50 dark:bg-aegis-950/30 hover:bg-aegis-100 text-aegis-600 flex items-center justify-center transition-all" title={t('common.view', lang)}><Eye className="w-3 h-3" /></button>{r.hasMedia && <button onClick={e => { e.stopPropagation(); onOpenGallery(r) }} className="w-6 h-6 rounded bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 text-purple-600 flex items-center justify-center transition-all" title={t('admin.actions.openMedia', lang)}><Camera className="w-3 h-3" /></button>}<button onClick={e => { e.stopPropagation(); onPrintReport(r) }} className="w-6 h-6 rounded bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 text-gray-500 dark:text-gray-300 flex items-center justify-center transition-all" title={t('common.print', lang)}><Printer className="w-3 h-3" /></button></div> },
+            ] as DataTableColumn<Report>[]}
+            rows={paginatedReports}
+            rowKey={r => r.id}
+            sortField={sortKey}
+            sortDir={sortDir}
+            onSort={field => toggleSort(field as SortKey)}
+            onRowClick={r => onSelectReport(r)}
+            rowClassName={r => selectedReportIds.has(r.id) ? 'bg-aegis-50/30 dark:bg-aegis-950/10' : ''}
+            emptyMessage={t('common.noReportsFound', lang)}
+            className="max-h-[70vh] overflow-y-auto"
+          />
         </div>
       ) : (
         /*  CARD VIEW  */

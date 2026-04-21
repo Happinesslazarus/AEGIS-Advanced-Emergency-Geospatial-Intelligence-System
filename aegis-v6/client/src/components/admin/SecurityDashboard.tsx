@@ -13,6 +13,8 @@ import { apiFetch } from '../../utils/api'
 import { SECURITY_SEVERITY_CLASSES } from '../../utils/colorTokens'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { DataTable } from '../ui/DataTable'
+import type { DataTableColumn } from '../ui/DataTable'
 
 interface SecurityAlert {
   id: string
@@ -154,6 +156,15 @@ export default function SecurityDashboard(): JSX.Element {
     try { return new Date(d).toLocaleString() } catch { return d }
   }
 
+  const failureCols: DataTableColumn<FailedOperator>[] = [
+    { key: 'name', header: t('common.operator', lang), render: op => <span className="font-medium text-gray-900 dark:text-white">{op.displayName}</span> },
+    { key: 'email', header: t('security.email', lang), render: op => <span className="text-gray-500 dark:text-gray-400">{op.email}</span> },
+    { key: 'failures', header: t('security.failures', lang), align: 'center', render: op => (
+      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${op.failedAttempts >= 10 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : op.failedAttempts >= 5 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}>{op.failedAttempts}</span>
+    )},
+    { key: 'lastFailed', header: t('security.lastFailed', lang), render: op => <span className="text-xs text-gray-400">{formatDate(op.lastFailedAt)}</span> },
+  ]
+
   const totalEvents = Object.values(stats).reduce((a, b) => a + b, 0)
 
   if (loading) {
@@ -264,40 +275,12 @@ export default function SecurityDashboard(): JSX.Element {
         badge={failures.length}
         badgeColor="amber"
       >
-        {failures.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-400 py-4 text-center">{t('security.noFailures', lang)}</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-                  <th className="pb-2 font-medium">{t('common.operator', lang)}</th>
-                  <th className="pb-2 font-medium">{t('security.email', lang)}</th>
-                  <th className="pb-2 font-medium text-center">{t('security.failures', lang)}</th>
-                  <th className="pb-2 font-medium">{t('security.lastFailed', lang)}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {failures.map(op => (
-                  <tr key={op.operatorId} className="border-b border-gray-100 dark:border-gray-800">
-                    <td className="py-2 font-medium text-gray-900 dark:text-white">{op.displayName}</td>
-                    <td className="py-2 text-gray-500 dark:text-gray-400">{op.email}</td>
-                    <td className="py-2 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                        op.failedAttempts >= 10 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
-                        op.failedAttempts >= 5 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' :
-                        'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                      }`}>
-                        {op.failedAttempts}
-                      </span>
-                    </td>
-                    <td className="py-2 text-xs text-gray-400">{formatDate(op.lastFailedAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable<FailedOperator>
+          columns={failureCols}
+          rows={failures}
+          rowKey={op => op.operatorId}
+          emptyMessage={t('security.noFailures', lang)}
+        />
       </CollapsibleSection>
 
       {/* Trusted Devices */}

@@ -16,7 +16,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspens
 import {
   Navigation, RefreshCw, Layers, Package, AlertTriangle, FileText, Map, Clock,
   Truck, Flame, Anchor, Brain, Eye, ChevronDown, ChevronRight, Search,
-  Activity, Shield, ArrowUpDown, ArrowUp, ArrowDown, Users, CheckCircle,
+  Activity, Shield, ArrowDown, Users, CheckCircle,
   Radio, Target, Crosshair, LayoutGrid, List, Keyboard, Plus, Trash2, X,
   Link2, Cpu, MapPin, Zap, Edit3, Save, BarChart3, Sparkles, AlertCircle,
   TrendingUp, Hash, Siren, HeartPulse, Wind, Droplets, Mountain, Building2,
@@ -26,6 +26,7 @@ const DisasterMap = lazy(() => import('../shared/DisasterMap'))
 import { apiGetDeployments, apiDeployResources, apiRecallResources, apiAuditLog, apiCreateDeployment, apiDeleteDeployment, apiUpdateDeployment, apiGetDeploymentAssets, apiAddDeploymentAsset, apiUpdateDeploymentAsset, apiDeleteDeploymentAsset, apiAcknowledgeDraft, apiAddOpsLog, apiToggleMutualAid } from '../../utils/api'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { DataTable } from '../ui/DataTable'
 
 interface Props {
   deployments: any[]
@@ -580,12 +581,6 @@ export default function ResourceDeploymentConsole({
   }, [askConfirm, pushNotification, setDeployments])
 
   const toggleSort = (f: string) => { if (sortField === f) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else { setSortField(f); setSortDir('desc') } }
-  const SortBtn = ({ field, children }: { field: string; children: React.ReactNode }) => (
-    <button onClick={() => toggleSort(field)} className="flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
-      {children}
-      {sortField === field ? (sortDir === 'desc' ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-30" />}
-    </button>
-  )
 
   return (
     <>
@@ -864,379 +859,165 @@ export default function ResourceDeploymentConsole({
         </div>
 
         {/* Zones table */}
-        {zoneView === 'table' && <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
-                <th className="px-5 py-3 text-left"><SortBtn field="zone">{t('resource.zone', lang)}</SortBtn></th>
-                <th className="px-3 py-3 text-left"><SortBtn field="priority">{t('common.priority', lang)}</SortBtn></th>
-                <th className="px-3 py-3 text-left"><SortBtn field="status">{t('common.status', lang)}</SortBtn></th>
-                <th className="px-3 py-3 text-right"><SortBtn field="reports">{t('common.reports', lang)}</SortBtn></th>
-                <th className="px-3 py-3 text-right"><SortBtn field="affected">{t('resource.affected', lang)}</SortBtn></th>
-                <th className="px-3 py-3 text-left">{t('resource.assets', lang)}</th>
-                <th className="px-3 py-3 text-left">{t('resource.aiRecommendation', lang)}</th>
-                <th className="px-5 py-3 text-right">{t('common.actions', lang)}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
-              {zones.map((zone: any, i: number) => {
-                const isExpanded = expandedZone === (zone.id || String(i))
-                const affected = parseAffected(zone.estimated_affected)
-                const priority = (zone.priority || 'Low').charAt(0).toUpperCase() + (zone.priority || 'low').slice(1).toLowerCase()
-                return (
-                  <React.Fragment key={zone.id || i}>
-                    <tr className={`group text-xs hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors border-l-2 ${
-                        (zone.priority || '').toLowerCase() === 'critical' ? 'border-l-rose-500 bg-rose-50/10 dark:bg-rose-900/5' :
-                        (zone.priority || '').toLowerCase() === 'high' ? 'border-l-amber-400' :
-                        zone.deployed ? 'border-l-emerald-400 bg-emerald-50/30 dark:bg-emerald-900/5' :
-                        'border-l-transparent'
-                      }`}>
-                      <td className="px-5 py-3.5">
-                        <button onClick={() => { setExpandedZone(isExpanded ? null : (zone.id || String(i))); if (!isExpanded && zone.id) loadAssets(zone.id) }} className="flex items-center gap-1.5 font-bold text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors whitespace-nowrap min-w-[140px]">
-                          {isExpanded ? <ChevronDown className="w-3 h-3 text-gray-400 dark:text-gray-300 flex-shrink-0" /> : <ChevronRight className="w-3 h-3 text-gray-400 dark:text-gray-300 flex-shrink-0" />}
-                          <span className="truncate">{zone.zone}</span>
-                          {zone.hazard_type && zone.hazard_type !== 'general' && (() => { const HIcon = HAZARD_CATEGORIES[zone.hazard_type]?.icon; return HIcon ? <span title={HAZARD_CATEGORIES[zone.hazard_type]?.label || zone.hazard_type}><HIcon className="w-3.5 h-3.5 opacity-70" /></span> : null })()}
-                        </button>
-                        {zone.is_ai_draft && (
-                          <span className="mt-0.5 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 ring-1 ring-violet-500/20">
-                            <Cpu className="w-2.5 h-2.5" /> {t('admin.resource.aiDraft', lang)}
-                          </span>
-                        )}
-                        {zone.report_id && (
-                          <span className="mt-0.5 ml-1 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-300 ring-1 ring-sky-500/20">
-                            <Link2 className="w-2.5 h-2.5" /> {zone.report_number || `RPT-${zone.report_id?.slice(0, 6).toUpperCase()}`}
-                          </span>
-                        )}
-                        {zone.needs_mutual_aid && (
-                          <span className="mt-0.5 ml-1 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300 ring-1 ring-orange-500/20">
-                            <Users className="w-2.5 h-2.5" /> {t('admin.resource.mutualAid', lang)}
-                          </span>
-                        )}
-                        {zone.hazard_type && zone.hazard_type !== 'general' && (
-                          <span className="mt-0.5 ml-1 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-sky-50 dark:bg-sky-900/10 text-sky-600 dark:text-sky-400 ring-1 ring-sky-500/20 capitalize">
-                            {zone.hazard_type.replace(/_/g, '\u202f')}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3.5">
-                        <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold ring-1 ${P_PILL[priority] || P_PILL.Low}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${P_DOT[priority] || P_DOT.Low}`} />
-                          {priority}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3.5">
-                        {zone.deployed ? (
-                          <>
-                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {t('common.active', lang)}
-                            </span>
-                            {zone.deployed_at && (() => {
-                              const dur = getDeploymentDuration(zone.deployed_at)
-                              return <span className={`flex items-center gap-0.5 text-[9px] font-mono mt-0.5 ${dur.isLong ? 'text-amber-500 animate-pulse' : 'text-gray-400'}`}><Clock className="w-3 h-3" /> {dur.label}</span>
-                            })()}
-                          </>
-                        ) : (
-                          <span className="text-[10px] px-2 py-0.5 rounded-md font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-300">{t('resource.standby', lang)}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3.5 text-right font-bold tabular-nums text-gray-900 dark:text-white">{zone.active_reports}</td>
-                      <td className="px-3 py-3.5 text-right font-bold tabular-nums text-rose-600 dark:text-rose-400">{affected > 0 ? affected.toLocaleString() : '--'}</td>
-                      <td className="px-3 py-3.5">
-                        <div className="flex items-center gap-2">
-                          {Number(zone.ambulances) > 0 && <span className="flex items-center gap-0.5 text-[10px] text-gray-600 dark:text-gray-300"><Truck className="w-3 h-3 text-red-500" />{zone.ambulances}</span>}
-                          {Number(zone.fire_engines) > 0 && <span className="flex items-center gap-0.5 text-[10px] text-gray-600 dark:text-gray-300"><Flame className="w-3 h-3 text-orange-500" />{zone.fire_engines}</span>}
-                          {Number(zone.rescue_boats) > 0 && <span className="flex items-center gap-0.5 text-[10px] text-gray-600 dark:text-gray-300"><Anchor className="w-3 h-3 text-blue-500" />{zone.rescue_boats}</span>}
-                          {!Number(zone.ambulances) && !Number(zone.fire_engines) && !Number(zone.rescue_boats) && <span className="text-[10px] text-gray-400 dark:text-gray-300">--</span>}
+        {zoneView === 'table' && (
+          <DataTable<any>
+            columns={[
+              { key: 'zone', header: t('resource.zone', lang), sortable: true, render: (zone, i) => (
+                <div>
+                  <button onClick={() => { const k = zone.id || String(i); setExpandedZone(k === expandedZone ? null : k); if (zone.id && k !== expandedZone) loadAssets(zone.id) }} className="flex items-center gap-1.5 font-bold text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors whitespace-nowrap min-w-[140px]">
+                    {expandedZone === (zone.id || String(i)) ? <ChevronDown className="w-3 h-3 text-gray-400 dark:text-gray-300 flex-shrink-0" /> : <ChevronRight className="w-3 h-3 text-gray-400 dark:text-gray-300 flex-shrink-0" />}
+                    <span className="truncate">{zone.zone}</span>
+                    {zone.hazard_type && zone.hazard_type !== 'general' && (() => { const HIcon = HAZARD_CATEGORIES[zone.hazard_type]?.icon; return HIcon ? <span title={HAZARD_CATEGORIES[zone.hazard_type]?.label || zone.hazard_type}><HIcon className="w-3.5 h-3.5 opacity-70" /></span> : null })()}
+                  </button>
+                  {zone.is_ai_draft && <span className="mt-0.5 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 ring-1 ring-violet-500/20"><Cpu className="w-2.5 h-2.5" /> {t('admin.resource.aiDraft', lang)}</span>}
+                  {zone.report_id && <span className="mt-0.5 ml-1 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-300 ring-1 ring-sky-500/20"><Link2 className="w-2.5 h-2.5" /> {zone.report_number || `RPT-${zone.report_id?.slice(0, 6).toUpperCase()}`}</span>}
+                  {zone.needs_mutual_aid && <span className="mt-0.5 ml-1 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300 ring-1 ring-orange-500/20"><Users className="w-2.5 h-2.5" /> {t('admin.resource.mutualAid', lang)}</span>}
+                  {zone.hazard_type && zone.hazard_type !== 'general' && <span className="mt-0.5 ml-1 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-sky-50 dark:bg-sky-900/10 text-sky-600 dark:text-sky-400 ring-1 ring-sky-500/20 capitalize">{zone.hazard_type.replace(/_/g, '\u202f')}</span>}
+                </div>
+              )},
+              { key: 'priority', header: t('common.priority', lang), sortable: true, render: zone => { const priority = (zone.priority || 'Low').charAt(0).toUpperCase() + (zone.priority || 'low').slice(1).toLowerCase(); return <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold ring-1 ${P_PILL[priority] || P_PILL.Low}`}><span className={`w-1.5 h-1.5 rounded-full ${P_DOT[priority] || P_DOT.Low}`} />{priority}</span> } },
+              { key: 'status', header: t('common.status', lang), sortable: true, render: zone => zone.deployed ? (
+                <><span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {t('common.active', lang)}</span>{zone.deployed_at && (() => { const dur = getDeploymentDuration(zone.deployed_at); return <span className={`flex items-center gap-0.5 text-[9px] font-mono mt-0.5 ${dur.isLong ? 'text-amber-500 animate-pulse' : 'text-gray-400'}`}><Clock className="w-3 h-3" /> {dur.label}</span> })()}</>
+              ) : <span className="text-[10px] px-2 py-0.5 rounded-md font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-300">{t('resource.standby', lang)}</span> },
+              { key: 'reports', header: t('common.reports', lang), sortable: true, align: 'right', render: zone => <span className="font-bold tabular-nums text-gray-900 dark:text-white">{zone.active_reports}</span> },
+              { key: 'affected', header: t('resource.affected', lang), sortable: true, align: 'right', render: zone => { const affected = parseAffected(zone.estimated_affected); return <span className="font-bold tabular-nums text-rose-600 dark:text-rose-400">{affected > 0 ? affected.toLocaleString() : '--'}</span> } },
+              { key: 'assets', header: t('resource.assets', lang), render: zone => (
+                <div className="flex items-center gap-2">
+                  {Number(zone.ambulances) > 0 && <span className="flex items-center gap-0.5 text-[10px] text-gray-600 dark:text-gray-300"><Truck className="w-3 h-3 text-red-500" />{zone.ambulances}</span>}
+                  {Number(zone.fire_engines) > 0 && <span className="flex items-center gap-0.5 text-[10px] text-gray-600 dark:text-gray-300"><Flame className="w-3 h-3 text-orange-500" />{zone.fire_engines}</span>}
+                  {Number(zone.rescue_boats) > 0 && <span className="flex items-center gap-0.5 text-[10px] text-gray-600 dark:text-gray-300"><Anchor className="w-3 h-3 text-blue-500" />{zone.rescue_boats}</span>}
+                  {!Number(zone.ambulances) && !Number(zone.fire_engines) && !Number(zone.rescue_boats) && <span className="text-[10px] text-gray-400 dark:text-gray-300">--</span>}
+                </div>
+              )},
+              { key: 'ai', header: t('resource.aiRecommendation', lang), render: zone => <p className="text-[11px] text-blue-600 dark:text-blue-400 truncate max-w-[260px]" title={zone.ai_recommendation}><Brain className="w-3 h-3 inline mr-1 opacity-50" />{zone.ai_recommendation || '--'}</p> },
+              { key: 'actions', header: t('common.actions', lang), align: 'right', render: zone => (
+                <div className="flex items-center justify-end gap-1.5">
+                  {zone.is_ai_draft && !zone.ai_draft_acknowledged_at && <button onClick={() => handleAcknowledge(zone.id)} disabled={acknowledging === zone.id} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 hover:bg-violet-100 ring-1 ring-violet-500/20 transition-colors flex items-center gap-1">{acknowledging === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />} Ack</button>}
+                  {zone.deployed ? <button onClick={() => handleRecall(zone)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 ring-1 ring-amber-500/20 transition-colors">{t('resource.recall', lang)}</button> : <button onClick={() => handleDeploy(zone)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 ring-1 ring-emerald-500/20 transition-colors">{t('resource.deploy', lang)}</button>}
+                  {user?.role === 'admin' && <button onClick={() => handleDelete(zone)} className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="Delete zone"><Trash2 className="w-3.5 h-3.5" /></button>}
+                </div>
+              )},
+            ]}
+            rows={zones}
+            rowKey={zone => zone.id || ''}
+            sortField={sortField}
+            sortDir={sortDir}
+            onSort={f => toggleSort(f)}
+            expandedKey={expandedZone}
+            renderExpanded={zone => (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider">{t('admin.resource.zoneDetails', lang)}</span>
+                    {zone.hazard_type && zone.hazard_type !== 'general' && <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 text-violet-700 dark:text-violet-300 ring-1 ring-violet-500/20 flex items-center gap-1">{(() => { const HIcon = HAZARD_CATEGORIES[zone.hazard_type]?.icon || FileText; return <HIcon className="w-3 h-3" /> })()} {HAZARD_CATEGORIES[zone.hazard_type]?.label || zone.hazard_type}</span>}
+                  </div>
+                  {editingZone !== zone.id ? <button onClick={() => startEdit(zone)} className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><Edit3 className="w-3 h-3" /> {t('admin.resource.editZone', lang)}</button> : <div className="flex items-center gap-1.5"><button onClick={() => saveEdit(zone.id)} disabled={savingEdit} className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50">{savingEdit ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save</button><button onClick={cancelEdit} className="px-2.5 py-1 text-[10px] font-semibold rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{t('admin.resource.cancel', lang)}</button></div>}
+                </div>
+                {editingZone === zone.id ? (
+                  <div className="mb-4 p-3 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50/30 dark:bg-violet-900/5 space-y-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.priority', lang)}</label><select value={editForm.priority} onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">{['Critical', 'High', 'Medium', 'Low'].map(p => <option key={p} value={p}>{p}</option>)}</select></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.hazardType', lang)}</label><select value={editForm.hazard_type} onChange={e => setEditForm(f => ({ ...f, hazard_type: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">{Object.entries(HAZARD_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.reports', lang)}</label><input type="number" min={0} value={editForm.active_reports} onChange={e => setEditForm(f => ({ ...f, active_reports: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" /></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.affected', lang)}</label><input type="text" value={editForm.estimated_affected} onChange={e => setEditForm(f => ({ ...f, estimated_affected: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" placeholder={t('admin.resource.affectedPlaceholder', lang)} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Truck className="w-3 h-3 text-red-500" /> {t('admin.resource.ambulances', lang)}</label><input type="number" min={0} value={editForm.ambulances} onChange={e => setEditForm(f => ({ ...f, ambulances: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" /></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Flame className="w-3 h-3 text-orange-500" /> {t('admin.resource.fire', lang)}</label><input type="number" min={0} value={editForm.fire_engines} onChange={e => setEditForm(f => ({ ...f, fire_engines: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" /></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Anchor className="w-3 h-3 text-blue-500" /> {t('admin.resource.boats', lang)}</label><input type="number" min={0} value={editForm.rescue_boats} onChange={e => setEditForm(f => ({ ...f, rescue_boats: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" /></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Shield className="w-3 h-3 text-indigo-500" /> {t('admin.resource.incidentCommander', lang)}</label><input type="text" value={editForm.incident_commander} onChange={e => setEditForm(f => ({ ...f, incident_commander: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" placeholder={t('admin.resource.namePlaceholder', lang)} /></div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs mb-3">
+                    <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.zoneId', lang)}</span><p className="font-mono font-bold text-gray-700 dark:text-gray-300 mt-0.5">{zone.id || '--'}</p></div>
+                    <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.priorityScore', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 mt-0.5">{P_ORDER[(zone.priority || 'Low').charAt(0).toUpperCase() + (zone.priority || 'low').slice(1).toLowerCase()] || 0}/4</p></div>
+                    <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.estimatedAffected', lang)}</span><p className="font-bold text-rose-600 dark:text-rose-400 mt-0.5">{zone.estimated_affected || '--'}</p></div>
+                    <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.deploymentStatus', lang)}</span><p className={`font-bold mt-0.5 ${zone.deployed ? 'text-emerald-600' : 'text-gray-500 dark:text-gray-300'}`}>{zone.deployed ? t('resource.resourcesDeployed', lang) : t('resource.awaitingDeployment', lang)}</p></div>
+                  </div>
+                )}
+                {(zone.is_ai_draft || zone.report_id || zone.prediction_id) && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {zone.is_ai_draft && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 text-[11px] text-violet-700 dark:text-violet-300 font-semibold"><Cpu className="w-3 h-3" /> {t('resource.aiDraftAwaiting', lang)}</div>}
+                    {zone.report_id && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 text-[11px] text-sky-700 dark:text-sky-300 font-medium"><Link2 className="w-3 h-3" /> {t('resource.linkedReport', lang)}: <span className="font-mono font-bold">{zone.report_number || `RPT-${zone.report_id?.slice(0, 6).toUpperCase()}`}</span></div>}
+                    {zone.prediction_id && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 text-[11px] text-indigo-700 dark:text-indigo-300 font-medium"><Brain className="w-3 h-3" /> {t('resource.prediction', lang)}: <span className="font-mono">PRD-{zone.prediction_id?.slice(0, 6).toUpperCase()}</span></div>}
+                  </div>
+                )}
+                <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-3 border border-blue-100 dark:border-blue-900/30 mb-3">
+                  <p className="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2"><Brain className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 opacity-60" /><span>{zone.ai_recommendation || t('resource.noRecommendation', lang)}</span></p>
+                </div>
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5"><MapPin className="w-3 h-3" /> {t('admin.resource.assetTracking', lang)}{zone.id && assetsByZone[zone.id] && <span className="ml-1 px-1.5 py-0.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold">{assetsByZone[zone.id].filter((a: any) => a.status === 'on_site').length}/{assetsByZone[zone.id].length} {t('admin.resource.onSite', lang)}</span>}</p>
+                    {zone.id && <button onClick={() => { setShowAddAsset(showAddAsset === zone.id ? null : zone.id); setAssetForm({ asset_type: 'ambulance', call_sign: '', status: 'staging', crew_count: '1', notes: '' }) }} className="h-6 px-2 text-[10px] font-bold rounded-md bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 flex items-center gap-1 transition-colors"><Plus className="w-2.5 h-2.5" /> {t('admin.resource.addAsset', lang)}</button>}
+                  </div>
+                  {loadingAssetsFor === zone.id && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('admin.resource.loadingAssets', lang)}</p>}
+                  {zone.id && assetsByZone[zone.id] && (
+                    <div className="space-y-1">
+                      {assetsByZone[zone.id].length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('admin.resource.noAssetsTracked', lang)}</p>}
+                      {assetsByZone[zone.id].map((asset: any) => { const statusColor: Record<string, string> = { staging: 'bg-slate-500', en_route: 'bg-amber-500', on_site: 'bg-emerald-500', returning: 'bg-blue-500', available: 'bg-teal-500', off_duty: 'bg-gray-400' }; return (
+                        <div key={asset.id} className="flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusColor[asset.status] || 'bg-gray-400'}`} />
+                          <span className="font-mono font-bold text-[11px] text-gray-800 dark:text-gray-200 min-w-[60px]">{asset.call_sign}</span>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 min-w-[70px]">{asset.asset_type.replace(/_/g, ' ')}</span>
+                          <select value={asset.status} onChange={e => handleUpdateAssetStatus(asset.id, e.target.value, zone.id)} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200">{['staging', 'en_route', 'on_site', 'returning', 'available', 'off_duty'].map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}</select>
+                          {asset.last_lat && <span className="text-[9px] text-gray-400 dark:text-gray-300 font-mono flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" />{Number(asset.last_lat).toFixed(3)},{Number(asset.last_lng).toFixed(3)}</span>}
+                          {asset.crew_count > 0 && <span className="text-[10px] text-gray-500 dark:text-gray-400">{asset.crew_count} {t('admin.resource.crew', lang)}</span>}
+                          <button onClick={() => handleDeleteAsset(asset.id, zone.id)} className="ml-auto p-0.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3 h-3" /></button>
                         </div>
-                      </td>
-                      <td className="px-3 py-3.5 max-w-[260px]">
-                        <p className="text-[11px] text-blue-600 dark:text-blue-400 truncate" title={zone.ai_recommendation}>
-                          <Brain className="w-3 h-3 inline mr-1 opacity-50" />{zone.ai_recommendation || '--'}
-                        </p>
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {zone.is_ai_draft && !zone.ai_draft_acknowledged_at && (
-                            <button onClick={() => handleAcknowledge(zone.id)} disabled={acknowledging === zone.id} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 hover:bg-violet-100 ring-1 ring-violet-500/20 transition-colors flex items-center gap-1">
-                              {acknowledging === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />} Ack
-                            </button>
-                          )}
-                          {zone.deployed ? (
-                            <button onClick={() => handleRecall(zone)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 ring-1 ring-amber-500/20 transition-colors">{t('resource.recall', lang)}</button>
-                          ) : (
-                            <button onClick={() => handleDeploy(zone)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 ring-1 ring-emerald-500/20 transition-colors">{t('resource.deploy', lang)}</button>
-                          )}
-                          {user?.role === 'admin' && (
-                            <button onClick={() => handleDelete(zone)} className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="Delete zone"><Trash2 className="w-3.5 h-3.5" /></button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-
-                    {/* Expanded detail row */}
-                    {isExpanded && (
-                      <tr>
-                        <td colSpan={8} className="px-5 py-4 bg-gray-50/50 dark:bg-gray-800/20">
-                          {/* Header with Edit toggle */}
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider">{t('admin.resource.zoneDetails', lang)}</span>
-                              {zone.hazard_type && zone.hazard_type !== 'general' && (
-                                <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 text-violet-700 dark:text-violet-300 ring-1 ring-violet-500/20 flex items-center gap-1">
-                                  {(() => { const HIcon = HAZARD_CATEGORIES[zone.hazard_type]?.icon || FileText; return <HIcon className="w-3 h-3" /> })()} {HAZARD_CATEGORIES[zone.hazard_type]?.label || zone.hazard_type}
-                                </span>
-                              )}
-                            </div>
-                            {editingZone !== zone.id ? (
-                              <button onClick={() => startEdit(zone)} className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                                <Edit3 className="w-3 h-3" /> {t('admin.resource.editZone', lang)}
-                              </button>
-                            ) : (
-                              <div className="flex items-center gap-1.5">
-                                <button onClick={() => saveEdit(zone.id)} disabled={savingEdit} className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50">
-                                  {savingEdit ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
-                                </button>
-                                <button onClick={cancelEdit} className="px-2.5 py-1 text-[10px] font-semibold rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{t('admin.resource.cancel', lang)}</button>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Inline Edit Panel */}
-                          {editingZone === zone.id ? (
-                            <div className="mb-4 p-3 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50/30 dark:bg-violet-900/5 space-y-3">
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.priority', lang)}</label>
-                                  <select value={editForm.priority} onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">
-                                    {['Critical', 'High', 'Medium', 'Low'].map(p => <option key={p} value={p}>{p}</option>)}
-                                  </select>
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.hazardType', lang)}</label>
-                                  <select value={editForm.hazard_type} onChange={e => setEditForm(f => ({ ...f, hazard_type: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">
-                                    {Object.entries(HAZARD_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                                  </select>
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.reports', lang)}</label>
-                                  <input type="number" min={0} value={editForm.active_reports} onChange={e => setEditForm(f => ({ ...f, active_reports: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" />
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.affected', lang)}</label>
-                                  <input type="text" value={editForm.estimated_affected} onChange={e => setEditForm(f => ({ ...f, estimated_affected: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" placeholder={t('admin.resource.affectedPlaceholder', lang)} />
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Truck className="w-3 h-3 text-red-500" /> {t('admin.resource.ambulances', lang)}</label>
-                                  <input type="number" min={0} value={editForm.ambulances} onChange={e => setEditForm(f => ({ ...f, ambulances: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" />
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Flame className="w-3 h-3 text-orange-500" /> {t('admin.resource.fire', lang)}</label>
-                                  <input type="number" min={0} value={editForm.fire_engines} onChange={e => setEditForm(f => ({ ...f, fire_engines: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" />
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Anchor className="w-3 h-3 text-blue-500" /> {t('admin.resource.boats', lang)}</label>
-                                  <input type="number" min={0} value={editForm.rescue_boats} onChange={e => setEditForm(f => ({ ...f, rescue_boats: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" />
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Shield className="w-3 h-3 text-indigo-500" /> {t('admin.resource.incidentCommander', lang)}</label>
-                                  <input type="text" value={editForm.incident_commander} onChange={e => setEditForm(f => ({ ...f, incident_commander: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" placeholder={t('admin.resource.namePlaceholder', lang)} />
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs mb-3">
-                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.zoneId', lang)}</span><p className="font-mono font-bold text-gray-700 dark:text-gray-300 mt-0.5">{zone.id || '--'}</p></div>
-                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.priorityScore', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 mt-0.5">{P_ORDER[priority] || 0}/4</p></div>
-                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.estimatedAffected', lang)}</span><p className="font-bold text-rose-600 dark:text-rose-400 mt-0.5">{zone.estimated_affected || '--'}</p></div>
-                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.deploymentStatus', lang)}</span><p className={`font-bold mt-0.5 ${zone.deployed ? 'text-emerald-600' : 'text-gray-500 dark:text-gray-300'}`}>{zone.deployed ? t('resource.resourcesDeployed', lang) : t('resource.awaitingDeployment', lang)}</p></div>
-                            </div>
-                          )}
-                          {/* Module 1 & 2: AI draft + linked report info */}
-                          {(zone.is_ai_draft || zone.report_id || zone.prediction_id) && (
-                            <div className="flex flex-wrap gap-2 mb-3">
-                              {zone.is_ai_draft && (
-                                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 text-[11px] text-violet-700 dark:text-violet-300 font-semibold">
-                                  <Cpu className="w-3 h-3" /> {t('resource.aiDraftAwaiting', lang)}
-                                </div>
-                              )}
-                              {zone.report_id && (
-                                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 text-[11px] text-sky-700 dark:text-sky-300 font-medium">
-                                  <Link2 className="w-3 h-3" /> {t('resource.linkedReport', lang)}: <span className="font-mono font-bold">{zone.report_number || `RPT-${zone.report_id?.slice(0, 6).toUpperCase()}`}</span>
-                                </div>
-                              )}
-                              {zone.prediction_id && (
-                                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 text-[11px] text-indigo-700 dark:text-indigo-300 font-medium">
-                                  <Brain className="w-3 h-3" /> {t('resource.prediction', lang)}: <span className="font-mono">PRD-{zone.prediction_id?.slice(0, 6).toUpperCase()}</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {/* AI recommendation full */}
-                          <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-3 border border-blue-100 dark:border-blue-900/30 mb-3">
-                            <p className="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2">
-                              <Brain className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 opacity-60" />
-                              <span>{zone.ai_recommendation || t('resource.noRecommendation', lang)}</span>
-                            </p>
-                          </div>
-                          {/* Module 3: Asset tracking panel */}
-                          <div className="mb-3">
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
-                                <MapPin className="w-3 h-3" /> {t('admin.resource.assetTracking', lang)}
-                                {zone.id && assetsByZone[zone.id] && (
-                                  <span className="ml-1 px-1.5 py-0.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold">
-                                    {assetsByZone[zone.id].filter((a: any) => a.status === 'on_site').length}/{assetsByZone[zone.id].length} {t('admin.resource.onSite', lang)}
-                                  </span>
-                                )}
-                              </p>
-                              {zone.id && (
-                                <button onClick={() => { setShowAddAsset(showAddAsset === zone.id ? null : zone.id); setAssetForm({ asset_type: 'ambulance', call_sign: '', status: 'staging', crew_count: '1', notes: '' }) }} className="h-6 px-2 text-[10px] font-bold rounded-md bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 flex items-center gap-1 transition-colors">
-                                  <Plus className="w-2.5 h-2.5" /> {t('admin.resource.addAsset', lang)}
-                                </button>
-                              )}
-                            </div>
-                            {loadingAssetsFor === zone.id && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('admin.resource.loadingAssets', lang)}</p>}
-                            {zone.id && assetsByZone[zone.id] && (
-                              <div className="space-y-1">
-                                {assetsByZone[zone.id].length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('admin.resource.noAssetsTracked', lang)}</p>}
-                                {assetsByZone[zone.id].map((asset: any) => {
-                                  const statusColor: Record<string, string> = {
-                                    staging: 'bg-slate-500', en_route: 'bg-amber-500', on_site: 'bg-emerald-500',
-                                    returning: 'bg-blue-500', available: 'bg-teal-500', off_duty: 'bg-gray-400',
-                                  }
-                                  return (
-                                    <div key={asset.id} className="flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
-                                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusColor[asset.status] || 'bg-gray-400'}`} />
-                                      <span className="font-mono font-bold text-[11px] text-gray-800 dark:text-gray-200 min-w-[60px]">{asset.call_sign}</span>
-                                      <span className="text-[10px] text-gray-500 dark:text-gray-400 min-w-[70px]">{asset.asset_type.replace(/_/g, ' ')}</span>
-                                      <select value={asset.status} onChange={e => handleUpdateAssetStatus(asset.id, e.target.value, zone.id)} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200">
-                                        {['staging', 'en_route', 'on_site', 'returning', 'available', 'off_duty'].map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
-                                      </select>
-                                      {asset.last_lat && <span className="text-[9px] text-gray-400 dark:text-gray-300 font-mono flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" />{Number(asset.last_lat).toFixed(3)},{Number(asset.last_lng).toFixed(3)}</span>}
-                                      {asset.crew_count > 0 && <span className="text-[10px] text-gray-500 dark:text-gray-400">{asset.crew_count} {t('admin.resource.crew', lang)}</span>}
-                                      <button onClick={() => handleDeleteAsset(asset.id, zone.id)} className="ml-auto p-0.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3 h-3" /></button>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            )}
-                            {/* Add asset inline form */}
-                            {showAddAsset === zone.id && (
-                              <div className="mt-2 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-900/10">
-                                <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider mb-2">{t('admin.resource.addAsset', lang)}</p>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-                                  <select value={assetForm.asset_type} onChange={e => setAssetForm(f => ({ ...f, asset_type: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">
-                                    {['ambulance','fire_engine','rescue_boat','helicopter','hazmat_unit','police','medical_unit','urban_search_rescue','other'].map(t => <option key={t} value={t}>{t.replace(/_/g,' ')}</option>)}
-                                  </select>
-                                  <input type="text" placeholder={t('admin.resource.callSignPlaceholder', lang)} value={assetForm.call_sign} onChange={e => setAssetForm(f => ({ ...f, call_sign: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg placeholder:text-gray-400 dark:text-white" />
-                                  <select value={assetForm.status} onChange={e => setAssetForm(f => ({ ...f, status: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">
-                                    {['staging','en_route','on_site','returning','available','off_duty'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
-                                  </select>
-                                  <input type="number" min={0} placeholder={t('admin.resource.crewPlaceholder', lang)} value={assetForm.crew_count} onChange={e => setAssetForm(f => ({ ...f, crew_count: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" />
-                                </div>
-                                <div className="flex gap-2">
-                                  <button onClick={() => handleAddAsset(zone.id)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">{t('admin.resource.add', lang)}</button>
-                                  <button onClick={() => setShowAddAsset(null)} className="px-3 py-1.5 text-[10px] font-semibold rounded-lg text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">{t('admin.resource.cancel', lang)}</button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          {/* Zone activity */}
-                          <div className="mb-4">
-                            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2">{t('resource.zoneActivityLog', lang)}</p>
-                            {auditLog.filter(a => (a.action_type === 'deploy' || a.action_type === 'recall') && a.target_id === zone.id).slice(0, 4).map((log, li) => (
-                              <div key={li} className="flex items-center gap-2 text-[11px] py-1">
-                                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${log.action_type === 'deploy' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                                <span className="text-gray-700 dark:text-gray-300">{log.action}</span>
-                                <span className="ml-auto text-gray-400 dark:text-gray-300 text-[10px]">{new Date(log.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                              </div>
-                            ))}
-                            {auditLog.filter(a => (a.action_type === 'deploy' || a.action_type === 'recall') && a.target_id === zone.id).length === 0 && (
-                              <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('resource.noActivityRecorded', lang)}</p>
-                            )}
-                          </div>
-
-                          {/* Mutual Aid Toggle */}
-                          <div className="flex items-center justify-between mb-3 p-2.5 rounded-lg border border-orange-100 dark:border-orange-800 bg-orange-50/30 dark:bg-orange-900/5">
-                            <div className="flex items-center gap-2">
-                              <Users className="w-4 h-4 text-orange-500" />
-                              <span className="text-xs font-bold text-gray-900 dark:text-white">{t('admin.resource.mutualAid', lang)}</span>
-                              {zone.needs_mutual_aid && <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300 font-bold rounded">{t('admin.resource.activeRequest', lang)}</span>}
-                            </div>
-                            <button
-                              onClick={() => handleToggleMutualAid(zone)}
-                              disabled={togglingMutualAid === zone.id}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg transition-colors ${zone.needs_mutual_aid ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-                            >
-                              {togglingMutualAid === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Users className="w-3 h-3" />}
-                              {zone.needs_mutual_aid ? 'Clear Request' : 'Request Mutual Aid'}
-                            </button>
-                          </div>
-
-                          {/* Incident Commander */}
-                          {zone.incident_commander && (
-                            <div className="mb-3 flex items-center gap-2 p-2.5 rounded-lg border border-indigo-100 dark:border-indigo-800 bg-indigo-50/30 dark:bg-indigo-900/5">
-                              <Shield className="w-4 h-4 text-indigo-500 flex-shrink-0" />
-                              <span className="text-xs font-bold text-gray-900 dark:text-white">IC:</span>
-                              <span className="text-xs text-indigo-700 dark:text-indigo-300 font-semibold">{zone.incident_commander}</span>
-                            </div>
-                          )}
-
-                          {/* ICS Operations Log */}
-                          <div>
-                            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2 flex items-center gap-1">
-                              <Radio className="w-3 h-3" /> {t('admin.resource.icsOperationsLog', lang)}
-                            </p>
-                            <div className="space-y-1 mb-2 max-h-32 overflow-y-auto">
-                              {(zone.ops_log || []).length === 0 && (
-                                <p className="text-[10px] text-gray-400 dark:text-gray-300">{t('admin.resource.noLogEntries', lang)}</p>
-                              )}
-                              {(zone.ops_log || []).map((entry: any, li: number) => (
-                                <div key={li} className="flex gap-2 text-[10px] p-1.5 rounded bg-gray-50 dark:bg-gray-800/40">
-                                  <span className="font-mono text-gray-400 whitespace-nowrap">{new Date(entry.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
-                                  <span className="font-semibold text-gray-600 dark:text-gray-300 min-w-[60px] truncate">{entry.operator}</span>
-                                  <span className="text-gray-700 dark:text-gray-200">{entry.note}</span>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                placeholder={t('admin.resource.addLogEntryPlaceholder', lang)}
-                                value={opsNoteByZone[zone.id] || ''}
-                                onChange={e => setOpsNoteByZone(prev => ({ ...prev, [zone.id]: e.target.value }))}
-                                onKeyDown={e => e.key === 'Enter' && handleAddOpsLog(zone.id)}
-                                className="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white placeholder:text-gray-400"
-                              />
-                              <button
-                                onClick={() => handleAddOpsLog(zone.id)}
-                                disabled={savingOpsNote === zone.id}
-                                className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors flex items-center gap-1"
-                              >
-                                {savingOpsNote === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <><FileText className="w-3 h-3" /> {t('admin.resource.log', lang)}</>}
-                              </button>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                )
-              })}
-            </tbody>
-          </table>
-          {zones.length === 0 && (
-            <div className="text-center py-12">
-              <Layers className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-400 dark:text-gray-300">{deployments.length === 0 ? 'No deployment zones yet -- create one to get started.' : t('resource.noZonesMatch', lang)}</p>
-              {deployments.length === 0 && (
-                <button onClick={() => { const init = getSmartResourceSuggestion('general', 'Medium'); setCreateForm({ zone: '', priority: 'Medium', active_reports: '0', estimated_affected: '', ai_recommendation: init.reasoning, commander_notes: '', ambulances: String(init.ambulances), fire_engines: String(init.fire_engines), rescue_boats: String(init.rescue_boats), lat: '', lng: '', report_id: '', hazard_type: 'general', incident_commander: '', radio_channel: '', weather_conditions: 'clear', evacuation_status: 'none', access_routes: '' }); setCreateStep(0); setShowCreateModal(true) }} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/30 ring-1 ring-violet-500/20 transition-colors"><Plus className="w-3.5 h-3.5" /> Create First Zone</button>
-              )}
-            </div>
-          )}
-        </div>}
+                      )}) }
+                    </div>
+                  )}
+                  {showAddAsset === zone.id && (
+                    <div className="mt-2 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-900/10">
+                      <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider mb-2">{t('admin.resource.addAsset', lang)}</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                        <select value={assetForm.asset_type} onChange={e => setAssetForm(f => ({ ...f, asset_type: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">{['ambulance','fire_engine','rescue_boat','helicopter','hazmat_unit','police','medical_unit','urban_search_rescue','other'].map(t => <option key={t} value={t}>{t.replace(/_/g,' ')}</option>)}</select>
+                        <input type="text" placeholder={t('admin.resource.callSignPlaceholder', lang)} value={assetForm.call_sign} onChange={e => setAssetForm(f => ({ ...f, call_sign: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg placeholder:text-gray-400 dark:text-white" />
+                        <select value={assetForm.status} onChange={e => setAssetForm(f => ({ ...f, status: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">{['staging','en_route','on_site','returning','available','off_duty'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}</select>
+                        <input type="number" min={0} placeholder={t('admin.resource.crewPlaceholder', lang)} value={assetForm.crew_count} onChange={e => setAssetForm(f => ({ ...f, crew_count: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" />
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleAddAsset(zone.id)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">{t('admin.resource.add', lang)}</button>
+                        <button onClick={() => setShowAddAsset(null)} className="px-3 py-1.5 text-[10px] font-semibold rounded-lg text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">{t('admin.resource.cancel', lang)}</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="mb-4">
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2">{t('resource.zoneActivityLog', lang)}</p>
+                  {auditLog.filter(a => (a.action_type === 'deploy' || a.action_type === 'recall') && a.target_id === zone.id).slice(0, 4).map((log, li) => (
+                    <div key={li} className="flex items-center gap-2 text-[11px] py-1"><span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${log.action_type === 'deploy' ? 'bg-emerald-500' : 'bg-amber-500'}`} /><span className="text-gray-700 dark:text-gray-300">{log.action}</span><span className="ml-auto text-gray-400 dark:text-gray-300 text-[10px]">{new Date(log.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></div>
+                  ))}
+                  {auditLog.filter(a => (a.action_type === 'deploy' || a.action_type === 'recall') && a.target_id === zone.id).length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('resource.noActivityRecorded', lang)}</p>}
+                </div>
+                <div className="flex items-center justify-between mb-3 p-2.5 rounded-lg border border-orange-100 dark:border-orange-800 bg-orange-50/30 dark:bg-orange-900/5">
+                  <div className="flex items-center gap-2"><Users className="w-4 h-4 text-orange-500" /><span className="text-xs font-bold text-gray-900 dark:text-white">{t('admin.resource.mutualAid', lang)}</span>{zone.needs_mutual_aid && <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300 font-bold rounded">{t('admin.resource.activeRequest', lang)}</span>}</div>
+                  <button onClick={() => handleToggleMutualAid(zone)} disabled={togglingMutualAid === zone.id} className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg transition-colors ${zone.needs_mutual_aid ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>{togglingMutualAid === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Users className="w-3 h-3" />}{zone.needs_mutual_aid ? 'Clear Request' : 'Request Mutual Aid'}</button>
+                </div>
+                {zone.incident_commander && <div className="mb-3 flex items-center gap-2 p-2.5 rounded-lg border border-indigo-100 dark:border-indigo-800 bg-indigo-50/30 dark:bg-indigo-900/5"><Shield className="w-4 h-4 text-indigo-500 flex-shrink-0" /><span className="text-xs font-bold text-gray-900 dark:text-white">IC:</span><span className="text-xs text-indigo-700 dark:text-indigo-300 font-semibold">{zone.incident_commander}</span></div>}
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2 flex items-center gap-1"><Radio className="w-3 h-3" /> {t('admin.resource.icsOperationsLog', lang)}</p>
+                  <div className="space-y-1 mb-2 max-h-32 overflow-y-auto">
+                    {(zone.ops_log || []).length === 0 && <p className="text-[10px] text-gray-400 dark:text-gray-300">{t('admin.resource.noLogEntries', lang)}</p>}
+                    {(zone.ops_log || []).map((entry: any, li: number) => (
+                      <div key={li} className="flex gap-2 text-[10px] p-1.5 rounded bg-gray-50 dark:bg-gray-800/40"><span className="font-mono text-gray-400 whitespace-nowrap">{new Date(entry.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span><span className="font-semibold text-gray-600 dark:text-gray-300 min-w-[60px] truncate">{entry.operator}</span><span className="text-gray-700 dark:text-gray-200">{entry.note}</span></div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input type="text" placeholder={t('admin.resource.addLogEntryPlaceholder', lang)} value={opsNoteByZone[zone.id] || ''} onChange={e => setOpsNoteByZone(prev => ({ ...prev, [zone.id]: e.target.value }))} onKeyDown={e => e.key === 'Enter' && handleAddOpsLog(zone.id)} className="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white placeholder:text-gray-400" />
+                    <button onClick={() => handleAddOpsLog(zone.id)} disabled={savingOpsNote === zone.id} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors flex items-center gap-1">{savingOpsNote === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <><FileText className="w-3 h-3" /> {t('admin.resource.log', lang)}</>}</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            rowClassName={zone => {
+              const priority = (zone.priority || 'Low').charAt(0).toUpperCase() + (zone.priority || 'low').slice(1).toLowerCase()
+              return `border-l-2 ${priority === 'Critical' ? 'border-l-rose-500 bg-rose-50/10 dark:bg-rose-900/5' : priority === 'High' ? 'border-l-amber-400' : zone.deployed ? 'border-l-emerald-400 bg-emerald-50/30 dark:bg-emerald-900/5' : 'border-l-transparent'}`
+            }}
+            emptyMessage={deployments.length === 0 ? 'No deployment zones yet -- create one to get started.' : t('resource.noZonesMatch', lang)}
+          />
+        )}
 
         {/* Grid view */}
         {zoneView === 'grid' && (

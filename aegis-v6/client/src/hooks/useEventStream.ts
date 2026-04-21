@@ -1,14 +1,19 @@
 /**
  * useEventStream + domain hooks
  *
- * Generic typed Socket.IO subscription hook backed by SocketContext.
+ * Generic typed Socket.IO subscription hooks backed by SocketContext.
  * Eliminates per-component socket.on/off boilerplate and gives typed
  * payloads to consumers.
  *
- *   const latest = useEventStream('hazard:predicted')
- *   const score = useHazardPrediction('forth-river:7-stations')
+ *   const latest    = useEventStream('hazard:predicted')
+ *   const score     = useHazardPrediction('forth-river:7-stations')
+ *   useEventCallback('distress:new_alert', () => bumpCounter())
+ *   useEventCallbacks({
+ *     'incident:alert':  onAlert,
+ *     'distress:cancelled': onCancel,
+ *   })
  */
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useSharedSocket } from '../contexts/SocketContext'
 import {
   type AegisChannel,
@@ -52,6 +57,55 @@ export function useEventBuffer<C extends AegisChannel>(
   }, [socket, channel, maxSize])
 
   return buffer
+}
+
+/**
+ * Fire-and-forget subscription -- runs `handler` for every payload but
+ * doesn't store anything. Handler is captured via ref so it can close
+ * over fresh state without re-subscribing on every render.
+ */
+export function useEventCallback<C extends AegisChannel>(
+  channel: C,
+  handler: (payload: AegisChannelMap[C]) => void,
+): void {
+  const { socket } = useSharedSocket()
+  const ref = useRef(handler)
+  ref.current = handler
+
+  useEffect(() => {
+    if (!socket) return
+    return subscribeChannel(socket, channel, (payload) => ref.current(payload))
+  }, [socket, channel])
+}
+
+/**
+ * Multi-channel subscription -- subscribes to every (channel -> handler)
+ * pair in the map. Replaces the classic `useEffect` block of 6 socket.on
+ * + 6 socket.off calls with a single declarative object.
+ */
+export function useEventCallbacks(
+  handlers: Partial<{ [C in AegisChannel]: (payload: AegisChannelMap[C]) => void }>,
+): void {
+  const { socket } = useSharedSocket()
+  const ref = useRef(handlers)
+  ref.current = handlers
+
+  useEffect(() => {
+    if (!socket) return
+    const unsubs: Array<() => void> = []
+    for (const channel of Object.keys(handlers) as AegisChannel[]) {
+      unsubs.push(
+        subscribeChannel(socket, channel, (payload) => {
+          // Look up via ref so callers don't need useCallback
+          const h = ref.current[channel]
+          if (h) (h as (p: unknown) => void)(payload)
+        }),
+      )
+    }
+    return () => unsubs.forEach((u) => u())
+    // Re-subscribe only when the *set* of channels changes, not the handlers
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket, Object.keys(handlers).join('|')])
 }
 
 /**

@@ -30,6 +30,7 @@ import {
 } from '../../utils/api'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { DataTable } from '../ui/DataTable'
 
 //PROPS
 interface AITransparencyConsoleProps {
@@ -1356,62 +1357,21 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
               </div>
 
               {/* Table */}
-              {auditLoading ? (
-                <div className="flex items-center justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-              ) : filteredAuditEntries.length === 0 ? (
-                <div className="text-center py-8 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-                  <Eye className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{t('ai.noAuditEntries', lang)}</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-                  <table className="w-full text-xs">
-                    <thead className="bg-gray-50 dark:bg-gray-800">
-                      <tr>
-                        <th className="px-3 py-2.5 text-left font-semibold text-gray-600 dark:text-gray-300">{t('ai.thModel', lang)}</th>
-                        <th className="px-3 py-2.5 text-left font-semibold text-gray-600 dark:text-gray-300">{t('ai.thAction', lang)}</th>
-                        <th className="px-3 py-2.5 text-left font-semibold text-gray-600 dark:text-gray-300">{t('ai.thTarget', lang)}</th>
-                        <th className="px-3 py-2.5 text-left font-semibold text-gray-600 dark:text-gray-300">{t('ai.thStatus', lang)}</th>
-                        <th className="px-3 py-2.5 text-left font-semibold text-gray-600 dark:text-gray-300">{t('ai.thLatency', lang)}</th>
-                        <th className="px-3 py-2.5 text-left font-semibold text-gray-600 dark:text-gray-300">{t('ai.thTimestamp', lang)}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                      {filteredAuditEntries.slice(0, 50).map((entry: any, ei: number) => {
-                        const ts = entry.createdAt || entry.created_at || ''
-                        const fmtTs = ts ? (() => { try { const d = new Date(ts); return isNaN(d.getTime()) ? ts : d.toLocaleDateString(lang || 'en-GB', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) } catch { return ts } })() : '--'
-                        return (
-                          <tr key={entry.id || ei} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                            <td className="px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300">{humanizeName(entry.modelName || entry.model_name || '') || '--'}</td>
-                            <td className="px-3 py-2.5 text-gray-600 dark:text-gray-400 truncate max-w-[180px]">{humanizeName(entry.action || entry.inputSummary || entry.input_summary || '') || '--'}</td>
-                            <td className="px-3 py-2.5">
-                              <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400 text-[10px]">
-                                {humanizeName(entry.targetType || entry.target_type || '') || '--'}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2.5">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                                (entry.status || '').toLowerCase() === 'success' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                                : (entry.status || '').toLowerCase() === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                                : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                              }`}>{humanizeName(entry.status || '') || '--'}</span>
-                            </td>
-                            <td className="px-3 py-2.5 font-mono text-gray-600 dark:text-gray-400">
-                              {entry.executionTimeMs != null ? `${entry.executionTimeMs}ms` : entry.execution_time_ms != null ? `${entry.execution_time_ms}ms` : '--'}
-                            </td>
-                            <td className="px-3 py-2.5 text-gray-500 dark:text-gray-400">{fmtTs}</td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                  {filteredAuditEntries.length > 50 && (
-                    <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 text-center border-t border-gray-200 dark:border-gray-700">
-                      {`${t('ai.showingOf', lang)} ${filteredAuditEntries.length} ${t('common.entries', lang)}.`} {t('ai.exportCsv', lang)}.
-                    </div>
-                  )}
-                </div>
-              )}
+              <DataTable<any>
+                columns={[
+                  { key: 'model', header: t('ai.thModel', lang), render: e => <span className="font-semibold text-gray-700 dark:text-gray-300">{humanizeName(e.modelName || e.model_name || '') || '--'}</span> },
+                  { key: 'action', header: t('ai.thAction', lang), render: e => <span className="text-gray-600 dark:text-gray-400 truncate max-w-[180px] block">{humanizeName(e.action || e.inputSummary || e.input_summary || '') || '--'}</span> },
+                  { key: 'target', header: t('ai.thTarget', lang), render: e => <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400 text-[10px]">{humanizeName(e.targetType || e.target_type || '') || '--'}</span> },
+                  { key: 'status', header: t('ai.thStatus', lang), render: e => <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${(e.status || '').toLowerCase() === 'success' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : (e.status || '').toLowerCase() === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>{humanizeName(e.status || '') || '--'}</span> },
+                  { key: 'latency', header: t('ai.thLatency', lang), render: e => <span className="font-mono text-gray-600 dark:text-gray-400">{e.executionTimeMs != null ? `${e.executionTimeMs}ms` : e.execution_time_ms != null ? `${e.execution_time_ms}ms` : '--'}</span> },
+                  { key: 'ts', header: t('ai.thTimestamp', lang), render: e => { const ts = e.createdAt || e.created_at || ''; const fmtTs = ts ? (() => { try { const d = new Date(ts); return isNaN(d.getTime()) ? ts : d.toLocaleDateString(lang || 'en-GB', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) } catch { return ts } })() : '--'; return <span className="text-gray-500 dark:text-gray-400">{fmtTs}</span> } },
+                ]}
+                rows={filteredAuditEntries.slice(0, 50)}
+                rowKey={e => String(e.id || e.created_at || e.createdAt || '')}
+                loading={auditLoading}
+                emptyMessage={t('ai.noAuditEntries', lang)}
+                className="rounded-xl border border-gray-200 dark:border-gray-700"
+              />
             </div>
           )}
 

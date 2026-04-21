@@ -4,15 +4,38 @@
  * Mirror of the server's AegisEventMap so frontend subscribers get the
  * same compile-time guarantees the backend has. Used by useEventStream
  * and the hazard/risk hooks to subscribe to live AI predictions.
+ *
+ * Two tiers of channels coexist here:
+ *   - "Spine" channels   -- emitted by the typed event bus / subscribers
+ *                           (hazard:predicted, risk:updated, alert:new, ...)
+ *   - "Legacy" channels  -- rich io.emit() payloads from existing routes
+ *                           (distress:new_alert, incident:alert, ...).
+ *                           Typed here so every consumer can use the same
+ *                           hook abstraction; will fold into the spine over
+ *                           time without touching consumers.
  */
 import type { Socket } from 'socket.io-client'
 
 export const AegisChannels = {
+  // Spine
   HAZARD_PREDICTED: 'hazard:predicted',
   RISK_UPDATED: 'risk:updated',
   ALERT_NEW: 'alert:new',
   INCIDENT_ESCALATED: 'incident:escalated',
   REPORT_CREATED: 'report:created',
+  // Legacy rich broadcasts (typed for the migration)
+  REPORT_NEW: 'report:new',
+  REPORT_UPDATED: 'report:updated',
+  REPORT_BULK_UPDATED: 'report:bulk-updated',
+  INCIDENT_ALERT: 'incident:alert',
+  INCIDENT_ALERT_PRIORITY: 'incident:alert:priority',
+  INCIDENT_PREDICTIONS_UPDATED: 'incident:predictions_updated',
+  DISTRESS_NEW_ALERT: 'distress:new_alert',
+  DISTRESS_CANCELLED: 'distress:cancelled',
+  DISTRESS_STATUS_CHANGED: 'distress:status_changed',
+  DISTRESS_LOCATION: 'distress:location',
+  DISTRESS_ACKNOWLEDGED: 'distress:acknowledged',
+  DISTRESS_RESOLVED: 'distress:resolved',
 } as const
 
 export type AegisChannel = typeof AegisChannels[keyof typeof AegisChannels]
@@ -61,12 +84,73 @@ export interface ReportCreatedEvent {
   correlationId?: string
 }
 
+/* ---------- Legacy rich broadcast payloads (typed loosely on purpose) ---------- */
+
+export interface ReportNewEvent {
+  id?: string
+  reportId?: string
+  hazardType?: string
+  severity?: string
+  status?: string
+  latitude?: number
+  longitude?: number
+  description?: string
+  reporterId?: string
+  createdAt?: string
+  [k: string]: unknown
+}
+
+export interface ReportUpdatedEvent {
+  id?: string
+  status?: string
+  [k: string]: unknown
+}
+
+export interface ReportBulkUpdatedEvent {
+  reportIds?: string[]
+  status?: string
+  [k: string]: unknown
+}
+
+export interface IncidentAlertEvent {
+  incidentType?: string
+  riskLevel?: string
+  title?: string
+  description?: string
+  timestamp?: string
+  [k: string]: unknown
+}
+
+export interface DistressEvent {
+  id?: string
+  userId?: string
+  status?: string
+  latitude?: number
+  longitude?: number
+  timestamp?: string
+  [k: string]: unknown
+}
+
 export interface AegisChannelMap {
+  // Spine
   [AegisChannels.HAZARD_PREDICTED]: HazardPredictedEvent
   [AegisChannels.RISK_UPDATED]: RiskUpdatedEvent
   [AegisChannels.ALERT_NEW]: AlertNewEvent
   [AegisChannels.INCIDENT_ESCALATED]: IncidentEscalatedEvent
   [AegisChannels.REPORT_CREATED]: ReportCreatedEvent
+  // Legacy
+  [AegisChannels.REPORT_NEW]: ReportNewEvent
+  [AegisChannels.REPORT_UPDATED]: ReportUpdatedEvent
+  [AegisChannels.REPORT_BULK_UPDATED]: ReportBulkUpdatedEvent
+  [AegisChannels.INCIDENT_ALERT]: IncidentAlertEvent
+  [AegisChannels.INCIDENT_ALERT_PRIORITY]: IncidentAlertEvent
+  [AegisChannels.INCIDENT_PREDICTIONS_UPDATED]: Record<string, unknown>
+  [AegisChannels.DISTRESS_NEW_ALERT]: DistressEvent
+  [AegisChannels.DISTRESS_CANCELLED]: DistressEvent
+  [AegisChannels.DISTRESS_STATUS_CHANGED]: DistressEvent
+  [AegisChannels.DISTRESS_LOCATION]: DistressEvent
+  [AegisChannels.DISTRESS_ACKNOWLEDGED]: DistressEvent
+  [AegisChannels.DISTRESS_RESOLVED]: DistressEvent
 }
 
 /** Strongly-typed subscribe helper. Returns an unsubscribe function. */
