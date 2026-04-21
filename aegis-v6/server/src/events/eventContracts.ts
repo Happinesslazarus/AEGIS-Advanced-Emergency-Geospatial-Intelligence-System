@@ -25,6 +25,28 @@ export interface ReportCreatedPayload {
   severity?: AegisSeverity
 }
 
+export interface ReportUpdatedPayload {
+  reportId: string
+  updatedBy?: string
+  changedFields: string[]
+  previousStatus?: string
+  newStatus?: string
+}
+
+export interface ReportAssignedPayload {
+  reportId: string
+  assigneeId: string
+  assignedBy?: string
+  teamId?: string
+}
+
+export interface ReportResolvedPayload {
+  reportId: string
+  resolvedBy?: string
+  resolution: string
+  durationMs?: number
+}
+
 export interface SosActivatedPayload {
   sosId: string
   userId: string
@@ -83,6 +105,26 @@ export interface AlertCreatedPayload {
   expiresAt?: string
 }
 
+export interface AlertBroadcastPayload {
+  alertId: string
+  channels: ('socket' | 'push' | 'email' | 'sms' | 'telegram')[]
+  audienceSize?: number
+  affectedRegionId?: string
+}
+
+export interface AlertAcknowledgedPayload {
+  alertId: string
+  acknowledgedBy: string
+  acknowledgedAt: string
+  note?: string
+}
+
+export interface AlertExpiredPayload {
+  alertId: string
+  expiredAt: string
+  reason?: 'ttl' | 'manual' | 'superseded'
+}
+
 export interface IncidentEscalatedPayload {
   incidentId: string
   fromSeverity: AegisSeverity
@@ -112,12 +154,18 @@ export interface SystemHealthChangedPayload {
 
 export interface AegisEventMap {
   [AegisEventNames.REPORT_CREATED]: ReportCreatedPayload
+  [AegisEventNames.REPORT_UPDATED]: ReportUpdatedPayload
+  [AegisEventNames.REPORT_ASSIGNED]: ReportAssignedPayload
+  [AegisEventNames.REPORT_RESOLVED]: ReportResolvedPayload
   [AegisEventNames.SOS_ACTIVATED]: SosActivatedPayload
   [AegisEventNames.SENSOR_READING_INGESTED]: SensorReadingIngestedPayload
   [AegisEventNames.HAZARD_PREDICTED]: HazardPredictedPayload
   [AegisEventNames.RISK_UPDATED]: RiskUpdatedPayload
   [AegisEventNames.CASCADE_TRIGGERED]: CascadeTriggeredPayload
   [AegisEventNames.ALERT_CREATED]: AlertCreatedPayload
+  [AegisEventNames.ALERT_BROADCAST]: AlertBroadcastPayload
+  [AegisEventNames.ALERT_ACKNOWLEDGED]: AlertAcknowledgedPayload
+  [AegisEventNames.ALERT_EXPIRED]: AlertExpiredPayload
   [AegisEventNames.INCIDENT_ESCALATED]: IncidentEscalatedPayload
   [AegisEventNames.RESOURCE_DISPATCHED]: ResourceDispatchedPayload
   [AegisEventNames.SYSTEM_HEALTH_CHANGED]: SystemHealthChangedPayload

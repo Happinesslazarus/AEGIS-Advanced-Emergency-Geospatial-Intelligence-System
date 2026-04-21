@@ -15,6 +15,9 @@
 export const AegisEventNames = {
   // Citizen / ingest
   REPORT_CREATED: 'report.created',
+  REPORT_UPDATED: 'report.updated',
+  REPORT_ASSIGNED: 'report.assigned',
+  REPORT_RESOLVED: 'report.resolved',
   SOS_ACTIVATED: 'sos.activated',
   SENSOR_READING_INGESTED: 'sensor.reading.ingested',
 
@@ -25,6 +28,9 @@ export const AegisEventNames = {
 
   // Operator / response
   ALERT_CREATED: 'alert.created',
+  ALERT_BROADCAST: 'alert.broadcast',
+  ALERT_ACKNOWLEDGED: 'alert.acknowledged',
+  ALERT_EXPIRED: 'alert.expired',
   INCIDENT_ESCALATED: 'incident.escalated',
   RESOURCE_DISPATCHED: 'resource.dispatched',
 
