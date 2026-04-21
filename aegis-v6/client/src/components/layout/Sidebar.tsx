@@ -62,10 +62,10 @@ interface SidebarItemConfig extends Omit<SidebarItem, 'label'> {
  * color             Lucide icon colour class; overrides the default gray when active.
  */
 const NAV_ITEM_CONFIG: SidebarItemConfig[] = [
-  { key: 'home',       labelKey: 'layout.sidebar.home',             icon: Home,          path: '/citizen/dashboard',              guestAccess: false, citizenOnly: true, color: 'text-indigo-500' },
+  { key: 'home',       labelKey: 'layout.sidebar.home',             icon: Sparkles,      path: '/citizen/dashboard',              guestAccess: false, citizenOnly: true, color: 'text-indigo-500' },
   { key: 'map',        labelKey: 'map.title',                       icon: MapPin,        path: '/citizen',                        guestAccess: true,  color: 'text-blue-500' },
   { key: 'reports',    labelKey: 'reports.title',                   icon: FileText,      path: '/citizen?tab=reports',            guestAccess: true,  color: 'text-orange-500' },
-  { key: 'shelters',   labelKey: 'citizenPage.tab.safeZones',       icon: Heart,         path: '/citizen?tab=shelters',           guestAccess: true,  color: 'text-green-500' },
+  { key: 'shelters',   labelKey: 'citizenPage.tab.safeZones',       icon: Home,          path: '/citizen?tab=shelters',           guestAccess: true,  color: 'text-green-500' },
   { key: 'alerts',     labelKey: 'citizen.action.alerts',           icon: Bell,          path: '/alerts',                         guestAccess: true,  color: 'text-red-500' },
   { key: 'community',  labelKey: 'layout.sidebar.communitySupport', icon: Users,         path: '/citizen?tab=community',          guestAccess: true,  color: 'text-teal-500' },
   { key: 'risk',       labelKey: 'risk.title',                      icon: Activity,      path: '/citizen/dashboard?tab=risk',     guestAccess: false, citizenOnly: true, color: 'text-rose-500' },
