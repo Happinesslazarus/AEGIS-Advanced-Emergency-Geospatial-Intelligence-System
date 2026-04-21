@@ -136,10 +136,10 @@ export default function ErrorPage({
             tabIndex={-1}
             className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 outline-none"
           >
-            {t('error.pageTitle', lang)}
+            {'Something went wrong'}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1 max-w-sm mx-auto">
-            {t('error.pageMessage', lang)}
+            {'An unexpected error occurred. Our team has been notified and is working to resolve it.'}
           </p>
 
           {/* Error message -- translated to plain language */}
@@ -165,7 +165,7 @@ export default function ErrorPage({
           {correlationId && (
             <div className="flex items-center justify-center gap-2 mb-6">
               <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400 select-all bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-lg">
-                {t('error.correlationId', lang)}: {correlationId}
+                {'Reference'}: {correlationId}
               </span>
               <button
                 onClick={handleCopyRef}
@@ -183,7 +183,7 @@ export default function ErrorPage({
           {/* Retry exhausted warning */}
           {retriesExhausted && (
             <div className="mb-4 px-4 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-300">
-              {t('error.retryCountExhausted', lang)}
+              {'Multiple retries failed. Please refresh the page or contact support.'}
             </div>
           )}
 
@@ -197,8 +197,8 @@ export default function ErrorPage({
               >
                 <RefreshCw className={`w-4 h-4 ${isCooling ? 'animate-spin' : ''}`} aria-hidden="true" />
                 {isCooling
-                  ? t('error.retryIn', lang).replace('{seconds}', String(cooldownSeconds))
-                  : t('error.tryAgain', lang)}
+                  ? 'Retrying in {seconds}s...'.replace('{seconds}', String(cooldownSeconds))
+                  : 'Try Again'}
               </button>
             ) : (
               <button
@@ -206,7 +206,7 @@ export default function ErrorPage({
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-aegis-600 hover:bg-aegis-700 text-white text-sm font-semibold shadow-lg shadow-aegis-600/20 transition-colors focus:outline-none focus:ring-2 focus:ring-aegis-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
               >
                 <RefreshCw className="w-4 h-4" aria-hidden="true" />
-                {t('shared.error.refresh', lang)}
+                {'Refresh Page'}
               </button>
             )}
 
@@ -215,7 +215,7 @@ export default function ErrorPage({
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-aegis-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
             >
               <Bug className="w-4 h-4" aria-hidden="true" />
-              {t('error.reportIssue', lang)}
+              {'Report issue'}
             </button>
 
             <a
@@ -223,7 +223,7 @@ export default function ErrorPage({
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-aegis-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
             >
               <Home className="w-4 h-4" aria-hidden="true" />
-              {t('error.goHome', lang)}
+              {'Go Home'}
             </a>
           </div>
 
@@ -231,12 +231,12 @@ export default function ErrorPage({
           <div className="rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-950/20 p-4 text-left max-w-sm mx-auto">
             <h3 className="text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-2 mb-2">
               <PhoneIcon className="w-4 h-4" aria-hidden="true" />
-              {t('emergency.contacts', lang)}
+              {'Emergency Contacts'}
             </h3>
             <ul className="text-xs text-red-600 dark:text-red-300 space-y-1">
-              <li><strong>{t('emergency.services', lang)}:</strong> 999 / 112</li>
-              <li><strong>{t('emergency.floodHelpline', lang)}:</strong> 0345 988 1188</li>
-              <li><strong>{t('emergency.nonEmergency', lang)}:</strong> 101</li>
+              <li><strong>{'Emergency Services'}:</strong> 999 / 112</li>
+              <li><strong>{'Flood Helpline'}:</strong> 0345 988 1188</li>
+              <li><strong>{'Non-Emergency'}:</strong> 101</li>
             </ul>
           </div>
         </div>

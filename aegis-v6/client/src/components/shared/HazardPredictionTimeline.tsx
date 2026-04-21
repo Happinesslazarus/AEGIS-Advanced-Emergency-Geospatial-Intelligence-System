@@ -253,10 +253,10 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
         </div>
         <div className="flex-1 text-left">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white">
-            {t(`hazardPred.${hazardType}`, lang) || config.label} {t('hazardPred.prediction', lang)}
+            {config.label} {'Prediction'}
           </h3>
           <p className="text-[10px] text-gray-500 dark:text-gray-300">
-            {predictions.length} {config.regionLabel.toLowerCase()} {t('hazardPred.monitored', lang)}
+            {predictions.length} {config.regionLabel.toLowerCase()} {'monitored'}
             {stats.highestRisk !== 'LOW' && stats.highestRisk !== 'MINIMAL' && (
               <span className="ml-1.5 font-bold" style={{ color: riskColour(stats.highestRisk) }}>
                 -- {stats.highestRisk}
@@ -291,7 +291,7 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
               <div className="flex-1" />
               <span className="text-sm font-mono font-bold text-gray-900 dark:text-white flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5" />
-                {selectedHour === 0 ? t('hazardPred.now', lang) : `+${selectedHour}h`}
+                {selectedHour === 0 ? 'NOW' : `+${selectedHour}h`}
               </span>
             </div>
 
@@ -341,7 +341,7 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
             <div className="text-center">
               <div className="text-lg font-bold text-gray-900 dark:text-white">{stats.criticalCount}</div>
               <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5">
-                <AlertTriangle className="w-2.5 h-2.5" /> {t('hazardPred.atRisk', lang)}
+                <AlertTriangle className="w-2.5 h-2.5" /> {'At Risk'}
               </div>
             </div>
             <div className="text-center">
@@ -353,12 +353,12 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
             <div className="text-center">
               <div className="text-lg font-bold text-gray-900 dark:text-white">{stats.avgProbability}%</div>
               <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5">
-                <BarChart3 className="w-2.5 h-2.5" /> {t('hazardPred.probability', lang)}
+                <BarChart3 className="w-2.5 h-2.5" /> {'Probability'}
               </div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-gray-900 dark:text-white">{stats.avgConfidence}%</div>
-              <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('hazardPred.confidence', lang)}</div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300">{'Confidence'}</div>
             </div>
           </div>
 
@@ -409,15 +409,15 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
           {!loading && predictions.length === 0 && (
             <div className="px-4 py-6 text-center">
               <Icon className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-              <p className="text-xs text-gray-400 dark:text-gray-500">{t('hazardPred.noPredictions', lang)}</p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-1">{t('hazardPred.runPrediction', lang)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{'No predictions available'}</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-1">{'Run a prediction to see results here'}</p>
             </div>
           )}
 
           {loading && (
             <div className="px-4 py-4 text-center text-xs text-gray-400 dark:text-gray-300">
               <RefreshCw className="w-4 h-4 mx-auto mb-1 animate-spin" />
-              {t('hazardPred.loading', lang)}
+              {'Loading predictions...'}
             </div>
           )}
 
@@ -425,7 +425,7 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
           {lastRefresh && !loading && (
             <div className="px-4 py-1.5 border-t border-gray-100 dark:border-gray-700/30">
               <p className="text-[8px] text-gray-400 dark:text-gray-500 text-right">
-                {t('hazardPred.updated', lang)} {lastRefresh.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                {'Updated'} {lastRefresh.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                 {rawRecords.length > 0 && ` -- ${rawRecords[0]?.model_version || ''}`}
               </p>
             </div>

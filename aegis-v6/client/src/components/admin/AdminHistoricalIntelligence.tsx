@@ -279,8 +279,8 @@ export default function AdminHistoricalIntelligence() {
                 <History className="w-6 h-6 text-cyan-300" />
               </div>
               <div>
-                <h2 className="text-white font-bold text-xl tracking-tight">{t('historical.title', lang)}</h2>
-                <p className="text-gray-300 text-sm">{t('historical.subtitle', lang)} &middot; {loc.name || t('historical.allRegions', lang)} &middot; {getYearRange(HISTORICAL_EVENTS)}</p>
+                <h2 className="text-white font-bold text-xl tracking-tight">{'Historical Intelligence'}</h2>
+                <p className="text-gray-300 text-sm">{'Event archive, flood heatmap & seasonal analytics'} &middot; {loc.name || 'All Regions'} &middot; {getYearRange(HISTORICAL_EVENTS)}</p>
               </div>
               {/* Data source indicator */}
               <span
@@ -289,28 +289,28 @@ export default function AdminHistoricalIntelligence() {
                   dataSource === 'database' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
                   'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                 }`}
-                title={dataSource === 'demo' ? t('historical.demoTooltip', lang) : dataSource === 'database' ? t('historical.liveTooltip', lang) : ''}
+                title={dataSource === 'demo' ? 'No historical events in database yet. Showing sample data for demonstration purposes.' : dataSource === 'database' ? 'Showing real events from the database' : ''}
               >
-                {dataSource === 'loading' ? t('common.loading', lang) : dataSource === 'database' ? t('historical.liveData', lang) : t('historical.sampleData', lang)}
+                {dataSource === 'loading' ? 'Loading...' : dataSource === 'database' ? 'Live Data' : 'Sample Data'}
               </span>
             </div>
             <button
               onClick={() => exportCSV(HISTORICAL_EVENTS)}
               className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-gray-300 dark:text-gray-300 hover:text-white transition-all"
             >
-              <Download className="w-3.5 h-3.5" /> {t('common.exportAllCSV', lang)}
+              <Download className="w-3.5 h-3.5" /> {'Export All CSV'}
             </button>
           </div>
 
           {/* Stat cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { label: t('historical.totalEvents', lang), value: HISTORICAL_EVENTS.length, icon: FileText, color: 'text-cyan-300', accent: 'from-cyan-500/10 to-cyan-600/5' },
-              { label: t('historical.highSeverity', lang), value: stats.highCount, icon: AlertTriangle, color: 'text-red-300', accent: 'from-red-500/10 to-red-600/5' },
-              { label: t('historical.peopleAffected', lang), value: stats.totalAffected.toLocaleString(), icon: MapPin, color: 'text-amber-300', accent: 'from-amber-500/10 to-amber-600/5' },
-              { label: t('historical.totalDamage', lang), value: formatDamage(stats.totalDamage), icon: TrendingDown, color: 'text-emerald-300', accent: 'from-emerald-500/10 to-emerald-600/5' },
-              { label: t('historical.avgAffected', lang), value: stats.avgAffected.toLocaleString(), icon: TrendingUp, color: 'text-blue-300', accent: 'from-blue-500/10 to-blue-600/5' },
-              { label: t('historical.eventTypes', lang), value: stats.types.length, icon: BarChart3, color: 'text-purple-300', accent: 'from-purple-500/10 to-purple-600/5' },
+              { label: 'Total Events', value: HISTORICAL_EVENTS.length, icon: FileText, color: 'text-cyan-300', accent: 'from-cyan-500/10 to-cyan-600/5' },
+              { label: 'High Severity', value: stats.highCount, icon: AlertTriangle, color: 'text-red-300', accent: 'from-red-500/10 to-red-600/5' },
+              { label: 'People Affected', value: stats.totalAffected.toLocaleString(), icon: MapPin, color: 'text-amber-300', accent: 'from-amber-500/10 to-amber-600/5' },
+              { label: 'Total Damage', value: formatDamage(stats.totalDamage), icon: TrendingDown, color: 'text-emerald-300', accent: 'from-emerald-500/10 to-emerald-600/5' },
+              { label: 'Avg Affected', value: stats.avgAffected.toLocaleString(), icon: TrendingUp, color: 'text-blue-300', accent: 'from-blue-500/10 to-blue-600/5' },
+              { label: 'Event Types', value: stats.types.length, icon: BarChart3, color: 'text-purple-300', accent: 'from-purple-500/10 to-purple-600/5' },
             ].map((s, i) => (
               <div key={i} className={`bg-gradient-to-br ${s.accent} rounded-xl p-3 border border-white/5 hover:border-white/10 transition-colors`}>
                 <div className="flex items-center gap-2 mb-1">
@@ -324,7 +324,7 @@ export default function AdminHistoricalIntelligence() {
 
           {/* Event type distribution */}
           <div className="mt-4 flex items-center gap-3 flex-wrap">
-            <span className="text-[10px] text-gray-300 uppercase tracking-wider font-semibold">{t('historical.distribution', lang)}:</span>
+            <span className="text-[10px] text-gray-300 uppercase tracking-wider font-semibold">{'Distribution'}:</span>
             {typeDist.map(([type, count]) => {
               const pct = Math.round((count / HISTORICAL_EVENTS.length) * 100)
               return (
@@ -355,15 +355,15 @@ export default function AdminHistoricalIntelligence() {
               <Map className="w-4.5 h-4.5 text-red-600" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-gray-900 dark:text-white">{t('historical.floodRiskHeatmap', lang)}</h3>
-              <p className="text-[10px] text-gray-500 dark:text-gray-300">{loc.name || t('historical.activeRegion', lang)} &middot; {t('historical.heatmapSubtitle', lang)} &middot; {HISTORICAL_EVENTS.length} {t('historical.recorded', lang)}</p>
+              <h3 className="font-bold text-sm text-gray-900 dark:text-white">{'Flood Risk Heatmap'}</h3>
+              <p className="text-[10px] text-gray-500 dark:text-gray-300">{loc.name || 'Active Region'} &middot; {'Historical intensity from past events'} &middot; {HISTORICAL_EVENTS.length} {'recorded'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex gap-1.5">
               {['High', 'Medium', 'Low'].map(r => (
                 <span key={r} className={`text-[10px] px-2 py-0.5 rounded-full font-bold text-white ${r === 'High' ? 'bg-red-600' : r === 'Medium' ? 'bg-amber-500' : 'bg-blue-500'}`}>
-                  {t(`common.${r.toLowerCase()}`, lang)}
+                  {r}
                 </span>
               ))}
             </div>
@@ -394,9 +394,9 @@ export default function AdminHistoricalIntelligence() {
               <p className="font-bold text-xs truncate mb-0.5">{z.area}</p>
               <div className="flex items-baseline gap-1">
                 <p className="text-2xl font-extrabold">{z.risk}%</p>
-                <span className="text-[10px] opacity-70">{t('common.risk', lang).toLowerCase()}</span>
+                <span className="text-[10px] opacity-70">{'Risk'.toLowerCase()}</span>
               </div>
-              <p className="text-[10px] opacity-80 mt-0.5">{z.events} {t('historical.historicalEvents', lang)}</p>
+              <p className="text-[10px] opacity-80 mt-0.5">{z.events} {'historical events'}</p>
             </div>
           ))}
         </div>
@@ -405,14 +405,14 @@ export default function AdminHistoricalIntelligence() {
         <div className="px-4 pb-3 flex items-center justify-between">
           <p className="text-[10px] text-gray-400 dark:text-gray-300 italic">
             {heatmapError
-              ? t('historical.heatmapFallback', lang) || 'Showing local flood zone data (live heatmap unavailable)'
+              ? 'Heatmap Fallback'
               : heatmapData.length > 0
-                ? `${heatmapData.length} ${t('historical.historicalEvents', lang)}`
-                : `${t('common.risk', lang)} ${t('map.floodZone', lang).toLowerCase()}`}
+                ? `${heatmapData.length} ${'historical events'}`
+                : `${'Risk'} ${'Flood risk zone'.toLowerCase()}`}
           </p>
           {zoneCards.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-gray-400 dark:text-gray-300">{t('historical.avgRisk', lang)}:</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-300">{'Avg Risk'}:</span>
               <span className="text-xs font-bold text-red-500">
                 {Math.round(zoneCards.reduce((s, z) => s + z.risk, 0) / zoneCards.length)}%
               </span>
@@ -430,13 +430,13 @@ export default function AdminHistoricalIntelligence() {
                 <Clock className="w-4.5 h-4.5 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-gray-900 dark:text-white">{t('historical.seasonalTrends', lang)}</h3>
-                <p className="text-[10px] text-gray-500 dark:text-gray-300">{t('historical.seasonalSubtitle', lang)}</p>
+                <h3 className="font-bold text-sm text-gray-900 dark:text-white">{'Seasonal Flood Trends'}</h3>
+                <p className="text-[10px] text-gray-500 dark:text-gray-300">{'Monthly flood frequency, rainfall, and severity analysis'}</p>
               </div>
             </div>
             {/* Metric toggle */}
             <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
-              {([['floods', t('historical.floods', lang)], ['rainfall', t('weather.rainfall', lang)], ['severity', t('common.severity', lang)]] as const).map(([key, label]) => (
+              {([['floods', 'Floods'], ['rainfall', 'Rainfall'], ['severity', 'Severity']] as const).map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => setSeasonalMetric(key)}
@@ -456,22 +456,22 @@ export default function AdminHistoricalIntelligence() {
           <div className="flex items-center gap-6 mt-3 flex-wrap">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-blue-500" />
-              <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('historical.totalFloods', lang)}:</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-300">{'Total Floods'}:</span>
               <span className="text-xs font-bold text-gray-900 dark:text-white">{seasonalStats.totalFloods}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-cyan-500" />
-              <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('historical.totalRainfall', lang)}:</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-300">{'Total Rainfall'}:</span>
               <span className="text-xs font-bold text-gray-900 dark:text-white">{seasonalStats.totalRainfall}mm</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('historical.peakMonth', lang)}:</span>
-              <span className="text-xs font-bold text-red-600">{seasonalStats.peakMonth.month} ({seasonalStats.peakMonth.floodCount} {t('historical.floods', lang).toLowerCase()})</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-300">{'Peak Month'}:</span>
+              <span className="text-xs font-bold text-red-600">{seasonalStats.peakMonth.month} ({seasonalStats.peakMonth.floodCount} {'Floods'.toLowerCase()})</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-amber-500" />
-              <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('historical.avgSeverity', lang)}:</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-300">{'Avg Severity'}:</span>
               <span className="text-xs font-bold text-amber-600">{seasonalStats.avgSeverity.toFixed(1)}/5</span>
             </div>
           </div>
@@ -503,7 +503,7 @@ export default function AdminHistoricalIntelligence() {
                   pct = maxFlood > 0 ? (count / maxFlood) * 100 : 10
                   const risk = count >= 4 ? 'High' : count >= 2 ? 'Medium' : 'Low'
                   barColor = risk === 'High' ? 'from-red-500 to-red-400' : risk === 'Medium' ? 'from-amber-500 to-amber-400' : 'from-emerald-500 to-emerald-400'
-                  displayValue = `${count} ${t('historical.floods', lang).toLowerCase()}`
+                  displayValue = `${count} ${'Floods'.toLowerCase()}`
                 } else if (seasonalMetric === 'rainfall') {
                   pct = maxRain > 0 ? (s.rainfallMm / maxRain) * 100 : 10
                   barColor = s.rainfallMm >= 80 ? 'from-blue-600 to-blue-500' : s.rainfallMm >= 65 ? 'from-blue-500 to-cyan-500' : 'from-cyan-400 to-cyan-300'
@@ -528,9 +528,9 @@ export default function AdminHistoricalIntelligence() {
                       <div className="absolute -top-24 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg shadow-xl px-3 py-2 z-20 whitespace-nowrap pointer-events-none">
                         <p className="text-[10px] font-bold border-b border-gray-700 dark:border-gray-600 pb-1 mb-1">{s.month}</p>
                         <div className="space-y-0.5 text-[9px]">
-                          <p><span className="text-blue-300">{t('historical.floods', lang)}:</span> {s.floodCount}</p>
-                          <p><span className="text-cyan-300">{t('weather.rainfall', lang)}:</span> {s.rainfallMm}mm</p>
-                          <p><span className="text-amber-300">{t('common.severity', lang)}:</span> {s.avgSeverity > 0 ? s.avgSeverity.toFixed(1) : '--'}</p>
+                          <p><span className="text-blue-300">{'Floods'}:</span> {s.floodCount}</p>
+                          <p><span className="text-cyan-300">{'Rainfall'}:</span> {s.rainfallMm}mm</p>
+                          <p><span className="text-amber-300">{'Severity'}:</span> {s.avgSeverity > 0 ? s.avgSeverity.toFixed(1) : '--'}</p>
                         </div>
                         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-700" />
                       </div>
@@ -593,10 +593,10 @@ export default function AdminHistoricalIntelligence() {
           <div className="flex items-center gap-5 mt-4 flex-wrap">
             {seasonalMetric === 'floods' && (
               <>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-red-500" />{t('common.high', lang)} (&ge;4)</span>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-amber-500" />{t('common.medium', lang)} (2-3)</span>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-emerald-500" />{t('common.low', lang)} (0-1)</span>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-2 h-2 rounded-full bg-cyan-400 border border-gray-300" />{t('weather.rainfall', lang)} (mm)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-red-500" />{'High'} (&ge;4)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-amber-500" />{'Medium'} (2-3)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-emerald-500" />{'Low'} (0-1)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-2 h-2 rounded-full bg-cyan-400 border border-gray-300" />{'Rainfall'} (mm)</span>
               </>
             )}
             {seasonalMetric === 'rainfall' && (
@@ -627,8 +627,8 @@ export default function AdminHistoricalIntelligence() {
                 <FileText className="w-4.5 h-4.5 text-indigo-600" />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-gray-900 dark:text-white">{t('historical.pastEventsBoard', lang)}</h3>
-                <p className="text-[10px] text-gray-500 dark:text-gray-300">{sortedEvents.length} {t('common.of', lang)} {HISTORICAL_EVENTS.length} {t('history.events', lang).toLowerCase()} &middot; {t('common.page', lang)} {page + 1} {t('common.of', lang)} {totalPages || 1}</p>
+                <h3 className="font-bold text-sm text-gray-900 dark:text-white">{'Past Events Board'}</h3>
+                <p className="text-[10px] text-gray-500 dark:text-gray-300">{sortedEvents.length} {'of'} {HISTORICAL_EVENTS.length} {'Past Events'.toLowerCase()} &middot; {'Page'} {page + 1} {'of'} {totalPages || 1}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -638,20 +638,20 @@ export default function AdminHistoricalIntelligence() {
                   onClick={() => setEventsView('list')}
                   className={`px-2.5 py-1.5 text-[10px] font-semibold rounded-md transition-all ${eventsView === 'list' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-300'}`}
                 >
-                  {t('common.list', lang)}
+                  {'List'}
                 </button>
                 <button
                   onClick={() => setEventsView('timeline')}
                   className={`px-2.5 py-1.5 text-[10px] font-semibold rounded-md transition-all ${eventsView === 'timeline' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-300'}`}
                 >
-                  {t('admin.historical.timeline', lang)}
+                  {'Timeline'}
                 </button>
               </div>
               <button
                 onClick={() => exportCSV(sortedEvents)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-colors"
               >
-                <Download className="w-3 h-3" /> {t('common.csv', lang)}
+                <Download className="w-3 h-3" /> {'CSV'}
               </button>
             </div>
           </div>
@@ -663,7 +663,7 @@ export default function AdminHistoricalIntelligence() {
               <input
                 value={histSearch}
                 onChange={e => setHistSearch(e.target.value)}
-                placeholder={t('historical.searchPlaceholder', lang)}
+                placeholder={'Search events by location, type, description...'}
                 className="w-full pl-9 pr-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-aegis-500 outline-none"
               />
               {histSearch && (
@@ -673,28 +673,28 @@ export default function AdminHistoricalIntelligence() {
               )}
             </div>
             <select value={histFilter} onChange={e => setHistFilter(e.target.value as any)} className="text-xs px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <option value="all">{t('historical.allSeverity', lang)}</option>
-              <option value="High">{t('common.high', lang)}</option>
-              <option value="Medium">{t('common.medium', lang)}</option>
-              <option value="Low">{t('common.low', lang)}</option>
+              <option value="all">{'All Severity'}</option>
+              <option value="High">{'High'}</option>
+              <option value="Medium">{'Medium'}</option>
+              <option value="Low">{'Low'}</option>
             </select>
             <select value={histType} onChange={e => setHistType(e.target.value as any)} className="text-xs px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <option value="all">{t('historical.allTypes', lang)}</option>
-              <option value="Flood">{t('common.flood', lang)}</option>
-              <option value="Storm">{t('common.storm', lang)}</option>
+              <option value="all">{'All Types'}</option>
+              <option value="Flood">{'Flood'}</option>
+              <option value="Storm">{'Storm'}</option>
             </select>
             <select value={histSort} onChange={e => setHistSort(e.target.value as any)} className="text-xs px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <option value="date-desc">{t('historical.newestFirst', lang)}</option>
-              <option value="date-asc">{t('historical.oldestFirst', lang)}</option>
-              <option value="severity">{t('common.severity', lang)}</option>
-              <option value="affected">{t('historical.mostAffected', lang)}</option>
+              <option value="date-desc">{'Newest First'}</option>
+              <option value="date-asc">{'Oldest First'}</option>
+              <option value="severity">{'Severity'}</option>
+              <option value="affected">{'Most Affected'}</option>
             </select>
             {(histFilter !== 'all' || histType !== 'all' || histSearch) && (
               <button
                 onClick={() => { setHistFilter('all'); setHistType('all'); setHistSearch('') }}
                 className="flex items-center gap-1 px-2.5 py-2 text-[10px] font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
               >
-                <X className="w-3 h-3" /> {t('common.clear', lang)}
+                <X className="w-3 h-3" /> {'Clear'}
               </button>
             )}
           </div>
@@ -706,8 +706,8 @@ export default function AdminHistoricalIntelligence() {
             {sortedEvents.length === 0 ? (
               <div className="text-center py-14">
                 <Search className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-300 font-medium">{t('historical.noEventsMatch', lang)}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{t('historical.tryAdjustingFilters', lang)}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-300 font-medium">{'No events match your filters'}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{'Try adjusting search or filter criteria'}</p>
               </div>
             ) : (
               <>
@@ -741,7 +741,7 @@ export default function AdminHistoricalIntelligence() {
                             {e.affectedPeople > 0 && (
                               <>
                                 <p className="text-sm font-bold text-red-600">{e.affectedPeople.toLocaleString()}</p>
-                                <p className="text-[10px] text-gray-400 dark:text-gray-300">{t('historical.affected', lang)}</p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-300">{'affected'}</p>
                               </>
                             )}
                             {e.damage && <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{e.damage}</p>}
@@ -755,29 +755,29 @@ export default function AdminHistoricalIntelligence() {
                             <div className="ml-14 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                                 <div>
-                                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{t('common.date', lang)}</p>
+                                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{'Date'}</p>
                                   <p className="text-xs font-bold text-gray-900 dark:text-white">{formatDate(e.date)}</p>
                                 </div>
                                 <div>
-                                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{t('historical.coordinates', lang)}</p>
+                                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{'Coordinates'}</p>
                                   <p className="text-xs font-bold text-gray-900 dark:text-white font-mono">{e.coordinates[0].toFixed(3)}, {e.coordinates[1].toFixed(3)}</p>
                                 </div>
                                 <div>
-                                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{t('historical.impact', lang)}</p>
-                                  <p className="text-xs font-bold text-red-600">{e.affectedPeople.toLocaleString()} {t('common.people', lang)}</p>
+                                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{'Impact'}</p>
+                                  <p className="text-xs font-bold text-red-600">{e.affectedPeople.toLocaleString()} {'people'}</p>
                                 </div>
                                 <div>
-                                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{t('historical.damageCost', lang)}</p>
+                                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{'Damage Cost'}</p>
                                   <p className="text-xs font-bold text-gray-900 dark:text-white">{e.damage}</p>
                                 </div>
                               </div>
                               <div>
-                                <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold mb-1">{t('historical.fullDescription', lang)}</p>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold mb-1">{'Full Description'}</p>
                                 <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{e.description}</p>
                               </div>
                               {/* Severity indicator bar */}
                               <div className="mt-3 flex items-center gap-2">
-                                <span className="text-[10px] text-gray-500 dark:text-gray-300 font-semibold">{t('common.severity', lang)}:</span>
+                                <span className="text-[10px] text-gray-500 dark:text-gray-300 font-semibold">{'Severity'}:</span>
                                 <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full transition-all ${sev === 'High' ? 'bg-red-500 w-full' : sev === 'Medium' ? 'bg-amber-500 w-2/3' : 'bg-emerald-500 w-1/3'}`}
@@ -801,7 +801,7 @@ export default function AdminHistoricalIntelligence() {
                       disabled={page === 0}
                       className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
-                      {t('common.previous', lang)}
+                      {'Previous'}
                     </button>
                     <div className="flex items-center gap-1">
                       {Array.from({ length: totalPages }, (_, i) => (
@@ -823,7 +823,7 @@ export default function AdminHistoricalIntelligence() {
                       disabled={page >= totalPages - 1}
                       className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
-                      {t('common.next', lang)}
+                      {'Next'}
                     </button>
                   </div>
                 )}
@@ -838,7 +838,7 @@ export default function AdminHistoricalIntelligence() {
             {sortedEvents.length === 0 ? (
               <div className="text-center py-14">
                 <Calendar className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-300 font-medium">{t('historical.noEvents', lang)}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-300 font-medium">{'No events to display'}</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -851,7 +851,7 @@ export default function AdminHistoricalIntelligence() {
                       </div>
                       <div className="h-px flex-1 bg-gradient-to-r from-gray-300 dark:from-gray-700 to-transparent" />
                       <span className="text-[10px] text-gray-500 dark:text-gray-300 font-semibold px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-full">
-                        {events.length} {t('historical.event', lang)}{events.length !== 1 ? 's' : ''}
+                        {events.length} {'event'}{events.length !== 1 ? 's' : ''}
                       </span>
                     </div>
 
@@ -881,7 +881,7 @@ export default function AdminHistoricalIntelligence() {
                                     {e.affectedPeople > 0 && (
                                       <div className="flex items-center gap-1.5">
                                         <MapPin className="w-3 h-3 text-red-500" />
-                                        <span className="text-[10px] font-bold text-red-600">{e.affectedPeople.toLocaleString()} {t('historical.affected', lang)}</span>
+                                        <span className="text-[10px] font-bold text-red-600">{e.affectedPeople.toLocaleString()} {'affected'}</span>
                                       </div>
                                     )}
                                     {e.damage && (
@@ -912,12 +912,12 @@ export default function AdminHistoricalIntelligence() {
 
       {showKeyboard && (
         <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('common.shortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">M</kbd> {t('shortcuts.toggleMap', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">V</kbd> {t('shortcuts.listTimeline', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> {t('shortcuts.exportCsv', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('shortcuts.toggleShortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('shortcuts.close', lang)}</span>
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{'Shortcuts'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">M</kbd> {'Toggle Map'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">V</kbd> {'List/Timeline'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> {'Export CSV'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {'Toggle Shortcuts'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{'Esc'}</kbd> {'Close'}</span>
         </div>
       )}
     </div>

@@ -52,10 +52,10 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
   const { socket } = useSharedSocket()
   const lang = useLanguage()
   const triageOptions = [
-    { value: 'critical', label: t('distress.triage.critical', lang), colour: 'bg-red-600 text-white' },
-    { value: 'high', label: t('distress.triage.high', lang), colour: 'bg-orange-500 text-white' },
-    { value: 'medium', label: t('distress.triage.medium', lang), colour: 'bg-amber-500 text-black' },
-    { value: 'low', label: t('distress.triage.low', lang), colour: 'bg-blue-500 text-white' },
+    { value: 'critical', label: 'Critical', colour: 'bg-red-600 text-white' },
+    { value: 'high', label: 'High', colour: 'bg-orange-500 text-white' },
+    { value: 'medium', label: 'Medium', colour: 'bg-amber-500 text-black' },
+    { value: 'low', label: 'Low', colour: 'bg-blue-500 text-white' },
   ]
   const [distressCalls, setDistressCalls] = useState<DistressCall[]>([])
   const [loading, setLoading] = useState(true)
@@ -156,7 +156,7 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
   }
 
   const handleAcknowledge = async (distressId: string) => {
-    if (!socket) { setSocketError(t('distress.socketOffline', lang)); return }
+    if (!socket) { setSocketError('Socket offline -- cannot connect at this time'); return }
     setSocketError(null)
     socket.emit('distress:acknowledge', { distressId, triageLevel: triageValues[distressId] || 'medium' }, (res: any) => {
       if (res?.success) {
@@ -164,21 +164,21 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
           d.id === distressId ? { ...d, status: 'acknowledged', triage_level: triageValues[distressId] || 'medium', acknowledged_by: operatorId } : d
         ))
       } else {
-        setSocketError(res?.error || t('distress.ackFailed', lang))
+        setSocketError(res?.error || 'Acknowledge failed -- please try again')
       }
     })
   }
 
   const handleResolve = async (distressId: string) => {
-    if (!socket) { setSocketError(t('distress.socketOffline', lang)); return }
+    if (!socket) { setSocketError('Socket offline -- cannot connect at this time'); return }
     setSocketError(null)
-    socket.emit('distress:resolve', { distressId, resolution: (resolutions[distressId] || '').trim() || t('distress.resolvedByOperator', lang) }, (res: any) => {
+    socket.emit('distress:resolve', { distressId, resolution: (resolutions[distressId] || '').trim() || 'Resolved by operator' }, (res: any) => {
       if (res?.success) {
         setDistressCalls(prev => prev.filter(d => d.id !== distressId))
         setResolutions(prev => { const n = { ...prev }; delete n[distressId]; return n })
         setSelectedId(null)
       } else {
-        setSocketError(res?.error || t('distress.resolveFailed', lang))
+        setSocketError(res?.error || 'Resolve failed -- please try again')
       }
     })
   }
@@ -199,20 +199,20 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
             <Radio className="w-4 h-4 text-white" />
           </div>
           <div className="text-left">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('distress.beaconMonitor', lang)}</h3>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">{'Distress Beacon Monitor'}</h3>
             <p className="text-[10px] text-gray-400 dark:text-gray-300">
-              {distressCalls.length > 0 ? `${distressCalls.length} ${t('distress.activeBeacons', lang)}` : t('distress.noCalls', lang)}
+              {distressCalls.length > 0 ? `${distressCalls.length} ${'Active Beacons'}` : 'No active distress calls'}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {distressCalls.length > 0 && (
-            <span className="text-xs font-bold text-red-400 animate-pulse">{distressCalls.length} {t('common.active', lang)}</span>
+            <span className="text-xs font-bold text-red-400 animate-pulse">{distressCalls.length} {'Active'}</span>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); setAlarmEnabled(!alarmEnabled) }}
             className="p-1 text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition"
-            title={alarmEnabled ? t('distress.muteAlarm', lang) : t('distress.audioAlarm', lang)}
+            title={alarmEnabled ? 'Mute Alarm' : 'Audio Alarm'}
           >
             {alarmEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
           </button>
@@ -226,19 +226,19 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
             <div className="mx-3 mt-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 flex items-center gap-2">
               <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
               <span className="text-xs text-red-600 dark:text-red-400">{socketError}</span>
-              <button onClick={() => setSocketError(null)} className="ml-auto text-red-400 hover:text-red-600" aria-label={t('common.dismiss', lang)}>x</button>
+              <button onClick={() => setSocketError(null)} className="ml-auto text-red-400 hover:text-red-600" aria-label={'Dismiss'}>x</button>
             </div>
           )}
           {loading && distressCalls.length === 0 ? (
             <div className="px-4 py-6 text-center">
               <Loader2 className="w-6 h-6 text-gray-400 dark:text-gray-300 animate-spin mx-auto mb-2" />
-              <p className="text-xs text-gray-400 dark:text-gray-300">{t('common.loading', lang)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-300">{'Loading...'}</p>
             </div>
           ) : distressCalls.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <Shield className="w-8 h-8 text-green-500/40 mx-auto mb-2" />
-              <p className="text-xs text-gray-400 dark:text-gray-300">{t('distress.noActiveBeacons', lang)}</p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-1">{t('admin.distress.noDistressDesc', lang)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-300">{'No active distress beacons'}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-1">{'SOS signals from citizens will appear here'}</p>
             </div>
           ) : (
             distressCalls.map(dc => {
@@ -260,7 +260,7 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-gray-900 dark:text-white truncate">{dc.citizen_name}</span>
                           {dc.is_vulnerable && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-600 text-white">{t('distress.vulnerable', lang)}</span>
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-600 text-white">{'Vulnerable Person'}</span>
                           )}
                         </div>
                         <p className="text-[10px] text-gray-400 dark:text-gray-300">{formatRelativeTime(dc.created_at, lang)} -- {dc.latitude.toFixed(4)}, {dc.longitude.toFixed(4)}</p>
@@ -292,12 +292,12 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
                         )}
                         <div className="flex items-center gap-1 text-gray-400 dark:text-gray-300">
                           <Clock className="w-3 h-3" />
-                          <span>{t('distress.lastSeen', lang)}: {dc.last_gps_at ? formatRelativeTime(dc.last_gps_at, lang) : t('common.na', lang)}</span>
+                          <span>{'Last Seen'}: {dc.last_gps_at ? formatRelativeTime(dc.last_gps_at, lang) : 'N/A'}</span>
                         </div>
                         {dc.speed != null && dc.speed > 0 && (
                           <div className="flex items-center gap-1 text-gray-400 dark:text-gray-300">
                             <Navigation className="w-3 h-3" />
-                            <span>{(dc.speed * 3.6).toFixed(1)} {t('common.kmh', lang)}</span>
+                            <span>{(dc.speed * 3.6).toFixed(1)} {'km/h'}</span>
                           </div>
                         )}
                       </div>
@@ -311,7 +311,7 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
                       {/* Triage selector (for unacknowledged) */}
                       {!isAcknowledged && (
                         <div>
-                          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-300 mb-1">{t('sos.triage', lang)}</p>
+                          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-300 mb-1">{'Triage'}</p>
                           <div className="flex gap-1.5">
                             {triageOptions.map(opt => (
                               <button
@@ -329,12 +329,12 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
                       {/* Resolution input (for acknowledged) */}
                       {isAcknowledged && (
                         <div>
-                          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-300 mb-1">{t('distress.resolutionNote', lang)}</p>
+                          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-300 mb-1">{'Resolution Note'}</p>
                           <input
                             type="text"
                             value={resolutions[dc.id] || ''}
                             onChange={e => setResolutions(prev => ({ ...prev, [dc.id]: e.target.value }))}
-                            placeholder={t('distress.resolutionPlaceholder', lang)}
+                            placeholder={'e.g., Citizen evacuated safely'}
                             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-aegis-500"
                           />
                         </div>
@@ -347,14 +347,14 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
                             onClick={() => handleAcknowledge(dc.id)}
                             className="flex-1 py-2 bg-amber-600 rounded-lg text-xs font-bold text-white hover:bg-amber-500 transition flex items-center justify-center gap-1.5"
                           >
-                            <Check className="w-3.5 h-3.5" /> {t('distress.acknowledge', lang)}
+                            <Check className="w-3.5 h-3.5" /> {'Acknowledge'}
                           </button>
                         ) : (
                           <button
                             onClick={() => handleResolve(dc.id)}
                             className="flex-1 py-2 bg-green-600 rounded-lg text-xs font-bold text-white hover:bg-green-500 transition flex items-center justify-center gap-1.5"
                           >
-                            <Shield className="w-3.5 h-3.5" /> {t('distress.resolve', lang)}
+                            <Shield className="w-3.5 h-3.5" /> {'Resolve'}
                           </button>
                         )}
                         <button
@@ -364,7 +364,7 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
                           }}
                           className="px-3 py-2 bg-blue-600 rounded-lg text-xs font-bold text-white hover:bg-blue-500 transition flex items-center gap-1.5"
                         >
-                          <Navigation className="w-3.5 h-3.5" /> {t('common.navigate', lang)}
+                          <Navigation className="w-3.5 h-3.5" /> {'Navigate'}
                         </button>
                       </div>
                     </div>
@@ -377,7 +377,7 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
           {/* Refresh */}
           <div className="px-4 py-2 border-t border-gray-700/30 flex justify-center">
             <button onClick={fetchActive} disabled={loading} className="text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1">
-              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> {t('common.refresh', lang)}
+              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> {'Refresh'}
             </button>
           </div>
         </div>

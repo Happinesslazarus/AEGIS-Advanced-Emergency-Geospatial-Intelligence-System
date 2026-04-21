@@ -468,10 +468,10 @@ export default function CitizenPage(): JSX.Element {
       navigator.geolocation.getCurrentPosition(p => {
         setUserPosition([p.coords.latitude, p.coords.longitude])
         setLocationDenied(false)
-        pushNotification(t('citizenPage.locationDetected', lang), 'success')
+        pushNotification('Location detected', 'success')
       }, () => {
         setLocationDenied(true)
-        pushNotification(t('citizenPage.locationDenied', lang), 'warning')
+        pushNotification('Location access denied', 'warning')
       })
     }
   }
@@ -568,14 +568,14 @@ export default function CitizenPage(): JSX.Element {
 
       if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100])
       setSosActive(true)
-      pushNotification(t('citizenPage.sosSent', lang), 'error')
+      pushNotification('SOS report sent successfully', 'error')
       //Auto-clear after 60 seconds
       setTimeout(() => setSosActive(false), 60000)
     } catch (err: any) {
       console.error('SOS send error:', err)
       if (navigator.vibrate) navigator.vibrate([200, 100, 200])
       const emergNum = emergencyInfo?.emergencyNumber || '112'
-      pushNotification(`${t('citizenPage.sosFailed', lang)} -- Please call ${emergNum} directly`, 'error')
+      pushNotification(`${'Failed to send SOS report'} -- Please call ${emergNum} directly`, 'error')
       //Still show the SOS active panel so user can call emergency number
       setSosActive(true)
       setTimeout(() => setSosActive(false), 60000)
@@ -703,7 +703,7 @@ export default function CitizenPage(): JSX.Element {
   const handlePrintReport = (report: any) => {
     const printWindow = window.open('', '_blank')
     if (!printWindow) {
-      pushNotification(t('citizenPage.printPopupBlocked', lang), 'warning')
+      pushNotification('Print popup was blocked', 'warning')
       return
     }
 
@@ -730,34 +730,34 @@ export default function CitizenPage(): JSX.Element {
       </head>
       <body>
         <div class="header">
-          <div class="logo">${t('cdash.print.aegisTitle', lang)}</div>
-          <div class="report-id">${t('cdash.print.reportId', lang)}: ${report.reportNumber || report.id}</div>
+          <div class="logo">${'AEGIS Emergency Management'}</div>
+          <div class="report-id">${'Report ID'}: ${report.reportNumber || report.id}</div>
         </div>
         <div>
           <span class="badge severity-${report.severity.toLowerCase()}">${report.severity}</span>
           <span class="badge">${report.status}</span>
-          ${report.confidence != null ? `<span class="badge">${t('citizenPage.aiConfidence', lang)}: ${report.confidence}%</span>` : ''}
+          ${report.confidence != null ? `<span class="badge">${'AI Confidence'}: ${report.confidence}%</span>` : ''}
         </div>
         <h2>${report.type}</h2>
         <div class="meta">
-          <div>${t('citizenPage.location', lang)}: ${report.location}</div>
-          <div>${t('citizenPage.reported', lang)}: ${report.displayTime || new Date(report.timestamp).toLocaleString()}</div>
-          ${report.reporterName ? `<div>${t('citizenPage.reporter', lang)}: ${report.reporterName}</div>` : ''}
+          <div>${'Location'}: ${report.location}</div>
+          <div>${'Reported'}: ${report.displayTime || new Date(report.timestamp).toLocaleString()}</div>
+          ${report.reporterName ? `<div>${'Reporter'}: ${report.reporterName}</div>` : ''}
         </div>
         <div class="description">
-          <h3>${t('cdash.print.description', lang)}</h3>
+          <h3>${'Description'}</h3>
           <p>${report.description}</p>
         </div>
         ${report.aiAnalysis?.summary ? `
         <div>
-          <h3>${t('citizenPage.aiAnalysis', lang)}</h3>
+          <h3>${'AI Analysis'}</h3>
           <p>${report.aiAnalysis.summary}</p>
-          ${report.aiAnalysis.vulnerablePersonAlert ? `<p><strong>${t('cdash.vulnerablePersonAlert', lang)}</strong></p>` : ''}
+          ${report.aiAnalysis.vulnerablePersonAlert ? `<p><strong>${'Vulnerable Person Alert'}</strong></p>` : ''}
         </div>
         ` : ''}
         <div class="footer">
-          <p>${t('cdash.print.generatedFrom', lang)} ${new Date().toLocaleString()}.</p>
-          <p>${t('citizenPage.officialInquiries', lang)}</p>
+          <p>${'Generated from AEGIS Emergency Management Platform'} ${new Date().toLocaleString()}.</p>
+          <p>${'For official inquiries contact your local authority'}</p>
         </div>
       </body>
       </html>
@@ -772,7 +772,7 @@ export default function CitizenPage(): JSX.Element {
 
   const handleShareReport = async (report: any) => {
     const shareData = {
-      title: `${t('cdash.print.aegisTitle', lang)}: ${report.type}`,
+      title: `${'AEGIS Emergency Management'}: ${report.type}`,
       text: `${report.type} - ${report.severity}\n${report.location}\n\n${report.description}`,
       url: window.location.href,
     }
@@ -781,10 +781,10 @@ export default function CitizenPage(): JSX.Element {
     if (navigator.share) {
       try {
         await navigator.share(shareData)
-        pushNotification(t('citizenPage.reportShared', lang), 'success')
+        pushNotification('Report shared successfully', 'success')
       } catch (err: any) {
         if (err.name !== 'AbortError') {
-          pushNotification(t('citizenPage.shareCancelled', lang), 'info')
+          pushNotification('Share cancelled', 'info')
         }
       }
     } else {
@@ -792,23 +792,23 @@ export default function CitizenPage(): JSX.Element {
       const reportText = `${shareData.title}\n\n${shareData.text}\n\nView on AEGIS: ${shareData.url}`
       try {
         await navigator.clipboard.writeText(reportText)
-        pushNotification(t('citizenPage.copiedToClipboard', lang), 'success')
+        pushNotification('Link copied to clipboard', 'success')
         
         //Also offer email option
         const mailtoLink = `mailto:?subject=${encodeURIComponent(shareData.title)}&body=${encodeURIComponent(reportText)}`
         window.open(mailtoLink, '_blank')
       } catch {
-        pushNotification(t('citizenPage.unableToShare', lang), 'warning')
+        pushNotification('Unable to share report', 'warning')
       }
     }
   }
 
   const TABS = [
-    { id: 'map',      label: t('citizenPage.tab.disasterMap', lang),   icon: MapPin,     badge: 0 },
-    { id: 'alerts',   label: t('alerts.pageTitle', lang) || 'Alerts',   icon: Bell,       badge: stats.alertCount },
-    { id: 'reports',  label: t('citizenPage.tab.recentReports', lang),  icon: FileText,   badge: stats.urgent },
-    { id: 'shelters', label: t('citizenPage.tab.safeZones', lang),      icon: Home,       badge: 0 },
-    { id: 'news',     label: t('citizen.tab.news', lang),               icon: Newspaper,  badge: newsPool.length },
+    { id: 'map',      label: 'Disaster Map',   icon: MapPin,     badge: 0 },
+    { id: 'alerts',   label: 'Active Alerts',   icon: Bell,       badge: stats.alertCount },
+    { id: 'reports',  label: 'Recent Reports',  icon: FileText,   badge: stats.urgent },
+    { id: 'shelters', label: 'Safe Zones',      icon: Home,       badge: 0 },
+    { id: 'news',     label: 'News',               icon: Newspaper,  badge: newsPool.length },
     { id: 'prepare',  label: 'Prepare',                                 icon: ShieldCheck, badge: 0 },
   ]
 
@@ -910,10 +910,10 @@ export default function CitizenPage(): JSX.Element {
             <div className="flex items-center gap-2 flex-wrap cp-fade-up" style={{ animationDelay: '0.1s' }}>
               <button onClick={()=>setShowReport(true)} className="group relative bg-white/20 hover:bg-white/30 border border-white/20 px-4 py-2 rounded-lg text-xs font-black text-white uppercase tracking-wider flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] overflow-hidden">
                 <div className="absolute inset-0 cp-shimmer" />
-                <AlertTriangle className="w-3.5 h-3.5 relative z-10"/> <span className="relative z-10">{t('report.title', lang)}</span>
+                <AlertTriangle className="w-3.5 h-3.5 relative z-10"/> <span className="relative z-10">{'Report Title'}</span>
               </button>
               <button onClick={()=>setActiveTab('map')} className="bg-white/10 hover:bg-white/20 border border-white/10 px-4 py-2 rounded-lg text-xs font-black text-white/80 uppercase tracking-wider flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                <Satellite className="w-3.5 h-3.5"/> {t('map.title', lang) || 'Map'}
+                <Satellite className="w-3.5 h-3.5"/> {'Map'}
               </button>
               <a href={`tel:${emergencyInfo?.emergencyNumber || '999'}`} className="bg-red-500/20 hover:bg-red-500/30 border border-red-500/25 px-3 py-2 rounded-lg text-xs font-black text-red-200 uppercase tracking-wider flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
                 <PhoneCall className="w-3.5 h-3.5 text-red-300"/> SOS {emergencyInfo?.emergencyNumber || '999'}
@@ -984,11 +984,11 @@ export default function CitizenPage(): JSX.Element {
           <div className="p-3">
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               {[
-                { label: t('stats.total', lang),       value: stats.total,      hexColor: '#2563eb', border: 'border-blue-200 dark:border-blue-500/30',    iconBg: 'from-blue-500 to-blue-700',     cardBg: 'bg-blue-50 dark:bg-blue-950/20',     icon: FileText,      trendPct: statsTrendPct },
-                { label: t('stats.urgent', lang),       value: stats.urgent,     hexColor: '#dc2626', border: 'border-red-200 dark:border-red-500/30',     iconBg: 'from-red-500 to-red-700',       cardBg: 'bg-red-50 dark:bg-red-950/20',       icon: AlertTriangle },
-                { label: t('citizen.stats.highSeverity', lang), value: stats.high, hexColor: '#ea580c', border: 'border-orange-200 dark:border-orange-500/30', iconBg: 'from-orange-500 to-orange-700', cardBg: 'bg-orange-50 dark:bg-orange-950/20', icon: Flame },
-                { label: t('stats.verified', lang),     value: stats.verified,   hexColor: '#16a34a', border: 'border-green-200 dark:border-green-500/30',   iconBg: 'from-green-500 to-green-700',   cardBg: 'bg-green-50 dark:bg-green-950/20',   icon: CheckCircle },
-                { label: t('stats.activeAlerts', lang), value: stats.alertCount, hexColor: '#9333ea', border: 'border-purple-200 dark:border-purple-500/30',  iconBg: 'from-purple-500 to-purple-700', cardBg: 'bg-purple-50 dark:bg-purple-950/20', icon: Bell },
+                { label: 'Total Reports',       value: stats.total,      hexColor: '#2563eb', border: 'border-blue-200 dark:border-blue-500/30',    iconBg: 'from-blue-500 to-blue-700',     cardBg: 'bg-blue-50 dark:bg-blue-950/20',     icon: FileText,      trendPct: statsTrendPct },
+                { label: 'Urgent',       value: stats.urgent,     hexColor: '#dc2626', border: 'border-red-200 dark:border-red-500/30',     iconBg: 'from-red-500 to-red-700',       cardBg: 'bg-red-50 dark:bg-red-950/20',       icon: AlertTriangle },
+                { label: 'High Severity', value: stats.high, hexColor: '#ea580c', border: 'border-orange-200 dark:border-orange-500/30', iconBg: 'from-orange-500 to-orange-700', cardBg: 'bg-orange-50 dark:bg-orange-950/20', icon: Flame },
+                { label: 'Verified',     value: stats.verified,   hexColor: '#16a34a', border: 'border-green-200 dark:border-green-500/30',   iconBg: 'from-green-500 to-green-700',   cardBg: 'bg-green-50 dark:bg-green-950/20',   icon: CheckCircle },
+                { label: 'Active Alerts', value: stats.alertCount, hexColor: '#9333ea', border: 'border-purple-200 dark:border-purple-500/30',  iconBg: 'from-purple-500 to-purple-700', cardBg: 'bg-purple-50 dark:bg-purple-950/20', icon: Bell },
               ].map((s, i) => (
                 <div key={i} className={`border ${s.border} ${(s as any).cardBg} rounded-xl p-3 text-center hover:shadow-md transition-all group`}>
                   <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${s.iconBg} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300 mx-auto mb-2`}>
@@ -1608,7 +1608,7 @@ export default function CitizenPage(): JSX.Element {
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-aegis-400 to-aegis-600 flex items-center justify-center">
                   <Newspaper className="w-4 h-4 text-white"/>
                 </div>
-                {t('citizen.tab.news', lang) || 'News'}
+                {'News'}
                 {newsPool.length > 0 && (
                   <span className="text-xs font-normal text-gray-400 dark:text-gray-500">({newsTotal || newsPool.length} articles)</span>
                 )}
@@ -1676,17 +1676,17 @@ export default function CitizenPage(): JSX.Element {
                 <div className="glass-card rounded-2xl p-8 text-center">
                   <Newspaper className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3"/>
                   <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                    {newsHazardFilter !== 'all' ? `No ${newsHazardFilter} articles in this batch -- try Next ↺` : t('citizenPage.noNewsAvailable', lang)}
+                    {newsHazardFilter !== 'all' ? `No ${newsHazardFilter} articles in this batch -- try Next ↺` : 'No news articles available'}
                   </p>
                 </div>
               )}
               {filteredNewsItems.map((n,i)=>{
                 const typeConfig: Record<string,{color:string,bg:string,label:string}> = {
-                  alert: { color: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-950/20 border-red-200/50 dark:border-red-800/50', label: t('cdash.news.alert', lang) },
-                  warning: { color: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/50', label: t('cdash.news.warning', lang) },
-                  community: { color: 'bg-green-500', bg: 'bg-green-50 dark:bg-green-950/20 border-green-200/50 dark:border-green-800/50', label: t('cdash.news.community', lang) },
-                  tech: { color: 'bg-purple-500', bg: 'bg-purple-50 dark:bg-purple-950/20 border-purple-200/50 dark:border-purple-800/50', label: t('cdash.news.tech', lang) },
-                  info: { color: 'bg-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-800/50', label: t('cdash.news.info', lang) },
+                  alert: { color: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-950/20 border-red-200/50 dark:border-red-800/50', label: 'Alert' },
+                  warning: { color: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/50', label: 'Warning' },
+                  community: { color: 'bg-green-500', bg: 'bg-green-50 dark:bg-green-950/20 border-green-200/50 dark:border-green-800/50', label: 'Community' },
+                  tech: { color: 'bg-purple-500', bg: 'bg-purple-50 dark:bg-purple-950/20 border-purple-200/50 dark:border-purple-800/50', label: 'Tech' },
+                  info: { color: 'bg-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-800/50', label: 'Info' },
                 }
                 const cfg = typeConfig[n.type] || typeConfig.info
                 const waUrl = `https://wa.me/?text=${encodeURIComponent(`🚨 ${n.title}\n${n.url}`)}`
@@ -1707,7 +1707,7 @@ export default function CitizenPage(): JSX.Element {
                       </a>
                       <a href={n.url} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-1 text-[10px] text-aegis-600 hover:text-aegis-700 bg-aegis-50 dark:bg-aegis-950/20 border border-aegis-200/60 dark:border-aegis-800/60 px-3 py-1.5 rounded-xl transition-all font-bold">
-                        <ExternalLink className="w-3 h-3"/> {t('citizen.news.source', lang)}
+                        <ExternalLink className="w-3 h-3"/> {'Source'}
                       </a>
                     </div>
                   </div>
@@ -1785,11 +1785,11 @@ export default function CitizenPage(): JSX.Element {
             <div>
               <h4 className="font-extrabold mb-3 flex items-center gap-2 text-primary">
                 <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-red-400 to-rose-600 flex items-center justify-center"><Phone className="w-3 h-3 text-white"/></div>
-                {emergencyInfo?.flag || '🌍'} {t('citizenPage.footer.emergency', lang)}
+                {emergencyInfo?.flag || '🌍'} {'Emergency'}
               </h4>
               <div className="space-y-1.5">
                 <>
-                  <p>{t('citizenPage.footer.emergencyServices', lang)}: <strong className="text-primary">{emergencyInfo?.emergencyNumber || emergencyFallback.universal}</strong></p>
+                  <p>{'Emergency Services: 999'}: <strong className="text-primary">{emergencyInfo?.emergencyNumber || emergencyFallback.universal}</strong></p>
                   <p>Police: <strong className="text-primary">{emergencyInfo?.police || emergencyFallback.police}</strong></p>
                   <p>Ambulance: <strong className="text-primary">{emergencyInfo?.ambulance || emergencyFallback.ambulance}</strong></p>
                   <p>Fire: <strong className="text-primary">{emergencyInfo?.fire || emergencyFallback.fire}</strong></p>
@@ -1808,7 +1808,7 @@ export default function CitizenPage(): JSX.Element {
             <div>
               <h4 className="font-extrabold mb-3 flex items-center gap-2 text-primary">
                 <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-aegis-400 to-aegis-600 flex items-center justify-center"><ExternalLink className="w-3 h-3 text-white"/></div>
-                {t('admin.resources', lang)}
+                {'Resources'}
               </h4>
               <div className="space-y-1.5">
                 <>
@@ -1829,30 +1829,30 @@ export default function CitizenPage(): JSX.Element {
             <div>
               <h4 className="font-extrabold mb-3 flex items-center gap-2 text-primary">
                 <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-aegis-400 to-aegis-600 flex items-center justify-center"><Shield className="w-3 h-3 text-white"/></div>
-                {t('citizen.footer.platform', lang)}
+                {'Platform'}
               </h4>
               <div className="space-y-1.5">
-                <Link to="/about" className="block hover:text-aegis-600 dark:hover:text-aegis-300 transition-colors">{t('citizenPage.footer.aboutAegis', lang)}</Link>
-                <Link to="/accessibility" className="block hover:text-aegis-600 dark:hover:text-aegis-300 transition-colors">{t('citizenPage.footer.accessibility', lang)}</Link>
-                <Link to="/privacy" className="block hover:text-aegis-600 dark:hover:text-aegis-300 transition-colors">{t('citizenPage.footer.privacyPolicy', lang)}</Link>
-                <Link to="/terms" className="block hover:text-aegis-600 dark:hover:text-aegis-300 transition-colors">{t('citizenPage.footer.termsOfUse', lang)}</Link>
+                <Link to="/about" className="block hover:text-aegis-600 dark:hover:text-aegis-300 transition-colors">{'About AEGIS'}</Link>
+                <Link to="/accessibility" className="block hover:text-aegis-600 dark:hover:text-aegis-300 transition-colors">{'Accessibility'}</Link>
+                <Link to="/privacy" className="block hover:text-aegis-600 dark:hover:text-aegis-300 transition-colors">{'Privacy Policy'}</Link>
+                <Link to="/terms" className="block hover:text-aegis-600 dark:hover:text-aegis-300 transition-colors">{'Terms of Use'}</Link>
               </div>
             </div>
             <div>
               <h4 className="font-extrabold mb-3 flex items-center gap-2 text-primary">
                 <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-aegis-500 to-aegis-700 flex items-center justify-center"><Building2 className="w-3 h-3 text-white"/></div>
-                {t('citizen.footer.contact', lang)}
+                {'Contact'}
               </h4>
               <div className="space-y-1.5">
-                <p className="text-primary">{t('citizenPage.footer.aegisPlatform', lang)}</p>
-                <p className="text-primary">{t('citizenPage.footer.rgu', lang)}</p>
-                <p className="text-primary">{t('citizenPage.footer.aberdeen', lang)}</p>
-                <p className="mt-2 text-primary font-bold">{t('citizenPage.footer.honours', lang)}</p>
+                <p className="text-primary">{'AEGIS Emergency Management Platform'}</p>
+                <p className="text-primary">{'Robert Gordon University'}</p>
+                <p className="text-primary">{'Aberdeen, Scotland'}</p>
+                <p className="mt-2 text-primary font-bold">{'Honours Project 2025/26'}</p>
               </div>
             </div>
           </div>
           <div className="mt-6 pt-5 border-t border-gray-300/50 dark:border-gray-700/50 text-center text-[10px] text-primary">
-            {t('landing.footerSignature', lang)}
+            {'AEGIS -- Advanced Emergency Geospatial Intelligence System -- © 2026 Happiness Ada Lazarus -- Robert Gordon University'}
           </div>
         </div>
       </footer>
@@ -1869,7 +1869,7 @@ export default function CitizenPage(): JSX.Element {
           'bg-gradient-to-br from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 hover:scale-110 shadow-red-600/40 active:scale-90'
         }`}
         style={{ bottom: 'max(6rem, calc(env(safe-area-inset-bottom, 0px) + 6rem))', right: '1.5rem' }}
-        aria-label={t('citizen.sos.aria', lang)}
+        aria-label={'Emergency SOS'}
       >
         {sosCountdown !== null ? (
           <span className="text-2xl font-black text-white">{sosCountdown}</span>
@@ -1924,7 +1924,7 @@ export default function CitizenPage(): JSX.Element {
               <Radio className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-base">{t('citizen.sos.sent', lang)}</p>
+              <p className="font-bold text-base">{'SOS SIGNAL SENT'}</p>
               <p className="text-red-200 text-xs mt-1">Emergency report submitted. Responders notified with your location.</p>
               {sosAddress && <p className="text-red-300 text-[10px] mt-1 leading-relaxed">{sosAddress}</p>}
               {sosLat !== null && sosLng !== null && (
@@ -1972,7 +1972,7 @@ export default function CitizenPage(): JSX.Element {
 
       {/* FLOATING CHATBOT BUTTON -- only opens on click, never auto */}
       {!showChatbot && (
-        <button onClick={()=>setShowChatbot(true)} className="fixed z-[90] w-16 h-16 bg-gradient-to-br from-aegis-500 to-aegis-700 hover:from-aegis-400 hover:to-aegis-600 text-white rounded-full shadow-2xl shadow-aegis-600/40 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-90" style={{ bottom: 'max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1.5rem))', right: '1.5rem' }} aria-label={t('nav.aiAssistant', lang)}>
+        <button onClick={()=>setShowChatbot(true)} className="fixed z-[90] w-16 h-16 bg-gradient-to-br from-aegis-500 to-aegis-700 hover:from-aegis-400 hover:to-aegis-600 text-white rounded-full shadow-2xl shadow-aegis-600/40 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-90" style={{ bottom: 'max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1.5rem))', right: '1.5rem' }} aria-label={'AI Assistant'}>
           <MessageCircle className="w-6 h-6"/>
         </button>
       )}
@@ -2011,7 +2011,7 @@ export default function CitizenPage(): JSX.Element {
             <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <h3 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
-                {t('citizenPage.alertDetails', lang)}
+                {'Alert Details'}
               </h3>
               <button onClick={() => setSelectedAlert(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                 <X className="w-5 h-5" />
@@ -2052,14 +2052,14 @@ export default function CitizenPage(): JSX.Element {
                 </div>
               </div>
               <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-                <h5 className="font-semibold text-sm text-amber-800 dark:text-amber-200 mb-1">{t('citizenPage.safetyAdvice', lang)}</h5>
-                <p className="text-xs text-amber-700 dark:text-amber-300">{t('citizenPage.safetyAdviceText', lang)}</p>
+                <h5 className="font-semibold text-sm text-amber-800 dark:text-amber-200 mb-1">{'Safety Advice'}</h5>
+                <p className="text-xs text-amber-700 dark:text-amber-300">{'Follow official guidance from local authorities. Do not approach affected areas unless directed by emergency services.'}</p>
               </div>
             </div>
             <div className="p-5 border-t border-gray-200 dark:border-gray-700 flex gap-3">
-              <button onClick={() => setSelectedAlert(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition-colors">{t('general.close', lang)}</button>
+              <button onClick={() => setSelectedAlert(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition-colors">{'Close'}</button>
               <button onClick={() => { setSelectedAlert(null); setShowReport(true) }} className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2">
-                <AlertTriangle className="w-4 h-4" /> {t('citizenPage.reportRelated', lang)}
+                <AlertTriangle className="w-4 h-4" /> {'Report Related Incident'}
               </button>
             </div>
           </div>
@@ -2073,7 +2073,7 @@ export default function CitizenPage(): JSX.Element {
             <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <h3 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
                 <FileText className="w-5 h-5 text-aegis-600" />
-                {t('citizenPage.reportDetails', lang)}
+                {'Report Details'}
               </h3>
               <button onClick={() => setSelectedReport(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                 <X className="w-5 h-5" />
@@ -2125,40 +2125,40 @@ export default function CitizenPage(): JSX.Element {
               </div>
               {selectedReport.aiAnalysis && (
                 <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 space-y-2">
-                  <h5 className="font-semibold text-sm text-blue-800 dark:text-blue-200 flex items-center gap-1.5"><Bot className="w-4 h-4" /> {t('citizenPage.aiAnalysis', lang)}</h5>
+                  <h5 className="font-semibold text-sm text-blue-800 dark:text-blue-200 flex items-center gap-1.5"><Bot className="w-4 h-4" /> {'AI Analysis'}</h5>
                   {selectedReport.aiAnalysis.summary && (
                     <p className="text-xs text-blue-700 dark:text-blue-300">{selectedReport.aiAnalysis.summary}</p>
                   )}
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-blue-600 dark:text-blue-400 font-medium">{t('cdash.sentiment', lang)}:</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-medium">{'Sentiment'}:</span>
                       <span>{selectedReport.aiAnalysis.sentimentScore?.toFixed(2)}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-blue-600 dark:text-blue-400 font-medium">{t('cdash.panic', lang)}:</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-medium">{'Panic'}:</span>
                       <span>{selectedReport.aiAnalysis.panicLevel}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-blue-600 dark:text-blue-400 font-medium">{t('cdash.fakeRisk', lang)}:</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-medium">{'Fake Risk'}:</span>
                       <span>{(selectedReport.aiAnalysis.fakeProbability * 100).toFixed(0)}%</span>
                     </div>
                     {selectedReport.aiAnalysis.estimatedWaterDepth && (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-blue-600 dark:text-blue-400 font-medium">{t('citizenPage.waterDepth', lang)}:</span>
+                        <span className="text-blue-600 dark:text-blue-400 font-medium">{'Water Depth'}:</span>
                         <span>{selectedReport.aiAnalysis.estimatedWaterDepth}</span>
                       </div>
                     )}
                   </div>
                   {selectedReport.aiAnalysis.vulnerablePersonAlert && (
                     <div className="flex items-center gap-1.5 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 px-3 py-1.5 rounded-lg mt-1">
-                      <AlertTriangle className="w-3.5 h-3.5" /> {t('cdash.vulnerablePersonAlert', lang)}
+                      <AlertTriangle className="w-3.5 h-3.5" /> {'Vulnerable Person Alert'}
                     </div>
                   )}
                 </div>
               )}
               {selectedReport.trappedPersons && selectedReport.trappedPersons !== 'no' && selectedReport.trappedPersons !== 'None' && (
                 <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
-                  <h5 className="font-semibold text-sm text-red-800 dark:text-red-200">{t('citizenPage.trappedPersons', lang)}</h5>
+                  <h5 className="font-semibold text-sm text-red-800 dark:text-red-200">{'Trapped Persons'}</h5>
                   <p className="text-xs text-red-700 dark:text-red-300 mt-1">
                     {selectedReport.trappedPersons === 'yes' ? 'Yes -- People are trapped or in immediate danger'
                       : selectedReport.trappedPersons === 'property' ? 'No -- But property or infrastructure at risk'
@@ -2198,12 +2198,12 @@ export default function CitizenPage(): JSX.Element {
               )}
             </div>
             <div className="p-5 border-t border-gray-200 dark:border-gray-700 flex gap-3">
-              <button onClick={() => setSelectedReport(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition-colors">{t('general.close', lang)}</button>
+              <button onClick={() => setSelectedReport(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition-colors">{'Close'}</button>
               <button onClick={() => { handleShareReport(selectedReport); }} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2">
-                <Share2 className="w-4 h-4" /> {t('cdash.share', lang)}
+                <Share2 className="w-4 h-4" /> {'Share'}
               </button>
               <button onClick={() => { handlePrintReport(selectedReport); }} className="flex-1 bg-gray-600 hover:bg-gray-700 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2">
-                <Printer className="w-4 h-4" /> {t('cdash.print', lang)}
+                <Printer className="w-4 h-4" /> {'Print'}
               </button>
             </div>
           </div>
@@ -2270,7 +2270,7 @@ function GuestReportsTab({ reports, sorted, loading, searchTerm, setSearchTerm, 
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">{t('citizenPage.recentReports', lang)}</h2>
+              <h2 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">{'Recent Reports'}</h2>
               <span className="px-2.5 py-0.5 rounded-full bg-aegis-100 dark:bg-aegis-900/40 text-aegis-700 dark:text-aegis-300 text-xs font-bold">{stats.total}</span>
             </div>
           </div>
@@ -2278,10 +2278,10 @@ function GuestReportsTab({ reports, sorted, loading, searchTerm, setSearchTerm, 
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/40 text-[9px] font-bold text-green-700 dark:text-green-300 uppercase tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            {t('cdash.reports.realTime', lang)}
+            {'Real-time'}
           </span>
           <button onClick={onNewReport} className="text-xs bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all hover:scale-[1.02] shadow-lg shadow-red-500/20">
-            <AlertTriangle className="w-3.5 h-3.5" /> {t('citizenPage.reportEmergency', lang)}
+            <AlertTriangle className="w-3.5 h-3.5" /> {'Report Emergency'}
           </button>
         </div>
       </div>
@@ -2289,11 +2289,11 @@ function GuestReportsTab({ reports, sorted, loading, searchTerm, setSearchTerm, 
       {/* STATUS PIPELINE */}
       <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
         {([
-          { key: 'all' as const, label: t('cdash.reports.all', lang), count: stats.total, color: 'text-gray-600 dark:text-gray-400', activeBg: 'bg-gray-100 dark:bg-gray-700' },
-          { key: 'Unverified' as const, label: t('cdash.reports.unverified', lang), count: stats.unverified, color: 'text-yellow-600', activeBg: 'bg-yellow-50 dark:bg-yellow-950/30' },
-          { key: 'Verified' as const, label: t('cdash.reports.verifiedStatus', lang), count: stats.verified, color: 'text-emerald-600', activeBg: 'bg-emerald-50 dark:bg-emerald-950/30' },
-          { key: 'Urgent' as const, label: t('cdash.reports.urgent', lang), count: stats.urgent, color: 'text-red-600', activeBg: 'bg-red-50 dark:bg-red-950/30' },
-          { key: 'Resolved' as const, label: t('cdash.reports.resolved', lang), count: stats.resolved, color: 'text-blue-600', activeBg: 'bg-blue-50 dark:bg-blue-950/30' },
+          { key: 'all' as const, label: 'All', count: stats.total, color: 'text-gray-600 dark:text-gray-400', activeBg: 'bg-gray-100 dark:bg-gray-700' },
+          { key: 'Unverified' as const, label: 'Unverified', count: stats.unverified, color: 'text-yellow-600', activeBg: 'bg-yellow-50 dark:bg-yellow-950/30' },
+          { key: 'Verified' as const, label: 'Verified', count: stats.verified, color: 'text-emerald-600', activeBg: 'bg-emerald-50 dark:bg-emerald-950/30' },
+          { key: 'Urgent' as const, label: 'Urgent', count: stats.urgent, color: 'text-red-600', activeBg: 'bg-red-50 dark:bg-red-950/30' },
+          { key: 'Resolved' as const, label: 'Resolved', count: stats.resolved, color: 'text-blue-600', activeBg: 'bg-blue-50 dark:bg-blue-950/30' },
         ]).map(st => (
           <button
             key={st.key}
@@ -2315,14 +2315,14 @@ function GuestReportsTab({ reports, sorted, loading, searchTerm, setSearchTerm, 
         <div className="p-3 border-b border-gray-200/50 dark:border-gray-700/50 flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-400" />
-            <input className="w-full pl-10 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition text-gray-900 dark:text-white placeholder-gray-400" placeholder={t('reports.search', lang) || 'Search reports...'} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            <input className="w-full pl-10 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition text-gray-900 dark:text-white placeholder-gray-400" placeholder={'Search...'} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
           <select value={sortField} onChange={e => setSortField(e.target.value)} className="text-xs bg-gray-50 dark:bg-gray-800/60 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 appearance-none text-gray-700 dark:text-gray-200">
-            <option value="timestamp">{t('citizen.reports.newest', lang)}</option>
-            <option value="severity">{t('reports.severity', lang)}</option>
-            <option value="confidence">{t('citizen.reports.aiConfidence', lang)}</option>
+            <option value="timestamp">{'Newest'}</option>
+            <option value="severity">{'Severity'}</option>
+            <option value="confidence">{'AI Confidence'}</option>
           </select>
-          <button onClick={() => setSortOrder((o: string) => o === 'desc' ? 'asc' : 'desc')} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={sortOrder === 'desc' ? t('cdash.reports.newestFirst', lang) : t('cdash.reports.oldestFirst', lang)}>
+          <button onClick={() => setSortOrder((o: string) => o === 'desc' ? 'asc' : 'desc')} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={sortOrder === 'desc' ? 'Newest first' : 'Oldest first'}>
             <ArrowUpDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
           </button>
           <span className="text-[9px] font-medium text-gray-400 dark:text-gray-400 ml-auto">{filtered.length} of {stats.total}</span>
@@ -2330,16 +2330,16 @@ function GuestReportsTab({ reports, sorted, loading, searchTerm, setSearchTerm, 
 
         <div className="divide-y divide-gray-100/80 dark:divide-gray-800/60 max-h-[600px] overflow-y-auto custom-scrollbar">
           {loading ? (
-            <p className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">{t('general.loading', lang)}</p>
+            <p className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">{'Loading...'}</p>
           ) : filtered.length === 0 ? (
             reports.length > 0 ? (
               <div className="py-12 text-center">
                 <Filter className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
-                <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{t('cdash.reports.noMatching', lang)}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">{t('cdash.reports.tryAdjusting', lang)} <button onClick={() => setStatusFilter('all')} className="text-aegis-600 dark:text-aegis-400 font-bold hover:underline">{t('cdash.reports.clearingFilters', lang)}</button></p>
+                <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{'No matching reports found'}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">{'Try adjusting your filters or'} <button onClick={() => setStatusFilter('all')} className="text-aegis-600 dark:text-aegis-400 font-bold hover:underline">{'clearing all filters'}</button></p>
               </div>
             ) : (
-              <p className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">{t('general.noResults', lang)}</p>
+              <p className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">{'No results found'}</p>
             )
           ) : (
             filtered.map((r: any) => {
@@ -2350,7 +2350,7 @@ function GuestReportsTab({ reports, sorted, loading, searchTerm, setSearchTerm, 
                 <div key={r.id} className={`relative group border-l-4 ${sevColor} transition-all hover:bg-gray-50/60 dark:hover:bg-gray-800/30`}>
                   {isRecent && (
                     <div className="absolute top-2.5 right-14 z-10">
-                      <span className="px-1.5 py-0.5 rounded text-[7px] font-black bg-green-500 text-white uppercase tracking-wider animate-pulse">{t('cdash.reports.new', lang)}</span>
+                      <span className="px-1.5 py-0.5 rounded text-[7px] font-black bg-green-500 text-white uppercase tracking-wider animate-pulse">{'New'}</span>
                     </div>
                   )}
                   <ReportCard report={r} onClick={onViewReport} />

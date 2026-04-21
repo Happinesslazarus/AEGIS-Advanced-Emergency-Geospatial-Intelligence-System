@@ -156,7 +156,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
             <Waves className={`w-4 h-4 ${statusCfg.text}`} />
           </div>
           <div className="text-left">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('river.riverLevels', lang)}</h3>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">{'River Levels'}</h3>
             <p className="text-[10px] text-gray-500 dark:text-gray-400">
               {readings.length} station{readings.length !== 1 ? 's' : ''} -- {lastUpdated ? `${Math.round((Date.now() - lastUpdated.getTime()) / 60000)}m ago` : 'Loading...'}
             </p>
@@ -176,14 +176,14 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
           {/* Refresh bar */}
           <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100 dark:border-gray-700/30">
             <span className="text-[10px] text-blue-600 dark:text-blue-300 flex items-center gap-1">
-              <Activity className="w-3 h-3" /> {t('river.liveMonitoring', lang)}
+              <Activity className="w-3 h-3" /> {'LIVE monitoring'}
             </span>
             <button
               onClick={() => fetchLevels()}
               disabled={loading}
               className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 disabled:opacity-50"
             >
-              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> {t('common.refresh', lang)}
+              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> {'Refresh'}
             </button>
           </div>
 
@@ -197,7 +197,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
           {loading && readings.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <RefreshCw className="w-6 h-6 text-blue-400 animate-spin mx-auto mb-2" />
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t('river.fetchingRiverData', lang)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{'Fetching river data...'}</p>
             </div>
           ) : (
             <div>
@@ -245,7 +245,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
                         <div className="grid grid-cols-2 gap-2 text-[10px]">
                           <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                             <Droplets className="w-3 h-3" />
-                            <span>{t('river.flow', lang)}: {reading.flowCumecs != null ? `${reading.flowCumecs.toFixed(1)} m³/s` : 'N/A'}</span>
+                            <span>{'Flow'}: {reading.flowCumecs != null ? `${reading.flowCumecs.toFixed(1)} m³/s` : 'N/A'}</span>
                           </div>
                           <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                             <Clock className="w-3 h-3" />
@@ -253,7 +253,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
                           </div>
                           <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                             <Navigation className="w-3 h-3" />
-                            <span>{t('river.source', lang)}: {reading.dataSource}</span>
+                            <span>{'Source'}: {reading.dataSource}</span>
                           </div>
                           <div>
                             <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full ${cfg.bg} ${cfg.text} font-medium`}>
@@ -266,7 +266,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
                         {/* Threshold bars */}
                         {reading.thresholds && (
                           <div className="space-y-1">
-                            <p className="text-[10px] font-medium text-gray-700 dark:text-gray-300">{t('river.thresholds', lang)}</p>
+                            <p className="text-[10px] font-medium text-gray-700 dark:text-gray-300">{'Thresholds'}</p>
                             <div className="relative w-full h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                               {/* Threshold markers */}
                               <div className="absolute inset-y-0 left-0 bg-blue-600/60 rounded-l-full" style={{ width: `${(reading.thresholds.normal / reading.thresholds.critical) * 100}%` }} />
@@ -296,7 +296,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
 
               {sorted.length === 0 && !loading && (
                 <div className="px-4 py-6 text-center text-xs text-gray-500 dark:text-gray-400">
-                  {t('river.noStationsConfigured', lang)}
+                  {'No stations configured'}
                 </div>
               )}
             </div>

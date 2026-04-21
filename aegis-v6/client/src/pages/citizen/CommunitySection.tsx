@@ -18,8 +18,8 @@ export default function CommunitySection({ parentSocket }: { parentSocket?: Sock
             <Users className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="font-bold text-lg text-gray-900 dark:text-white">{t('citizen.tab.community', lang)}</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{ t('cdash.community.subtitle', lang)}</p>
+            <h2 className="font-bold text-lg text-gray-900 dark:text-white">{'Community'}</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{ 'Connect with others in your community'}</p>
           </div>
         </div>
       </div>
@@ -36,7 +36,7 @@ export default function CommunitySection({ parentSocket }: { parentSocket?: Sock
         >
           <span className="flex items-center gap-1.5">
             <MessageSquare className="w-3.5 h-3.5" />
-            {t('citizen.community.liveChat', lang)}
+            {'Live Chat'}
           </span>
         </button>
         <button
@@ -49,7 +49,7 @@ export default function CommunitySection({ parentSocket }: { parentSocket?: Sock
         >
           <span className="flex items-center gap-1.5">
             <FileText className="w-3.5 h-3.5" />
-            {t('citizen.community.postsFeed', lang)}
+            {'Posts Feed'}
           </span>
         </button>
       </div>

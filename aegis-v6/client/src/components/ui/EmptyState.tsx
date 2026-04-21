@@ -81,7 +81,7 @@ export function EmptyMessages() {
   return (
     <EmptyState
       icon={MessageSquare}
-      title={t('empty.noData', lang)}
+      title={'No data available'}
       description="Start a conversation with the support team for help or updates."
     />
   )
@@ -92,8 +92,8 @@ export function EmptyReports() {
   return (
     <EmptyState
       icon={FileText}
-      title={t('empty.noReports', lang)}
-      description={t('empty.noReportsDesc', lang)}
+      title={'No reports'}
+      description={'You haven\'t submitted any emergency reports yet.'}
     />
   )
 }
@@ -103,8 +103,8 @@ export function EmptyCommunity() {
   return (
     <EmptyState
       icon={Users}
-      title={t('empty.noCommunityPosts', lang)}
-      description={t('empty.noCommunityPostsDesc', lang)}
+      title={'No community posts'}
+      description={'Be the first to offer help or request assistance in your area.'}
     />
   )
 }
@@ -114,8 +114,8 @@ export function EmptySafety() {
   return (
     <EmptyState
       icon={Shield}
-      title={t('empty.noCheckIns', lang)}
-      description={t('empty.noCheckInsDesc', lang)}
+      title={'No check-ins'}
+      description={'Use safety check-ins to let responders and contacts know your status.'}
     />
   )
 }
@@ -125,8 +125,8 @@ export function EmptyAlerts() {
   return (
     <EmptyState
       icon={Bell}
-      title={t('empty.noActiveAlerts', lang)}
-      description={t('empty.noActiveAlertsDesc', lang)}
+      title={'No active alerts'}
+      description={'There are no active alerts for your area. Stay prepared by reviewing your emergency plan.'}
     />
   )
 }
@@ -136,8 +136,8 @@ export function EmptyAdminTable({ resource = 'records' }: { resource?: string })
   return (
     <EmptyState
       icon={Database}
-      title={`${t('empty.noResults', lang)}`}
-      description={`There are no ${resource} matching your current filters. ${t('empty.adjustFilters', lang)}`}
+      title={`${'No results found'}`}
+      description={`There are no ${resource} matching your current filters. ${'Try adjusting your search criteria.'}`}
     />
   )
 }
@@ -157,7 +157,7 @@ export function EmptyAnalytics() {
   return (
     <EmptyState
       icon={BarChart3}
-      title={t('empty.noData', lang)}
+      title={'No data available'}
       description="Analytics data will appear here once reports start coming in."
     />
   )

@@ -88,13 +88,13 @@ export default function NotFoundPage() {
             tabIndex={-1}
             className="text-5xl sm:text-6xl font-bold text-gray-300 dark:text-gray-700 mb-2 select-none outline-none"
           >
-            {t('notFound.heading', lang)}
+            {'404'}
           </h1>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            {t('notFound.title', lang)}
+            {'Page not found'}
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-sm mx-auto">
-            {t('notFound.message', lang)}
+            {'The page you\'re looking for doesn\'t exist or has been moved. Use the links below to navigate back to safety.'}
           </p>
 
           {/* Attempted path -- helps support diagnose mistyped URLs */}
@@ -106,7 +106,7 @@ export default function NotFoundPage() {
           <form
             onSubmit={handleSearch}
             role="search"
-            aria-label={t('notFound.searchPlaceholder', lang)}
+            aria-label={'Search AEGIS...'}
             className="max-w-sm mx-auto mb-8"
           >
             <div className="relative">
@@ -115,7 +115,7 @@ export default function NotFoundPage() {
                 type="search"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder={t('notFound.searchPlaceholder', lang)}
+                placeholder={'Search AEGIS...'}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-aegis-500 focus:border-aegis-500 transition-colors"
               />
             </div>
@@ -142,12 +142,12 @@ export default function NotFoundPage() {
           <div className="rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-950/20 p-4 text-left max-w-sm mx-auto">
             <h3 className="text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-2 mb-2">
               <PhoneIcon className="w-4 h-4" aria-hidden="true" />
-              {t('emergency.contacts', lang)}
+              {'Emergency Contacts'}
             </h3>
             <ul className="text-xs text-red-600 dark:text-red-300 space-y-1">
-              <li><strong>{t('emergency.services', lang)}:</strong> 999 / 112</li>
-              <li><strong>{t('emergency.floodHelpline', lang)}:</strong> 0345 988 1188</li>
-              <li><strong>{t('emergency.nonEmergency', lang)}:</strong> 101</li>
+              <li><strong>{'Emergency Services'}:</strong> 999 / 112</li>
+              <li><strong>{'Flood Helpline'}:</strong> 0345 988 1188</li>
+              <li><strong>{'Non-Emergency'}:</strong> 101</li>
             </ul>
           </div>
         </div>

@@ -78,7 +78,7 @@ export default function SettingsTab({ preferences, updatePreferences }: any) {
     }
     setSaving(false)
     setMsgType(ok ? 'success' : 'error')
-    setMsg(ok ? t('cdash.settings.prefsSaved', lang) : t('cdash.settings.prefsFailed', lang))
+    setMsg(ok ? 'Preferences saved' : 'Failed to save preferences')
     setTimeout(() => setMsg(''), 5000)
   }
 
@@ -197,22 +197,22 @@ export default function SettingsTab({ preferences, updatePreferences }: any) {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center shadow-md">
               <Settings className="w-4 h-4 text-white" />
             </div>
-            {t('citizen.tab.settings', lang)}
+            {'Settings'}
           </h2>
         </div>
         <div className="flex items-center gap-2">
           {isDirty && (
             <>
-              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded-lg">{t('cdash.settings.unsaved', lang)}</span>
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded-lg">{'You have unsaved changes'}</span>
               <button onClick={handleCancel} disabled={saving}
                 className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold px-4 py-2.5 rounded-xl transition-all">
-                {t('cdash.settings.cancel', lang)}
+                {'Cancel'}
               </button>
             </>
           )}
           <button onClick={handleSave} disabled={saving || !isDirty}
             className="flex items-center gap-1.5 bg-gradient-to-r from-aegis-600 to-aegis-700 hover:from-aegis-700 hover:to-aegis-800 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md">
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} {t('cdash.settings.save', lang)}
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} {'Save Preferences'}
           </button>
         </div>
       </div>
@@ -233,13 +233,13 @@ export default function SettingsTab({ preferences, updatePreferences }: any) {
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
             <Volume2 className="w-3.5 h-3.5 text-white" />
           </div>
-          {t('cdash.settings.audioAlerts', lang)}
+          {'Audio Alerts'}
         </h3>
 
         <div className="flex items-center justify-between py-1">
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">{t('cdash.settings.enableAudioAlerts', lang)}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('cdash.settings.enableAudioAlertsDesc', lang)}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{'Enable Audio Alerts'}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{'Play sounds for important notifications and alerts'}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={form.audioAlertsEnabled} onChange={e => setForm(f => ({ ...f, audioAlertsEnabled: e.target.checked }))} className="sr-only peer" />
@@ -249,8 +249,8 @@ export default function SettingsTab({ preferences, updatePreferences }: any) {
 
         <div className="flex items-center justify-between py-1">
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">{t('cdash.settings.autoPlayCritical', lang)}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('cdash.settings.autoPlayCriticalDesc', lang)}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{'Auto-play critical alerts'}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{'Automatically play audio for critical emergency alerts'}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={form.autoPlayCritical} onChange={e => setForm(f => ({ ...f, autoPlayCritical: e.target.checked }))} className="sr-only peer" />
@@ -260,7 +260,7 @@ export default function SettingsTab({ preferences, updatePreferences }: any) {
 
         <div className="py-1">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">{t('cdash.settings.volume', lang)}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{'Volume'}</p>
             <span className="text-xs font-bold text-aegis-600 bg-aegis-50 dark:bg-aegis-950/30 px-2 py-0.5 rounded-lg">{form.audioVolume}%</span>
           </div>
           <input type="range" min={0} max={100} value={form.audioVolume}
@@ -275,13 +275,13 @@ export default function SettingsTab({ preferences, updatePreferences }: any) {
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
             <FileText className="w-3.5 h-3.5 text-white" />
           </div>
-          {t('cdash.settings.accessibility', lang)}
+          {'Accessibility'}
         </h3>
 
         <div className="flex items-center justify-between py-1">
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">{t('cdash.settings.captionOverlay', lang)}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('cdash.settings.captionOverlayDesc', lang)}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{'Caption Overlay'}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{'Display captions over audio and video content'}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={form.captionsEnabled} onChange={e => setForm(f => ({ ...f, captionsEnabled: e.target.checked }))} className="sr-only peer" />
@@ -290,13 +290,13 @@ export default function SettingsTab({ preferences, updatePreferences }: any) {
         </div>
 
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">{t('cdash.settings.captionFontSize', lang)}</label>
+          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">{'Caption Font Size'}</label>
           <select value={form.captionFontSize} onChange={e => setForm(f => ({ ...f, captionFontSize: e.target.value }))}
             className="w-full px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent appearance-none transition">
-            <option value="small">{t('cdash.settings.small', lang)}</option>
-            <option value="medium">{t('cdash.settings.medium', lang)}</option>
-            <option value="large">{t('cdash.settings.large', lang)}</option>
-            <option value="xlarge">{t('cdash.settings.extraLarge', lang)}</option>
+            <option value="small">{'Small'}</option>
+            <option value="medium">{'Medium'}</option>
+            <option value="large">{'Large'}</option>
+            <option value="xlarge">{'Extra Large'}</option>
           </select>
           <p className="caption-size-preview mt-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-700 dark:text-gray-300 italic">
             Caption preview text -- emergency alert overlay
@@ -320,13 +320,13 @@ export default function SettingsTab({ preferences, updatePreferences }: any) {
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
             <Eye className="w-3.5 h-3.5 text-white" />
           </div>
-          {t('cdash.settings.display', lang)}
+          {'Display'}
         </h3>
 
         <div className="flex items-center justify-between py-1">
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">{t('cdash.settings.darkMode', lang)}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('cdash.settings.darkModeDesc', lang)}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{'Dark Mode'}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{'Switch to a dark colour scheme'}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={form.darkMode} onChange={e => setForm(f => ({ ...f, darkMode: e.target.checked }))} className="sr-only peer" />
@@ -336,8 +336,8 @@ export default function SettingsTab({ preferences, updatePreferences }: any) {
 
         <div className="flex items-center justify-between py-1">
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">{t('cdash.settings.compactView', lang)}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('cdash.settings.compactViewDesc', lang)}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{'Compact View'}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{'Reduce spacing and padding for a denser layout'}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={form.compactView} onChange={e => setForm(f => ({ ...f, compactView: e.target.checked }))} className="sr-only peer" />
@@ -346,7 +346,7 @@ export default function SettingsTab({ preferences, updatePreferences }: any) {
         </div>
 
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">{t('cdash.settings.language', lang)}</label>
+          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">{'Language'}</label>
           <select value={form.language} onChange={e => setForm(f => ({ ...f, language: e.target.value }))}
             className="w-full px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent appearance-none transition">
             <option value="en">English</option>
@@ -368,7 +368,7 @@ export default function SettingsTab({ preferences, updatePreferences }: any) {
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center">
             <Trash2 className="w-3.5 h-3.5 text-white" />
           </div>
-          {t('cdash.settings.deleteAccount', lang)}
+          {'Delete Account'}
         </h3>
 
         {deletionStatus?.deletion_requested ? (
@@ -377,7 +377,7 @@ export default function SettingsTab({ preferences, updatePreferences }: any) {
               <div className="flex items-start gap-2">
                 <AlertCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-red-700 dark:text-red-400">{t('cdash.settings.deletionScheduled', lang)}</p>
+                  <p className="text-sm font-semibold text-red-700 dark:text-red-400">{'Account deletion scheduled'}</p>
                   <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                     Your account will be permanently deleted on{' '}
                     <span className="font-bold">
@@ -388,45 +388,45 @@ export default function SettingsTab({ preferences, updatePreferences }: any) {
                         : '30 days from request'}
                     </span>.
                   </p>
-                  <p className="text-xs text-red-500 dark:text-red-300 mt-2">{t('cdash.settings.cancelDeleteInfo', lang)}</p>
+                  <p className="text-xs text-red-500 dark:text-red-300 mt-2">{'You can cancel deletion within 30 days'}</p>
                 </div>
               </div>
             </div>
             <button onClick={handleCancelDeletion} disabled={deletionLoading}
               className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white rounded-lg font-medium transition text-sm flex items-center justify-center gap-2">
               {deletionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-              {t('cdash.settings.cancelDeletion', lang)}
+              {'Cancel Deletion'}
             </button>
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-xs text-gray-500 dark:text-gray-400">{t('cdash.settings.deleteDesc', lang)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{'Permanently delete your account and all associated data'}</p>
             <ul className="text-xs text-gray-500 dark:text-gray-400 space-y-1 ml-4 list-disc">
-              <li>{t('cdash.settings.deleteBullet1', lang)}</li>
-              <li>{t('cdash.settings.deleteBullet2', lang)}</li>
-              <li>{t('cdash.settings.deleteBullet3', lang)}</li>
-              <li>{t('cdash.settings.deleteBullet4', lang)}</li>
+              <li>{'All your reports and submissions will be anonymised'}</li>
+              <li>{'Your profile and personal data will be permanently deleted'}</li>
+              <li>{'Alert subscriptions and notification preferences will be removed'}</li>
+              <li>{'This action cannot be undone after the grace period'}</li>
             </ul>
             {showDeleteConfirm ? (
               <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/30 rounded-lg p-4 space-y-3">
-                <p className="text-sm font-semibold text-red-700 dark:text-red-400">{t('cdash.settings.areYouSure', lang)}</p>
-                <p className="text-xs text-red-600 dark:text-red-400">{t('cdash.settings.confirmDeleteDesc', lang)}</p>
+                <p className="text-sm font-semibold text-red-700 dark:text-red-400">{'Are you sure you want to delete your account?'}</p>
+                <p className="text-xs text-red-600 dark:text-red-400">{'This action cannot be undone. All your data will be permanently removed.'}</p>
                 <div className="flex gap-2">
                   <button onClick={handleRequestDeletion} disabled={deletionLoading}
                     className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white rounded-lg font-medium transition text-sm flex items-center justify-center gap-2">
                     {deletionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                    {t('cdash.settings.yesDelete', lang)}
+                    {'Yes, Delete My Account'}
                   </button>
                   <button onClick={() => setShowDeleteConfirm(false)}
                     className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-400 rounded-lg font-medium transition text-sm">
-                    {t('cdash.settings.cancel', lang)}
+                    {'Cancel'}
                   </button>
                 </div>
               </div>
             ) : (
               <button onClick={() => setShowDeleteConfirm(true)}
                 className="w-full px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition text-sm flex items-center justify-center gap-2">
-                <Trash2 className="w-4 h-4" /> {t('cdash.settings.requestDeletion', lang)}
+                <Trash2 className="w-4 h-4" /> {'Request Deletion'}
               </button>
             )}
           </div>

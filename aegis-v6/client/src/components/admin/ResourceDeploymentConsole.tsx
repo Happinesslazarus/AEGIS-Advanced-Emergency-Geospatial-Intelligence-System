@@ -47,11 +47,11 @@ interface Props {
 //Returned as a function so labels can be translated per the active locale.
 function getPipeline(lang: string) {
   return [
-    { key: 'requested', label: t('resource.request', lang), icon: Radio },
-    { key: 'staging', label: t('resource.staging', lang), icon: Package },
-    { key: 'transit', label: t('resource.transit', lang), icon: Truck },
-    { key: 'on_site', label: t('resource.onSite', lang), icon: Target },
-    { key: 'demob', label: t('resource.deMob', lang), icon: ArrowDown },
+    { key: 'requested', label: 'Request', icon: Radio },
+    { key: 'staging', label: 'Staging', icon: Package },
+    { key: 'transit', label: 'Transit', icon: Truck },
+    { key: 'on_site', label: 'On-Site', icon: Target },
+    { key: 'demob', label: 'De-Mob', icon: ArrowDown },
   ] as const
 }
 
@@ -175,10 +175,10 @@ function parseAffected(val: any): number {
 }
 
 function formatRelativeTime(mins: number, lang: string): string {
-  if (mins < 1) return t('common.justNow', lang)
-  if (mins < 60) return `${mins}${t('common.minutesShort', lang)} ${t('common.ago', lang)}`
-  if (mins < 1440) return `${Math.floor(mins / 60)}${t('common.hoursShort', lang)} ${mins % 60}${t('common.minutesShort', lang)} ${t('common.ago', lang)}`
-  return `${Math.floor(mins / 1440)}${t('common.daysShort', lang)} ${t('common.ago', lang)}`
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}${'m'} ${'ago'}`
+  if (mins < 1440) return `${Math.floor(mins / 60)}${'h'} ${mins % 60}${'m'} ${'ago'}`
+  return `${Math.floor(mins / 1440)}${'d'} ${'ago'}`
 }
 
 function getDeploymentDuration(deployedAt: string | null): { label: string; isLong: boolean } {
@@ -282,7 +282,7 @@ export default function ResourceDeploymentConsole({
   const doRefresh = useCallback(() => {
     apiGetDeployments().then(setDeployments).catch(() => {})
     cdRef.current = 30; setCountdown(30)
-    pushNotification(t('resource.dataRefreshed', lang), 'info')
+    pushNotification('Deployment data refreshed', 'info')
   }, [lang, setDeployments, pushNotification])
 
   /* keyboard */
@@ -311,19 +311,19 @@ export default function ResourceDeploymentConsole({
   const readiness = criticalCount > 2 ? 'critical' : criticalCount > 0 ? 'elevated' : activeCount > 0 ? 'active' : 'standby'
   const readinessClass = readiness === 'critical' ? 'text-red-500 bg-red-500/10 ring-red-500/30 animate-pulse' : readiness === 'elevated' ? 'text-amber-500 bg-amber-500/10 ring-amber-500/30' : readiness === 'active' ? 'text-emerald-500 bg-emerald-500/10 ring-emerald-500/30' : 'text-slate-400 bg-slate-500/10 ring-slate-500/30'
   const readinessLabel = readiness === 'critical'
-    ? t('resource.readinessCritical', lang)
+    ? 'CRITICAL'
     : readiness === 'elevated'
-      ? t('resource.readinessElevated', lang)
+      ? 'ELEVATED'
       : readiness === 'active'
-        ? t('resource.readinessActive', lang)
-        : t('resource.readinessStandby', lang)
+        ? 'ACTIVE'
+        : 'STANDBY'
 
   const assetRows = useMemo(() => {
     const deployed = deployments.filter((d: any) => d.deployed)
     return [
-      { label: t('resource.ambulances', lang), icon: Truck, color: 'text-red-500', bg: 'bg-red-500', total: deployments.reduce((s: number, d: any) => s + (Number(d.ambulances) || 0), 0), active: deployed.reduce((s: number, d: any) => s + (Number(d.ambulances) || 0), 0) },
-      { label: t('resource.fireEngines', lang), icon: Flame, color: 'text-orange-500', bg: 'bg-orange-500', total: deployments.reduce((s: number, d: any) => s + (Number(d.fire_engines) || 0), 0), active: deployed.reduce((s: number, d: any) => s + (Number(d.fire_engines) || 0), 0) },
-      { label: t('resource.rescueBoats', lang), icon: Anchor, color: 'text-blue-500', bg: 'bg-blue-500', total: deployments.reduce((s: number, d: any) => s + (Number(d.rescue_boats) || 0), 0), active: deployed.reduce((s: number, d: any) => s + (Number(d.rescue_boats) || 0), 0) },
+      { label: 'Ambulances', icon: Truck, color: 'text-red-500', bg: 'bg-red-500', total: deployments.reduce((s: number, d: any) => s + (Number(d.ambulances) || 0), 0), active: deployed.reduce((s: number, d: any) => s + (Number(d.ambulances) || 0), 0) },
+      { label: 'Fire Engines', icon: Flame, color: 'text-orange-500', bg: 'bg-orange-500', total: deployments.reduce((s: number, d: any) => s + (Number(d.fire_engines) || 0), 0), active: deployed.reduce((s: number, d: any) => s + (Number(d.fire_engines) || 0), 0) },
+      { label: 'Rescue Boats', icon: Anchor, color: 'text-blue-500', bg: 'bg-blue-500', total: deployments.reduce((s: number, d: any) => s + (Number(d.rescue_boats) || 0), 0), active: deployed.reduce((s: number, d: any) => s + (Number(d.rescue_boats) || 0), 0) },
     ]
   }, [deployments, lang])
 
@@ -368,23 +368,23 @@ export default function ResourceDeploymentConsole({
 
   const handleDeploy = useCallback((zone: any) => {
     setDeployReason('')
-    askConfirm(t('resource.deployResources', lang), `${t('resource.deployConfirmPrefix', lang)} ${zone.zone}? ${t('resource.deployConfirmSuffix', lang)}`, 'success', async () => {
+    askConfirm('Deploy Resources', `${'Deploy resources to'} ${zone.zone}? ${'A mandatory reason is required and will be logged.'}`, 'success', async () => {
       const reason = deployReasonRef.current
-      if (!reason.trim()) { pushNotification(t('resource.reasonRequired', lang), 'error'); return }
-      apiDeployResources(zone.id, user?.id, reason).then(() => { setDeployments(d => d.map(x => x.id === zone.id ? { ...x, deployed: true, deployed_at: new Date().toISOString(), deployed_by: user?.id || null } : x)); pushNotification(t('resource.deploySuccess', lang), 'success') }).catch(() => pushNotification(t('resource.deployFailed', lang), 'error'))
-      apiAuditLog({ operator_id: user?.id, operator_name: user?.displayName, action: `${t('resource.deployedToPrefix', lang)} ${zone.zone}`, action_type: 'deploy', target_type: 'deployment', target_id: zone.id, reason, before_state: { deployed: false }, after_state: { deployed: true } }).catch(() => {})
-      setAuditLog(prev => [{ id: Date.now(), operator_name: user?.displayName, action: `${t('resource.deployedToPrefix', lang)} ${zone.zone}`, action_type: 'deploy', target_id: zone.id, created_at: new Date().toISOString() }, ...prev])
+      if (!reason.trim()) { pushNotification('Deployment reason is required', 'error'); return }
+      apiDeployResources(zone.id, user?.id, reason).then(() => { setDeployments(d => d.map(x => x.id === zone.id ? { ...x, deployed: true, deployed_at: new Date().toISOString(), deployed_by: user?.id || null } : x)); pushNotification('Resources deployed', 'success') }).catch(() => pushNotification('Deploy failed', 'error'))
+      apiAuditLog({ operator_id: user?.id, operator_name: user?.displayName, action: `${'Deployed resources to'} ${zone.zone}`, action_type: 'deploy', target_type: 'deployment', target_id: zone.id, reason, before_state: { deployed: false }, after_state: { deployed: true } }).catch(() => {})
+      setAuditLog(prev => [{ id: Date.now(), operator_name: user?.displayName, action: `${'Deployed resources to'} ${zone.zone}`, action_type: 'deploy', target_id: zone.id, created_at: new Date().toISOString() }, ...prev])
     })
   }, [askConfirm, deployReasonRef, lang, pushNotification, setAuditLog, setDeployReason, setDeployments, user])
 
   const handleRecall = useCallback((zone: any) => {
     setDeployReason('')
-    askConfirm(t('resource.recallResources', lang), `${t('resource.recallConfirmPrefix', lang)} ${zone.zone}? ${t('resource.recallConfirmSuffix', lang)}`, 'warning', async () => {
+    askConfirm('Recall Resources', `${'Recall all resources from'} ${zone.zone}? ${'Reason required.'}`, 'warning', async () => {
       const reason = deployReasonRef.current
-      if (!reason.trim()) { pushNotification(t('resource.recallReasonRequired', lang), 'error'); return }
-      apiRecallResources(zone.id, reason, reason, undefined, 'correct').then(() => { setDeployments(d => d.map(x => x.id === zone.id ? { ...x, deployed: false, deployed_at: null, deployed_by: null } : x)); pushNotification(t('resource.recallSuccess', lang), 'warning') }).catch(() => pushNotification(t('resource.recallFailed', lang), 'error'))
-      apiAuditLog({ operator_id: user?.id, operator_name: user?.displayName, action: `${t('resource.recalledFromPrefix', lang)} ${zone.zone}`, action_type: 'recall', target_type: 'deployment', target_id: zone.id, reason, before_state: { deployed: true }, after_state: { deployed: false } }).catch(() => {})
-      setAuditLog(prev => [{ id: Date.now(), operator_name: user?.displayName, action: `${t('resource.recalledFromPrefix', lang)} ${zone.zone}`, action_type: 'recall', target_id: zone.id, created_at: new Date().toISOString() }, ...prev])
+      if (!reason.trim()) { pushNotification('Reason required for recall', 'error'); return }
+      apiRecallResources(zone.id, reason, reason, undefined, 'correct').then(() => { setDeployments(d => d.map(x => x.id === zone.id ? { ...x, deployed: false, deployed_at: null, deployed_by: null } : x)); pushNotification('Resources recalled', 'warning') }).catch(() => pushNotification('Recall failed', 'error'))
+      apiAuditLog({ operator_id: user?.id, operator_name: user?.displayName, action: `${'Recalled resources from'} ${zone.zone}`, action_type: 'recall', target_type: 'deployment', target_id: zone.id, reason, before_state: { deployed: true }, after_state: { deployed: false } }).catch(() => {})
+      setAuditLog(prev => [{ id: Date.now(), operator_name: user?.displayName, action: `${'Recalled resources from'} ${zone.zone}`, action_type: 'recall', target_id: zone.id, created_at: new Date().toISOString() }, ...prev])
     })
   }, [askConfirm, deployReasonRef, lang, pushNotification, setAuditLog, setDeployReason, setDeployments, user])
 
@@ -591,14 +591,14 @@ export default function ResourceDeploymentConsole({
         <div className="flex items-center justify-between px-5 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 text-[11px]">
           <div className="flex items-center gap-3">
             <span className={`px-2.5 py-0.5 rounded-md font-extrabold ring-1 ${readinessClass}`}>{readinessLabel}</span>
-            <span className="text-gray-400 dark:text-gray-300">{loc.name || t('historical.allRegions', lang)}</span>
+            <span className="text-gray-400 dark:text-gray-300">{loc.name || 'All Regions'}</span>
           </div>
           <div className="flex items-center gap-3 font-mono text-gray-500 dark:text-gray-300">
             <span className="font-semibold text-gray-700 dark:text-gray-300 tabular-nums">{time.zulu}</span>
             <span className="text-gray-300 dark:text-gray-400">|</span>
-            <span className="tabular-nums">{t('common.local', lang)} {time.local}</span>
+            <span className="tabular-nums">{'Local'} {time.local}</span>
             <span className="text-gray-300 dark:text-gray-400">|</span>
-            <span className="tabular-nums text-emerald-600 dark:text-emerald-400">{t('common.sync', lang)} {countdown}s</span>
+            <span className="tabular-nums text-emerald-600 dark:text-emerald-400">{'Sync'} {countdown}s</span>
           </div>
         </div>
 
@@ -609,23 +609,23 @@ export default function ResourceDeploymentConsole({
               <Navigation className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-gray-900 dark:text-white tracking-tight">{t('resource.deployment', lang)}</h2>
+              <h2 className="text-lg font-extrabold text-gray-900 dark:text-white tracking-tight">{'Resource Deployment'}</h2>
               <div className="text-xs text-gray-500 dark:text-gray-300 flex items-center gap-2 flex-wrap">
-                <span>{t('resource.subtitle', lang)}</span>
+                <span>{'Coordinate and deploy emergency resources'}</span>
                 <span aria-hidden="true" className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
-                <span>{t('resource.assetLogistics', lang)}</span>
+                <span>{'Asset logistics'}</span>
                 <span aria-hidden="true" className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
-                <span>{t('resource.zoneManagement', lang)}</span>
+                <span>{'Zone management'}</span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowShortcuts(p => !p)} className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-300 transition-colors" title={t('resource.keyboardShortcuts', lang)}><Keyboard className="w-4 h-4" /></button>
+            <button onClick={() => setShowShortcuts(p => !p)} className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-300 transition-colors" title={'Keyboard shortcuts'}><Keyboard className="w-4 h-4" /></button>
             <button onClick={doRefresh} className="h-8 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition-colors">
-              <RefreshCw className="w-3.5 h-3.5" /> {t('common.refresh', lang)}
+              <RefreshCw className="w-3.5 h-3.5" /> {'Refresh'}
             </button>
             <button onClick={() => { const init = getSmartResourceSuggestion('general', 'Medium'); setCreateForm({ zone: '', priority: 'Medium', active_reports: '0', estimated_affected: '', ai_recommendation: init.reasoning, commander_notes: '', ambulances: String(init.ambulances), fire_engines: String(init.fire_engines), rescue_boats: String(init.rescue_boats), lat: '', lng: '', report_id: '', hazard_type: 'general', incident_commander: '', radio_channel: '', weather_conditions: 'clear', evacuation_status: 'none', access_routes: '' }); setCreateStep(0); setShowCreateModal(true) }} className="h-8 px-3 rounded-lg bg-violet-50 dark:bg-violet-900/30 hover:bg-violet-100 dark:hover:bg-violet-900/50 text-violet-700 dark:text-violet-300 text-xs font-semibold flex items-center gap-1.5 transition-colors">
-              <Plus className="w-3.5 h-3.5" /> {t('admin.resource.addZone', lang)}
+              <Plus className="w-3.5 h-3.5" /> {'Add Zone'}
             </button>
           </div>
         </div>
@@ -634,12 +634,12 @@ export default function ResourceDeploymentConsole({
         <div className="px-5 pb-4">
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
             {[
-              { label: t('resource.zones', lang), value: String(totalZones), accent: 'text-gray-900 dark:text-white' },
-              { label: t('common.active', lang), value: String(activeCount), accent: 'text-emerald-600 dark:text-emerald-400' },
-              { label: t('common.critical', lang), value: String(criticalCount), accent: criticalCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-300' },
-              { label: t('common.reports', lang), value: String(totalReports), accent: 'text-amber-600 dark:text-amber-400' },
-              { label: t('resource.affected', lang), value: totalAffected.toLocaleString(), accent: 'text-rose-600 dark:text-rose-400' },
-              { label: t('resource.utilization', lang), value: `${utilizationPct}%`, accent: utilizationPct > 70 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' },
+              { label: 'Zones', value: String(totalZones), accent: 'text-gray-900 dark:text-white' },
+              { label: 'Active', value: String(activeCount), accent: 'text-emerald-600 dark:text-emerald-400' },
+              { label: 'Critical', value: String(criticalCount), accent: criticalCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-300' },
+              { label: 'reports', value: String(totalReports), accent: 'text-amber-600 dark:text-amber-400' },
+              { label: 'Affected', value: totalAffected.toLocaleString(), accent: 'text-rose-600 dark:text-rose-400' },
+              { label: 'Utilization', value: `${utilizationPct}%`, accent: utilizationPct > 70 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' },
             ].map((s, i) => (
               <div key={i} className="text-center py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/50">
                 <p className="text-[10px] text-gray-500 dark:text-gray-300 font-semibold uppercase tracking-wider mb-0.5">{s.label}</p>
@@ -653,7 +653,7 @@ export default function ResourceDeploymentConsole({
       {/* Shortcuts */}
       {showShortcuts && (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {[['R', t('common.refresh', lang)], ['M', t('common.toggleMap', lang)], ['/', t('common.search', lang)], ['?', t('common.shortcuts', lang)]].map(([k, d]) => (
+          {[['R', 'Refresh'], ['M', 'Toggle map'], ['/', 'Search'], ['?', 'Shortcuts']].map(([k, d]) => (
             <div key={k} className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300">
               <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-[10px] font-mono text-gray-700 dark:text-gray-300">{k}</kbd>
               {d}
@@ -665,7 +665,7 @@ export default function ResourceDeploymentConsole({
       {/* ASSET READINESS */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><Shield className="w-4 h-4 text-emerald-500" /> {t('resource.assetReadiness', lang)}</h3>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><Shield className="w-4 h-4 text-emerald-500" /> {'Asset Readiness'}</h3>
           <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ring-1 ${readinessClass}`}>{readiness}</span>
         </div>
         <div className="p-5">
@@ -685,22 +685,22 @@ export default function ResourceDeploymentConsole({
                   </div>
                   <div className="flex items-end justify-between mb-3">
                     <div>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-300 font-medium uppercase">{t('common.total', lang)}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-300 font-medium uppercase">{'Total'}</p>
                       <p className="text-2xl font-extrabold text-gray-900 dark:text-white tabular-nums">{a.total}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-[10px] text-emerald-500 font-medium uppercase">{t('common.active', lang)}</p>
+                      <p className="text-[10px] text-emerald-500 font-medium uppercase">{'Active'}</p>
                       <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">{a.active}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] text-blue-500 font-medium uppercase">{t('resource.available', lang)}</p>
+                      <p className="text-[10px] text-blue-500 font-medium uppercase">{'Available'}</p>
                       <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400 tabular-nums">{avail}</p>
                     </div>
                   </div>
                   <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                     <div className={`h-full ${a.bg} rounded-full transition-all duration-700 ${assetPulse ? 'opacity-100' : pct > 0 ? 'opacity-90' : 'opacity-0'}`} style={{ width: `${pct}%` }} />
                   </div>
-                  <p className={`text-[10px] mt-1.5 text-right tabular-nums ${assetPulse ? 'text-emerald-500 font-bold' : 'text-gray-400 dark:text-gray-300'}`}>{pct}% {t('resource.deployed', lang).toLowerCase()}</p>
+                  <p className={`text-[10px] mt-1.5 text-right tabular-nums ${assetPulse ? 'text-emerald-500 font-bold' : 'text-gray-400 dark:text-gray-300'}`}>{pct}% {'Deployed'.toLowerCase()}</p>
                 </div>
               )
             })}
@@ -711,8 +711,8 @@ export default function ResourceDeploymentConsole({
       {/* LOGISTICS PIPELINE */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><Activity className="w-4 h-4 text-indigo-500" /> {t('resource.logisticsPipeline', lang)}</h3>
-          <span className="text-xs font-bold tabular-nums px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500/20">{Object.values(pipelineCounts).reduce((a, b) => a + b, 0)} {t('common.total', lang).toLowerCase()}</span>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><Activity className="w-4 h-4 text-indigo-500" /> {'Logistics Pipeline'}</h3>
+          <span className="text-xs font-bold tabular-nums px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500/20">{Object.values(pipelineCounts).reduce((a, b) => a + b, 0)} {'Total'.toLowerCase()}</span>
         </div>
         <div className="p-5">
           <div className="flex items-center gap-0">
@@ -747,10 +747,10 @@ export default function ResourceDeploymentConsole({
           <div className="px-5 py-3 border-b border-violet-200 dark:border-violet-800 flex items-center justify-between">
             <h3 className="text-sm font-bold text-violet-900 dark:text-violet-200 flex items-center gap-2">
               <Brain className={`w-4 h-4 text-violet-500 ${unacknowledgedDrafts.some((d: any) => d.priority?.toLowerCase() === 'critical') ? 'animate-pulse' : ''}`} />
-              {t('admin.resource.aiDraftsAwaitingReview', lang)}
+              {'AI Drafts Awaiting Review'}
               <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-violet-600 text-white">{unacknowledgedDrafts.length}</span>
             </h3>
-            <p className="text-[11px] text-violet-500 dark:text-violet-400">{t('resource.operatorConfirmRequired', lang)}</p>
+            <p className="text-[11px] text-violet-500 dark:text-violet-400">{'Operator confirmation required before deployment'}</p>
           </div>
           <div className="p-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
             {unacknowledgedDrafts.map((zone: any) => {
@@ -761,7 +761,7 @@ export default function ResourceDeploymentConsole({
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <p className="text-sm font-bold text-gray-900 dark:text-white">{zone.zone}</p>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-300 mt-0.5">{zone.hazard_type || 'General'} - {zone.estimated_affected || 'unknown'} {t('admin.resource.affected', lang)}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-300 mt-0.5">{zone.hazard_type || 'General'} - {zone.estimated_affected || 'unknown'} {'Affected'}</p>
                     </div>
                     <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold ring-1 ${P_PILL[priority] || P_PILL.Low}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${P_DOT[priority] || P_DOT.Low}`} />{priority}
@@ -779,13 +779,13 @@ export default function ResourceDeploymentConsole({
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-colors disabled:opacity-50"
                     >
                       {acknowledging === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
-                      {t('admin.resource.confirmDraft', lang)}
+                      {'Confirm Draft'}
                     </button>
                     <button
                       onClick={() => handleDeploy(zone)}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 ring-1 ring-emerald-500/20 transition-colors"
                     >
-                      <Zap className="w-3 h-3" /> {t('admin.resource.deployNow', lang)}
+                      <Zap className="w-3 h-3" /> {'Deploy Now'}
                     </button>
                   </div>
                 </div>
@@ -798,14 +798,14 @@ export default function ResourceDeploymentConsole({
       {/* MAP */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
         <button onClick={() => setShowMap(p => !p)} className="w-full px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><Map className="w-4 h-4 text-teal-500" /> {t('resource.deploymentZonesMap', lang)}</h3>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><Map className="w-4 h-4 text-teal-500" /> {'Deployment Zones Map'}</h3>
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 text-[10px] text-gray-400 dark:text-gray-300">
               {[
-                { key: 'Critical', label: t('common.critical', lang) },
-                { key: 'High', label: t('common.high', lang) },
-                { key: 'Medium', label: t('common.medium', lang) },
-                { key: 'Low', label: t('common.low', lang) },
+                { key: 'Critical', label: 'Critical' },
+                { key: 'High', label: 'High' },
+                { key: 'Medium', label: 'Medium' },
+                { key: 'Low', label: 'Low' },
               ].map(p => (
                 <span key={p.key} className="flex items-center gap-1"><span className={`w-2 h-2 rounded-full ${P_DOT[p.key]}`} />{p.label}</span>
               ))}
@@ -825,12 +825,12 @@ export default function ResourceDeploymentConsole({
       {/* DEPLOYMENT ZONES */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><Layers className="w-4 h-4 text-violet-500" /> {t('resource.deploymentZones', lang)}</h3>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><Layers className="w-4 h-4 text-violet-500" /> {'Deployment Zones'}</h3>
           <div className="flex items-center gap-3">
             <span className="text-[11px] text-gray-400 dark:text-gray-300 font-medium">{zones.length} {t(zones.length === 1 ? 'resource.zone' : 'resource.zones', lang).toLowerCase()}</span>
             <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <button onClick={() => setZoneView('table')} className={`p-1.5 transition-colors ${zoneView === 'table' ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400' : 'text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`} title={t('resource.tableView', lang)}><List className="w-3.5 h-3.5" /></button>
-              <button onClick={() => setZoneView('grid')} className={`p-1.5 transition-colors ${zoneView === 'grid' ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400' : 'text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`} title={t('resource.gridView', lang)}><LayoutGrid className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setZoneView('table')} className={`p-1.5 transition-colors ${zoneView === 'table' ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400' : 'text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`} title={'Table view'}><List className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setZoneView('grid')} className={`p-1.5 transition-colors ${zoneView === 'grid' ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400' : 'text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`} title={'Grid view'}><LayoutGrid className="w-3.5 h-3.5" /></button>
             </div>
           </div>
         </div>
@@ -839,20 +839,20 @@ export default function ResourceDeploymentConsole({
         <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-gray-50/50 dark:bg-gray-800/20">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
-            <input ref={searchRef} type="text" placeholder={t('resource.searchZones', lang)} value={zoneSearch} onChange={e => setZoneSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 text-xs bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all placeholder:text-gray-400 dark:text-gray-300" />
+            <input ref={searchRef} type="text" placeholder={'Search zones or AI recommendations...'} value={zoneSearch} onChange={e => setZoneSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 text-xs bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all placeholder:text-gray-400 dark:text-gray-300" />
           </div>
           <div className="flex items-center gap-2">
             <select value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)} className="px-2.5 py-2 text-xs bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <option value="all">{t('resource.allPriorities', lang)}</option>
-              <option value="Critical">{t('common.critical', lang)}</option>
-              <option value="High">{t('common.high', lang)}</option>
-              <option value="Medium">{t('common.medium', lang)}</option>
-              <option value="Low">{t('common.low', lang)}</option>
+              <option value="all">{'All priorities'}</option>
+              <option value="Critical">{'Critical'}</option>
+              <option value="High">{'High'}</option>
+              <option value="Medium">{'Medium'}</option>
+              <option value="Low">{'Low'}</option>
             </select>
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="px-2.5 py-2 text-xs bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <option value="all">{t('resource.allStatus', lang)}</option>
-              <option value="deployed">{t('resource.deployed', lang)}</option>
-              <option value="standby">{t('resource.standby', lang)}</option>
+              <option value="all">{'All status'}</option>
+              <option value="deployed">{'Deployed'}</option>
+              <option value="standby">{'Standby'}</option>
             </select>
           </div>
         </div>
@@ -861,26 +861,26 @@ export default function ResourceDeploymentConsole({
         {zoneView === 'table' && (
           <DataTable<any>
             columns={[
-              { key: 'zone', header: t('resource.zone', lang), sortable: true, render: (zone, i) => (
+              { key: 'zone', header: 'Zone', sortable: true, render: (zone, i) => (
                 <div>
                   <button onClick={() => { const k = zone.id || String(i); setExpandedZone(k === expandedZone ? null : k); if (zone.id && k !== expandedZone) loadAssets(zone.id) }} className="flex items-center gap-1.5 font-bold text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors whitespace-nowrap min-w-[140px]">
                     {expandedZone === (zone.id || String(i)) ? <ChevronDown className="w-3 h-3 text-gray-400 dark:text-gray-300 flex-shrink-0" /> : <ChevronRight className="w-3 h-3 text-gray-400 dark:text-gray-300 flex-shrink-0" />}
                     <span className="truncate">{zone.zone}</span>
                     {zone.hazard_type && zone.hazard_type !== 'general' && (() => { const HIcon = HAZARD_CATEGORIES[zone.hazard_type]?.icon; return HIcon ? <span title={HAZARD_CATEGORIES[zone.hazard_type]?.label || zone.hazard_type}><HIcon className="w-3.5 h-3.5 opacity-70" /></span> : null })()}
                   </button>
-                  {zone.is_ai_draft && <span className="mt-0.5 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 ring-1 ring-violet-500/20"><Cpu className="w-2.5 h-2.5" /> {t('admin.resource.aiDraft', lang)}</span>}
+                  {zone.is_ai_draft && <span className="mt-0.5 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 ring-1 ring-violet-500/20"><Cpu className="w-2.5 h-2.5" /> {'AI DRAFT'}</span>}
                   {zone.report_id && <span className="mt-0.5 ml-1 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-300 ring-1 ring-sky-500/20"><Link2 className="w-2.5 h-2.5" /> {zone.report_number || `RPT-${zone.report_id?.slice(0, 6).toUpperCase()}`}</span>}
-                  {zone.needs_mutual_aid && <span className="mt-0.5 ml-1 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300 ring-1 ring-orange-500/20"><Users className="w-2.5 h-2.5" /> {t('admin.resource.mutualAid', lang)}</span>}
+                  {zone.needs_mutual_aid && <span className="mt-0.5 ml-1 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300 ring-1 ring-orange-500/20"><Users className="w-2.5 h-2.5" /> {'Mutual Aid'}</span>}
                   {zone.hazard_type && zone.hazard_type !== 'general' && <span className="mt-0.5 ml-1 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-sky-50 dark:bg-sky-900/10 text-sky-600 dark:text-sky-400 ring-1 ring-sky-500/20 capitalize">{zone.hazard_type.replace(/_/g, '\u202f')}</span>}
                 </div>
               )},
-              { key: 'priority', header: t('common.priority', lang), sortable: true, render: zone => { const priority = (zone.priority || 'Low').charAt(0).toUpperCase() + (zone.priority || 'low').slice(1).toLowerCase(); return <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold ring-1 ${P_PILL[priority] || P_PILL.Low}`}><span className={`w-1.5 h-1.5 rounded-full ${P_DOT[priority] || P_DOT.Low}`} />{priority}</span> } },
-              { key: 'status', header: t('common.status', lang), sortable: true, render: zone => zone.deployed ? (
-                <><span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {t('common.active', lang)}</span>{zone.deployed_at && (() => { const dur = getDeploymentDuration(zone.deployed_at); return <span className={`flex items-center gap-0.5 text-[9px] font-mono mt-0.5 ${dur.isLong ? 'text-amber-500 animate-pulse' : 'text-gray-400'}`}><Clock className="w-3 h-3" /> {dur.label}</span> })()}</>
-              ) : <span className="text-[10px] px-2 py-0.5 rounded-md font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-300">{t('resource.standby', lang)}</span> },
-              { key: 'reports', header: t('common.reports', lang), sortable: true, align: 'right', render: zone => <span className="font-bold tabular-nums text-gray-900 dark:text-white">{zone.active_reports}</span> },
-              { key: 'affected', header: t('resource.affected', lang), sortable: true, align: 'right', render: zone => { const affected = parseAffected(zone.estimated_affected); return <span className="font-bold tabular-nums text-rose-600 dark:text-rose-400">{affected > 0 ? affected.toLocaleString() : '--'}</span> } },
-              { key: 'assets', header: t('resource.assets', lang), render: zone => (
+              { key: 'priority', header: 'Priority', sortable: true, render: zone => { const priority = (zone.priority || 'Low').charAt(0).toUpperCase() + (zone.priority || 'low').slice(1).toLowerCase(); return <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold ring-1 ${P_PILL[priority] || P_PILL.Low}`}><span className={`w-1.5 h-1.5 rounded-full ${P_DOT[priority] || P_DOT.Low}`} />{priority}</span> } },
+              { key: 'status', header: 'Status', sortable: true, render: zone => zone.deployed ? (
+                <><span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {'Active'}</span>{zone.deployed_at && (() => { const dur = getDeploymentDuration(zone.deployed_at); return <span className={`flex items-center gap-0.5 text-[9px] font-mono mt-0.5 ${dur.isLong ? 'text-amber-500 animate-pulse' : 'text-gray-400'}`}><Clock className="w-3 h-3" /> {dur.label}</span> })()}</>
+              ) : <span className="text-[10px] px-2 py-0.5 rounded-md font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-300">{'Standby'}</span> },
+              { key: 'reports', header: 'reports', sortable: true, align: 'right', render: zone => <span className="font-bold tabular-nums text-gray-900 dark:text-white">{zone.active_reports}</span> },
+              { key: 'affected', header: 'Affected', sortable: true, align: 'right', render: zone => { const affected = parseAffected(zone.estimated_affected); return <span className="font-bold tabular-nums text-rose-600 dark:text-rose-400">{affected > 0 ? affected.toLocaleString() : '--'}</span> } },
+              { key: 'assets', header: 'Assets', render: zone => (
                 <div className="flex items-center gap-2">
                   {Number(zone.ambulances) > 0 && <span className="flex items-center gap-0.5 text-[10px] text-gray-600 dark:text-gray-300"><Truck className="w-3 h-3 text-red-500" />{zone.ambulances}</span>}
                   {Number(zone.fire_engines) > 0 && <span className="flex items-center gap-0.5 text-[10px] text-gray-600 dark:text-gray-300"><Flame className="w-3 h-3 text-orange-500" />{zone.fire_engines}</span>}
@@ -888,11 +888,11 @@ export default function ResourceDeploymentConsole({
                   {!Number(zone.ambulances) && !Number(zone.fire_engines) && !Number(zone.rescue_boats) && <span className="text-[10px] text-gray-400 dark:text-gray-300">--</span>}
                 </div>
               )},
-              { key: 'ai', header: t('resource.aiRecommendation', lang), render: zone => <p className="text-[11px] text-blue-600 dark:text-blue-400 truncate max-w-[260px]" title={zone.ai_recommendation}><Brain className="w-3 h-3 inline mr-1 opacity-50" />{zone.ai_recommendation || '--'}</p> },
-              { key: 'actions', header: t('common.actions', lang), align: 'right', render: zone => (
+              { key: 'ai', header: 'AI Recommendation', render: zone => <p className="text-[11px] text-blue-600 dark:text-blue-400 truncate max-w-[260px]" title={zone.ai_recommendation}><Brain className="w-3 h-3 inline mr-1 opacity-50" />{zone.ai_recommendation || '--'}</p> },
+              { key: 'actions', header: 'Actions', align: 'right', render: zone => (
                 <div className="flex items-center justify-end gap-1.5">
                   {zone.is_ai_draft && !zone.ai_draft_acknowledged_at && <button onClick={() => handleAcknowledge(zone.id)} disabled={acknowledging === zone.id} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 hover:bg-violet-100 ring-1 ring-violet-500/20 transition-colors flex items-center gap-1">{acknowledging === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />} Ack</button>}
-                  {zone.deployed ? <button onClick={() => handleRecall(zone)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 ring-1 ring-amber-500/20 transition-colors">{t('resource.recall', lang)}</button> : <button onClick={() => handleDeploy(zone)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 ring-1 ring-emerald-500/20 transition-colors">{t('resource.deploy', lang)}</button>}
+                  {zone.deployed ? <button onClick={() => handleRecall(zone)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 ring-1 ring-amber-500/20 transition-colors">{'Recall'}</button> : <button onClick={() => handleDeploy(zone)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 ring-1 ring-emerald-500/20 transition-colors">{'Deploy'}</button>}
                   {user?.role === 'admin' && <button onClick={() => handleDelete(zone)} className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="Delete zone"><Trash2 className="w-3.5 h-3.5" /></button>}
                 </div>
               )},
@@ -907,53 +907,53 @@ export default function ResourceDeploymentConsole({
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider">{t('admin.resource.zoneDetails', lang)}</span>
+                    <span className="text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider">{'Zone Details'}</span>
                     {zone.hazard_type && zone.hazard_type !== 'general' && <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 text-violet-700 dark:text-violet-300 ring-1 ring-violet-500/20 flex items-center gap-1">{(() => { const HIcon = HAZARD_CATEGORIES[zone.hazard_type]?.icon || FileText; return <HIcon className="w-3 h-3" /> })()} {HAZARD_CATEGORIES[zone.hazard_type]?.label || zone.hazard_type}</span>}
                   </div>
-                  {editingZone !== zone.id ? <button onClick={() => startEdit(zone)} className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><Edit3 className="w-3 h-3" /> {t('admin.resource.editZone', lang)}</button> : <div className="flex items-center gap-1.5"><button onClick={() => saveEdit(zone.id)} disabled={savingEdit} className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50">{savingEdit ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save</button><button onClick={cancelEdit} className="px-2.5 py-1 text-[10px] font-semibold rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{t('admin.resource.cancel', lang)}</button></div>}
+                  {editingZone !== zone.id ? <button onClick={() => startEdit(zone)} className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><Edit3 className="w-3 h-3" /> {'Edit Zone'}</button> : <div className="flex items-center gap-1.5"><button onClick={() => saveEdit(zone.id)} disabled={savingEdit} className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50">{savingEdit ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save</button><button onClick={cancelEdit} className="px-2.5 py-1 text-[10px] font-semibold rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{'Cancel'}</button></div>}
                 </div>
                 {editingZone === zone.id ? (
                   <div className="mb-4 p-3 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50/30 dark:bg-violet-900/5 space-y-3">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div><label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.priority', lang)}</label><select value={editForm.priority} onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">{['Critical', 'High', 'Medium', 'Low'].map(p => <option key={p} value={p}>{p}</option>)}</select></div>
-                      <div><label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.hazardType', lang)}</label><select value={editForm.hazard_type} onChange={e => setEditForm(f => ({ ...f, hazard_type: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">{Object.entries(HAZARD_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></div>
-                      <div><label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.reports', lang)}</label><input type="number" min={0} value={editForm.active_reports} onChange={e => setEditForm(f => ({ ...f, active_reports: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" /></div>
-                      <div><label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.affected', lang)}</label><input type="text" value={editForm.estimated_affected} onChange={e => setEditForm(f => ({ ...f, estimated_affected: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" placeholder={t('admin.resource.affectedPlaceholder', lang)} /></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase">{'Priority'}</label><select value={editForm.priority} onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">{['Critical', 'High', 'Medium', 'Low'].map(p => <option key={p} value={p}>{p}</option>)}</select></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase">{'Hazard Type'}</label><select value={editForm.hazard_type} onChange={e => setEditForm(f => ({ ...f, hazard_type: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">{Object.entries(HAZARD_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase">{'Reports'}</label><input type="number" min={0} value={editForm.active_reports} onChange={e => setEditForm(f => ({ ...f, active_reports: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" /></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase">{'Affected'}</label><input type="text" value={editForm.estimated_affected} onChange={e => setEditForm(f => ({ ...f, estimated_affected: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" placeholder={'e.g. 200'} /></div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div><label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Truck className="w-3 h-3 text-red-500" /> {t('admin.resource.ambulances', lang)}</label><input type="number" min={0} value={editForm.ambulances} onChange={e => setEditForm(f => ({ ...f, ambulances: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" /></div>
-                      <div><label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Flame className="w-3 h-3 text-orange-500" /> {t('admin.resource.fire', lang)}</label><input type="number" min={0} value={editForm.fire_engines} onChange={e => setEditForm(f => ({ ...f, fire_engines: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" /></div>
-                      <div><label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Anchor className="w-3 h-3 text-blue-500" /> {t('admin.resource.boats', lang)}</label><input type="number" min={0} value={editForm.rescue_boats} onChange={e => setEditForm(f => ({ ...f, rescue_boats: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" /></div>
-                      <div><label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Shield className="w-3 h-3 text-indigo-500" /> {t('admin.resource.incidentCommander', lang)}</label><input type="text" value={editForm.incident_commander} onChange={e => setEditForm(f => ({ ...f, incident_commander: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" placeholder={t('admin.resource.namePlaceholder', lang)} /></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Truck className="w-3 h-3 text-red-500" /> {'Ambulances'}</label><input type="number" min={0} value={editForm.ambulances} onChange={e => setEditForm(f => ({ ...f, ambulances: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" /></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Flame className="w-3 h-3 text-orange-500" /> {'Fire'}</label><input type="number" min={0} value={editForm.fire_engines} onChange={e => setEditForm(f => ({ ...f, fire_engines: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" /></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Anchor className="w-3 h-3 text-blue-500" /> {'Boats'}</label><input type="number" min={0} value={editForm.rescue_boats} onChange={e => setEditForm(f => ({ ...f, rescue_boats: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" /></div>
+                      <div><label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Shield className="w-3 h-3 text-indigo-500" /> {'Incident Commander'}</label><input type="text" value={editForm.incident_commander} onChange={e => setEditForm(f => ({ ...f, incident_commander: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" placeholder={'Name'} /></div>
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs mb-3">
-                    <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.zoneId', lang)}</span><p className="font-mono font-bold text-gray-700 dark:text-gray-300 mt-0.5">{zone.id || '--'}</p></div>
-                    <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.priorityScore', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 mt-0.5">{P_ORDER[(zone.priority || 'Low').charAt(0).toUpperCase() + (zone.priority || 'low').slice(1).toLowerCase()] || 0}/4</p></div>
-                    <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.estimatedAffected', lang)}</span><p className="font-bold text-rose-600 dark:text-rose-400 mt-0.5">{zone.estimated_affected || '--'}</p></div>
-                    <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.deploymentStatus', lang)}</span><p className={`font-bold mt-0.5 ${zone.deployed ? 'text-emerald-600' : 'text-gray-500 dark:text-gray-300'}`}>{zone.deployed ? t('resource.resourcesDeployed', lang) : t('resource.awaitingDeployment', lang)}</p></div>
+                    <div><span className="text-gray-400 dark:text-gray-300 font-medium">{'Zone ID'}</span><p className="font-mono font-bold text-gray-700 dark:text-gray-300 mt-0.5">{zone.id || '--'}</p></div>
+                    <div><span className="text-gray-400 dark:text-gray-300 font-medium">{'Priority Score'}</span><p className="font-bold text-gray-700 dark:text-gray-300 mt-0.5">{P_ORDER[(zone.priority || 'Low').charAt(0).toUpperCase() + (zone.priority || 'low').slice(1).toLowerCase()] || 0}/4</p></div>
+                    <div><span className="text-gray-400 dark:text-gray-300 font-medium">{'Estimated Affected'}</span><p className="font-bold text-rose-600 dark:text-rose-400 mt-0.5">{zone.estimated_affected || '--'}</p></div>
+                    <div><span className="text-gray-400 dark:text-gray-300 font-medium">{'Deployment Status'}</span><p className={`font-bold mt-0.5 ${zone.deployed ? 'text-emerald-600' : 'text-gray-500 dark:text-gray-300'}`}>{zone.deployed ? 'Resources deployed' : 'Awaiting deployment'}</p></div>
                   </div>
                 )}
                 {(zone.is_ai_draft || zone.report_id || zone.prediction_id) && (
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {zone.is_ai_draft && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 text-[11px] text-violet-700 dark:text-violet-300 font-semibold"><Cpu className="w-3 h-3" /> {t('resource.aiDraftAwaiting', lang)}</div>}
-                    {zone.report_id && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 text-[11px] text-sky-700 dark:text-sky-300 font-medium"><Link2 className="w-3 h-3" /> {t('resource.linkedReport', lang)}: <span className="font-mono font-bold">{zone.report_number || `RPT-${zone.report_id?.slice(0, 6).toUpperCase()}`}</span></div>}
-                    {zone.prediction_id && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 text-[11px] text-indigo-700 dark:text-indigo-300 font-medium"><Brain className="w-3 h-3" /> {t('resource.prediction', lang)}: <span className="font-mono">PRD-{zone.prediction_id?.slice(0, 6).toUpperCase()}</span></div>}
+                    {zone.is_ai_draft && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 text-[11px] text-violet-700 dark:text-violet-300 font-semibold"><Cpu className="w-3 h-3" /> {'AI Draft -- awaiting operator review'}</div>}
+                    {zone.report_id && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 text-[11px] text-sky-700 dark:text-sky-300 font-medium"><Link2 className="w-3 h-3" /> {'Linked report'}: <span className="font-mono font-bold">{zone.report_number || `RPT-${zone.report_id?.slice(0, 6).toUpperCase()}`}</span></div>}
+                    {zone.prediction_id && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 text-[11px] text-indigo-700 dark:text-indigo-300 font-medium"><Brain className="w-3 h-3" /> {'Prediction'}: <span className="font-mono">PRD-{zone.prediction_id?.slice(0, 6).toUpperCase()}</span></div>}
                   </div>
                 )}
                 <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-3 border border-blue-100 dark:border-blue-900/30 mb-3">
-                  <p className="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2"><Brain className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 opacity-60" /><span>{zone.ai_recommendation || t('resource.noRecommendation', lang)}</span></p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2"><Brain className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 opacity-60" /><span>{zone.ai_recommendation || 'No recommendation'}</span></p>
                 </div>
                 <div className="mb-3">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5"><MapPin className="w-3 h-3" /> {t('admin.resource.assetTracking', lang)}{zone.id && assetsByZone[zone.id] && <span className="ml-1 px-1.5 py-0.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold">{assetsByZone[zone.id].filter((a: any) => a.status === 'on_site').length}/{assetsByZone[zone.id].length} {t('admin.resource.onSite', lang)}</span>}</p>
-                    {zone.id && <button onClick={() => { setShowAddAsset(showAddAsset === zone.id ? null : zone.id); setAssetForm({ asset_type: 'ambulance', call_sign: '', status: 'staging', crew_count: '1', notes: '' }) }} className="h-6 px-2 text-[10px] font-bold rounded-md bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 flex items-center gap-1 transition-colors"><Plus className="w-2.5 h-2.5" /> {t('admin.resource.addAsset', lang)}</button>}
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5"><MapPin className="w-3 h-3" /> {'Asset Tracking'}{zone.id && assetsByZone[zone.id] && <span className="ml-1 px-1.5 py-0.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold">{assetsByZone[zone.id].filter((a: any) => a.status === 'on_site').length}/{assetsByZone[zone.id].length} {'on-site'}</span>}</p>
+                    {zone.id && <button onClick={() => { setShowAddAsset(showAddAsset === zone.id ? null : zone.id); setAssetForm({ asset_type: 'ambulance', call_sign: '', status: 'staging', crew_count: '1', notes: '' }) }} className="h-6 px-2 text-[10px] font-bold rounded-md bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 flex items-center gap-1 transition-colors"><Plus className="w-2.5 h-2.5" /> {'Add Asset'}</button>}
                   </div>
-                  {loadingAssetsFor === zone.id && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('admin.resource.loadingAssets', lang)}</p>}
+                  {loadingAssetsFor === zone.id && <p className="text-[11px] text-gray-400 dark:text-gray-300">{'Loading assets...'}</p>}
                   {zone.id && assetsByZone[zone.id] && (
                     <div className="space-y-1">
-                      {assetsByZone[zone.id].length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('admin.resource.noAssetsTracked', lang)}</p>}
+                      {assetsByZone[zone.id].length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">{'No assets tracked yet.'}</p>}
                       {assetsByZone[zone.id].map((asset: any) => { const statusColor: Record<string, string> = { staging: 'bg-slate-500', en_route: 'bg-amber-500', on_site: 'bg-emerald-500', returning: 'bg-blue-500', available: 'bg-teal-500', off_duty: 'bg-gray-400' }; return (
                         <div key={asset.id} className="flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
                           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusColor[asset.status] || 'bg-gray-400'}`} />
@@ -961,7 +961,7 @@ export default function ResourceDeploymentConsole({
                           <span className="text-[10px] text-gray-500 dark:text-gray-400 min-w-[70px]">{asset.asset_type.replace(/_/g, ' ')}</span>
                           <select value={asset.status} onChange={e => handleUpdateAssetStatus(asset.id, e.target.value, zone.id)} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200">{['staging', 'en_route', 'on_site', 'returning', 'available', 'off_duty'].map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}</select>
                           {asset.last_lat && <span className="text-[9px] text-gray-400 dark:text-gray-300 font-mono flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" />{Number(asset.last_lat).toFixed(3)},{Number(asset.last_lng).toFixed(3)}</span>}
-                          {asset.crew_count > 0 && <span className="text-[10px] text-gray-500 dark:text-gray-400">{asset.crew_count} {t('admin.resource.crew', lang)}</span>}
+                          {asset.crew_count > 0 && <span className="text-[10px] text-gray-500 dark:text-gray-400">{asset.crew_count} {'crew'}</span>}
                           <button onClick={() => handleDeleteAsset(asset.id, zone.id)} className="ml-auto p-0.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3 h-3" /></button>
                         </div>
                       )}) }
@@ -969,43 +969,43 @@ export default function ResourceDeploymentConsole({
                   )}
                   {showAddAsset === zone.id && (
                     <div className="mt-2 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-900/10">
-                      <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider mb-2">{t('admin.resource.addAsset', lang)}</p>
+                      <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider mb-2">{'Add Asset'}</p>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
                         <select value={assetForm.asset_type} onChange={e => setAssetForm(f => ({ ...f, asset_type: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">{['ambulance','fire_engine','rescue_boat','helicopter','hazmat_unit','police','medical_unit','urban_search_rescue','other'].map(t => <option key={t} value={t}>{t.replace(/_/g,' ')}</option>)}</select>
-                        <input type="text" placeholder={t('admin.resource.callSignPlaceholder', lang)} value={assetForm.call_sign} onChange={e => setAssetForm(f => ({ ...f, call_sign: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg placeholder:text-gray-400 dark:text-white" />
+                        <input type="text" placeholder={'Call sign e.g. AMB-01'} value={assetForm.call_sign} onChange={e => setAssetForm(f => ({ ...f, call_sign: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg placeholder:text-gray-400 dark:text-white" />
                         <select value={assetForm.status} onChange={e => setAssetForm(f => ({ ...f, status: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">{['staging','en_route','on_site','returning','available','off_duty'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}</select>
-                        <input type="number" min={0} placeholder={t('admin.resource.crewPlaceholder', lang)} value={assetForm.crew_count} onChange={e => setAssetForm(f => ({ ...f, crew_count: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" />
+                        <input type="number" min={0} placeholder={'Crew'} value={assetForm.crew_count} onChange={e => setAssetForm(f => ({ ...f, crew_count: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" />
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => handleAddAsset(zone.id)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">{t('admin.resource.add', lang)}</button>
-                        <button onClick={() => setShowAddAsset(null)} className="px-3 py-1.5 text-[10px] font-semibold rounded-lg text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">{t('admin.resource.cancel', lang)}</button>
+                        <button onClick={() => handleAddAsset(zone.id)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">{'Add'}</button>
+                        <button onClick={() => setShowAddAsset(null)} className="px-3 py-1.5 text-[10px] font-semibold rounded-lg text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">{'Cancel'}</button>
                       </div>
                     </div>
                   )}
                 </div>
                 <div className="mb-4">
-                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2">{t('resource.zoneActivityLog', lang)}</p>
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2">{'Zone Activity Log'}</p>
                   {auditLog.filter(a => (a.action_type === 'deploy' || a.action_type === 'recall') && a.target_id === zone.id).slice(0, 4).map((log, li) => (
                     <div key={li} className="flex items-center gap-2 text-[11px] py-1"><span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${log.action_type === 'deploy' ? 'bg-emerald-500' : 'bg-amber-500'}`} /><span className="text-gray-700 dark:text-gray-300">{log.action}</span><span className="ml-auto text-gray-400 dark:text-gray-300 text-[10px]">{new Date(log.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></div>
                   ))}
-                  {auditLog.filter(a => (a.action_type === 'deploy' || a.action_type === 'recall') && a.target_id === zone.id).length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('resource.noActivityRecorded', lang)}</p>}
+                  {auditLog.filter(a => (a.action_type === 'deploy' || a.action_type === 'recall') && a.target_id === zone.id).length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">{'No activity recorded'}</p>}
                 </div>
                 <div className="flex items-center justify-between mb-3 p-2.5 rounded-lg border border-orange-100 dark:border-orange-800 bg-orange-50/30 dark:bg-orange-900/5">
-                  <div className="flex items-center gap-2"><Users className="w-4 h-4 text-orange-500" /><span className="text-xs font-bold text-gray-900 dark:text-white">{t('admin.resource.mutualAid', lang)}</span>{zone.needs_mutual_aid && <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300 font-bold rounded">{t('admin.resource.activeRequest', lang)}</span>}</div>
+                  <div className="flex items-center gap-2"><Users className="w-4 h-4 text-orange-500" /><span className="text-xs font-bold text-gray-900 dark:text-white">{'Mutual Aid'}</span>{zone.needs_mutual_aid && <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300 font-bold rounded">{'ACTIVE REQUEST'}</span>}</div>
                   <button onClick={() => handleToggleMutualAid(zone)} disabled={togglingMutualAid === zone.id} className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg transition-colors ${zone.needs_mutual_aid ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>{togglingMutualAid === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Users className="w-3 h-3" />}{zone.needs_mutual_aid ? 'Clear Request' : 'Request Mutual Aid'}</button>
                 </div>
                 {zone.incident_commander && <div className="mb-3 flex items-center gap-2 p-2.5 rounded-lg border border-indigo-100 dark:border-indigo-800 bg-indigo-50/30 dark:bg-indigo-900/5"><Shield className="w-4 h-4 text-indigo-500 flex-shrink-0" /><span className="text-xs font-bold text-gray-900 dark:text-white">IC:</span><span className="text-xs text-indigo-700 dark:text-indigo-300 font-semibold">{zone.incident_commander}</span></div>}
                 <div>
-                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2 flex items-center gap-1"><Radio className="w-3 h-3" /> {t('admin.resource.icsOperationsLog', lang)}</p>
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2 flex items-center gap-1"><Radio className="w-3 h-3" /> {'ICS Operations Log'}</p>
                   <div className="space-y-1 mb-2 max-h-32 overflow-y-auto">
-                    {(zone.ops_log || []).length === 0 && <p className="text-[10px] text-gray-400 dark:text-gray-300">{t('admin.resource.noLogEntries', lang)}</p>}
+                    {(zone.ops_log || []).length === 0 && <p className="text-[10px] text-gray-400 dark:text-gray-300">{'No log entries yet.'}</p>}
                     {(zone.ops_log || []).map((entry: any, li: number) => (
                       <div key={li} className="flex gap-2 text-[10px] p-1.5 rounded bg-gray-50 dark:bg-gray-800/40"><span className="font-mono text-gray-400 whitespace-nowrap">{new Date(entry.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span><span className="font-semibold text-gray-600 dark:text-gray-300 min-w-[60px] truncate">{entry.operator}</span><span className="text-gray-700 dark:text-gray-200">{entry.note}</span></div>
                     ))}
                   </div>
                   <div className="flex gap-2">
-                    <input type="text" placeholder={t('admin.resource.addLogEntryPlaceholder', lang)} value={opsNoteByZone[zone.id] || ''} onChange={e => setOpsNoteByZone(prev => ({ ...prev, [zone.id]: e.target.value }))} onKeyDown={e => e.key === 'Enter' && handleAddOpsLog(zone.id)} className="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white placeholder:text-gray-400" />
-                    <button onClick={() => handleAddOpsLog(zone.id)} disabled={savingOpsNote === zone.id} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors flex items-center gap-1">{savingOpsNote === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <><FileText className="w-3 h-3" /> {t('admin.resource.log', lang)}</>}</button>
+                    <input type="text" placeholder={'Add log entry... (Enter to submit)'} value={opsNoteByZone[zone.id] || ''} onChange={e => setOpsNoteByZone(prev => ({ ...prev, [zone.id]: e.target.value }))} onKeyDown={e => e.key === 'Enter' && handleAddOpsLog(zone.id)} className="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white placeholder:text-gray-400" />
+                    <button onClick={() => handleAddOpsLog(zone.id)} disabled={savingOpsNote === zone.id} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors flex items-center gap-1">{savingOpsNote === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <><FileText className="w-3 h-3" /> {'Log'}</>}</button>
                   </div>
                 </div>
               </div>
@@ -1014,7 +1014,7 @@ export default function ResourceDeploymentConsole({
               const priority = (zone.priority || 'Low').charAt(0).toUpperCase() + (zone.priority || 'low').slice(1).toLowerCase()
               return `border-l-2 ${priority === 'Critical' ? 'border-l-rose-500 bg-rose-50/10 dark:bg-rose-900/5' : priority === 'High' ? 'border-l-amber-400' : zone.deployed ? 'border-l-emerald-400 bg-emerald-50/30 dark:bg-emerald-900/5' : 'border-l-transparent'}`
             }}
-            emptyMessage={deployments.length === 0 ? 'No deployment zones yet -- create one to get started.' : t('resource.noZonesMatch', lang)}
+            emptyMessage={deployments.length === 0 ? 'No deployment zones yet -- create one to get started.' : 'No zones match filters'}
           />
         )}
 
@@ -1060,7 +1060,7 @@ export default function ResourceDeploymentConsole({
                           {zone.deployed ? (
                             <>
                               <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {t('common.active', lang)}
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {'Active'}
                               </span>
                               {zone.deployed_at && (() => {
                                 const dur = getDeploymentDuration(zone.deployed_at)
@@ -1068,20 +1068,20 @@ export default function ResourceDeploymentConsole({
                               })()}
                             </>
                           ) : (
-                            <span className="text-[10px] px-2 py-0.5 rounded-md font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-300">{t('resource.standby', lang)}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-md font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-300">{'Standby'}</span>
                           )}
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center mb-3">
                           <div className="bg-gray-50 dark:bg-gray-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-gray-400 dark:text-gray-300 font-medium uppercase">{t('common.reports', lang)}</p>
+                            <p className="text-[9px] text-gray-400 dark:text-gray-300 font-medium uppercase">{'reports'}</p>
                             <p className="text-sm font-extrabold text-gray-900 dark:text-white tabular-nums">{zone.active_reports}</p>
                           </div>
                           <div className="bg-gray-50 dark:bg-gray-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-gray-400 dark:text-gray-300 font-medium uppercase">{t('resource.affected', lang)}</p>
+                            <p className="text-[9px] text-gray-400 dark:text-gray-300 font-medium uppercase">{'Affected'}</p>
                             <p className="text-sm font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">{affected > 0 ? affected.toLocaleString() : '--'}</p>
                           </div>
                           <div className="bg-gray-50 dark:bg-gray-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-gray-400 dark:text-gray-300 font-medium uppercase">{t('resource.assets', lang)}</p>
+                            <p className="text-[9px] text-gray-400 dark:text-gray-300 font-medium uppercase">{'Assets'}</p>
                             <p className="text-sm font-extrabold text-gray-900 dark:text-white tabular-nums">{(Number(zone.ambulances) || 0) + (Number(zone.fire_engines) || 0) + (Number(zone.rescue_boats) || 0)}</p>
                           </div>
                         </div>
@@ -1104,9 +1104,9 @@ export default function ResourceDeploymentConsole({
                               </button>
                             )}
                             {zone.deployed ? (
-                              <button onClick={() => handleRecall(zone)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 ring-1 ring-amber-500/20 transition-colors">{t('resource.recall', lang)}</button>
+                              <button onClick={() => handleRecall(zone)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 ring-1 ring-amber-500/20 transition-colors">{'Recall'}</button>
                             ) : (
-                              <button onClick={() => handleDeploy(zone)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 ring-1 ring-emerald-500/20 transition-colors">{t('resource.deploy', lang)}</button>
+                              <button onClick={() => handleDeploy(zone)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 ring-1 ring-emerald-500/20 transition-colors">{'Deploy'}</button>
                             )}
                           </div>
                         </div>
@@ -1171,15 +1171,15 @@ export default function ResourceDeploymentConsole({
                             </div>
                           ) : (
                             <div className="grid grid-cols-2 gap-3 text-xs mb-3">
-                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.zoneId', lang)}</span><p className="font-mono font-bold text-gray-700 dark:text-gray-300 mt-0.5">{zone.id || '--'}</p></div>
-                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.priorityScore', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 mt-0.5">{P_ORDER[priority] || 0}/4</p></div>
-                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('resource.estimatedAffected', lang)}</span><p className="font-bold text-rose-600 dark:text-rose-400 mt-0.5">{zone.estimated_affected || '--'}</p></div>
-                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{t('common.status', lang)}</span><p className={`font-bold mt-0.5 ${zone.deployed ? 'text-emerald-600' : 'text-gray-500 dark:text-gray-300'}`}>{zone.deployed ? t('resource.resourcesDeployed', lang) : t('resource.awaitingDeployment', lang)}</p></div>
+                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{'Zone ID'}</span><p className="font-mono font-bold text-gray-700 dark:text-gray-300 mt-0.5">{zone.id || '--'}</p></div>
+                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{'Priority Score'}</span><p className="font-bold text-gray-700 dark:text-gray-300 mt-0.5">{P_ORDER[priority] || 0}/4</p></div>
+                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{'Estimated Affected'}</span><p className="font-bold text-rose-600 dark:text-rose-400 mt-0.5">{zone.estimated_affected || '--'}</p></div>
+                              <div><span className="text-gray-400 dark:text-gray-300 font-medium">{'Status'}</span><p className={`font-bold mt-0.5 ${zone.deployed ? 'text-emerald-600' : 'text-gray-500 dark:text-gray-300'}`}>{zone.deployed ? 'Resources deployed' : 'Awaiting deployment'}</p></div>
                             </div>
                           )}
                           {(zone.is_ai_draft || zone.report_id || zone.prediction_id) && (
                             <div className="flex flex-wrap gap-1.5 mb-3">
-                              {zone.is_ai_draft && <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800 font-semibold"><Cpu className="w-3 h-3" /> {t('resource.aiDraftNeedsReview', lang)}</span>}
+                              {zone.is_ai_draft && <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800 font-semibold"><Cpu className="w-3 h-3" /> {'AI Draft -- needs review'}</span>}
                               {zone.report_id && <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 font-medium"><Link2 className="w-3 h-3" /> {zone.report_number || `RPT-${zone.report_id?.slice(0, 6).toUpperCase()}`}</span>}
                             </div>
                           )}
@@ -1198,12 +1198,12 @@ export default function ResourceDeploymentConsole({
                           <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-2.5 border border-blue-100 dark:border-blue-900/30 mb-3">
                             <p className="text-[11px] text-blue-700 dark:text-blue-300 flex items-start gap-1.5">
                               <Brain className="w-3 h-3 flex-shrink-0 mt-0.5 opacity-60" />
-                              <span>{zone.ai_recommendation || t('resource.noRecommendation', lang)}</span>
+                              <span>{zone.ai_recommendation || 'No recommendation'}</span>
                             </p>
                           </div>
                           {/* Zone activity log */}
                           <div className="mb-4">
-                            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2">{t('resource.zoneActivityLog', lang)}</p>
+                            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2">{'Zone Activity Log'}</p>
                             {auditLog.filter(a => (a.action_type === 'deploy' || a.action_type === 'recall') && a.target_id === zone.id).slice(0, 4).map((log, li) => (
                               <div key={li} className="flex items-center gap-2 text-[11px] py-1">
                                 <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${log.action_type === 'deploy' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
@@ -1212,7 +1212,7 @@ export default function ResourceDeploymentConsole({
                               </div>
                             ))}
                             {auditLog.filter(a => (a.action_type === 'deploy' || a.action_type === 'recall') && a.target_id === zone.id).length === 0 && (
-                              <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('resource.noActivityRecorded', lang)}</p>
+                              <p className="text-[11px] text-gray-400 dark:text-gray-300">{'No activity recorded'}</p>
                             )}
                           </div>
 
@@ -1284,7 +1284,7 @@ export default function ResourceDeploymentConsole({
             ) : (
               <div className="text-center py-12">
                 <Layers className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-400 dark:text-gray-300">{deployments.length === 0 ? 'No deployment zones yet -- create one to get started.' : t('resource.noZonesMatch', lang)}</p>
+                <p className="text-sm text-gray-400 dark:text-gray-300">{deployments.length === 0 ? 'No deployment zones yet -- create one to get started.' : 'No zones match filters'}</p>
                 {deployments.length === 0 && (
                   <button onClick={() => { const init = getSmartResourceSuggestion('general', 'Medium'); setCreateForm({ zone: '', priority: 'Medium', active_reports: '0', estimated_affected: '', ai_recommendation: init.reasoning, commander_notes: '', ambulances: String(init.ambulances), fire_engines: String(init.fire_engines), rescue_boats: String(init.rescue_boats), lat: '', lng: '', report_id: '', hazard_type: 'general', incident_commander: '', radio_channel: '', weather_conditions: 'clear', evacuation_status: 'none', access_routes: '' }); setCreateStep(0); setShowCreateModal(true) }} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/30 ring-1 ring-violet-500/20 transition-colors"><Plus className="w-3.5 h-3.5" /> Create First Zone</button>
                 )}
@@ -1297,7 +1297,7 @@ export default function ResourceDeploymentConsole({
       {/* RECENT ACTIVITY */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><Clock className="w-4 h-4 text-purple-500" /> {t('resource.recentActivity', lang)}</h3>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><Clock className="w-4 h-4 text-purple-500" /> {'Recent Deployment Activity'}</h3>
           <span className="text-[11px] text-gray-400 dark:text-gray-300">{deployEvents.length} {t(deployEvents.length === 1 ? 'common.event' : 'common.events', lang)}</span>
         </div>
         <div className="p-5">
@@ -1318,7 +1318,7 @@ export default function ResourceDeploymentConsole({
                           <span className="text-xs font-medium text-gray-900 dark:text-white">{log.action}</span>
                         </div>
                         <div className="text-[10px] text-gray-400 dark:text-gray-300 flex items-center gap-1.5 flex-wrap">
-                          <span>{log.operator_name || t('common.system', lang)}</span>
+                          <span>{log.operator_name || 'System'}</span>
                           <span aria-hidden="true" className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
                           <span>{new Date(log.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
@@ -1332,7 +1332,7 @@ export default function ResourceDeploymentConsole({
           ) : (
             <div className="text-center py-8">
               <Activity className="w-6 h-6 text-gray-300 dark:text-gray-400 mx-auto mb-1.5" />
-              <p className="text-xs text-gray-400 dark:text-gray-300">{t('resource.noActivity', lang)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-300">{'No deployment activity recorded'}</p>
             </div>
           )}
         </div>
@@ -1689,7 +1689,7 @@ export default function ResourceDeploymentConsole({
                   )}
                   {createForm.report_id && (
                     <div className="mt-2 flex items-center gap-1.5 text-[10px] text-sky-600 dark:text-sky-400 font-medium">
-                      <Link2 className="w-3 h-3" /> {t('resource.linkedReport', lang)}: {reports.find((r: any) => r.id === createForm.report_id)?.reportNumber || `RPT-${createForm.report_id?.slice(0, 6).toUpperCase()}`}
+                      <Link2 className="w-3 h-3" /> {'Linked report'}: {reports.find((r: any) => r.id === createForm.report_id)?.reportNumber || `RPT-${createForm.report_id?.slice(0, 6).toUpperCase()}`}
                     </div>
                   )}
                   {/* Operational Details Summary */}

@@ -229,11 +229,11 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
   }, [markerStats])
 
   const threatLabelMap: Record<string, string> = {
-    CRITICAL: t('liveOps.threatCritical', lang),
-    HIGH: t('liveOps.threatHigh', lang),
-    ELEVATED: t('liveOps.threatElevated', lang),
-    GUARDED: t('liveOps.threatGuarded', lang),
-    NOMINAL: t('liveOps.threatNominal', lang),
+    CRITICAL: 'CRITICAL',
+    HIGH: 'HIGH',
+    ELEVATED: 'ELEVATED',
+    GUARDED: 'GUARDED',
+    NOMINAL: 'NOMINAL',
   }
 
   //Data freshness computation
@@ -307,8 +307,8 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
               <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
             </div>
             <div>
-              <h2 className="font-black text-sm leading-tight text-white tracking-tight">{t('liveOps.title', lang)}</h2>
-              <p className="text-[8px] text-cyan-400/80 font-mono tracking-wider uppercase">{t('liveOps.cop', lang)} &bull; COP</p>
+              <h2 className="font-black text-sm leading-tight text-white tracking-tight">{'Live Operations Map'}</h2>
+              <p className="text-[8px] text-cyan-400/80 font-mono tracking-wider uppercase">{'Common Operating Picture'} &bull; COP</p>
             </div>
           </div>
 
@@ -318,7 +318,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
               <threatLevel.icon className={`w-3.5 h-3.5 ${threatLevel.color} ${threatLevel.level === 'CRITICAL' ? 'animate-pulse' : ''}`} />
               <div className="flex flex-col">
                 <span className={`text-[8px] font-mono uppercase tracking-widest ${threatLevel.color} font-black leading-none`}>{threatLabelMap[threatLevel.level] || threatLevel.level}</span>
-                <span className="text-[7px] text-gray-500 leading-none mt-0.5">{t('liveOps.threat', lang)}</span>
+                <span className="text-[7px] text-gray-500 leading-none mt-0.5">{'THREAT'}</span>
               </div>
             </div>
           )}
@@ -329,7 +329,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono text-green-400 tabular-nums">{zuluTime}</span>
               <span className="text-[8px] text-gray-600">|</span>
-              <span className="text-[10px] font-mono text-gray-400 dark:text-gray-300 tabular-nums">{t('liveOps.local', lang)} {localTime}</span>
+              <span className="text-[10px] font-mono text-gray-400 dark:text-gray-300 tabular-nums">{'LOCAL'} {localTime}</span>
             </div>
           </div>
 
@@ -337,7 +337,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
           <div className="flex items-center gap-2 bg-gray-900/80 rounded-lg px-2.5 py-1.5 ring-1 ring-gray-800">
             <MapPin className="w-3 h-3 text-amber-400" />
             <span className="text-[10px] font-bold text-white tabular-nums">{markerStats.total}</span>
-            <span className="text-[9px] text-gray-500 dark:text-gray-300">{t('liveOps.markers', lang)}</span>
+            <span className="text-[9px] text-gray-500 dark:text-gray-300">{'markers'}</span>
             {/* Severity mini-bar */}
             {markerStats.total > 0 && (
               <div className="hidden md:flex items-center gap-0.5 ml-1">
@@ -372,20 +372,20 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
         <div className="flex gap-1.5 items-center flex-wrap">
           {/* Quick Actions */}
           <div className="relative" ref={quickActionsRef}>
-            <button onClick={() => setShowQuickActions(!showQuickActions)} className={`p-1.5 rounded-lg transition-all ring-1 ring-gray-800 ${showQuickActions ? 'bg-cyan-600 text-white' : 'bg-gray-900/80 text-gray-400 dark:text-gray-300 hover:text-white'}`} title={t('liveOps.quickActions', lang)}>
+            <button onClick={() => setShowQuickActions(!showQuickActions)} className={`p-1.5 rounded-lg transition-all ring-1 ring-gray-800 ${showQuickActions ? 'bg-cyan-600 text-white' : 'bg-gray-900/80 text-gray-400 dark:text-gray-300 hover:text-white'}`} title={'Quick Actions (Q)'}>
               <Target className="w-3.5 h-3.5" />
             </button>
             {showQuickActions && (
               <div className="absolute top-full right-0 mt-1 bg-gray-900/95 backdrop-blur-md rounded-lg ring-1 ring-gray-700 p-1.5 z-[1100] shadow-xl min-w-[140px]">
                 <button onClick={() => { handleScreenshot(); setShowQuickActions(false) }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[10px] text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-all font-medium">
-                  <Camera className="w-3.5 h-3.5 text-cyan-400" /> {t('liveOps.screenshot', lang)}
+                  <Camera className="w-3.5 h-3.5 text-cyan-400" /> {'Screenshot'}
                 </button>
                 <button onClick={() => { handleExportData(); setShowQuickActions(false) }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[10px] text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-all font-medium">
-                  <Download className="w-3.5 h-3.5 text-green-400" /> {t('liveOps.exportData', lang)}
+                  <Download className="w-3.5 h-3.5 text-green-400" /> {'Export Data'}
                 </button>
                 <div className="h-px bg-gray-700/60 my-1" />
                 <button onClick={() => { setShowThreatBanner(b => !b); setShowQuickActions(false) }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[10px] text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-all font-medium">
-                  <Shield className="w-3.5 h-3.5 text-amber-400" /> {showThreatBanner ? t('liveOps.hideThreat', lang) : t('liveOps.showThreat', lang)}
+                  <Shield className="w-3.5 h-3.5 text-amber-400" /> {showThreatBanner ? 'Hide Threat' : 'Show Threat'}
                 </button>
               </div>
             )}
@@ -394,13 +394,13 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
           {/* Panel Toggles */}
           <div className="flex bg-gray-900/80 rounded-lg p-0.5 ring-1 ring-gray-800">
             <button onClick={() => setShowLeftPanel(!showLeftPanel)} className={`px-2 py-1.5 text-[9px] font-bold rounded-md transition-all ${showLeftPanel ? 'bg-cyan-600 text-white shadow-md' : 'text-gray-400 dark:text-gray-300 hover:text-white'}`}>
-              <span className="flex items-center gap-1"><Brain className="w-3 h-3" /> {t('liveOps.intel', lang)}</span>
+              <span className="flex items-center gap-1"><Brain className="w-3 h-3" /> {'Intel'}</span>
             </button>
             <button onClick={() => setShowRightPanel(!showRightPanel)} className={`px-2 py-1.5 text-[9px] font-bold rounded-md transition-all ${showRightPanel ? 'bg-cyan-600 text-white shadow-md' : 'text-gray-400 dark:text-gray-300 hover:text-white'}`}>
-              <span className="flex items-center gap-1"><Layers className="w-3 h-3" /> {t('map.layers', lang)}</span>
+              <span className="flex items-center gap-1"><Layers className="w-3 h-3" /> {'Layers'}</span>
             </button>
             <button onClick={() => setShowLegend(!showLegend)} className={`px-2 py-1.5 text-[9px] font-bold rounded-md transition-all ${showLegend ? 'bg-cyan-600 text-white shadow-md' : 'text-gray-400 dark:text-gray-300 hover:text-white'}`}>
-              <span className="flex items-center gap-1"><Hash className="w-3 h-3" /> {t('map.legend', lang)}</span>
+              <span className="flex items-center gap-1"><Hash className="w-3 h-3" /> {'Legend'}</span>
             </button>
           </div>
 
@@ -410,29 +410,29 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
           {/* 2D / 3D Toggle */}
           <div className="flex bg-gray-900/80 rounded-lg p-0.5 ring-1 ring-gray-800">
             <button onClick={() => setMapMode('2d')} className={`px-2.5 py-1.5 text-[10px] font-bold rounded-md transition-all ${mapMode === '2d' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 dark:text-gray-300 hover:text-white'}`}>
-              {t('map.2dMode', lang)}
+              {'2D Mode'}
             </button>
             <button onClick={() => setMapMode('3d')} className={`px-2.5 py-1.5 text-[10px] font-bold rounded-md transition-all ${mapMode === '3d' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-500 dark:text-gray-300 hover:text-white'}`}>
-              {t('map.3dMode', lang)}
+              {'3D Mode'}
             </button>
           </div>
 
           {/* Severity Filter */}
           <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)} className="text-[10px] bg-gray-900/80 text-gray-300 dark:text-gray-300 px-2 py-1.5 rounded-lg ring-1 ring-gray-800">
-            <option value="all">{t('admin.filters.severity.all', lang)}</option>
-            <option value="High">{t('common.high', lang)}</option>
-            <option value="Medium">{t('common.medium', lang)}</option>
-            <option value="Low">{t('common.low', lang)}</option>
+            <option value="all">{'All Severity'}</option>
+            <option value="High">{'High'}</option>
+            <option value="Medium">{'Medium'}</option>
+            <option value="Low">{'Low'}</option>
           </select>
 
           {/* Status Filter */}
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="text-[10px] bg-gray-900/80 text-gray-300 dark:text-gray-300 px-2 py-1.5 rounded-lg ring-1 ring-gray-800">
-            <option value="all">{t('admin.filters.status.all', lang)}</option>
-            <option value="Urgent">{t('common.urgent', lang)}</option>
-            <option value="Unverified">{t('common.unverified', lang)}</option>
-            <option value="Verified">{t('common.verified', lang)}</option>
-            <option value="Flagged">{t('common.flagged', lang)}</option>
-            <option value="Resolved">{t('common.resolved', lang)}</option>
+            <option value="all">{'All Status'}</option>
+            <option value="Urgent">{'Urgent'}</option>
+            <option value="Unverified">{'Unverified'}</option>
+            <option value="Verified">{'Verified'}</option>
+            <option value="Flagged">{'Flagged'}</option>
+            <option value="Resolved">{'Resolved'}</option>
           </select>
 
           {/* Fullscreen */}
@@ -446,7 +446,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
           INCIDENT TYPE QUICK-FILTER BAR
            */}
       <div className="px-3 py-1.5 bg-gray-900/90 border-b border-gray-800/60 flex items-center gap-1.5 overflow-x-auto scrollbar-none relative z-[1100]">
-        <span className="text-[8px] text-gray-600 uppercase tracking-widest font-bold mr-1 flex-shrink-0">{t('common.type', lang)}:</span>
+        <span className="text-[8px] text-gray-600 uppercase tracking-widest font-bold mr-1 flex-shrink-0">{'Type'}:</span>
         {incidentTypeFilters.map(f => {
           const Icon = f.icon
           const isActive = filterType === f.key
@@ -491,7 +491,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
           <Suspense fallback={
             <div className="w-full h-full bg-gray-950 flex items-center justify-center">
               <div className="text-cyan-400/60 text-sm animate-pulse flex items-center gap-2">
-                <Globe className="w-5 h-5 animate-spin" /> {t('liveOps.initializing3d', lang)}
+                <Globe className="w-5 h-5 animate-spin" /> {'Initializing 3D Engine...'}
               </div>
             </div>
           }>
@@ -512,7 +512,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
           <div className="absolute top-3 left-3 z-[900] flex-col gap-2 w-[260px] max-h-[calc(100%-1.5rem)] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent pointer-events-auto hidden md:flex">
             <IntelligenceDashboard socket={socket} collapsed={true} region={activeLocation} />
             <RiverLevelPanel socket={socket} />
-            <DistressPanel operatorId={user?.id || ''} operatorName={user?.displayName || t('common.operator', lang)} />
+            <DistressPanel operatorId={user?.id || ''} operatorName={user?.displayName || 'Operator'} />
           </div>
         )}
 
@@ -530,31 +530,31 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
         {showLegend && (
           <div className="absolute bottom-14 left-3 z-[900] bg-gray-950/90 backdrop-blur-md rounded-xl ring-1 ring-gray-800 p-3 w-[200px] pointer-events-auto shadow-xl">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-widest">{t('liveOps.mapLegend', lang)}</span>
+              <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-widest">{'Map Legend'}</span>
               <button onClick={() => setShowLegend(false)} className="text-gray-600 hover:text-gray-400 dark:text-gray-300"><X className="w-3 h-3" /></button>
             </div>
             {/* Severity Colors */}
             <div className="space-y-1 mb-2.5">
-              <p className="text-[8px] text-gray-500 dark:text-gray-300 font-bold uppercase tracking-wider">{t('common.severity', lang)}</p>
-              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-red-500/30" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{t('map.highSeverity', lang)}</span></div>
-              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-amber-500/30" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{t('map.mediumSeverity', lang)}</span></div>
-              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-blue-500/30" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{t('map.lowSeverity', lang)}</span></div>
+              <p className="text-[8px] text-gray-500 dark:text-gray-300 font-bold uppercase tracking-wider">{'Severity'}</p>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-red-500/30" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{'High Severity'}</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-amber-500/30" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{'Medium Severity'}</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-blue-500/30" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{'Low Severity'}</span></div>
             </div>
             {/* Status Colors */}
             <div className="space-y-1 mb-2.5">
-              <p className="text-[8px] text-gray-500 dark:text-gray-300 font-bold uppercase tracking-wider">{t('common.status', lang)}</p>
-              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{t('common.urgent', lang)}</span></div>
-              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-cyan-500" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{t('common.unverified', lang)}</span></div>
-              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{t('common.verified', lang)}</span></div>
-              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-orange-500" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{t('common.flagged', lang)}</span></div>
+              <p className="text-[8px] text-gray-500 dark:text-gray-300 font-bold uppercase tracking-wider">{'Status'}</p>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{'Urgent'}</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-cyan-500" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{'Unverified'}</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{'Verified'}</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-orange-500" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{'Flagged'}</span></div>
             </div>
             {/* Special Markers */}
             <div className="space-y-1">
-              <p className="text-[8px] text-gray-500 dark:text-gray-300 font-bold uppercase tracking-wider">{t('liveOps.overlays', lang)}</p>
-              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 bg-blue-400/40 rounded-sm ring-1 ring-blue-400/60" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{t('map.floodZone', lang)}</span></div>
-              <div className="flex items-center gap-2"><span className="w-2.5 h-0.5 bg-green-400" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{t('map.evacuationRoutes', lang)}</span></div>
-              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-cyan-400 ring-2 ring-cyan-400/30" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{t('liveOps.riverStation', lang)}</span></div>
-              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{t('map.distressBeacons', lang)}</span></div>
+              <p className="text-[8px] text-gray-500 dark:text-gray-300 font-bold uppercase tracking-wider">{'Overlays'}</p>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 bg-blue-400/40 rounded-sm ring-1 ring-blue-400/60" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{'Flood risk zone'}</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-0.5 bg-green-400" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{'Evacuation Routes'}</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-cyan-400 ring-2 ring-cyan-400/30" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{'River Station'}</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" /><span className="text-[10px] text-gray-300 dark:text-gray-300">{'Distress Beacons'}</span></div>
             </div>
           </div>
         )}
@@ -565,7 +565,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
             <button
               onClick={() => { navigator.clipboard?.writeText(`${mouseCoords.lat}, ${mouseCoords.lng}`) }}
               className="bg-gray-950/80 backdrop-blur-sm rounded-lg px-2.5 py-1 ring-1 ring-gray-800/80 flex items-center gap-2 hover:ring-cyan-600/50 transition-all group"
-              title={t('liveOps.copyCoords', lang)}
+              title={'Click to copy coordinates'}
             >
               <Crosshair className="w-3 h-3 text-cyan-400" />
               <span className="text-[9px] font-mono text-green-400 tabular-nums">
@@ -596,7 +596,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
               >
                 <div className={`w-2 h-2 rounded-full animate-pulse ${r.severity === 'High' ? 'bg-red-500' : r.severity === 'Medium' ? 'bg-amber-500' : 'bg-blue-500'}`} />
                 <BellRing className="w-3 h-3 text-cyan-400" />
-                <span className="text-[10px] text-white font-semibold max-w-[200px] truncate">{r.type || t('liveOps.newReport', lang)}</span>
+                <span className="text-[10px] text-white font-semibold max-w-[200px] truncate">{r.type || 'New Report'}</span>
                 <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${r.severity === 'High' ? 'bg-red-900/50 text-red-400' : r.severity === 'Medium' ? 'bg-amber-900/50 text-amber-400' : 'bg-blue-900/50 text-blue-400'}`}>{r.severity}</span>
                 <ChevronRight className="w-3 h-3 text-gray-500" />
               </button>
@@ -614,13 +614,13 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <Signal className="w-3 h-3 text-green-400" />
-              <span className="text-green-400">{t('common.connected', lang).toUpperCase()}</span>
+              <span className="text-green-400">{'Connected'.toUpperCase()}</span>
             </span>
             <span className="text-gray-700">|</span>
             {/* Animated data stream bar */}
             <span className="flex items-center gap-1.5">
               <Activity className="w-3 h-3 text-cyan-400" />
-              <span className="text-gray-400 dark:text-gray-300">{t('liveOps.feed', lang)}:</span>
+              <span className="text-gray-400 dark:text-gray-300">{'FEED'}:</span>
               <div className="flex items-center gap-px">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <div
@@ -630,7 +630,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
                   />
                 ))}
               </div>
-              <span className="text-cyan-400 font-bold">{t('common.live', lang).toUpperCase()}</span>
+              <span className="text-cyan-400 font-bold">{'Live'.toUpperCase()}</span>
             </span>
             <span className="text-gray-700">|</span>
             <span className="flex items-center gap-1">
@@ -642,7 +642,7 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
           {/* Center: Severity Breakdown with visual bars */}
           <div className="flex items-center gap-3">
             <span className="text-gray-500 dark:text-gray-300">
-              {t('liveOps.incidents', lang)}: <span className="text-slate-900 dark:text-white font-bold">{markerStats.total}</span>
+              {'INCIDENTS'}: <span className="text-slate-900 dark:text-white font-bold">{markerStats.total}</span>
             </span>
             <div className="flex items-center gap-1.5">
               <span className="flex items-center gap-0.5">
@@ -660,10 +660,10 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
             </div>
             <span className="text-gray-700">|</span>
             <span className="text-gray-500 dark:text-gray-300">
-              {t('common.verified', lang)}: <span className="text-emerald-400 font-bold">{markerStats.verified}</span>/<span className="text-gray-400">{markerStats.total}</span>
+              {'Verified'}: <span className="text-emerald-400 font-bold">{markerStats.verified}</span>/<span className="text-gray-400">{markerStats.total}</span>
             </span>
             <span className="text-gray-500 dark:text-gray-300">
-              {t('liveOps.media', lang)}: <span className="text-blue-400 font-bold">{markerStats.withMedia}</span>
+              {'MEDIA'}: <span className="text-blue-400 font-bold">{markerStats.withMedia}</span>
             </span>
           </div>
 
@@ -672,10 +672,10 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
             <span className={`${threatLevel.color} font-black`}>{threatLabelMap[threatLevel.level] || threatLevel.level}</span>
             <span className="text-gray-700">|</span>
             <span className="text-gray-500 dark:text-gray-300">
-              {t('liveOps.mode', lang)}: <span className={mapMode === '3d' ? 'text-purple-400' : 'text-blue-400'}>{mapMode.toUpperCase()}</span>
+              {'MODE'}: <span className={mapMode === '3d' ? 'text-purple-400' : 'text-blue-400'}>{mapMode.toUpperCase()}</span>
             </span>
             <span className="text-gray-500 dark:text-gray-300">
-              {t('map.layers', lang)}: <span className="text-cyan-400">{(showFloodPredictions ? 1 : 0) + (showEvacuationRoutes ? 1 : 0) + 1}</span>
+              {'Layers'}: <span className="text-cyan-400">{(showFloodPredictions ? 1 : 0) + (showEvacuationRoutes ? 1 : 0) + 1}</span>
             </span>
             <span className="flex items-center gap-1">
               <span className={`w-1.5 h-1.5 rounded-full ${dataFreshness.fresh ? 'bg-green-400' : 'bg-amber-400 animate-pulse'}`} />
@@ -687,19 +687,19 @@ const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsM
 
       {showKeyboard && (
         <div className="bg-gray-900 text-white rounded-b-xl p-3 flex items-center gap-3 flex-wrap text-[10px] font-mono ring-1 ring-gray-700/50 border-t border-gray-800">
-          <span className="font-bold text-cyan-400 uppercase tracking-wider mr-1 flex items-center gap-1"><ScanLine className="w-3 h-3" /> {t('common.shortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">F</kbd> {t('map.fullscreen', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">L</kbd> {t('liveOps.mapLegend', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">P</kbd> {t('liveOps.predictions', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> {t('liveOps.evacuation', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">B</kbd> {t('liveOps.statusBar', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Q</kbd> {t('liveOps.quickActions', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">2</kbd> {t('map.2dMode', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">3</kbd> {t('map.3dMode', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white text-[8px]">Ctrl+S</kbd> {t('liveOps.screenshot', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white text-[8px]">Ctrl+D</kbd> {t('common.export', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('liveOps.toggleHelp', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('common.close', lang)}</span>
+          <span className="font-bold text-cyan-400 uppercase tracking-wider mr-1 flex items-center gap-1"><ScanLine className="w-3 h-3" /> {'Shortcuts'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">F</kbd> {'Fullscreen'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">L</kbd> {'Map Legend'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">P</kbd> {'Predictions'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> {'Evacuation'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">B</kbd> {'Status Bar'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Q</kbd> {'Quick Actions (Q)'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">2</kbd> {'2D Mode'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">3</kbd> {'3D Mode'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white text-[8px]">Ctrl+S</kbd> {'Screenshot'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white text-[8px]">Ctrl+D</kbd> {'Export'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {'Toggle Help'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{'Esc'}</kbd> {'Close'}</span>
         </div>
       )}
     </div>

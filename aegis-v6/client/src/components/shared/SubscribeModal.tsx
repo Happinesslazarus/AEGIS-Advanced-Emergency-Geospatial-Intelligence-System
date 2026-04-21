@@ -76,11 +76,11 @@ export default function SubscribeModal({ isOpen, onClose, user, pushNotification
       if (subChannels.includes('webpush') && webPushStatus.enabled) {
         try {
           await subscribeToWebPush(subEmail)
-          pushNotification?.(t('citizenPage.webPushEnabled', lang) || 'Web push enabled', 'success')
+          pushNotification?.('Web push notifications enabled', 'success')
         } catch (err: any) {
           const msg: string = err?.message || ''
           if (!msg.includes('not configured') && !msg.includes('public key')) {
-            pushNotification?.(t('citizenPage.webPushFailed', lang) || 'Web push setup failed', 'warning')
+            pushNotification?.('Web push setup failed', 'warning')
           }
         }
       }
@@ -96,7 +96,7 @@ export default function SubscribeModal({ isOpen, onClose, user, pushNotification
       })
 
       pushNotification?.(
-        `${t('citizenPage.subscribedTo', lang) || 'Subscribed to'}: ${normalizedChannels.join(', ')}`,
+        `${'Subscribed to'}: ${normalizedChannels.join(', ')}`,
         'success'
       )
       onClose()
@@ -106,7 +106,7 @@ export default function SubscribeModal({ isOpen, onClose, user, pushNotification
       setSubTelegramId('')
       setSubTopics([...TOPICS])
     } catch (err: any) {
-      pushNotification?.(err?.message || t('citizenPage.subscriptionFailed', lang) || 'Subscription failed', 'error')
+      pushNotification?.(err?.message || 'Subscription failed', 'error')
     }
   }
 
@@ -131,7 +131,7 @@ export default function SubscribeModal({ isOpen, onClose, user, pushNotification
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-aegis-400 to-aegis-600 flex items-center justify-center">
               <Bell className="w-4 h-4 text-white" />
             </div>
-            {t('subscribe.title', lang) || 'Subscribe to Alerts'}
+            {'Subscribe to Alerts'}
           </h3>
           <button
             onClick={onClose}
@@ -154,7 +154,7 @@ export default function SubscribeModal({ isOpen, onClose, user, pushNotification
 
           {/* Channel picker */}
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t('citizenPage.chooseChannels', lang) || 'Choose how you want to receive alerts'}
+            {'Choose your notification channels'}
           </p>
           {CHANNELS.map(ch => (
             <button
@@ -178,7 +178,7 @@ export default function SubscribeModal({ isOpen, onClose, user, pushNotification
           {subChannels.includes('email') && (
             <input
               className="w-full px-4 py-2.5 text-sm bg-gray-100/80 dark:bg-gray-800/80 rounded-xl border border-gray-200/50 dark:border-gray-700/50 focus:ring-2 focus:ring-aegis-500/30 transition-all"
-              placeholder={t('subscribe.placeholder.email', lang) || 'your@email.com'}
+              placeholder={'your@email.com'}
               type="email"
               value={subEmail}
               onChange={e => setSubEmail(e.target.value)}
@@ -213,13 +213,13 @@ export default function SubscribeModal({ isOpen, onClose, user, pushNotification
             <div className="space-y-2">
               <input
                 className="w-full px-4 py-2.5 text-sm bg-gray-100/80 dark:bg-gray-800/80 rounded-xl border border-gray-200/50 dark:border-gray-700/50 focus:ring-2 focus:ring-aegis-500/30 transition-all"
-                placeholder={t('citizenPage.telegramPlaceholder', lang) || '@your_telegram_username'}
+                placeholder={'Your Telegram user ID'}
                 type="text"
                 value={subTelegramId}
                 onChange={e => setSubTelegramId(e.target.value)}
               />
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t('citizenPage.telegramHelp', lang) || 'Start the @AEGIS_Alerts_Bot on Telegram, then enter your username here.'}
+                {'Find your Telegram ID via @userinfobot'}
               </p>
             </div>
           )}
@@ -229,19 +229,19 @@ export default function SubscribeModal({ isOpen, onClose, user, pushNotification
             <div className="bg-purple-50/80 dark:bg-purple-950/30 border border-purple-200/50 dark:border-purple-800/50 p-3.5 rounded-xl">
               {!webPushStatus.supported ? (
                 <p className="text-xs text-red-700 dark:text-red-300">
-                  {t('citizenPage.webPushNotSupported', lang) || 'Web push is not supported by your browser.'}
+                  {'Web push not supported in this browser'}
                 </p>
               ) : webPushStatus.subscribed ? (
                 <p className="text-xs text-green-700 dark:text-green-300">
-                  {t('citizenPage.webPushAlready', lang) || 'You are already subscribed to web push notifications.'}
+                  {'Web push already enabled'}
                 </p>
               ) : webPushStatus.enabled ? (
                 <p className="text-xs text-purple-700 dark:text-purple-300">
-                  {t('citizenPage.webPushReady', lang) || 'Click Subscribe to enable browser push notifications.'}
+                  {'Ready to enable'}
                 </p>
               ) : (
                 <p className="text-xs text-amber-700 dark:text-amber-300">
-                  {t('citizenPage.webPushLoading', lang) || 'Checking browser push support...'}
+                  {'Setting up...'}
                 </p>
               )}
             </div>
@@ -250,7 +250,7 @@ export default function SubscribeModal({ isOpen, onClose, user, pushNotification
           {/* Alert topics */}
           <div>
             <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
-              {t('citizen.subscribe.alertTopics', lang) || 'Alert Topics'}
+              {'Alert Topics'}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {TOPICS.map(topic => (
@@ -276,8 +276,8 @@ export default function SubscribeModal({ isOpen, onClose, user, pushNotification
             className="w-full bg-gradient-to-r from-aegis-500 to-aegis-700 hover:from-aegis-400 hover:to-aegis-600 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-aegis-600/20 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99]"
           >
             {webPushLoading
-              ? (t('citizenPage.settingUpWebPush', lang) || 'Setting up push...')
-              : (t('subscribe.title', lang) || 'Subscribe to Alerts')}
+              ? ('Setting up Web Push...')
+              : ('Subscribe to Alerts')}
           </button>
         </div>
       </div>

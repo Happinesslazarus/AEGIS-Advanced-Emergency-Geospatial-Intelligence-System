@@ -76,8 +76,8 @@ export default function LanguagePreferenceDialog(): JSX.Element | null {
               <Globe className="w-7 h-7" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">{t('langDialog.title', lang)}</h2>
-              <p className="text-sm text-white/80 mt-0.5">{t('langDialog.subtitle', lang)}</p>
+              <h2 className="text-xl font-bold">{'Choose Your Language'}</h2>
+              <p className="text-sm text-white/80 mt-0.5">{'Select your preferred language for AEGIS'}</p>
             </div>
           </div>
         </div>
@@ -115,14 +115,14 @@ export default function LanguagePreferenceDialog(): JSX.Element | null {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between">
           <p className="text-xs text-gray-500 dark:text-gray-300">
-            {t('langDialog.changeLater', lang)}
+            {'You can change this later in settings'}
           </p>
           <button
             onClick={handleConfirm}
             className="px-6 py-2.5 bg-aegis-600 hover:bg-aegis-700 text-white text-sm font-bold rounded-xl transition-colors flex items-center gap-2 shadow-lg shadow-aegis-600/30"
           >
             <Check className="w-4 h-4" />
-            {t('langDialog.confirm', lang)}
+            {'Confirm'}
           </button>
         </div>
       </div>

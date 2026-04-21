@@ -256,25 +256,25 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
     return (
       <div className="max-w-3xl mx-auto">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t('citizen.messages.title', lang)}</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">{'Messages'}</h2>
           <div className="flex items-center gap-2">
             {!socket.connected && (
               <span className="flex items-center gap-1.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/50">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                {t('cdash.messages.connecting', lang)}
+                {'Connecting'}
               </span>
             )}
             {socket.connected && (
               <span className="flex items-center gap-1.5 text-[10px] font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 px-2.5 py-1.5 rounded-lg border border-green-200 dark:border-green-800/50">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                {t('cdash.messages.connected', lang)}
+                {'Connected'}
               </span>
             )}
             <button onClick={handleRefresh} className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-semibold px-3 py-2 rounded-lg transition">
-              <RefreshCw className="w-3.5 h-3.5" /> {t('citizen.messages.refresh', lang)}
+              <RefreshCw className="w-3.5 h-3.5" /> {'Refresh'}
             </button>
             <button onClick={() => setShowNewThread(true)} className="flex items-center gap-1.5 bg-aegis-600 hover:bg-aegis-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition">
-              <Plus className="w-3.5 h-3.5" /> {t('citizen.messages.newThread', lang)}
+              <Plus className="w-3.5 h-3.5" /> {'New Thread'}
             </button>
           </div>
         </div>
@@ -283,41 +283,41 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
         {showNewThread && (
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 mb-4 shadow-lg space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('citizen.messages.startConversation', lang)}</h3>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{'Start a New Conversation'}</h3>
               <button onClick={() => setShowNewThread(false)} className="text-gray-400 dark:text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('citizen.messages.subject', lang)}</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{'Subject'}</label>
               <input
                 value={newSubject}
                 onChange={e => setNewSubject(e.target.value)}
                 className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 transition"
-                placeholder={t('cdash.messages.subjectPlaceholder', lang)}
+                placeholder={'Subject of your inquiry'}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('citizen.messages.category', lang)}</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{'Category'}</label>
               <select value={newCategory} onChange={e => setNewCategory(e.target.value)}
                 className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 transition appearance-none">
                 {THREAD_CATEGORIES.map(c => <option key={c.value} value={c.value}>{t(c.labelKey, lang)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('citizen.messages.message', lang)}</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{'Message'}</label>
               <textarea
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
                 className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 transition resize-none"
                 rows={3}
-                placeholder={t('cdash.messages.messagePlaceholder', lang)}
+                placeholder={'Type your message...'}
               />
             </div>
             <div className="flex gap-2">
               <button onClick={handleCreateThread} disabled={!newSubject.trim() || !newMessage.trim() || creating}
                 className="bg-aegis-600 hover:bg-aegis-700 disabled:bg-aegis-400 text-white text-xs font-semibold px-4 py-2 rounded-lg transition flex items-center gap-1.5">
-                {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />} {t('citizen.messages.send', lang)}
+                {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />} {'Send'}
               </button>
-              <button onClick={() => setShowNewThread(false)} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700">{t('citizen.messages.cancel', lang)}</button>
+              <button onClick={() => setShowNewThread(false)} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700">{'Cancel'}</button>
             </div>
           </div>
         )}
@@ -326,19 +326,19 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
         {!socket.connected ? (
           <div className="bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-800/50 rounded-xl p-12 text-center">
             <Wifi className="w-12 h-12 text-amber-400 mx-auto mb-3" />
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{t('cdash.messages.connectingToServer', lang)}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('cdash.messages.connectingDesc', lang)}</p>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{'Connecting to server'}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{'Please wait while we establish a secure connection...'}</p>
             <button onClick={handleRefresh} className="bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold px-4 py-2 rounded-lg transition flex items-center gap-1.5 mx-auto">
-              <RefreshCw className="w-3.5 h-3.5" /> {t('cdash.messages.retryConnection', lang)}
+              <RefreshCw className="w-3.5 h-3.5" /> {'Retry connection'}
             </button>
           </div>
         ) : threads.length === 0 ? (
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-12 text-center">
             <MessageSquare className="w-12 h-12 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{t('citizen.messages.noConversations', lang)}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('citizen.messages.startHelp', lang)}</p>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{'No conversations yet'}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{'Start a new conversation to get help from our team'}</p>
             <button onClick={() => setShowNewThread(true)} className="bg-aegis-600 hover:bg-aegis-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition">
-              {t('citizen.messages.startButton', lang)}
+              {'Start a Conversation'}
             </button>
           </div>
         ) : (
@@ -352,9 +352,9 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{(th as any).subject}</p>
-                    {(th as any).is_emergency && <span className="text-[9px] bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 px-1.5 py-0.5 rounded font-bold uppercase">{t('cdash.messages.emergency', lang)}</span>}
+                    {(th as any).is_emergency && <span className="text-[9px] bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 px-1.5 py-0.5 rounded font-bold uppercase">{'Emergency'}</span>}
                   </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">{(th as any).last_message || t('citizen.messages.noMessages', lang)}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">{(th as any).last_message || 'No messages yet'}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
                   {(th as any).citizen_unread > 0 && (
@@ -383,18 +383,18 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{activeThread.subject}</h3>
             {activeThread.is_emergency && (
-              <span className="text-[9px] bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 px-1.5 py-0.5 rounded font-bold uppercase flex-shrink-0">{t('cdash.messages.emergency', lang)}</span>
+              <span className="text-[9px] bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 px-1.5 py-0.5 rounded font-bold uppercase flex-shrink-0">{'Emergency'}</span>
             )}
           </div>
           <p className="text-[11px] text-gray-500 dark:text-gray-400">
-            {activeThread.status === 'resolved' ? t('citizen.messages.resolved', lang) : activeThread.assigned_operator_name ? `${t('citizen.messages.assignedTo', lang)} ${activeThread.assigned_operator_name}` : t('citizen.messages.waitingOperator', lang)}
+            {activeThread.status === 'resolved' ? 'Resolved' : activeThread.assigned_operator_name ? `${'Assigned to'} ${activeThread.assigned_operator_name}` : 'Waiting for operator'}
           </p>
         </div>
         <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase flex-shrink-0 hidden sm:block ${
           activeThread.status === 'resolved' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300' :
           activeThread.status === 'in_progress' ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' :
           'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300'
-        }`}>{activeThread.status === 'resolved' ? t('cdash.messages.resolved', lang) : activeThread.status === 'in_progress' ? t('cdash.messages.inProgress', lang) : t('cdash.messages.open', lang)}</div>
+        }`}>{activeThread.status === 'resolved' ? 'Resolved' : activeThread.status === 'in_progress' ? 'In Progress' : 'Open'}</div>
         {/* Translation controls */}
         <div className="hidden sm:flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 flex-shrink-0">
           <Languages className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
@@ -407,7 +407,7 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
               setAutoTranslate(true)
             }}
             className="text-[10px] bg-transparent text-gray-700 dark:text-gray-200 outline-none"
-            title={t('cdash.messages.translateTo', lang)}
+            title={'Translate messages to'}
           >
             {TRANSLATION_LANGUAGES.map(tl => (
               <option key={tl.code} value={tl.code}>
@@ -422,7 +422,7 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
               onChange={() => setAutoTranslate(!autoTranslate)}
               className="w-3 h-3 rounded border-gray-300"
             />
-            {t('cdash.messages.auto', lang)}
+            {'Auto'}
           </label>
         </div>
       </div>
@@ -430,7 +430,7 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
       {/* Messages */}
       <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950 border-x border-gray-200 dark:border-gray-800 px-4 py-3 space-y-3">
         {messages.length === 0 && (
-          <div className="text-center py-8 text-gray-400 dark:text-gray-400 text-sm">{t('citizen.messages.noMessages', lang)}</div>
+          <div className="text-center py-8 text-gray-400 dark:text-gray-400 text-sm">{'No messages yet'}</div>
         )}
         {messages.map((msg: ChatMessage) => {
           const isMine = msg.sender_id === user.id && msg.sender_type === 'citizen'
@@ -444,19 +444,19 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
                 {!isMine && (
                   <div className="mb-0.5">
                     <p className="text-[10px] font-semibold text-aegis-600 dark:text-aegis-400">
-                      {msg.sender_name || t('cdash.messages.supportTeam', lang)}
+                      {msg.sender_name || 'Support Team'}
                     </p>
                     <p className="text-[9px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
                       {msg.sender_type === 'operator'
-                        ? (msg.sender_role === 'admin' ? t('cdash.messages.admin', lang) : msg.sender_role ? msg.sender_role.replace('_', ' ') : t('cdash.messages.operator', lang))
-                        : t('cdash.messages.citizen', lang)}
+                        ? (msg.sender_role === 'admin' ? 'Admin' : msg.sender_role ? msg.sender_role.replace('_', ' ') : 'Operator')
+                        : 'Citizen'}
                     </p>
                   </div>
                 )}
                 {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>}
                 {translations[msg.id] && (
                   <div className={`mt-1 pt-1 border-t ${isMine ? 'border-white/20' : 'border-gray-200 dark:border-gray-600'}`}>
-                    <p className={`text-[9px] font-semibold ${isMine ? 'text-white/60' : 'text-blue-500'}`}>{t('cdash.messages.translated', lang)}</p>
+                    <p className={`text-[9px] font-semibold ${isMine ? 'text-white/60' : 'text-blue-500'}`}>{'Translated'}</p>
                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{translations[msg.id]}</p>
                   </div>
                 )}
@@ -480,7 +480,7 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
                           ? (isMine ? 'text-white/80 bg-white/10' : 'text-blue-500 bg-blue-50 dark:bg-blue-950/30')
                           : (isMine ? 'text-white/40 hover:text-white/70 hover:bg-white/10' : 'text-gray-400 dark:text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30')
                       }`}
-                      title={translations[msg.id] ? t('cdash.messages.removeTranslation', lang) : t('cdash.messages.translate', lang)}
+                      title={translations[msg.id] ? 'Remove translation' : 'Translate'}
                     >
                       {translatingId === msg.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />}
                     </button>
@@ -501,7 +501,7 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
                   <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
                   <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '400ms' }} />
                 </div>
-                <span className="text-[10px] text-gray-400 dark:text-gray-400">{threadTypers[0].userName} {t('citizen.messages.isTyping', lang)}</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-400">{threadTypers[0].userName} {'is typing...'}</span>
               </div>
             </div>
           </div>
@@ -536,7 +536,7 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-aegis-600 hover:border-aegis-300 transition"
-              title={t('cdash.messages.attachImage', lang)}
+              title={'Attach image'}
             >
               <Camera className="w-4 h-4" />
             </button>
@@ -544,7 +544,7 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
               value={msgInput}
               onChange={e => handleTyping(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage() } }}
-              placeholder={t('citizen.messages.typeMessage', lang)}
+              placeholder={'Type a message...'}
               rows={1}
               className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 transition resize-none max-h-24"
             />
@@ -556,7 +556,7 @@ export default function MessagesTab({ socket, user }: { socket: any; user: any }
         </div>
       ) : (
         <div className="bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-b-xl px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-          {t('citizen.messages.conversationClosed', lang)} {activeThread.status}
+          {'This conversation has been'} {activeThread.status}
         </div>
       )}
     </div>

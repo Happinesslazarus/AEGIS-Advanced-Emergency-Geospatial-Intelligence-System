@@ -9,8 +9,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Shield, ChevronDown, ChevronUp, Accessibility, Eye, Keyboard, Monitor, MousePointer, Languages, Ear, CheckCircle2, ArrowLeft, Smartphone } from 'lucide-react'
-import { t } from '../utils/i18n'
-import { useLanguage } from '../hooks/useLanguage'
 import SafeHtml from '../components/shared/SafeHtml'
 
 function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -36,8 +34,18 @@ const WCAG_ITEMS = [
   { level: 'AA', label: 'Robust', desc: 'Content can be interpreted by assistive technologies', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
 ]
 
+const SECTIONS = [
+  { title: 'WCAG 2.1 Compliance', paragraphs: ['AEGIS strives to conform to <strong>WCAG 2.1 Level AA</strong> standards. We regularly test with automated tools and manual review.', 'Our compliance status across the <strong>four WCAG principles</strong>:'], listItems: [], icon: SECTION_ICONS[0] },
+  { title: 'Multi-Language Support', paragraphs: ['AEGIS supports <strong>12 languages</strong> with full UI translation and culturally appropriate formatting:'], listItems: [], icon: SECTION_ICONS[1] },
+  { title: 'Visual Accessibility', paragraphs: [], listItems: ['<strong>High contrast mode:</strong> Dark theme with enhanced contrast ratios', '<strong>Resizable text:</strong> All text scales with browser zoom up to 200%', '<strong>Colour-blind safe:</strong> Information conveyed by colour is also indicated by shape or text', '<strong>Alt text:</strong> All images and icons include descriptive alternative text', '<strong>Focus indicators:</strong> Clear visible focus outlines on all interactive elements'], icon: SECTION_ICONS[2] },
+  { title: 'Motor & Input Accessibility', paragraphs: [], listItems: ['<strong>Large click targets:</strong> Buttons and links meet minimum 44×44px touch target size', '<strong>No time limits:</strong> No time-based interactions that could disadvantage users', '<strong>Reduced motion:</strong> Respects prefers-reduced-motion system setting', '<strong>Voice control compatible:</strong> All interactive elements have visible labels', '<strong>Single pointer operation:</strong> All functionality available without complex gestures'], icon: SECTION_ICONS[3] },
+  { title: 'Audio & Communication', paragraphs: [], listItems: ['Optional audio alerts for critical emergency notifications', 'Visual notification indicators alongside audio alerts', 'Caption overlay feature for audio and video content', 'Adjustable alert volume controls', 'Multi-channel notifications (email, SMS, Telegram, WhatsApp)'], icon: SECTION_ICONS[4] },
+  { title: 'Mobile & Responsive', paragraphs: [], listItems: ['Fully responsive design from 320px to 4K displays', 'Touch-optimised interface with appropriate spacing', 'Offline-capable Progressive Web App (PWA) features', 'Screen reader optimised for iOS VoiceOver and Android TalkBack', 'Landscape and portrait orientation support'], icon: SECTION_ICONS[5] },
+  { title: 'Known Limitations', paragraphs: [], listItems: ['Some third-party map components may have limited screen reader support', 'Real-time data visualisations may not be fully described for screen readers', 'Some complex data tables may benefit from additional navigation aids', 'Language coverage is expanding; some translations may be incomplete'], icon: SECTION_ICONS[6] },
+  { title: 'Feedback & Contact', paragraphs: ['We welcome feedback on the accessibility of AEGIS. If you encounter barriers or have suggestions, please let us know.', '<strong>Email:</strong> accessibility@aegis-platform.org', '<strong>Phone:</strong> Contact through Robert Gordon University switchboard', '<em>This accessibility statement was last reviewed in January 2026. We are continually working to improve accessibility across the platform.</em>'], listItems: [], icon: SECTION_ICONS[7] },
+]
+
 export default function AccessibilityPage(): JSX.Element {
-  const lang = useLanguage()
   const [openSections, setOpenSections] = useState<Set<number>>(new Set([0]))
 
   const toggle = (i: number) => {
@@ -51,21 +59,7 @@ export default function AccessibilityPage(): JSX.Element {
   const expandAll = () => setOpenSections(new Set(Array.from({ length: 8 }, (_, i) => i)))
   const collapseAll = () => setOpenSections(new Set())
 
-  const sections = Array.from({ length: 8 }, (_, i) => {
-    const key = `a11yPage.s${i + 1}`
-    const title = t(`${key}.title`, lang)
-    const paragraphs: string[] = []
-    for (let p = 1; p <= 6; p++) {
-      const val = t(`${key}.p${p}`, lang) as string
-      if (val && !val.startsWith(`${key}.p`)) paragraphs.push(val)
-    }
-    const listItems: string[] = []
-    for (let li = 1; li <= 8; li++) {
-      const val = t(`${key}.li${li}`, lang) as string
-      if (val && !val.startsWith(`${key}.li`)) listItems.push(val)
-    }
-    return { title, paragraphs, listItems, icon: SECTION_ICONS[i] || Shield }
-  })
+  const sections = SECTIONS
 
   //Language badges
   const supportedLangs = [
@@ -97,9 +91,9 @@ export default function AccessibilityPage(): JSX.Element {
             <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
               <Accessibility className="w-6 h-6" />
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{t('a11yPage.pageTitle', lang)}</h1>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{'Accessibility Statement'}</h1>
           </div>
-          <p className="text-white/70 text-sm">{t('a11yPage.tagline', lang)}</p>
+          <p className="text-white/70 text-sm">{'Making AEGIS accessible and inclusive for everyone, regardless of ability.'}</p>
         </div>
       </div>
 
@@ -127,7 +121,7 @@ export default function AccessibilityPage(): JSX.Element {
         <FadeIn delay={100}>
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-5">
             <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-              <Languages className="w-4 h-4 text-purple-500" /> {t('a11yPage.languageSupport', lang)}
+              <Languages className="w-4 h-4 text-purple-500" /> {'Language Support'}
             </h3>
             <div className="flex flex-wrap gap-2">
               {supportedLangs.map(({ code, label }) => (
@@ -189,9 +183,9 @@ export default function AccessibilityPage(): JSX.Element {
         {/* Footer nav */}
         <div className="flex flex-wrap gap-4 text-sm justify-center pt-8 border-t border-gray-200 dark:border-gray-800 mt-8">
           <Link to="/citizen" className="text-aegis-600 hover:underline">Dashboard</Link>
-          <Link to="/about" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{t('about.title', lang)}</Link>
-          <Link to="/privacy" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{t('about.privacyPolicy', lang)}</Link>
-          <Link to="/terms" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{t('about.termsOfUse', lang)}</Link>
+          <Link to="/about" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{'About AEGIS'}</Link>
+          <Link to="/privacy" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{'Privacy Policy'}</Link>
+          <Link to="/terms" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{'Terms of Use'}</Link>
         </div>
       </div>
     </div>

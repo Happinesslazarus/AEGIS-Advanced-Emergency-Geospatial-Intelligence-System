@@ -75,12 +75,12 @@ export default function AboutPage(): JSX.Element {
   const stats = [useCounter(50000, 2000), useCounter(10, 1500), useCounter(200, 1800), useCounter(24, 1200)]
 
   const features = [
-    { icon: Bell, title: t('about.feat.liveAlerts', lang), desc: t('about.feat.liveAlertsDesc', lang), color: 'from-red-500 to-rose-600', bg: 'bg-red-50 dark:bg-red-950/30' },
-    { icon: Map, title: t('about.feat.floodMonitoring', lang), desc: t('about.feat.floodMonitoringDesc', lang), color: 'from-blue-500 to-cyan-600', bg: 'bg-blue-50 dark:bg-blue-950/30' },
-    { icon: Users, title: t('about.feat.communityReporting', lang), desc: t('about.feat.communityReportingDesc', lang), color: 'from-green-500 to-emerald-600', bg: 'bg-green-50 dark:bg-green-950/30' },
-    { icon: BookOpen, title: t('about.feat.preparedness', lang), desc: t('about.feat.preparednessDesc', lang), color: 'from-purple-500 to-violet-600', bg: 'bg-purple-50 dark:bg-purple-950/30' },
-    { icon: Globe, title: t('about.feat.languages', lang), desc: t('about.feat.languagesDesc', lang), color: 'from-aegis-500 to-aegis-700', bg: 'bg-aegis-50 dark:bg-aegis-950/30' },
-    { icon: Award, title: t('about.feat.aiAnalysis', lang), desc: t('about.feat.aiAnalysisDesc', lang), color: 'from-amber-500 to-orange-600', bg: 'bg-amber-50 dark:bg-amber-950/30' },
+    { icon: Bell, title: 'Live Alerts', desc: 'Multi-channel notifications via email, SMS, WhatsApp, Telegram, and web push to keep you informed instantly.', color: 'from-red-500 to-rose-600', bg: 'bg-red-50 dark:bg-red-950/30' },
+    { icon: Map, title: 'Flood Monitoring', desc: 'Real-time integration with SEPA and Environment Agency river-gauge data, plus AI-driven flood predictions.', color: 'from-blue-500 to-cyan-600', bg: 'bg-blue-50 dark:bg-blue-950/30' },
+    { icon: Users, title: 'Community Reporting', desc: 'Citizens can submit geotagged incident reports with photos, enabling real-time crowdsourced situational awareness.', color: 'from-green-500 to-emerald-600', bg: 'bg-green-50 dark:bg-green-950/30' },
+    { icon: BookOpen, title: 'Emergency Preparedness', desc: 'Guided training modules, risk assessments, and an offline emergency card to build personal resilience.', color: 'from-purple-500 to-violet-600', bg: 'bg-purple-50 dark:bg-purple-950/30' },
+    { icon: Globe, title: 'Multi-Language Support', desc: 'Full interface translation across 9+ languages including Gaelic, Welsh, Arabic, and Chinese.', color: 'from-aegis-500 to-aegis-700', bg: 'bg-aegis-50 dark:bg-aegis-950/30' },
+    { icon: Award, title: 'AI-Powered Analysis', desc: 'Machine learning models analyse reports, detect misinformation, assess severity, and provide intelligent risk insights.', color: 'from-amber-500 to-orange-600', bg: 'bg-amber-50 dark:bg-amber-950/30' },
   ]
 
   return (
@@ -94,18 +94,18 @@ export default function AboutPage(): JSX.Element {
         </div>
         <div className="relative z-10 max-w-4xl mx-auto px-6 py-16 sm:py-20">
           <Link to="/citizen" className="inline-flex items-center gap-2 text-white/60 hover:text-white text-sm mb-6 transition-colors group">
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> {t('about.backToAegis', lang)}
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> {'Back to AEGIS'}
           </Link>
           <div className="flex items-center gap-4 mb-6">
             <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center shadow-lg" style={{ animation: 'pulse 3s ease-in-out infinite' }}>
               <Shield className="w-9 h-9 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{t('about.title', lang)}</h1>
-              <p className="text-aegis-200/70 text-sm mt-0.5">{t('about.fullName', lang)}</p>
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{'About AEGIS'}</h1>
+              <p className="text-aegis-200/70 text-sm mt-0.5">{'Adaptive Emergency Geospatial Intelligence System'}</p>
             </div>
           </div>
-          <p className="text-lg text-white/80 max-w-2xl leading-relaxed">{t('about.heroDesc', lang)}</p>
+          <p className="text-lg text-white/80 max-w-2xl leading-relaxed">{'A comprehensive AI-powered platform for real-time emergency management, flood monitoring, and community resilience across Scotland.'}</p>
           <div className="flex justify-center mt-10">
             <ChevronDown className="w-5 h-5 text-white/30 animate-bounce" />
           </div>
@@ -137,16 +137,16 @@ export default function AboutPage(): JSX.Element {
         <FadeIn>
           <div className="bg-gradient-to-br from-aegis-50 to-blue-50 dark:from-aegis-950/30 dark:to-blue-950/20 rounded-2xl p-6 sm:p-8 border border-aegis-100 dark:border-aegis-800">
             <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-              <Heart className="w-5 h-5 text-red-500" /> {t('about.ourMission', lang)}
+              <Heart className="w-5 h-5 text-red-500" /> {'Our Mission'}
             </h2>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{t('about.missionP1', lang)}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{'AEGIS is dedicated to saving lives through intelligent emergency management. We combine machine learning, real-time environmental data, and community engagement to deliver timely flood monitoring, risk assessment, and multi-channel alerts.'}</p>
           </div>
         </FadeIn>
 
         {/* Key Features -- interactive card grid */}
         <FadeIn>
           <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-5 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-amber-500" /> {t('about.keyFeatures', lang)}
+            <Zap className="w-5 h-5 text-amber-500" /> {'Key Features'}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {features.map(({ icon: Icon, title, desc, color, bg }, i) => (
@@ -171,15 +171,15 @@ export default function AboutPage(): JSX.Element {
 
         {/* Tech Stack - visual architecture blocks, not text */}
         <FadeIn>
-          <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-5">{t('about.techStack', lang)}</h2>
+          <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-5">{'Technology Stack'}</h2>
           <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 relative overflow-hidden">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] bg-aegis-500/10 rounded-full blur-[80px]" />
             <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: t('about.tech.frontend', lang), tech: 'React 18 + TypeScript', icon: Code2, color: 'from-blue-500 to-cyan-500' },
-                { label: t('about.tech.backend', lang), tech: 'Node.js + Express', icon: Server, color: 'from-green-500 to-emerald-500' },
-                { label: t('about.tech.aiEngine', lang), tech: 'Python + FastAPI', icon: Brain, color: 'from-purple-500 to-violet-500' },
-                { label: t('about.tech.liveData', lang), tech: 'SEPA, EA Flood, Open-Meteo', icon: Globe, color: 'from-amber-500 to-orange-500' },
+                { label: 'React - TypeScript - Vite', tech: 'React 18 + TypeScript', icon: Code2, color: 'from-blue-500 to-cyan-500' },
+                { label: 'Node.js - Express - PostgreSQL', tech: 'Node.js + Express', icon: Server, color: 'from-green-500 to-emerald-500' },
+                { label: 'Python - PyTorch - FastAPI', tech: 'Python + FastAPI', icon: Brain, color: 'from-purple-500 to-violet-500' },
+                { label: 'SEPA - Environment Agency - Met Office', tech: 'SEPA, EA Flood, Open-Meteo', icon: Globe, color: 'from-amber-500 to-orange-500' },
               ].map(({ label, tech, icon: Icon, color }, i) => (
                 <div key={i} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:border-white/20 transition-all hover:-translate-y-0.5 group">
                   <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${color} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}>
@@ -197,14 +197,14 @@ export default function AboutPage(): JSX.Element {
         <FadeIn>
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
             <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-blue-500" /> {t('about.researchBg', lang)}
+              <BookOpen className="w-5 h-5 text-blue-500" /> {'Research & Academic Background'}
             </h2>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-4">{t('about.researchP1', lang)}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-4">{'AEGIS is developed as an honours-year project at Robert Gordon University, Aberdeen. It applies advanced computing techniques -- machine learning, geospatial analysis, real-time data streaming -- to the domain of emergency management.'}</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
               {[
-                { label: t('about.institution', lang), value: t('about.institutionVal', lang) },
-                { label: t('about.module', lang), value: t('about.moduleVal', lang) },
-                { label: t('about.location', lang), value: t('about.locationVal', lang) },
+                { label: 'Institution', value: 'Robert Gordon University' },
+                { label: 'Module', value: 'Honours Project 2025/26' },
+                { label: 'Location', value: 'Aberdeen, Scotland' },
               ].map(({ label, value }) => (
                 <div key={label} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
                   <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">{label}</p>
@@ -238,13 +238,13 @@ export default function AboutPage(): JSX.Element {
         {/* Contact - compact */}
         <FadeIn>
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
-            <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-3">{t('about.contact', lang)}</h2>
-            <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">{t('about.contactDesc', lang)}</p>
+            <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-3">{'Contact'}</h2>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">{'For questions about this project, contact the development team at Robert Gordon University.'}</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {[
-                { label: t('about.institution', lang), value: t('about.contactInstitution', lang) },
-                { label: t('about.module', lang), value: t('about.contactModule', lang) },
-                { label: t('about.location', lang), value: t('about.contactLocation', lang) },
+                { label: 'Institution', value: 'Robert Gordon University' },
+                { label: 'Module', value: 'Honours Project -- Computing Science' },
+                { label: 'Location', value: 'Aberdeen, Scotland' },
               ].map(({ label, value }) => (
                 <div key={label} className="bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 text-sm">
                   <span className="font-bold text-gray-500 dark:text-gray-400 text-xs">{label}:</span>{' '}
@@ -257,11 +257,11 @@ export default function AboutPage(): JSX.Element {
 
         {/* Footer nav */}
         <div className="flex flex-wrap gap-4 text-sm justify-center pt-4 border-t border-gray-200 dark:border-gray-800">
-          <Link to="/citizen" className="text-aegis-600 hover:underline">{t('about.backToDashboard', lang)}</Link>
+          <Link to="/citizen" className="text-aegis-600 hover:underline">{'Back to Dashboard'}</Link>
           <Link to="/creator" className="text-gray-500 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400">Creator</Link>
-          <Link to="/privacy" className="text-gray-500 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400">{t('about.privacyPolicy', lang)}</Link>
-          <Link to="/terms" className="text-gray-500 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400">{t('about.termsOfUse', lang)}</Link>
-          <Link to="/accessibility" className="text-gray-500 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400">{t('about.accessibility', lang)}</Link>
+          <Link to="/privacy" className="text-gray-500 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400">{'Privacy Policy'}</Link>
+          <Link to="/terms" className="text-gray-500 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400">{'Terms of Use'}</Link>
+          <Link to="/accessibility" className="text-gray-500 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400">{'Accessibility'}</Link>
         </div>
       </div>
     </div>

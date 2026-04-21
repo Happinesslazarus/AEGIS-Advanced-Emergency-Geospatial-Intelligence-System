@@ -66,7 +66,7 @@ export function IncomingAlertsWidget() {
     return (
       <div className="p-6 text-center text-gray-500 dark:text-gray-300">
         <div className="animate-spin inline-block w-5 h-5 border-2 border-aegis-600 border-t-transparent rounded-full" />
-        <p className="mt-2 text-sm">{t('alerts.loading', lang)}</p>
+        <p className="mt-2 text-sm">{'Loading alerts...'}</p>
       </div>
     )
   }
@@ -75,7 +75,7 @@ export function IncomingAlertsWidget() {
     return (
       <div className="p-6 text-center text-gray-500 dark:text-gray-300">
         <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-300" />
-        <p className="text-sm">{t('alerts.noActive', lang)}</p>
+        <p className="text-sm">{'No active alerts at this time'}</p>
       </div>
     )
   }
@@ -122,7 +122,7 @@ export function IncomingAlertsWidget() {
                   className="inline-flex items-center gap-1 text-xs font-semibold mt-2 px-3 py-1.5 rounded-lg bg-white/50 dark:bg-black/20 hover:bg-white/80 dark:hover:bg-black/40 border border-current/20 transition-all group"
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  {t('alerts.viewDetails', lang)}
+                  {'View Details'}
                   <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
               </div>

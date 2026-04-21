@@ -160,7 +160,7 @@ export default function AdminNavbar({
                 <span className="text-aegis-600 dark:text-aegis-400">AEGIS</span>
               </span>
               <span className="block text-[9px] text-gray-400 dark:text-gray-300 dark:text-aegis-300 tracking-widest uppercase">
-                {t('admin.operatorDashboard', lang)}
+                {'Operator Dashboard'}
               </span>
             </div>
           </Link>
@@ -168,13 +168,13 @@ export default function AdminNavbar({
           {/* Online status */}
           <div className="hidden md:flex items-center gap-1.5 bg-emerald-500/8 border border-emerald-500/20 px-2.5 py-1 rounded-full">
             <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" aria-hidden="true" />
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">{t('admin.online', lang)}</span>
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">{'Online'}</span>
           </div>
 
           {/* System uptime indicator */}
           <div className="hidden lg:flex items-center gap-1.5 bg-blue-500/8 border border-blue-500/15 px-2.5 py-1 rounded-full">
             <Zap className="w-3 h-3 text-blue-400" aria-hidden="true" />
-            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">{t('layout.adminNavbar.systemsNormal', lang)}</span>
+            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">{'Systems Normal'}</span>
           </div>
 
           {/* Live clock */}
@@ -198,7 +198,7 @@ export default function AdminNavbar({
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              placeholder={t('layout.adminNavbar.searchPlaceholder', lang)}
+              placeholder={'Search reports, alerts, operators...'}
               onFocus={() => onViewChange('reports')}
               aria-label="Search reports"
               className="w-full pl-9 pr-16 py-2 text-xs bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/8 focus:bg-aegis-50 dark:focus:bg-aegis-500/6 border border-gray-200 dark:border-white/8 focus:border-aegis-500/35 rounded-xl text-primary placeholder-gray-400 dark:placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-aegis-500/25 transition-all"
@@ -225,7 +225,7 @@ export default function AdminNavbar({
               className="hidden sm:flex items-center gap-1.5 bg-red-500/12 hover:bg-red-500/20 border border-red-500/20 px-2.5 py-1 rounded-lg transition-all"
             >
               <Siren className="w-3.5 h-3.5 text-red-400 animate-pulse" />
-              <span className="text-[10px] font-bold text-red-600 dark:text-red-300">{urgentCount} {t('common.urgent', lang)}</span>
+              <span className="text-[10px] font-bold text-red-600 dark:text-red-300">{urgentCount} {'Urgent'}</span>
             </button>
           )}
 
@@ -233,11 +233,11 @@ export default function AdminNavbar({
           <button
             onClick={() => onViewChange('alert_send')}
             className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 text-white min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 justify-center sm:justify-start px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-red-600/30 hover:shadow-red-500/40 active:scale-95"
-            title={t('admin.sendAlert', lang)}
-            aria-label={t('admin.sendAlert', lang)}
+            title={'Send Alert'}
+            aria-label={'Send Alert'}
           >
             <AlertTriangle className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-            <span className="hidden sm:inline">{t('admin.sendAlert', lang)}</span>
+            <span className="hidden sm:inline">{'Send Alert'}</span>
           </button>
 
           {/* Notification Bell */}
@@ -260,7 +260,7 @@ export default function AdminNavbar({
             {notifOpen && (
               <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700/60 overflow-hidden z-50">
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-900 dark:text-white">{t('layout.header.notifications', lang)}</span>
+                  <span className="text-xs font-bold text-gray-900 dark:text-white">{'Notifications'}</span>
                   <button
                     onClick={() => { dismissAllNotifications(); setNotifOpen(false) }}
                     className="text-[10px] font-semibold text-aegis-600 dark:text-aegis-400 hover:underline"
@@ -278,7 +278,7 @@ export default function AdminNavbar({
                       <div className="flex items-start gap-2.5">
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 bg-teal-500" />
                         <div className="min-w-0">
-                          <p className="text-[11px] font-semibold text-gray-900 dark:text-white">{t('community.title', lang)}</p>
+                          <p className="text-[11px] font-semibold text-gray-900 dark:text-white">{'Community Support'}</p>
                           <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-0.5">{communityUnread} {t(communityUnread === 1 ? 'layout.adminNavbar.newMessage' : 'layout.adminNavbar.newMessages', lang)}</p>
                         </div>
                       </div>
@@ -293,7 +293,7 @@ export default function AdminNavbar({
                       <div className="flex items-start gap-2.5">
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 bg-sky-500" />
                         <div className="min-w-0">
-                          <p className="text-[11px] font-semibold text-gray-900 dark:text-white">{t('layout.adminNavbar.directMessages', lang)}</p>
+                          <p className="text-[11px] font-semibold text-gray-900 dark:text-white">{'Direct Messages'}</p>
                           <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-0.5">{messagingUnread} {t(messagingUnread === 1 ? 'layout.adminNavbar.unreadConversation' : 'layout.adminNavbar.unreadConversations', lang)}</p>
                         </div>
                       </div>
@@ -301,7 +301,7 @@ export default function AdminNavbar({
                   )}
                   {/* Weather/emergency alerts */}
                   {recentAlerts.length === 0 && communityUnread === 0 && messagingUnread === 0 ? (
-                    <div className="px-4 py-6 text-center text-xs text-gray-500 dark:text-gray-300">{t('layout.adminNavbar.noRecentNotifications', lang)}</div>
+                    <div className="px-4 py-6 text-center text-xs text-gray-500 dark:text-gray-300">{'No recent notifications'}</div>
                   ) : (
                     recentAlerts.map(alert => (
                       <button
@@ -329,7 +329,7 @@ export default function AdminNavbar({
                     onClick={() => { setNotifOpen(false); onViewChange('alert_send') }}
                     className="w-full text-[10px] font-semibold text-aegis-600 dark:text-aegis-400 hover:underline text-center py-1"
                   >
-                    {t('layout.adminNavbar.viewAllAlerts', lang)}
+                    {'View all alerts'}
                   </button>
                 </div>
               </div>
@@ -366,7 +366,7 @@ export default function AdminNavbar({
               className="flex items-center gap-1.5 bg-gray-100 dark:bg-white/5 hover:bg-aegis-50 dark:hover:bg-aegis-500/10 border border-gray-200 dark:border-white/8 hover:border-aegis-500/25 px-2.5 py-1.5 rounded-xl text-xs transition-all"
             >
               <ExternalLink className="w-3 h-3 text-gray-500 dark:text-gray-300" />
-              <span className="text-[10px] font-medium text-gray-500 dark:text-gray-300 hidden lg:inline">{t('layout.adminNavbar.portals', lang)}</span>
+              <span className="text-[10px] font-medium text-gray-500 dark:text-gray-300 hidden lg:inline">{'Portals'}</span>
               <ChevronDown className={`w-3 h-3 text-gray-400 dark:text-gray-300 transition-transform ${portalOpen ? 'rotate-180' : ''}`} />
             </button>
 
@@ -379,8 +379,8 @@ export default function AdminNavbar({
                 >
                   <Home className="w-3.5 h-3.5 text-green-500" />
                   <div>
-                    <p className="font-semibold text-gray-900 dark:text-white">{t('layout.portals.guestPortal', lang)}</p>
-                    <p className="text-[9px] text-gray-500 dark:text-gray-300">{t('layout.portals.guestPortalDescription', lang)}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{'Guest Portal'}</p>
+                    <p className="text-[9px] text-gray-500 dark:text-gray-300">{'Public safety information'}</p>
                   </div>
                 </Link>
                 <Link
@@ -390,15 +390,15 @@ export default function AdminNavbar({
                 >
                   <User className="w-3.5 h-3.5 text-blue-500" />
                   <div>
-                    <p className="font-semibold text-gray-900 dark:text-white">{t('citizen.auth.citizenPortal', lang)}</p>
-                    <p className="text-[9px] text-gray-500 dark:text-gray-300">{t('layout.portals.citizenPortalDescription', lang)}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{'Citizen Portal'}</p>
+                    <p className="text-[9px] text-gray-500 dark:text-gray-300">{'Signed-in citizen dashboard'}</p>
                   </div>
                 </Link>
                 <div className="flex items-center gap-2.5 px-4 py-2.5 text-xs bg-aegis-50 dark:bg-aegis-500/10 border-t border-gray-100 dark:border-gray-800/50">
                   <Shield className="w-3.5 h-3.5 text-aegis-500" />
                   <div>
-                    <p className="font-semibold text-aegis-700 dark:text-aegis-300">{t('layout.portals.operatorPortal', lang)}</p>
-                    <p className="text-[9px] text-aegis-500/70">{t('layout.portals.currentlyActive', lang)}</p>
+                    <p className="font-semibold text-aegis-700 dark:text-aegis-300">{'Operator Portal'}</p>
+                    <p className="text-[9px] text-aegis-500/70">{'Currently active'}</p>
                   </div>
                 </div>
                 <button
@@ -406,7 +406,7 @@ export default function AdminNavbar({
                   className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 border-t border-gray-100 dark:border-gray-800/50 transition-colors group"
                 >
                   <LogOut className="w-3.5 h-3.5 text-red-500 group-hover:text-red-600" />
-                  <p className="font-semibold text-red-600 dark:text-red-400">{t('auth.logout', lang)}</p>
+                  <p className="font-semibold text-red-600 dark:text-red-400">{'Logout'}</p>
                 </button>
               </div>
             )}
@@ -461,7 +461,7 @@ export default function AdminNavbar({
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              placeholder={t('layout.adminNavbar.searchPlaceholder', lang)}
+              placeholder={'Search reports, alerts, operators...'}
               aria-label="Search reports"
               className="w-full pl-9 pr-10 py-2.5 text-sm bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/8 focus:border-aegis-500/35 rounded-xl text-primary placeholder-gray-400 dark:placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-aegis-500/25 transition-all"
             />

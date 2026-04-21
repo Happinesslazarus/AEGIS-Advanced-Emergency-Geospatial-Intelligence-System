@@ -46,23 +46,23 @@ export default function OfflineIndicator(): JSX.Element | null {
       {justReconnected ? (
         <>
           <Check className="w-4 h-4 shrink-0" />
-          <span>{t('offline.backOnline', lang)}</span>
+          <span>{'Back online'}</span>
           {queuedRequests > 0 && (
-            <span className="text-xs opacity-80">-- {t('offline.syncing', lang)} {queuedRequests}</span>
+            <span className="text-xs opacity-80">-- {'syncing'} {queuedRequests}</span>
           )}
         </>
       ) : (
         <>
           <WifiOff className="w-4 h-4 shrink-0 animate-pulse" />
-          <span>{t('offline.youAreOffline', lang)}</span>
+          <span>{'You are offline'}</span>
           {queuedRequests > 0 && (
-            <span className="text-xs opacity-80">({queuedRequests} {t('offline.queued', lang)})</span>
+            <span className="text-xs opacity-80">({queuedRequests} {'queued'})</span>
           )}
           <button
             onClick={syncNow}
             className="ml-1 p-1.5 rounded-lg hover:bg-white/20 transition-colors"
-            title={t('offline.trySync', lang)}
-            aria-label={t('offline.trySyncAria', lang)}
+            title={'Try to sync now'}
+            aria-label={'Try to sync queued requests'}
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>

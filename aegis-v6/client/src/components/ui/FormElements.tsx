@@ -595,9 +595,9 @@ export const PasswordStrength = memo<PasswordStrengthProps>(({
         />
       </div>
       <p className="text-xs text-gray-600 dark:text-gray-400">
-        {t('password.strength', 'Password strength')}: {' '}
+        {'Strength'}: {' '}
         <span className={`font-medium ${level === 'weak' ? 'text-red-600' : ''} ${level === 'fair' ? 'text-amber-600' : ''} ${level === 'good' ? 'text-blue-600' : ''} ${level === 'strong' ? 'text-green-600' : ''}`}>
-          {t(`password.${level}`, config.label)}
+          {config.label}
         </span>
       </p>
     </div>
@@ -632,7 +632,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(({
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors pointer-events-auto"
-            aria-label={showPassword ? t('password.hide', 'Hide password') : t('password.show', 'Show password')}
+            aria-label={showPassword ? 'Hide' : 'Show'}
           >
             {showPassword ? (
               <EyeOffIcon className="h-4 w-4" />

@@ -313,7 +313,7 @@ export default function LiveMap({
             <span style="background:${SEV_COLOURS[severity] || '#6b7280'};color:white;font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;">${severity}</span>
             <span style="color:#9ca3af;font-size:9px;">#${r.id}</span>
           </div>
-          <p style="font-weight:600;font-size:13px;margin:0 0 4px;">${r.title || r.category || r.type || t('map.reportDefault', lang)}</p>
+          <p style="font-weight:600;font-size:13px;margin:0 0 4px;">${r.title || r.category || r.type || 'Incident Report'}</p>
           <p style="color:#9ca3af;font-size:11px;margin:0 0 4px;">${r.location || ''}</p>
           ${r.description ? `<p style="color:#d1d5db;font-size:10px;margin:0 0 6px;max-height:40px;overflow:hidden;">${r.description.substring(0, 120)}${r.description.length > 120 ? '--' : ''}</p>` : ''}
           <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #374151;padding-top:6px;margin-top:4px;">
@@ -362,17 +362,17 @@ export default function LiveMap({
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
               <div>
-                <span style="font-size:9px;color:#9ca3af;text-transform:uppercase;">${t('map.level', lang)}</span>
+                <span style="font-size:9px;color:#9ca3af;text-transform:uppercase;">${'Level'}</span>
                 <div style="font-size:18px;font-weight:800;font-family:monospace;">${station.levelMetres?.toFixed(2)}m</div>
               </div>
               <div>
-                <span style="font-size:9px;color:#9ca3af;text-transform:uppercase;">${t('map.flow', lang)}</span>
+                <span style="font-size:9px;color:#9ca3af;text-transform:uppercase;">${'Flow'}</span>
                 <div style="font-size:14px;font-weight:700;font-family:monospace;">${station.flowCumecs?.toFixed(1) ?? '--'} m--/s</div>
               </div>
             </div>
             <div style="margin-bottom:6px;">
               <div style="display:flex;justify-content:space-between;font-size:9px;color:#9ca3af;margin-bottom:2px;">
-                <span>${t('map.floodRisk', lang)}</span>
+                <span>${'Flood Risk'}</span>
                 <span style="color:${colour};font-weight:600;">${pctOfFlood}%</span>
               </div>
               <div style="height:6px;background:#374151;border-radius:99px;overflow:hidden;">
@@ -381,7 +381,7 @@ export default function LiveMap({
             </div>
             <div style="display:flex;justify-content:space-between;border-top:1px solid #374151;padding-top:6px;">
               <span style="background:${colour}30;color:${colour};font-size:9px;font-weight:600;padding:2px 8px;border-radius:99px;">${station.status}</span>
-              <span style="font-size:9px;color:#6b7280;">${t('map.trend', lang)}: ${station.trend || t('map.trendSteady', lang)}</span>
+              <span style="font-size:9px;color:#6b7280;">${'Trend'}: ${station.trend || 'Steady'}</span>
             </div>
             <div style="margin-top:4px;font-size:8px;color:#4b5563;">${station.dataSource || ''}</div>
           </div>
@@ -416,9 +416,9 @@ export default function LiveMap({
         const marker = L.marker([lat, lng], { icon: createDistressIcon() })
         marker.bindPopup(`
           <div style="min-width:180px;">
-            <div style="color:#ef4444;font-weight:700;font-size:14px;margin-bottom:4px;">🚨 ${t('map.distressBeacon', lang)}</div>
-            <p style="font-size:12px;margin:0 0 4px;">${b.citizenName || b.citizen_name || t('map.citizen', lang)}</p>
-            <p style="font-size:10px;color:#9ca3af;margin:0;">${b.message || t('map.emergencyAssistance', lang)}</p>
+            <div style="color:#ef4444;font-weight:700;font-size:14px;margin-bottom:4px;">🚨 ${'DISTRESS BEACON'}</div>
+            <p style="font-size:12px;margin:0 0 4px;">${b.citizenName || b.citizen_name || 'Citizen'}</p>
+            <p style="font-size:10px;color:#9ca3af;margin:0;">${b.message || 'Emergency assistance requested'}</p>
             <div style="margin-top:6px;border-top:1px solid #374151;padding-top:4px;font-size:9px;color:#6b7280;">
               ${b.activatedAt ? new Date(b.activatedAt).toLocaleString() : ''}
             </div>
@@ -462,7 +462,7 @@ export default function LiveMap({
 
       line.bindPopup(`
         <div>
-          <p style="font-weight:700;font-size:13px;margin:0 0 4px;">${route.name || t('map.evacuationRoute', lang)}</p>
+          <p style="font-weight:700;font-size:13px;margin:0 0 4px;">${route.name || 'Evacuation Route'}</p>
           <p style="font-size:10px;color:#9ca3af;margin:0;">${route.description || ''}</p>
         </div>
       `)
@@ -535,17 +535,17 @@ export default function LiveMap({
             ${level > 0 ? `
               <div style="margin-bottom:6px;">
                 <div style="display:flex;justify-content:space-between;font-size:9px;color:#9ca3af;margin-bottom:2px;">
-                  <span>${t('map.level', lang)}: ${level.toFixed(2)}m</span>
-                  <span style="color:${colour};font-weight:600;">${pct}% ${t('map.ofTypicalHigh', lang)}</span>
+                  <span>${'Level'}: ${level.toFixed(2)}m</span>
+                  <span style="color:${colour};font-weight:600;">${pct}% ${'of typical high'}</span>
                 </div>
                 <div style="height:5px;background:#374151;border-radius:99px;overflow:hidden;">
                   <div style="height:100%;width:${barWidth}%;background:${colour};border-radius:99px;"></div>
                 </div>
               </div>
-            ` : `<div style="font-size:9px;color:#6b7280;margin-bottom:4px;">${t('map.noLevelReading', lang)}</div>`}
+            ` : `<div style="font-size:9px;color:#6b7280;margin-bottom:4px;">${'No level reading available'}</div>`}
             <div style="display:flex;justify-content:space-between;border-top:1px solid #374151;padding-top:4px;">
               <span style="background:${colour}30;color:${colour};font-size:8px;font-weight:600;padding:1px 6px;border-radius:99px;">${status.toUpperCase()}</span>
-              <span style="font-size:8px;color:#6b7280;">${t('map.trend', lang)}: ${p.trend || t('map.trendSteady', lang)}</span>
+              <span style="font-size:8px;color:#6b7280;">${'Trend'}: ${p.trend || 'Steady'}</span>
             </div>
           </div>
         `, { maxWidth: 260 })
@@ -589,13 +589,13 @@ export default function LiveMap({
         circle.bindPopup(`
           <div style="min-width:210px;">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-              <span style="background:${severityBg};color:${colour};font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;">${p.severity || 'MEDIUM'} ${t('map.risk', lang)}</span>
-              <span style="font-size:9px;color:#9ca3af;">${t('map.aiPrediction', lang)}</span>
+              <span style="background:${severityBg};color:${colour};font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;">${p.severity || 'MEDIUM'} ${'RISK'}</span>
+              <span style="font-size:9px;color:#9ca3af;">${'AI Prediction'}</span>
             </div>
             <p style="font-weight:700;font-size:13px;margin:0 0 2px;">${p.area}</p>
             <div style="margin-bottom:6px;">
               <div style="display:flex;justify-content:space-between;font-size:9px;color:#9ca3af;margin-bottom:2px;">
-                <span>${t('map.floodProbability', lang)}</span>
+                <span>${'Flood Probability'}</span>
                 <span style="color:${colour};font-weight:700;">${pctLabel}</span>
               </div>
               <div style="height:5px;background:#374151;border-radius:99px;overflow:hidden;">
@@ -604,9 +604,9 @@ export default function LiveMap({
             </div>
             <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;display:flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${p.time_to_flood || 'Unknown'}</div>
             <div style="font-size:9px;color:#60a5fa;margin-bottom:4px;display:flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" style="flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>${p.matched_pattern || ''}</div>
-            ${p.next_areas?.length ? `<div style="font-size:9px;color:#fbbf24;display:flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" style="flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>${t('map.downstream', lang)}: ${p.next_areas.join(', ')}</div>` : ''}
+            ${p.next_areas?.length ? `<div style="font-size:9px;color:#fbbf24;display:flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" style="flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>${'Downstream'}: ${p.next_areas.join(', ')}</div>` : ''}
             <div style="border-top:1px solid #374151;padding-top:4px;margin-top:4px;font-size:8px;color:#6b7280;">
-              ${t('map.confidence', lang)}: ${p.confidence}% -- ${p.model_version}
+              ${'Confidence'}: ${p.confidence}% -- ${p.model_version}
             </div>
           </div>
         `, { maxWidth: 300 })
@@ -638,14 +638,14 @@ export default function LiveMap({
         },
         onEachFeature: (feature: any, lyr: any) => {
           const p = feature.properties || {}
-          const name = p.name || p.area_name || t('map.riskZone', lang)
+          const name = p.name || p.area_name || 'Risk Zone'
           const risk: string = p.risk_level || p.severity || 'medium'
           const riskColourMap: Record<string, string> = { critical: '#dc2626', high: '#f97316', medium: '#eab308', low: '#3b82f6' }
           const riskColour = riskColourMap[risk] || '#eab308'
           lyr.bindPopup(`
             <div style="min-width:180px;">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-                <span style="background:${riskColour}30;color:${riskColour};font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;">${risk} ${t('map.risk', lang)}</span>
+                <span style="background:${riskColour}30;color:${riskColour};font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;">${risk} ${'RISK'}</span>
               </div>
               <p style="font-weight:700;font-size:13px;margin:0 0 2px;">${name}</p>
               ${p.description ? `<p style="color:#9ca3af;font-size:10px;margin:0;">${p.description}</p>` : ''}
@@ -729,21 +729,21 @@ export default function LiveMap({
         <button
           onClick={() => setBasemap('dark')}
           className={`p-1.5 rounded-md transition-all ${basemap === 'dark' ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
-          title={t('map.dark', lang)}
+          title={'Dark'}
         >
           <MapIcon className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={() => setBasemap('satellite')}
           className={`p-1.5 rounded-md transition-all ${basemap === 'satellite' ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
-          title={t('map.satellite', lang)}
+          title={'Satellite'}
         >
           <Satellite className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={() => setBasemap('terrain')}
           className={`p-1.5 rounded-md transition-all ${basemap === 'terrain' ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
-          title={t('map.terrain', lang)}
+          title={'Terrain'}
         >
           <Mountain className="w-3.5 h-3.5" />
         </button>
@@ -751,21 +751,21 @@ export default function LiveMap({
 
       {/* Zoom controls -- right side */}
       <div className="absolute right-3 top-14 z-10 flex flex-col gap-1 bg-gray-900/90 backdrop-blur-md rounded-lg border border-gray-700/50 p-1">
-        <button onClick={zoomIn} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={t('map.zoomIn', lang)}>
+        <button onClick={zoomIn} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={'Zoom In'}>
           <ZoomIn className="w-3.5 h-3.5" />
         </button>
-        <button onClick={zoomOut} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={t('map.zoomOut', lang)}>
+        <button onClick={zoomOut} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={'Zoom Out'}>
           <ZoomOut className="w-3.5 h-3.5" />
         </button>
         <div className="h-px bg-gray-700/50" />
-        <button onClick={resetView} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={t('map.resetView', lang)}>
+        <button onClick={resetView} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={'Reset View'}>
           <Navigation className="w-3.5 h-3.5" />
         </button>
-        <button onClick={refreshAll} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={t('map.refreshData', lang)}>
+        <button onClick={refreshAll} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={'Refresh Data'}>
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
         <div className="h-px bg-gray-700/50" />
-        <button onClick={() => setShowLayerPanel(p => !p)} className={`p-1.5 rounded-md transition ${showLayerPanel ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`} title={t('map.toggleLayers', lang)}>
+        <button onClick={() => setShowLayerPanel(p => !p)} className={`p-1.5 rounded-md transition ${showLayerPanel ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`} title={'Toggle Layers'}>
           <Layers className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -774,7 +774,7 @@ export default function LiveMap({
       {showLayerPanel && (
         <div className="absolute right-14 top-14 z-10 bg-gray-900/95 backdrop-blur-md rounded-xl border border-gray-700/50 p-3 w-52 shadow-2xl animate-fade-in">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-gray-300 dark:text-gray-300 uppercase tracking-wide">{t('map.mapLayers', lang)}</span>
+            <span className="text-xs font-bold text-gray-300 dark:text-gray-300 uppercase tracking-wide">{'Map Layers'}</span>
             <button
               onClick={() => {
                 const allOn = Object.values(layers).every(Boolean)
@@ -783,19 +783,19 @@ export default function LiveMap({
               }}
               className="text-[10px] text-blue-400 hover:text-blue-300 font-semibold"
             >
-              {Object.values(layers).every(Boolean) ? t('map.hideAll', lang) : t('map.showAll', lang)}
+              {Object.values(layers).every(Boolean) ? 'Hide All' : 'Show All'}
             </button>
           </div>
           <div className="space-y-1">
             {([
-              { key: 'reports', label: t('map.layer.reports', lang), color: '#ef4444' },
-              { key: 'rivers', label: t('map.layer.riverGauges', lang), color: '#3b82f6' },
-              { key: 'stations', label: t('map.layer.sepaStations', lang), color: '#22c55e' },
-              { key: 'predictions', label: t('map.layer.aiFlood', lang), color: '#a855f7' },
-              { key: 'distress', label: t('map.layer.distressBeacons', lang), color: '#f97316' },
-              { key: 'riskZones', label: t('map.layer.riskZones', lang), color: '#eab308' },
-              { key: 'heatmap', label: t('map.layer.heatmap', lang), color: '#06b6d4' },
-              { key: 'evacuation', label: t('map.layer.evacuation', lang), color: '#10b981' },
+              { key: 'reports', label: 'Emergency Reports', color: '#ef4444' },
+              { key: 'rivers', label: 'River Gauges', color: '#3b82f6' },
+              { key: 'stations', label: 'SEPA Stations', color: '#22c55e' },
+              { key: 'predictions', label: 'AI Flood Prediction', color: '#a855f7' },
+              { key: 'distress', label: 'Distress Beacons', color: '#f97316' },
+              { key: 'riskZones', label: 'Risk Zones', color: '#eab308' },
+              { key: 'heatmap', label: 'Density Heatmap', color: '#06b6d4' },
+              { key: 'evacuation', label: 'Evacuation Routes', color: '#10b981' },
             ] as const).map(({ key, label, color }) => (
               <button
                 key={key}
@@ -822,11 +822,11 @@ export default function LiveMap({
       <div className="absolute bottom-3 left-3 z-10 bg-gray-900/90 backdrop-blur-md rounded-lg border border-gray-700/50 px-3 py-1.5 flex items-center gap-3">
         <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-[10px] font-semibold text-green-400">{t('map.live', lang)}</span>
+          <span className="text-[10px] font-semibold text-green-400">{'LIVE'}</span>
         </div>
         <div className="h-3 w-px bg-gray-700" />
         <span className="text-[10px] text-gray-400 dark:text-gray-300">
-          {markerCount.reports} {t('map.reports', lang)} -- {markerCount.rivers + markerCount.stations} {t('map.stations', lang)} -- {markerCount.predictions} {t('map.predictions', lang)} -- {markerCount.distress} SOS
+          {markerCount.reports} {'reports'} -- {markerCount.rivers + markerCount.stations} {'stations'} -- {markerCount.predictions} {'predictions'} -- {markerCount.distress} SOS
         </span>
       </div>
     </div>

@@ -49,11 +49,11 @@ export default function RiverGaugePanel(): JSX.Element {
   const error = manualError || (asyncError ? (asyncError.message || 'Failed to fetch live river gauge data.') : '')
 
   const detectLocation = () => {
-    if (!('geolocation' in navigator)) { setManualError(t('river.gpsNotSupported', lang)); return }
+    if (!('geolocation' in navigator)) { setManualError('GPS not supported'); return }
     setManualError('')
     navigator.geolocation.getCurrentPosition(
       pos => { setUserLat(pos.coords.latitude); setUserLng(pos.coords.longitude) },
-      (err) => { if (err.code === 1) setManualError(t('river.locationDenied', lang)); else setManualError(t('river.locationUnavailable', lang)) },
+      (err) => { if (err.code === 1) setManualError('Location access denied'); else setManualError('Location unavailable') },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
     )
   }
@@ -102,7 +102,7 @@ export default function RiverGaugePanel(): JSX.Element {
           </div>
           <div className="text-left">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('river.riverLevels', lang)}</h3>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">{'River Levels'}</h3>
               <span className="text-[8px] bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5">
                 <Activity className="w-2 h-2" /> LIVE
               </span>
@@ -125,7 +125,7 @@ export default function RiverGaugePanel(): JSX.Element {
           <div className="px-4 py-2 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/30 border-b border-gray-200/50 dark:border-gray-700/30">
             <div className="flex items-center gap-3">
               <button onClick={detectLocation} className="text-[10px] text-blue-500 hover:text-blue-600 font-semibold flex items-center gap-1 transition-colors">
-                <MapPin className="w-3 h-3" /> {t('river.useMyGPS', lang)}
+                <MapPin className="w-3 h-3" /> {'Use my GPS'}
               </button>
               {userLat && (
                 <span className="text-[9px] text-gray-400 flex items-center gap-0.5">
@@ -134,7 +134,7 @@ export default function RiverGaugePanel(): JSX.Element {
               )}
             </div>
             <button onClick={refresh} disabled={loading} className="text-[10px] text-blue-500 hover:text-blue-600 font-semibold flex items-center gap-1 disabled:opacity-50 transition-colors">
-              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> {t('common.refresh', lang)}
+              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> {'Refresh'}
             </button>
           </div>
 
@@ -204,8 +204,8 @@ export default function RiverGaugePanel(): JSX.Element {
           {gauges.length === 0 && !loading && !error && (
             <div className="text-center py-8">
               <Droplets className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t('river.noGaugeData', lang)}</p>
-              <button onClick={detectLocation} className="mt-2 text-xs text-blue-500 hover:text-blue-600 font-semibold underline">{t('river.useMyGPS', lang)}</button>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{'No gauge data available'}</p>
+              <button onClick={detectLocation} className="mt-2 text-xs text-blue-500 hover:text-blue-600 font-semibold underline">{'Use my GPS'}</button>
             </div>
           )}
 
@@ -273,9 +273,9 @@ export default function RiverGaugePanel(): JSX.Element {
                       {/* Stats grid */}
                       <div className="grid grid-cols-3 gap-1.5">
                         {[
-                          { label: t('river.current', lang), value: g.source === 'open-meteo' ? `${g.level.toFixed(0)} m³/s` : `${g.level.toFixed(3)}m`, color: getGaugeColor(g.status) },
-                          { label: t('river.warningLabel', lang), value: g.source === 'open-meteo' ? `${g.warningLevel.toFixed(0)} m³/s` : `${g.warningLevel.toFixed(2)}m`, color: 'text-amber-500' },
-                          { label: t('river.alertLabel', lang), value: g.source === 'open-meteo' ? `${g.alertLevel.toFixed(0)} m³/s` : `${g.alertLevel.toFixed(2)}m`, color: 'text-red-500' },
+                          { label: 'Current', value: g.source === 'open-meteo' ? `${g.level.toFixed(0)} m³/s` : `${g.level.toFixed(3)}m`, color: getGaugeColor(g.status) },
+                          { label: 'Warning', value: g.source === 'open-meteo' ? `${g.warningLevel.toFixed(0)} m³/s` : `${g.warningLevel.toFixed(2)}m`, color: 'text-amber-500' },
+                          { label: 'Alert', value: g.source === 'open-meteo' ? `${g.alertLevel.toFixed(0)} m³/s` : `${g.alertLevel.toFixed(2)}m`, color: 'text-red-500' },
                         ].map(item => (
                           <div key={item.label} className="bg-white/80 dark:bg-gray-900/60 rounded-lg p-2 text-center border border-gray-200/50 dark:border-gray-700/30">
                             <div className={`text-sm font-mono font-bold ${item.color}`}>{item.value}</div>
@@ -288,7 +288,7 @@ export default function RiverGaugePanel(): JSX.Element {
                       <div className="flex items-center justify-between text-[9px] text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Activity className="w-2.5 h-2.5" />
-                          Trend: <strong className={g.levelTrend === 'rising' ? 'text-red-500' : g.levelTrend === 'falling' ? 'text-green-500' : 'text-gray-400'}>{t(`river.${g.levelTrend === 'steady' ? 'stable' : g.levelTrend}`, lang)}</strong>
+                          Trend: <strong className={g.levelTrend === 'rising' ? 'text-red-500' : g.levelTrend === 'falling' ? 'text-green-500' : 'text-gray-400'}>{g.levelTrend === 'steady' ? 'Stable' : g.levelTrend === 'rising' ? 'Rising' : 'Falling'}</strong>
                         </span>
                         <span className="flex items-center gap-0.5">
                           <Clock className="w-2.5 h-2.5" /> {new Date(g.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -303,7 +303,7 @@ export default function RiverGaugePanel(): JSX.Element {
                         <div className={`p-2 rounded-lg flex items-center gap-2 ${g.status === 'alert' ? 'bg-red-100 dark:bg-red-950/30 border border-red-200 dark:border-red-700' : 'bg-amber-100 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700'}`}>
                           <AlertTriangle className={`w-3.5 h-3.5 flex-shrink-0 ${g.status === 'alert' ? 'text-red-600' : 'text-amber-600'}`} />
                           <p className={`text-[10px] font-bold ${g.status === 'alert' ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'}`}>
-                            {g.status === 'alert' ? t('river.floodAlertMsg', lang) : t('river.floodWarningMsg', lang)}
+                            {g.status === 'alert' ? 'Flood alert -- take precautions' : 'Flood warning issued'}
                           </p>
                         </div>
                       )}

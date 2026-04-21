@@ -64,35 +64,35 @@ const SECTIONS = (lang: string, isAdmin: boolean): { title: string; items: Admin
   {
     title: 'Operations',
     items: [
-      { key: 'dashboard',    label: t('admin.dashboard', lang),   icon: BarChart3,     color: 'text-blue-500' },
-      { key: 'reports',      label: t('admin.allReports', lang),  icon: FileText,      color: 'text-orange-500' },
-      { key: 'map',          label: t('admin.liveMap', lang),     icon: Map,           color: 'text-emerald-500' },
-      { key: 'alert_send',   label: t('admin.sendAlert', lang),   icon: Bell,          color: 'text-red-500' },
+      { key: 'dashboard',    label: 'Dashboard',   icon: BarChart3,     color: 'text-blue-500' },
+      { key: 'reports',      label: 'All Reports',  icon: FileText,      color: 'text-orange-500' },
+      { key: 'map',          label: 'Live Map',     icon: Map,           color: 'text-emerald-500' },
+      { key: 'alert_send',   label: 'Send Alert',   icon: Bell,          color: 'text-red-500' },
       { key: 'incident_console', label: 'Incident Console',       icon: Radio,         color: 'text-amber-500' },
     ],
   },
   {
     title: 'Intelligence',
     items: [
-      { key: 'analytics',    label: t('admin.analytics', lang),   icon: Activity,      color: 'text-violet-500' },
-      { key: 'ai_models',    label: t('admin.models', lang),      icon: Brain,         color: 'text-purple-500' },
+      { key: 'analytics',    label: 'Analytics',   icon: Activity,      color: 'text-violet-500' },
+      { key: 'ai_models',    label: 'AI Models',      icon: Brain,         color: 'text-purple-500' },
       { key: 'crowd',        label: 'Crowd Density',              icon: Users,         color: 'text-cyan-500' },
-      { key: 'system_health', label: t('admin.systemHealth', lang), icon: Zap,          color: 'text-yellow-500' },
+      { key: 'system_health', label: 'System Health', icon: Zap,          color: 'text-yellow-500' },
     ],
   },
   {
     title: 'Management',
     items: [
-      { key: 'resources',    label: t('admin.resources', lang),   icon: Navigation,    color: 'text-teal-500' },
-      ...(isAdmin ? [{ key: 'users', label: t('admin.users', lang), icon: Users, adminOnly: true, color: 'text-indigo-500' } as AdminSidebarItem] : []),
-      { key: 'community',    label: t('admin.community', lang),   icon: Users,         color: 'text-teal-400' },
+      { key: 'resources',    label: 'Resources',   icon: Navigation,    color: 'text-teal-500' },
+      ...(isAdmin ? [{ key: 'users', label: 'User Management', icon: Users, adminOnly: true, color: 'text-indigo-500' } as AdminSidebarItem] : []),
+      { key: 'community',    label: 'Community',   icon: Users,         color: 'text-teal-400' },
     ],
   },
   {
     title: 'Records',
     items: [
-      { key: 'history',      label: t('admin.history', lang),     icon: History,       color: 'text-amber-500' },
-      { key: 'audit',        label: t('admin.audit', lang),       icon: Clock,         color: 'text-gray-400 dark:text-gray-300' },
+      { key: 'history',      label: 'History',     icon: History,       color: 'text-amber-500' },
+      { key: 'audit',        label: 'Audit Trail',       icon: Clock,         color: 'text-gray-400 dark:text-gray-300' },
       { key: 'delivery',     label: 'Delivery',                   icon: Archive,       color: 'text-slate-500' },
       //Security audit view is admin-only -- spread returns [] for operators so the item is never rendered
       ...(isAdmin ? [{ key: 'security', label: 'Security', icon: ShieldCheck, adminOnly: true, color: 'text-red-400' } as AdminSidebarItem] : []),
@@ -227,7 +227,7 @@ export default function AdminSidebar({
           `}
         >
           <AlertTriangle className="w-4 h-4" />
-          {!collapsed && <span>{t('admin.sendAlert', lang)}</span>}
+          {!collapsed && <span>{'Send Alert'}</span>}
         </button>
       </div>
     </div>

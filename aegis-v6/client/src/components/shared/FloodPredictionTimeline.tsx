@@ -153,8 +153,8 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
           <TrendingUp className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 text-left">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('floodPred.floodPrediction', lang)}</h3>
-          <p className="text-[10px] text-gray-500 dark:text-gray-300">{predictions.length} {t('floodPred.riversMonitored', lang)}</p>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white">{'Flood Prediction'}</h3>
+          <p className="text-[10px] text-gray-500 dark:text-gray-300">{predictions.length} {'rivers monitored'}</p>
         </div>
         <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-300 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`} />
       </button>
@@ -177,7 +177,7 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
           <div className="flex-1" />
           <span className="text-sm font-mono font-bold text-gray-900 dark:text-white flex items-center gap-1">
             <Clock className="w-3.5 h-3.5" />
-            {selectedHour === 0 ? t('floodPred.now', lang) : `+${selectedHour}h`}
+            {selectedHour === 0 ? 'NOW' : `+${selectedHour}h`}
           </span>
         </div>
 
@@ -207,7 +207,7 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
         </div>
         <div className="flex justify-between mt-1">
           {timePoints.map(tp => (
-            <span key={tp} className="text-[9px] text-gray-500 dark:text-gray-300">{tp === 0 ? t('floodPred.nowLabel', lang) : `+${tp}h`}</span>
+            <span key={tp} className="text-[9px] text-gray-500 dark:text-gray-300">{tp === 0 ? 'Now' : `+${tp}h`}</span>
           ))}
         </div>
       </div>
@@ -216,19 +216,19 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
       <div className="px-4 py-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="text-center">
           <div className="text-lg font-bold text-gray-900 dark:text-white">{currentStats.criticalRivers}</div>
-          <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5"><AlertTriangle className="w-2.5 h-2.5" /> {t('floodPred.atRisk', lang)}</div>
+          <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5"><AlertTriangle className="w-2.5 h-2.5" /> {'At Risk'}</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-gray-900 dark:text-white">{currentStats.totalProperties.toLocaleString()}</div>
-          <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5"><Home className="w-2.5 h-2.5" /> {t('floodPred.properties', lang)}</div>
+          <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5"><Home className="w-2.5 h-2.5" /> {'Properties'}</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-gray-900 dark:text-white">{currentStats.totalPeople.toLocaleString()}</div>
-          <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5"><Users className="w-2.5 h-2.5" /> {t('floodPred.people', lang)}</div>
+          <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5"><Users className="w-2.5 h-2.5" /> {'People'}</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-gray-900 dark:text-white">{currentStats.avgConfidence}%</div>
-          <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('floodPred.confidence', lang)}</div>
+          <div className="text-[9px] text-gray-500 dark:text-gray-300">{'Confidence'}</div>
         </div>
       </div>
 
@@ -262,7 +262,7 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
 
       {loading && (
         <div className="px-4 py-4 text-center text-xs text-gray-400 dark:text-gray-300">
-          {t('floodPred.loadingPredictions', lang)}
+          {'Loading predictions...'}
         </div>
       )}
         </>

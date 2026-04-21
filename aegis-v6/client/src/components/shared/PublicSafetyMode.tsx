@@ -159,9 +159,9 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
         <div className="flex items-center gap-3">
           <Shield className="w-8 h-8 text-white" />
           <div>
-            <h1 className="text-xl font-black tracking-wide">{t('safety.aegisPublicSafety', lang)}</h1>
+            <h1 className="text-xl font-black tracking-wide">{'AEGIS PUBLIC SAFETY'}</h1>
             <p className="text-red-200 text-xs font-medium">
-              {t('safety.emergencyInfoDisplay', lang)}
+              {'Emergency Information Display'}
             </p>
           </div>
         </div>
@@ -177,7 +177,7 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
           <button
             onClick={fetchAll}
             className="p-2 hover:bg-red-600 rounded-lg transition"
-            title={t('safety.refreshData', lang)}
+            title={'Refresh data'}
           >
             <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -185,7 +185,7 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
             <button
               onClick={onClose}
               className="p-2 hover:bg-red-600 rounded-lg transition"
-              title={t('safety.exitSafetyMode', lang)}
+              title={'Exit Safety Mode'}
             >
               <X className="w-5 h-5" />
             </button>
@@ -196,11 +196,11 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/*  Emergency Number Banner  */}
         <div className="bg-red-900/50 border-2 border-red-500 rounded-2xl p-6 text-center">
-          <p className="text-lg font-semibold text-red-300 mb-1">{t('safety.lifeThreateningEmergency', lang)}</p>
+          <p className="text-lg font-semibold text-red-300 mb-1">{'In a life-threatening emergency, call 999'}</p>
           <p className="text-6xl font-black tracking-widest text-white">999</p>
           <p className="text-sm text-red-300 mt-2">
             <Phone className="w-4 h-4 inline mr-1" />
-            {t('safety.emergencyNumbers', lang)}
+            {'Emergency Numbers'}
           </p>
         </div>
 
@@ -209,7 +209,7 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
           <div className="space-y-3">
             <h2 className="text-lg font-bold text-red-400 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 animate-pulse" />
-              {t('safety.activeAlerts', lang)} ({criticalAlerts.length})
+              {'Active Alerts'} ({criticalAlerts.length})
             </h2>
             {criticalAlerts.map(alert => (
               <div key={alert.id} className="bg-red-900/40 border border-red-700 rounded-xl p-5">
@@ -240,7 +240,7 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
           <div className="space-y-2">
             <h2 className="text-sm font-bold text-amber-400 flex items-center gap-2">
               <Radio className="w-4 h-4" />
-              {t('safety.otherWarnings', lang)} ({otherAlerts.length})
+              {'Other warnings'} ({otherAlerts.length})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {otherAlerts.slice(0, 4).map(alert => (
@@ -260,8 +260,8 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
         {alerts.length === 0 && !loading && (
           <div className="bg-green-900/30 border border-green-700 rounded-xl p-6 text-center">
             <Shield className="w-10 h-10 text-green-400 mx-auto mb-2" />
-            <p className="text-lg font-bold text-green-300">{t('safety.noActiveAlerts', lang)}</p>
-            <p className="text-sm text-green-400/70">{t('safety.allClear', lang)}</p>
+            <p className="text-lg font-bold text-green-300">{'No active alerts -- all clear'}</p>
+            <p className="text-sm text-green-400/70">{'All Clear'}</p>
           </div>
         )}
 
@@ -270,7 +270,7 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
           {/* Weather */}
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-5">
             <h3 className="text-sm font-bold text-blue-400 mb-3 flex items-center gap-1.5">
-              <Thermometer className="w-4 h-4" /> {t('safety.currentWeather', lang)}
+              <Thermometer className="w-4 h-4" /> {'Current Weather'}
             </h3>
             {weather ? (
               <div className="space-y-2">
@@ -282,14 +282,14 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-300">{t('safety.weatherDataLoading', lang)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">{'Weather data loading...'}</p>
             )}
           </div>
 
           {/* Flood Predictions */}
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-5">
             <h3 className="text-sm font-bold text-amber-400 mb-3 flex items-center gap-1.5">
-              <Droplets className="w-4 h-4" /> {t('safety.floodRiskForecast', lang)}
+              <Droplets className="w-4 h-4" /> {'Flood Risk Forecast'}
             </h3>
             {highRiskPredictions.length > 0 ? (
               <div className="space-y-2">
@@ -306,19 +306,19 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
                 })}
                 {predictions.length > highRiskPredictions.length && (
                   <p className="text-xs text-gray-500 dark:text-gray-300">
-                    + {predictions.length - highRiskPredictions.length} {t('safety.lowerRiskAreas', lang)}
+                    + {predictions.length - highRiskPredictions.length} {'Lower-risk areas'}
                   </p>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-300">{t('safety.noHighRiskFlood', lang)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">{'No high-risk flood warnings in your area'}</p>
             )}
           </div>
 
           {/* Emergency Shelters */}
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-5">
             <h3 className="text-sm font-bold text-green-400 mb-3 flex items-center gap-1.5">
-              <Home className="w-4 h-4" /> {t('safety.emergencyShelters', lang)}
+              <Home className="w-4 h-4" /> {'Emergency Shelters'}
             </h3>
             {shelters.length > 0 ? (
               <div className="space-y-2">
@@ -338,14 +338,14 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-300">{t('safety.noShelters', lang)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">{'No shelters nearby -- dial 999 for help'}</p>
             )}
           </div>
         </div>
 
         {/*  Safety Guidance Quick Links  */}
         <div className="bg-gray-900 border border-gray-700 rounded-xl p-5">
-          <h3 className="text-sm font-bold text-purple-400 mb-3">{t('safety.emergencyResources', lang)}</h3>
+          <h3 className="text-sm font-bold text-purple-400 mb-3">{'Emergency Resources'}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { label: 'GDACS Global Alerts', url: 'https://www.gdacs.org', icon: Droplets },
@@ -371,12 +371,12 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
         {/*  Footer  */}
         <div className="text-center text-xs text-gray-600 py-4 border-t border-gray-800">
           <p>
-            {t('safety.lastUpdated', lang)}: {lastUpdated.toLocaleTimeString('en-GB')} |
-            {t('safety.autoRefreshes', lang)} |
-            {t('safety.dataFromSources', lang)}
+            {'Last updated'}: {lastUpdated.toLocaleTimeString('en-GB')} |
+            {'Auto-refreshes every 30 seconds'} |
+            {'Data from official UK sources'}
           </p>
           <p className="mt-1">
-            {t('safety.aegisSystem', lang)}
+            {'AEGIS Emergency Response System'}
           </p>
         </div>
       </div>

@@ -189,7 +189,7 @@ export default function CitizenAuthPage(): JSX.Element {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-aegis-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="mt-3 text-sm text-gray-500 dark:text-gray-300">{t('general.loading', lang)}</p>
+          <p className="mt-3 text-sm text-gray-500 dark:text-gray-300">{'Loading...'}</p>
         </div>
       </div>
     )
@@ -202,11 +202,11 @@ export default function CitizenAuthPage(): JSX.Element {
           <div className="w-16 h-16 bg-aegis-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-aegis-500/40">
             <Shield className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('citizen.auth.alreadySignedIn', lang)}</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-300 mb-4">{t('citizen.auth.redirectingDashboard', lang)}</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{'Already Signed In'}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-300 mb-4">{'Redirecting to your dashboard...'}</p>
           <div className="w-8 h-8 border-3 border-aegis-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <Link to="/citizen/dashboard" className="text-sm text-aegis-600 hover:text-aegis-700 font-semibold underline">
-            {t('citizen.auth.goDashboard', lang)}
+            {'Go to Dashboard'}
           </Link>
         </div>
       </div>
@@ -227,12 +227,12 @@ export default function CitizenAuthPage(): JSX.Element {
 
   //Real-time password requirement checks (matches server requirements)
   const pwRequirements = [
-    { met: password.length >= 12, label: t('citizen.auth.pwReq.minLength', lang) || 'At least 12 characters' },
-    { met: /[A-Z]/.test(password), label: t('citizen.auth.pwReq.uppercase', lang) || 'One uppercase letter' },
-    { met: /[a-z]/.test(password), label: t('citizen.auth.pwReq.lowercase', lang) || 'One lowercase letter' },
-    { met: /[0-9]/.test(password), label: t('citizen.auth.pwReq.digit', lang) || 'One digit' },
-    { met: /[^A-Za-z0-9]/.test(password), label: t('citizen.auth.pwReq.special', lang) || 'One special character' },
-    { met: !email || !password.toLowerCase().includes(email.split('@')[0]?.toLowerCase() || '___'), label: t('citizen.auth.pwReq.noEmail', lang) || 'Must not contain your email' },
+    { met: password.length >= 12, label: 'At least 12 characters' },
+    { met: /[A-Z]/.test(password), label: 'One uppercase letter' },
+    { met: /[a-z]/.test(password), label: 'One lowercase letter' },
+    { met: /[0-9]/.test(password), label: 'One number (0-9)' },
+    { met: /[^A-Za-z0-9]/.test(password), label: 'One special character' },
+    { met: !email || !password.toLowerCase().includes(email.split('@')[0]?.toLowerCase() || '___'), label: 'Must not contain your email' },
   ]
   const allPwReqsMet = password.length > 0 && pwRequirements.every(r => r.met)
 
@@ -241,48 +241,48 @@ export default function CitizenAuthPage(): JSX.Element {
     const errors = { ...fieldErrors }
     switch (field) {
       case 'displayName':
-        if (!displayName.trim()) errors.displayName = t('citizen.auth.error.displayNameRequired', lang)
+        if (!displayName.trim()) errors.displayName = 'Display name is required.'
         else delete errors.displayName
         break
       case 'email':
-        if (!email.trim()) errors.email = t('citizen.auth.error.emailRequired', lang)
-        else if (!validateEmail(email.trim())) errors.email = t('citizen.auth.error.invalidEmail', lang)
+        if (!email.trim()) errors.email = 'Email is required.'
+        else if (!validateEmail(email.trim())) errors.email = 'Please enter a valid email address.'
         else {
           delete errors.email
           //Check server-side availability
           try {
             const avail = await apiCheckAvailability({ email: email.trim() })
             if (avail.emailAvailable === false) {
-              errors.email = t('citizen.auth.error.emailTaken', lang) || 'This email is already registered'
+              errors.email = 'This email is already registered.'
             }
           } catch { /* ignore network errors during check */ }
         }
         //Re-validate password if it contains email
         if (password && email && password.toLowerCase().includes(email.split('@')[0]?.toLowerCase() || '___')) {
-          errors.password = t('citizen.auth.error.passwordContainsEmail', lang) || 'Password must not contain your email address'
+          errors.password = 'Password must not contain your email address.'
         } else if (password.length >= 12) {
           delete errors.password
         }
         break
       case 'password':
-        if (password.length > 0 && password.length < 12) errors.password = t('citizen.auth.error.passwordMin12', lang) || 'Password must be at least 12 characters'
-        else if (password && email && password.toLowerCase().includes(email.split('@')[0]?.toLowerCase() || '___')) errors.password = t('citizen.auth.error.passwordContainsEmail', lang) || 'Password must not contain your email address'
+        if (password.length > 0 && password.length < 12) errors.password = 'Password must be at least 12 characters.'
+        else if (password && email && password.toLowerCase().includes(email.split('@')[0]?.toLowerCase() || '___')) errors.password = 'Password must not contain your email address.'
         else delete errors.password
-        if (confirmPassword && confirmPassword !== password) errors.confirmPassword = t('citizen.auth.error.passwordsNoMatch', lang)
+        if (confirmPassword && confirmPassword !== password) errors.confirmPassword = 'Passwords do not match.'
         else if (confirmPassword) delete errors.confirmPassword
         break
       case 'confirmPassword':
-        if (confirmPassword && confirmPassword !== password) errors.confirmPassword = t('citizen.auth.error.passwordsNoMatch', lang)
+        if (confirmPassword && confirmPassword !== password) errors.confirmPassword = 'Passwords do not match.'
         else delete errors.confirmPassword
         break
       case 'phone':
         if (!localPhone.trim()) {
-          errors.phone = t('citizen.auth.error.phoneRequired', lang) || 'Phone number is required'
+          errors.phone = 'Phone number is required.'
         } else if (fullPhone.trim().length >= 6) {
           try {
             const avail = await apiCheckAvailability({ phone: fullPhone.trim() })
             if (avail.phoneAvailable === false) {
-              errors.phone = t('citizen.auth.error.phoneTaken', lang) || 'This phone number is already registered'
+              errors.phone = 'This phone number is already registered.'
             } else {
               delete errors.phone
             }
@@ -299,8 +299,8 @@ export default function CitizenAuthPage(): JSX.Element {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 2 * 1024 * 1024) {
-      setError(t('citizen.auth.error.photoSize', lang))
-      setNotification({ message: t('citizen.auth.error.photoSize', lang), type: 'error' })
+      setError('Profile photo must be under 2MB')
+      setNotification({ message: 'Profile photo must be under 2MB', type: 'error' })
       return
     }
     setAvatarFile(file)
@@ -311,7 +311,7 @@ export default function CitizenAuthPage(): JSX.Element {
 
   const validateStep1 = (): boolean => {
     if (!displayName.trim()) {
-      const msg = t('citizen.auth.error.displayNameRequired', lang)
+      const msg = 'Display name is required.'
       setError(msg)
       setNotification({ message: msg, type: 'warning' })
       return false
@@ -321,38 +321,38 @@ export default function CitizenAuthPage(): JSX.Element {
       setError(msg); setNotification({ message: msg, type: 'warning' }); return false
     }
     if (!email.trim()) {
-      const msg = t('citizen.auth.error.emailRequired', lang)
+      const msg = 'Email is required.'
       setError(msg)
       setNotification({ message: msg, type: 'warning' })
       return false
     }
     //Client-side email format validation (#50)
     if (!validateEmail(email.trim())) {
-      const msg = t('citizen.auth.error.invalidEmail', lang)
+      const msg = 'Please enter a valid email address.'
       setError(msg)
       setNotification({ message: msg, type: 'warning' })
       return false
     }
     if (password.length < 12) {
-      const msg = t('citizen.auth.error.passwordMin12', lang) || 'Password must be at least 12 characters'
+      const msg = 'Password must be at least 12 characters.'
       setError(msg)
       setNotification({ message: msg, type: 'warning' })
       return false
     }
     if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
-      const msg = t('citizen.auth.error.passwordComplexity', lang) || 'Password must contain uppercase, lowercase, digit, and special character'
+      const msg = 'Password must contain uppercase, lowercase, digit, and special character.'
       setError(msg)
       setNotification({ message: msg, type: 'warning' })
       return false
     }
     if (email && password.toLowerCase().includes(email.split('@')[0]?.toLowerCase() || '___')) {
-      const msg = t('citizen.auth.error.passwordContainsEmail', lang) || 'Password must not contain your email address'
+      const msg = 'Password must not contain your email address.'
       setError(msg)
       setNotification({ message: msg, type: 'warning' })
       return false
     }
     if (password !== confirmPassword) {
-      const msg = t('citizen.auth.error.passwordsNoMatch', lang)
+      const msg = 'Passwords do not match.'
       setError(msg)
       setNotification({ message: msg, type: 'warning' })
       return false
@@ -363,19 +363,19 @@ export default function CitizenAuthPage(): JSX.Element {
 
   const validateStep2 = (): boolean => {
     if (!localPhone.trim()) {
-      const msg = t('citizen.auth.error.phoneRequired', lang) || 'Phone number is required'
+      const msg = 'Phone number is required.'
       setError(msg); setNotification({ message: msg, type: 'warning' }); return false
     }
     if (!country) {
-      const msg = t('citizen.auth.error.countryRequired', lang) || 'Country is required'
+      const msg = 'Country is required.'
       setError(msg); setNotification({ message: msg, type: 'warning' }); return false
     }
     if (!region) {
-      const msg = t('citizen.auth.error.regionRequired', lang) || 'Region is required'
+      const msg = 'Region is required.'
       setError(msg); setNotification({ message: msg, type: 'warning' }); return false
     }
     if (!addressLine.trim()) {
-      const msg = t('citizen.auth.error.addressRequired', lang) || 'Address is required'
+      const msg = 'Address is required.'
       setError(msg); setNotification({ message: msg, type: 'warning' }); return false
     }
     //Date of birth smart validation
@@ -426,8 +426,8 @@ export default function CitizenAuthPage(): JSX.Element {
         if (!validateStep1()) { setSubmitting(false); return }
         //Check ToS acceptance (#27)
         if (!tosAccepted) {
-          setError(t('citizen.auth.error.tosRequired', lang))
-          setNotification({ message: t('citizen.auth.error.tosAccept', lang), type: 'warning' })
+          setError('You must accept the Terms of Service.')
+          setNotification({ message: 'Please accept the Terms of Service to continue.', type: 'warning' })
           setSubmitting(false)
           return
         }
@@ -449,20 +449,20 @@ export default function CitizenAuthPage(): JSX.Element {
         })
 
         if (result.success) {
-          setNotification({ message: t('citizen.auth.success.accountCreated', lang), type: 'success' })
+          setNotification({ message: 'Account created successfully! Redirecting...', type: 'success' })
           //Upload avatar if selected (after registration, user is now authenticated)
           if (avatarFile) {
             try {
               await uploadAvatar(avatarFile)
             } catch (avatarErr: any) {
               console.warn('[CitizenAuth] Avatar upload failed after registration:', avatarErr?.message)
-              setNotification({ message: t('citizen.auth.error.avatarUploadFailed', lang), type: 'warning' })
+              setNotification({ message: 'Profile photo could not be uploaded -- you can add it later.', type: 'warning' })
             }
           }
           setTimeout(() => navigate('/citizen/dashboard', { replace: true }), 500)
         } else {
-          const raw = result.error || t('citizen.auth.error.registrationFailed', lang)
-          const errorMsg = sanitizeError(raw) ?? t('citizen.auth.error.registrationFailed', lang)
+          const raw = result.error || 'Registration failed.'
+          const errorMsg = sanitizeError(raw) ?? 'Registration failed.'
           setError(errorMsg)
           setNotification({ message: errorMsg, type: 'error' })
           setRegStep(1) // Go back to step 1 if it's an account error
@@ -476,7 +476,7 @@ export default function CitizenAuthPage(): JSX.Element {
           setTwoFactorError('')
           setTimeout(() => twoFactorInputRef.current?.focus(), 100)
         } else if (result.success) {
-          setNotification({ message: t('citizen.auth.success.login', lang), type: 'success' })
+          setNotification({ message: 'Login successful! Redirecting...', type: 'success' })
           const returnTo = sessionStorage.getItem('aegis_qr_return_to')
           if (returnTo) {
             sessionStorage.removeItem('aegis_qr_return_to')
@@ -484,15 +484,15 @@ export default function CitizenAuthPage(): JSX.Element {
           }
           setTimeout(() => navigate(returnTo || '/citizen/dashboard', { replace: true }), 300)
         } else {
-          const raw = result.error || t('citizen.auth.error.loginFailed', lang)
-          const errorMsg = sanitizeError(raw) ?? t('citizen.auth.error.loginFailed', lang)
+          const raw = result.error || 'Login failed.'
+          const errorMsg = sanitizeError(raw) ?? 'Login failed.'
           setError(errorMsg)
           setNotification({ message: errorMsg, type: 'error' })
         }
       }
     } catch (err: any) {
-      const raw = err.message || t('citizen.auth.error.generic', lang)
-      const errorMsg = sanitizeError(raw) ?? t('citizen.auth.error.generic', lang)
+      const raw = err.message || 'An error occurred.'
+      const errorMsg = sanitizeError(raw) ?? 'An error occurred.'
       setError(errorMsg)
       setNotification({ message: errorMsg, type: 'error' })
     } finally {
@@ -518,7 +518,7 @@ export default function CitizenAuthPage(): JSX.Element {
         sessionStorage.setItem('aegis_qr_just_logged_in', '1')
       }
       complete2FA(res.token, res.user as CitizenUser, res.preferences as CitizenPreferences | undefined)
-      setNotification({ message: t('citizen.auth.success.login', lang), type: 'success' })
+      setNotification({ message: 'Login successful! Redirecting...', type: 'success' })
       setTimeout(() => navigate(returnTo || '/citizen/dashboard', { replace: true }), 300)
     } catch (err: any) {
       const msg = err.message || 'Verification failed.'
@@ -539,9 +539,9 @@ export default function CitizenAuthPage(): JSX.Element {
   }
 
   const STEPS = [
-    { num: 1, label: t('citizen.auth.step.account', lang), icon: Lock },
-    { num: 2, label: t('citizen.auth.step.details', lang), icon: User },
-    { num: 3, label: t('citizen.auth.step.profile', lang), icon: Camera },
+    { num: 1, label: 'Account', icon: Lock },
+    { num: 2, label: 'Details', icon: User },
+    { num: 3, label: 'Profile', icon: Camera },
   ]
 
   return (
@@ -571,7 +571,7 @@ export default function CitizenAuthPage(): JSX.Element {
             <div className="flex items-center gap-2">
               <span className="font-black text-sm tracking-wide"><span className="text-aegis-600 dark:text-aegis-400">AEGIS</span></span>
             </div>
-            <span className="block text-[9px] text-gray-400 dark:text-aegis-300 tracking-[0.2em] uppercase mt-0.5">{t('citizen.auth.citizenPortal', lang)}</span>
+            <span className="block text-[9px] text-gray-400 dark:text-aegis-300 tracking-[0.2em] uppercase mt-0.5">{'Citizen Portal'}</span>
           </div>
         </Link>
         {/* Separator + System Status */}
@@ -655,7 +655,7 @@ export default function CitizenAuthPage(): JSX.Element {
           {/* Explore (guest access) */}
           <Link to="/citizen" className="relative text-xs font-bold px-3.5 py-2.5 rounded-xl overflow-hidden group bg-aegis-600 hover:bg-aegis-700 shadow-lg shadow-aegis-600/20 hover:shadow-aegis-400/40 transition-all hover:scale-[1.03] active:scale-[0.97] text-white min-h-[40px] flex items-center">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
-            <span className="relative z-10">{t('citizen.auth.guestContinue', lang)}</span>
+            <span className="relative z-10">{'Explore'}</span>
           </Link>
         </div>
       </nav>
@@ -751,12 +751,12 @@ export default function CitizenAuthPage(): JSX.Element {
               <Shield className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {mode === 'login' ? t('citizen.auth.loginTitle', lang) : t('citizen.auth.registerTitle', lang)}
+              {mode === 'login' ? 'Citizen Login' : 'Create Account'}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
               {mode === 'login'
-                ? t('citizen.auth.loginSubtitle', lang)
-                : t('citizen.auth.registerSubtitle', lang)}
+                ? 'Sign in to your AEGIS citizen dashboard'
+                : 'Join AEGIS for personalised emergency alerts'}
             </p>
           </div>
 
@@ -770,7 +770,7 @@ export default function CitizenAuthPage(): JSX.Element {
                   : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300'
               }`}
             >
-              {t('auth.login', lang)}
+              {'Login'}
             </button>
             <button
               onClick={() => { setMode('register'); setError('') }}
@@ -780,7 +780,7 @@ export default function CitizenAuthPage(): JSX.Element {
                   : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300'
               }`}
             >
-              {t('citizen.auth.register', lang)}
+              {'Register'}
             </button>
           </div>
 
@@ -789,14 +789,14 @@ export default function CitizenAuthPage(): JSX.Element {
             <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/80 dark:border-gray-700/50 p-6 shadow-2xl shadow-gray-300/20 dark:shadow-black/40 space-y-4" style={{ animation: 'aegis-fade-up 0.6s ease-out' }}>
               <div className="text-center">
                 <Mail className="w-10 h-10 text-aegis-600 mx-auto mb-2" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('citizen.auth.forgot.title', lang)}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">{t('citizen.auth.forgot.subtitle', lang)}</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{'Forgot Password'}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">{'Enter your email address and we will send you a password reset link.'}</p>
               </div>
               {forgotSent ? (
                 <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-4 rounded-xl text-center">
                   <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-green-800 dark:text-green-300">{t('citizen.auth.forgot.sent', lang)}</p>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">{t('citizen.auth.forgot.sentDesc', lang)}</p>
+                  <p className="text-sm font-semibold text-green-800 dark:text-green-300">{'Reset Link Sent'}</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">{'Check your email for a password reset link. It may take a few minutes to arrive.'}</p>
                 </div>
               ) : (
                 <form onSubmit={async (e) => {
@@ -826,13 +826,13 @@ export default function CitizenAuthPage(): JSX.Element {
                   <button type="submit" disabled={submitting}
                     className="w-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-500 hover:via-yellow-400 hover:to-amber-500 text-black disabled:bg-gray-300 disabled:bg-none disabled:text-gray-500 dark:text-gray-300 py-3 rounded-xl font-semibold text-sm shadow flex items-center justify-center gap-2 transition-all">
                     {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                    {submitting ? t('citizen.auth.forgot.sending', lang) : t('citizen.auth.forgot.sendResetLink', lang)}
+                    {submitting ? 'Sending...' : 'Send Reset Link'}
                   </button>
                 </form>
               )}
               <button onClick={() => { setMode('login'); setError(''); setForgotSent(false); setForgotEmail('') }}
                 className="w-full text-xs text-aegis-600 hover:text-aegis-700 font-semibold py-2">
- {'<-'} {t('citizen.auth.forgot.backToLogin', lang)}
+ {'<-'} {'Back to Login'}
               </button>
             </div>
           )}
@@ -888,21 +888,21 @@ export default function CitizenAuthPage(): JSX.Element {
             {mode === 'login' && (
               <>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t('citizen.auth.emailAddress', lang)}</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{'Email Address'}</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={submitting}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      placeholder={t('subscribe.placeholder.email', lang)} required aria-required="true" autoComplete="email" />
+                      placeholder={'your@email.com'} required aria-required="true" autoComplete="email" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t('citizen.auth.passwordLabel', lang)}</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{'Password'}</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} disabled={submitting}
                       className="w-full pl-10 pr-10 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      placeholder={t('citizen.auth.passwordPlaceholder', lang)} required aria-required="true" autoComplete="current-password" />
+                      placeholder={'Your password'} required aria-required="true" autoComplete="current-password" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} disabled={submitting} className="absolute right-3 top-2.5 text-gray-400 dark:text-gray-300 hover:text-gray-600 disabled:cursor-not-allowed" aria-label={showPassword ? 'Hide password' : 'Show password'}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -911,16 +911,16 @@ export default function CitizenAuthPage(): JSX.Element {
                 <button type="submit" disabled={submitting}
                   className="w-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-500 hover:via-yellow-400 hover:to-amber-500 text-black active:brightness-90 disabled:bg-gray-300 disabled:bg-none disabled:text-gray-500 dark:text-gray-300 py-3 rounded-xl font-semibold text-sm shadow-lg shadow-amber-500/30 disabled:shadow-none flex items-center justify-center gap-2 transition-all duration-200 disabled:cursor-not-allowed">
                   {submitting ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> <span>{t('citizen.auth.signingIn', lang)}</span></>
+                    <><Loader2 className="w-4 h-4 animate-spin" /> <span>{'Signing in...'}</span></>
                   ) : (
-                    <><span>{t('citizen.auth.signIn', lang)}</span> <ArrowRight className="w-4 h-4" /></>
+                    <><span>{'Sign In'}</span> <ArrowRight className="w-4 h-4" /></>
                   )}
                 </button>
                 {/* Forgot Password Link (#22) */}
                 <div className="text-right">
                   <button type="button" onClick={() => { setMode('forgot'); setError(''); setForgotEmail(email); setForgotSent(false) }}
                     className="text-xs text-aegis-600 hover:text-aegis-700 font-semibold">
-                    {t('citizen.auth.forgotPassword', lang)}
+                    {'Forgot password?'}
                   </button>
                 </div>
 
@@ -928,7 +928,7 @@ export default function CitizenAuthPage(): JSX.Element {
                 <div className="relative my-3">
                   <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700" /></div>
                   <div className="relative flex justify-center text-xs">
-                    <span className="px-3 bg-white dark:bg-gray-900 text-gray-400 dark:text-gray-300">{t('citizen.auth.orContinueWith', lang) || 'or continue with'}</span>
+                    <span className="px-3 bg-white dark:bg-gray-900 text-gray-400 dark:text-gray-300">{'or continue with'}</span>
                   </div>
                 </div>
 
@@ -978,32 +978,32 @@ export default function CitizenAuthPage(): JSX.Element {
                     onChange={e => { (e.target as any)._hp = e.target.value }} />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t('citizen.auth.displayName', lang)} *</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{'Display Name'} *</label>
                   <div className="relative">
                     <User className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} onBlur={() => validateFieldOnBlur('displayName')}
                       className={`w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition ${fieldErrors.displayName ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'}`}
-                      placeholder={t('citizen.auth.displayName', lang)} required autoComplete="name" />
+                      placeholder={'Display Name'} required autoComplete="name" />
                   </div>
                   {fieldErrors.displayName && <p className="text-[10px] text-red-500 mt-1">{fieldErrors.displayName}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t('citizen.auth.emailAddress', lang)} *</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{'Email Address'} *</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} onBlur={() => validateFieldOnBlur('email')}
                       className={`w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition ${fieldErrors.email ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'}`}
-                      placeholder={t('subscribe.placeholder.email', lang)} required aria-required="true" autoComplete="email" />
+                      placeholder={'your@email.com'} required aria-required="true" autoComplete="email" />
                   </div>
                   {fieldErrors.email && <p className="text-[10px] text-red-500 mt-1">{fieldErrors.email}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t('citizen.auth.passwordLabel', lang)} *</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{'Password'} *</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} onBlur={() => validateFieldOnBlur('password')}
                       className={`w-full pl-10 pr-10 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition ${fieldErrors.password ? 'border-red-300 dark:border-red-700' : password && allPwReqsMet ? 'border-green-300 dark:border-green-700' : 'border-gray-200 dark:border-gray-700'}`}
-                      placeholder={t('citizen.auth.passwordMin', lang)} required aria-required="true" autoComplete="new-password" />
+                      placeholder={'Min 12 characters'} required aria-required="true" autoComplete="new-password" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-2.5 text-gray-400 dark:text-gray-300 hover:text-gray-600" aria-label={showPassword ? 'Hide password' : 'Show password'}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -1029,7 +1029,7 @@ export default function CitizenAuthPage(): JSX.Element {
                   {fieldErrors.password && <p className="text-[10px] text-red-500 mt-1">{fieldErrors.password}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t('citizen.auth.confirmPassword', lang)} *</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{'Confirm Password'} *</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <input type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} onBlur={() => validateFieldOnBlur('confirmPassword')}
@@ -1037,7 +1037,7 @@ export default function CitizenAuthPage(): JSX.Element {
                         confirmPassword && confirmPassword !== password ? 'border-red-300 dark:border-red-700' :
                         confirmPassword && confirmPassword === password ? 'border-green-300 dark:border-green-700' :
                         'border-gray-200 dark:border-gray-700'
-                      }`} placeholder={t('citizen.auth.repeatPassword', lang)} required autoComplete="new-password" />
+                      }`} placeholder={'Repeat password'} required autoComplete="new-password" />
                     {confirmPassword && confirmPassword === password && <CheckCircle className="absolute right-3 top-2.5 w-4 h-4 text-green-500" />}
                   </div>
                   {fieldErrors.confirmPassword && <p className="text-[10px] text-red-500 mt-1">{fieldErrors.confirmPassword}</p>}
@@ -1045,7 +1045,7 @@ export default function CitizenAuthPage(): JSX.Element {
                 <button type="button" onClick={() => { if (validateStep1()) setRegStep(2) }}
                   disabled={!allPwReqsMet || !displayName.trim() || !email.trim() || password !== confirmPassword}
                   className="w-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-500 hover:via-yellow-400 hover:to-amber-500 text-black disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl font-semibold text-sm shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all">
-                  {t('citizen.auth.continue', lang)} <ArrowRight className="w-4 h-4" />
+                  {'Continue'} <ArrowRight className="w-4 h-4" />
                 </button>
               </>
             )}
@@ -1056,19 +1056,19 @@ export default function CitizenAuthPage(): JSX.Element {
                 {/* Country + City -- must come FIRST so dial code can auto-fill phone */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t('citizen.auth.country', lang)} *</label>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{'Country'} *</label>
                     <ProfileCountryPicker
                       value={country}
                       onChange={(c) => { setCountry(c); setRegion('') }}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t('citizen.auth.city', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{'City'} <span className="font-normal">({'optional'})</span></label>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                       <input type="text" value={city} onChange={e => setCity(e.target.value)}
                         className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition"
-                        placeholder={t('citizen.auth.city', lang)} autoComplete="address-level2" />
+                        placeholder={'City'} autoComplete="address-level2" />
                     </div>
                   </div>
                 </div>
@@ -1076,7 +1076,7 @@ export default function CitizenAuthPage(): JSX.Element {
                 {/* Phone -- split dial-prefix + local number */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
-                    {t('citizen.auth.phone', lang)} *
+                    {'Phone'} *
                     {country && <span className="font-normal text-gray-400 dark:text-gray-500 ml-1">({phoneMaxLocal} digits)</span>}
                   </label>
                   <div className={`flex rounded-xl border overflow-hidden focus-within:ring-2 focus-within:ring-aegis-500 transition ${
@@ -1112,7 +1112,7 @@ export default function CitizenAuthPage(): JSX.Element {
 
                 {country && (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t('citizen.auth.region', lang)} *</label>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{'Region'} *</label>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300 z-10" />
                       <div className="pl-10">
@@ -1127,17 +1127,17 @@ export default function CitizenAuthPage(): JSX.Element {
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t('citizen.auth.addressLine', lang)} *</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{'Address Line'} *</label>
                   <div className="relative">
                     <Home className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <input type="text" value={addressLine} onChange={e => setAddressLine(e.target.value)}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition"
-                      placeholder={t('citizen.auth.addressLine', lang)} autoComplete="street-address" required />
+                      placeholder={'Address Line'} autoComplete="street-address" required />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t('citizen.auth.dateOfBirth', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{'Date of Birth'} <span className="font-normal">({'optional'})</span></label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)}
@@ -1150,11 +1150,11 @@ export default function CitizenAuthPage(): JSX.Element {
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setRegStep(1)}
                     className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all">
-                    <ArrowLeft className="w-4 h-4" /> {t('citizen.auth.back', lang)}
+                    <ArrowLeft className="w-4 h-4" /> {'Back'}
                   </button>
                   <button type="button" onClick={() => { if (validateStep2()) { setError(''); setRegStep(3) } }}
                     className="flex-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-500 hover:via-yellow-400 hover:to-amber-500 text-black py-3 rounded-xl font-semibold text-sm shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all">
-                    {t('citizen.auth.continue', lang)} <ArrowRight className="w-4 h-4" />
+                    {'Continue'} <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </>
@@ -1165,7 +1165,7 @@ export default function CitizenAuthPage(): JSX.Element {
               <>
                 {/* Profile Photo Upload */}
                 <div className="flex flex-col items-center gap-3">
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">{t('citizen.auth.profilePhoto', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></p>
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">{'Profile Photo'} <span className="font-normal">({'optional'})</span></p>
                   <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                     {avatarPreview ? (
                       <img src={avatarPreview} className="w-24 h-24 rounded-full object-cover border-4 border-gray-100 dark:border-gray-800 shadow-lg" alt="Avatar preview" />
@@ -1179,23 +1179,23 @@ export default function CitizenAuthPage(): JSX.Element {
                     </div>
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarSelect} className="hidden" />
                   </div>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-300">{t('citizen.auth.clickUpload', lang)}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-300">{'Click to upload (max 2MB)'}</p>
                 </div>
 
                 {/* Bio */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t('citizen.auth.bio', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{'Bio'} <span className="font-normal">({'optional'})</span></label>
                   <div className="relative">
                     <FileText className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <textarea value={bio} onChange={e => setBio(e.target.value)}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition resize-none"
-                      placeholder={t('citizen.auth.bioPlaceholder', lang)} rows={2} />
+                      placeholder={'Tell us about yourself...'} rows={2} />
                   </div>
                 </div>
 
                 {/* Status Color */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">{t('citizen.auth.statusTitle', lang)}</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">{'Your Status'}</label>
                   <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {STATUS_OPTIONS.map(s => (
                       <button key={s.value} type="button" onClick={() => setStatusColor(s.value)}
@@ -1220,16 +1220,16 @@ export default function CitizenAuthPage(): JSX.Element {
                     <div className="flex-1">
                       <div className="flex items-center gap-1.5">
                         <Heart className="w-4 h-4 text-aegis-600" />
-                        <span className="text-sm font-semibold text-aegis-800 dark:text-aegis-300">{t('citizen.auth.vulnerabilityTitle', lang)}</span>
+                        <span className="text-sm font-semibold text-aegis-800 dark:text-aegis-300">{'I may need priority assistance'}</span>
                       </div>
                       <p className="text-[11px] text-aegis-600 dark:text-aegis-400 mt-1">
-                        {t('citizen.auth.vulnerabilityHint', lang)}
+                        {'Check this if you have a disability, chronic illness, mobility issues, are elderly, or have other circumstances that require priority response during emergencies.'}
                       </p>
                     </div>
                   </label>
                   {isVulnerable && (
                     <textarea value={vulnerabilityDetails} onChange={e => setVulnerabilityDetails(e.target.value)}
-                      placeholder={t('citizen.auth.vulnerabilityPlaceholder', lang)}
+                      placeholder={'Briefly describe your needs (e.g., wheelchair user, hearing impaired, elderly)...'}
                       className="w-full mt-3 p-2.5 text-sm bg-white dark:bg-gray-800 rounded-lg border border-aegis-200 dark:border-aegis-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition resize-none" rows={2} />
                   )}
                 </div>
@@ -1240,12 +1240,12 @@ export default function CitizenAuthPage(): JSX.Element {
                     className="mt-0.5 w-4 h-4 rounded border-gray-300 text-aegis-600 focus:ring-aegis-500" />
                   <div className="flex-1">
                     <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                      <Shield className="w-3.5 h-3.5 text-aegis-600" /> {t('citizen.auth.tos.heading', lang)}
+                      <Shield className="w-3.5 h-3.5 text-aegis-600" /> {'Terms of Service'}
                     </p>
                     <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-0.5">
-                      {t('citizen.auth.tos.iAgree', lang)} <a href="/terms" target="_blank" className="text-aegis-600 underline">{t('citizen.auth.tos.termsOfService', lang)}</a> {t('citizen.auth.tos.and', lang)}{' '}
-                      <a href="/privacy" target="_blank" className="text-aegis-600 underline">{t('citizen.auth.tos.privacyPolicy', lang)}</a>.
-                      {t('citizen.auth.tos.gdpr', lang)}
+                      {'I agree to the'} <a href="/terms" target="_blank" className="text-aegis-600 underline">{'Terms of Service'}</a> {'and'}{' '}
+                      <a href="/privacy" target="_blank" className="text-aegis-600 underline">{'Privacy Policy'}</a>.
+                      {'We comply with UK GDPR and the Data Protection Act 2018.'}
                     </p>
                   </div>
                 </label>
@@ -1253,11 +1253,11 @@ export default function CitizenAuthPage(): JSX.Element {
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setRegStep(2)}
                     className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all">
-                    <ArrowLeft className="w-4 h-4" /> {t('citizen.auth.back', lang)}
+                    <ArrowLeft className="w-4 h-4" /> {'Back'}
                   </button>
                   <button type="submit" disabled={submitting}
                     className="flex-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-500 hover:via-yellow-400 hover:to-amber-500 text-black disabled:bg-amber-200 disabled:text-aegis-700 py-3 rounded-xl font-semibold text-sm shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all">
-                    {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('citizen.auth.creating', lang)}</> : <>{t('citizen.auth.createAccount', lang)} <CheckCircle className="w-4 h-4" /></>}
+                    {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> {'Creating...'}</> : <>{'Create Account'} <CheckCircle className="w-4 h-4" /></>}
                   </button>
                 </div>
               </>
@@ -1269,16 +1269,16 @@ export default function CitizenAuthPage(): JSX.Element {
           {mode !== 'forgot' && (
           <div className="text-center mt-4 text-xs text-gray-500 dark:text-gray-300">
             <p>
-              {mode === 'login' ? t('citizen.auth.noAccount', lang) : t('citizen.auth.haveAccount', lang)}
+              {mode === 'login' ? 'Don\'t have an account? ' : 'Already have an account? '}
               <button
                 onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setRegStep(1) }}
                 className="text-aegis-600 hover:text-aegis-700 font-semibold"
               >
-                {mode === 'login' ? t('citizen.auth.register', lang) : t('citizen.auth.signIn', lang)}
+                {mode === 'login' ? 'Register' : 'Sign In'}
               </button>
             </p>
             <p className="mt-2">
-              <Link to="/citizen" className="text-gray-400 dark:text-gray-300 hover:text-gray-600">{t('citizen.auth.continueWithout', lang)}</Link>
+              <Link to="/citizen" className="text-gray-400 dark:text-gray-300 hover:text-gray-600">{'Continue without account'}</Link>
             </p>
           </div>
           )}

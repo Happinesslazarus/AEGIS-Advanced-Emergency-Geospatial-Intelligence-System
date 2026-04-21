@@ -9,8 +9,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Shield, ChevronDown, ChevronUp, Lock, Eye, Database, Server, Trash2, UserCheck, Globe2, Mail, FileText, ArrowLeft } from 'lucide-react'
-import { t } from '../utils/i18n'
-import { useLanguage } from '../hooks/useLanguage'
 import SafeHtml from '../components/shared/SafeHtml'
 
 function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -30,8 +28,20 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 
 const SECTION_ICONS = [Lock, Eye, Database, Server, UserCheck, Globe2, Trash2, Mail, FileText, Shield]
 
+const SECTIONS = [
+  { title: '1. Overview', paragraphs: ['AEGIS ("the Platform") is committed to protecting your privacy and personal data. This Privacy Policy explains how we collect, use, store, and protect information when you use our emergency management platform.', "AEGIS is developed as an honours project at Robert Gordon University (RGU) and operates under the university's data protection framework."], listItems: [], icon: SECTION_ICONS[0] },
+  { title: '2. Information We Collect', paragraphs: ['<strong>Information you provide voluntarily:</strong>', '<strong>Information collected automatically:</strong>', '<strong>Information stored locally:</strong>'], listItems: ['Account registration details (name, email)', 'Incident reports including text descriptions and images', 'Safety status check-ins and messages', 'IP address and browser type for security purposes', 'Location data (only when you explicitly grant permission)', 'Usage analytics to improve the platform', 'Language and theme preferences', 'Notification channel preferences', 'Cached data for offline functionality', 'Session tokens for authentication'], icon: SECTION_ICONS[1] },
+  { title: '3. How We Use Your Data', paragraphs: [], listItems: ['To provide emergency notifications and alerts', 'To display relevant hazard information for your area', 'To classify and prioritise incident reports using AI', 'To enable community safety features', 'For academic research and platform improvement'], icon: SECTION_ICONS[2] },
+  { title: '4. Legal Basis for Processing', paragraphs: ['We process your data under the following legal bases:'], listItems: ['<strong>Consent:</strong> You provide explicit consent when creating an account and submitting reports', '<strong>Legitimate interest:</strong> Processing necessary for platform operation and security', '<strong>Vital interest:</strong> Emergency situations where processing may protect life'], icon: SECTION_ICONS[3] },
+  { title: '5. Data Sharing', paragraphs: ['AEGIS does not sell your personal data. We may share information:'], listItems: ['<strong>With emergency services</strong> when required by law or to protect life', '<strong>With Robert Gordon University</strong> for academic assessment purposes', '<strong>In anonymised form</strong> for research and analysis'], icon: SECTION_ICONS[4] },
+  { title: '6. Data Security', paragraphs: [], listItems: ['All data transmitted using TLS/HTTPS encryption', 'Passwords hashed using bcrypt with salt rounds', 'Access controls and role-based permissions'], icon: SECTION_ICONS[5] },
+  { title: '7. Your Rights', paragraphs: ['Under UK GDPR, you have the following rights:', 'To exercise any of these rights, please contact us through the platform or email the project team.'], listItems: ['<strong>Right of access:</strong> Request a copy of your personal data', '<strong>Right to rectification:</strong> Correct inaccurate personal data', '<strong>Right to erasure:</strong> Request deletion of your data', '<strong>Right to restrict processing:</strong> Limit how we use your data', '<strong>Right to data portability:</strong> Receive your data in a machine-readable format', '<strong>Right to object:</strong> Object to processing based on legitimate interest'], icon: SECTION_ICONS[6] },
+  { title: '8. Cookies & Local Storage', paragraphs: ['AEGIS uses <strong>essential cookies and local storage only</strong>. We do not use tracking cookies or third-party advertising cookies.', 'Local storage is used for authentication tokens, user preferences, and cached data to improve performance.'], listItems: [], icon: SECTION_ICONS[7] },
+  { title: '9. Data Retention', paragraphs: ['Account data is retained while your account is active. You may request account deletion at any time through your dashboard settings.', 'Incident report data may be retained in anonymised form for research purposes after account deletion.'], listItems: [], icon: SECTION_ICONS[8] },
+  { title: '10. Contact Us', paragraphs: ['For privacy-related inquiries, please contact the AEGIS project team at Robert Gordon University, Aberdeen, Scotland.'], listItems: [], icon: SECTION_ICONS[9] },
+]
+
 export default function PrivacyPage(): JSX.Element {
-  const lang = useLanguage()
   const [openSections, setOpenSections] = useState<Set<number>>(new Set([0]))
 
   const toggle = (i: number) => {
@@ -45,33 +55,7 @@ export default function PrivacyPage(): JSX.Element {
   const expandAll = () => setOpenSections(new Set(Array.from({ length: 10 }, (_, i) => i)))
   const collapseAll = () => setOpenSections(new Set())
 
-  const sections = Array.from({ length: 10 }, (_, i) => {
-    const key = `privacy.s${i + 1}`
-    const title = t(`${key}.title`, lang)
-    const paragraphs: string[] = []
-    for (let p = 1; p <= 6; p++) {
-      const val = t(`${key}.p${p}`, lang) as string
-      if (val && !val.startsWith(`${key}.p`)) paragraphs.push(val)
-    }
-    //Pick up non-standard paragraph keys (voluntary, automatic, local, contact)
-    for (const suffix of ['voluntary', 'automatic', 'local', 'contact']) {
-      const val = t(`${key}.${suffix}`, lang) as string
-      if (val && !val.startsWith(`${key}.${suffix}`)) paragraphs.push(val)
-    }
-    const listItems: string[] = []
-    for (let li = 1; li <= 8; li++) {
-      const val = t(`${key}.li${li}`, lang) as string
-      if (val && !val.startsWith(`${key}.li`)) listItems.push(val)
-    }
-    //Pick up numbered sub-items (vol1-3, auto1-3, local1-4)
-    for (const prefix of ['vol', 'auto', 'local']) {
-      for (let n = 1; n <= 4; n++) {
-        const val = t(`${key}.${prefix}${n}`, lang) as string
-        if (val && !val.startsWith(`${key}.${prefix}${n}`)) listItems.push(val)
-      }
-    }
-    return { title, paragraphs, listItems, icon: SECTION_ICONS[i] || Shield }
-  })
+  const sections = SECTIONS
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -90,9 +74,9 @@ export default function PrivacyPage(): JSX.Element {
             <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
               <Lock className="w-6 h-6" />
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{t('privacy.pageTitle', lang)}</h1>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{'Privacy Policy'}</h1>
           </div>
-          <p className="text-white/70 text-sm">{t('privacy.lastUpdate', lang)}</p>
+          <p className="text-white/70 text-sm">{'Last updated: January 2026'}</p>
         </div>
       </div>
 
@@ -148,9 +132,9 @@ export default function PrivacyPage(): JSX.Element {
         {/* Footer nav */}
         <div className="flex flex-wrap gap-4 text-sm justify-center pt-8 border-t border-gray-200 dark:border-gray-800 mt-8">
           <Link to="/citizen" className="text-aegis-600 hover:underline">Dashboard</Link>
-          <Link to="/about" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{t('about.title', lang)}</Link>
-          <Link to="/terms" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{t('about.termsOfUse', lang)}</Link>
-          <Link to="/accessibility" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{t('about.accessibility', lang)}</Link>
+          <Link to="/about" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{'About AEGIS'}</Link>
+          <Link to="/terms" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{'Terms of Use'}</Link>
+          <Link to="/accessibility" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{'Accessibility'}</Link>
         </div>
       </div>
     </div>

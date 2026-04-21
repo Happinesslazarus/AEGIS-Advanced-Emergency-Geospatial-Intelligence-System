@@ -238,7 +238,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-aegis-600" />
-          {t('dashboard.title', lang)}
+          {'Climate Risk Dashboard'}
         </h2>
         <button
           onClick={() => fetchData()}
@@ -246,7 +246,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
           disabled={loading}
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          {lastUpdated ? `${t('dashboard.updated', lang)} ${lastUpdated.toLocaleTimeString(lang === 'ar' ? 'ar-EG' : lang === 'es' ? 'es-ES' : lang === 'fr' ? 'fr-FR' : lang === 'zh' ? 'zh-CN' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}` : t('common.loading', lang)}
+          {lastUpdated ? `${'Updated'} ${lastUpdated.toLocaleTimeString(lang === 'ar' ? 'ar-EG' : lang === 'es' ? 'es-ES' : lang === 'fr' ? 'fr-FR' : lang === 'zh' ? 'zh-CN' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Loading...'}
         </button>
       </div>
 
@@ -256,7 +256,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
           {/* Risk gauge */}
           <div className="flex-shrink-0 text-center self-center sm:self-start">
             <div className="relative w-20 h-20">
-              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90" role="img" aria-label={`${t('dashboard.overallRisk', lang)}: ${risk.score}/100`}>
+              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90" role="img" aria-label={`${'Overall Risk Assessment'}: ${risk.score}/100`}>
                 <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="8" className="text-gray-200 dark:text-gray-700" />
                 <circle
                   cx="50" cy="50" r="42" fill="none" strokeWidth="8"
@@ -275,12 +275,12 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
           {/* Breakdown */}
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('dashboard.overallRisk', lang)}</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">{'Overall Risk Assessment'}</p>
               <span className={`flex items-center gap-0.5 text-xs font-medium ${
                 risk.trend === 'rising' ? 'text-red-500' : risk.trend === 'falling' ? 'text-green-500' : 'text-gray-400 dark:text-gray-300'
               }`}>
                 <TrendIcon className="w-3.5 h-3.5" />
-                {risk.trend === 'rising' ? t('dashboard.trendRising', lang) : risk.trend === 'falling' ? t('dashboard.trendFalling', lang) : t('dashboard.trendStable', lang)}
+                {risk.trend === 'rising' ? 'Rising' : risk.trend === 'falling' ? 'Falling' : 'Stable'}
               </span>
             </div>
             <div className="space-y-1.5">
@@ -306,36 +306,36 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
-          label={t('dashboard.activePredictions', lang)}
+          label={'Active Predictions'}
           value={predictions.length}
           icon={Activity}
           color="text-blue-600 bg-blue-50 dark:bg-blue-950/30"
-          sub={predictions.length > 0 ? `${t('dashboard.highestSev', lang)}: ${Math.round(
+          sub={predictions.length > 0 ? `${'Highest severity'}: ${Math.round(
             Math.max(...predictions.map(p => { const v = typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability; return (isNaN(v) ? 0 : v) * 100 }))
-          ) || 0}%` : t('dashboard.nonePredictions', lang)}
+          ) || 0}%` : 'None active'}
         />
         <StatCard
-          label={t('dashboard.activeAlerts', lang)}
+          label={'Active Alerts'}
           value={alerts.length}
           icon={AlertTriangle}
           color="text-amber-600 bg-amber-50 dark:bg-amber-950/30"
           sub={alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length > 0
-            ? `${alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length} ${t('dashboard.criticalHigh', lang)}`
-            : t('dashboard.noneAlerts', lang)}
+            ? `${alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length} ${'Critical & high'}`
+            : 'None'}
         />
         <StatCard
-          label={t('dashboard.reports24h', lang)}
+          label={'Reports (24h)'}
           value={reportSummary.last24h}
           icon={TrendingUp}
           color="text-green-600 bg-green-50 dark:bg-green-950/30"
-          sub={`${reportSummary.high} ${t('dashboard.highSeverity', lang)}`}
+          sub={`${reportSummary.high} ${'High severity'}`}
         />
         <StatCard
-          label={t('dashboard.weatherRisk', lang)}
-          value={weather ? `${Math.round(weather.temperature ?? 0)}°C` : t('dashboard.naWeather', lang)}
+          label={'Weather Risk'}
+          value={weather ? `${Math.round(weather.temperature ?? 0)}°C` : 'N/A'}
           icon={Thermometer}
           color="text-purple-600 bg-purple-50 dark:bg-purple-950/30"
-          sub={weather ? `${weather.windSpeed} m/s, ${weather.humidity}%` : t('common.loading', lang)}
+          sub={weather ? `${weather.windSpeed} m/s, ${weather.humidity}%` : 'Loading...'}
         />
       </div>
 
@@ -345,10 +345,10 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
           <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
               <Droplets className="w-4 h-4 text-blue-500" />
-              {t('dashboard.floodRiskPredictions', lang)}
+              {'Flood Risk Predictions'}
             </h3>
             <div className="flex items-center gap-2">
-              <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500">{predictions.length} {t('dashboard.monitoredAreas', lang)}</span>
+              <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500">{predictions.length} {'monitored areas'}</span>
               <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
                 predictions.some(p => (typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability) >= 0.6) 
                   ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400'
@@ -357,10 +357,10 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
                     : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
               }`}>
                 {predictions.some(p => (typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability) >= 0.6)
-                  ? t('dashboard.riskHigh', lang)
+                  ? 'High'
                   : predictions.some(p => (typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability) >= 0.3)
-                    ? t('dashboard.riskModerate', lang)
-                    : t('dashboard.riskLow', lang)}
+                    ? 'Moderate'
+                    : 'Low'}
               </span>
             </div>
           </div>
@@ -374,7 +374,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
                 : p.severity === 'medium' ? { ring: 'stroke-amber-500', text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/15', border: 'border-amber-200 dark:border-amber-800/40', dot: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' }
                 : { ring: 'stroke-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/15', border: 'border-emerald-200 dark:border-emerald-800/40', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' }
  //Format area name: "River Dee (aberdeen_scotland_uk)" -> "River Dee" with region as subtitle
-              const areaRaw = p.area || t('dashboard.unknownArea', lang)
+              const areaRaw = p.area || 'Unknown Area'
               const areaMatch = areaRaw.match(/^(.+?)\s*\((.+)\)$/)
               const areaName = areaMatch ? areaMatch[1].trim() : areaRaw
               const regionTag = areaMatch ? areaMatch[2].replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : null
@@ -409,7 +409,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
                       <div className="mt-2 space-y-1.5">
                         {/* Confidence bar */}
                         <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-semibold text-gray-500 dark:text-gray-400 w-16">{t('dashboard.confidence', lang)}</span>
+                          <span className="text-[9px] font-semibold text-gray-500 dark:text-gray-400 w-16">{'Confidence'}</span>
                           <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div className="h-full bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-500" style={{ width: `${confPct}%` }} />
                           </div>
@@ -417,10 +417,10 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
                         </div>
                         {/* ETA */}
                         <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-semibold text-gray-500 dark:text-gray-400 w-16">{t('dashboard.eta', lang)}</span>
+                          <span className="text-[9px] font-semibold text-gray-500 dark:text-gray-400 w-16">{'ETA'}</span>
                           <span className={`text-[9px] font-bold ${
                             p.time_to_flood && p.time_to_flood !== 'No flood expected' ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'
-                          }`}>{p.time_to_flood || t('dashboard.noFloodExpected', lang)}</span>
+                          }`}>{p.time_to_flood || 'No flood expected'}</span>
                         </div>
                       </div>
                       {/* Model version tag */}
@@ -441,17 +441,17 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
           <h3 className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
             <Droplets className="w-4 h-4 text-blue-500" />
-            {t('dashboard.floodRiskPredictions', lang)}
+            {'Flood Risk Predictions'}
           </h3>
           <div className="px-4 py-8 text-center">
             <Droplets className="w-10 h-10 text-blue-200 dark:text-blue-800 mx-auto mb-2" />
             <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
-              {loading ? t('common.loading', lang) : t('dashboard.noActivePredictions', lang)}
+              {loading ? 'Loading...' : 'No active flood predictions'}
             </p>
             <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 max-w-xs mx-auto">
               {loading
-                ? t('dashboard.fetchingPredictions', lang)
-                : t('dashboard.noPredictionsDesc', lang)}
+                ? 'Fetching predictions from AI engine...'
+                : 'The AI prediction engine has no active flood risk forecasts for monitored areas. Predictions are generated automatically when river levels, rainfall data, or weather conditions indicate potential flood risk.'}
             </p>
             {!loading && (
               <button
@@ -459,7 +459,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
                 className="mt-3 text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-3 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
               >
                 <RefreshCw className="w-3 h-3 inline mr-1" />
-                {t('dashboard.refreshPredictions', lang)}
+                {'Refresh predictions'}
               </button>
             )}
           </div>
@@ -471,7 +471,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-1.5">
             <Shield className="w-4 h-4 text-aegis-600" />
-            {t('dashboard.keyFactors', lang)}
+            {'Key Contributing Factors'}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {allFactors.map((f, i) => (
@@ -482,7 +482,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
                     {isNaN(f.value) ? '--' : f.value.toFixed(1)}{f.unit ? ` ${f.unit}` : ''}
                   </span>
                   <span className="text-[10px] text-gray-500 dark:text-gray-300">
-                    {t('dashboard.importance', lang)}: {isNaN(f.importance) ? '--' : (f.importance * 100).toFixed(0)}%
+                    {'Importance'}: {isNaN(f.importance) ? '--' : (f.importance * 100).toFixed(0)}%
                   </span>
                 </div>
                 <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full mt-1.5 overflow-hidden">
@@ -499,7 +499,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
 
       {/* Methodology note */}
       <p className="text-[10px] text-gray-400 dark:text-gray-600 leading-relaxed">
-        {t('dashboard.methodology', lang)}
+        {'Data sourced from AI flood prediction models, weather APIs, river gauge stations and citizen reports. Risk scores are computed in real-time.'}
       </p>
     </div>
   )

@@ -346,7 +346,7 @@ export default function CitizenDashboard(): JSX.Element {
       refreshReports(),
       loadNews(false),
     ])
-    announce(t('cdash.contentRefreshed', lang))
+    announce('Content refreshed')
   }, [refreshReports, loadNews, announce])
 
   const { containerRef: pullRef, pullDistance, refreshing: pullRefreshing, pastThreshold } = usePullToRefresh({
@@ -421,24 +421,24 @@ export default function CitizenDashboard(): JSX.Element {
     if (!printWindow) return
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>AEGIS Report ${report.reportNumber || report.id}</title>
       <style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:20px;line-height:1.6}.header{border-bottom:3px solid #1e40af;padding-bottom:20px;margin-bottom:20px}.logo{font-size:24px;font-weight:bold;color:#1e40af}.badge{display:inline-block;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;margin-right:8px}.severity-high{background:#fee;color:#c00}.severity-medium{background:#ffc;color:#860}.severity-low{background:#efe;color:#060}@media print{body{margin:0}}</style></head>
-      <body><div class="header"><div class="logo">${t('cdash.print.aegisTitle', lang)}</div><div>${t('cdash.print.reportId', lang)}: ${report.reportNumber || report.id}</div></div>
+      <body><div class="header"><div class="logo">${'AEGIS Emergency Management'}</div><div>${'Report ID'}: ${report.reportNumber || report.id}</div></div>
       <div><span class="badge severity-${report.severity?.toLowerCase()}">${report.severity}</span><span class="badge">${report.status}</span></div>
       <h2>${report.type}</h2><div><div>${report.location}</div><div>${report.displayTime || new Date(report.timestamp).toLocaleString()}</div></div>
-      <div><h3>${t('cdash.print.description', lang)}</h3><p>${report.description}</p></div>
-      <div style="margin-top:40px;padding-top:20px;border-top:1px solid #ddd;color:#666;font-size:12px">${t('cdash.print.generatedFrom', lang)} ${new Date().toLocaleString()}</div></body></html>`
+      <div><h3>${'Description'}</h3><p>${report.description}</p></div>
+      <div style="margin-top:40px;padding-top:20px;border-top:1px solid #ddd;color:#666;font-size:12px">${'Generated from AEGIS Emergency Management Platform'} ${new Date().toLocaleString()}</div></body></html>`
     printWindow.document.write(html)
     printWindow.document.close()
     setTimeout(() => printWindow.print(), 250)
   }
 
   const handleShareReport = async (report: any) => {
-    const shareData = { title: `${t('cdash.print.aegisTitle', lang)}: ${report.type}`, text: `${report.type} - ${report.severity}\n${report.location}\n\n${report.description}`, url: window.location.href }
+    const shareData = { title: `${'AEGIS Emergency Management'}: ${report.type}`, text: `${report.type} - ${report.severity}\n${report.location}\n\n${report.description}`, url: window.location.href }
     if (navigator.share) {
       try { await navigator.share(shareData) } catch {}
     } else {
       try {
         await navigator.clipboard.writeText(`${shareData.title}\n\n${shareData.text}`)
-        pushNotification?.(t('cdash.copiedToClipboard', lang), 'success')
+        pushNotification?.('Copied to clipboard', 'success')
       } catch {}
     }
   }
@@ -446,15 +446,15 @@ export default function CitizenDashboard(): JSX.Element {
   const detectLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        p => { setUserPosition([p.coords.latitude, p.coords.longitude]); pushNotification?.(t('cdash.locationDetected', lang), 'success') },
-        () => pushNotification?.(t('cdash.locationDenied', lang), 'warning')
+        p => { setUserPosition([p.coords.latitude, p.coords.longitude]); pushNotification?.('Location detected', 'success') },
+        () => pushNotification?.('Location access denied', 'warning')
       )
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 space-y-4" role="status" aria-label={t('cdash.loadingDashboard', lang)}>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 space-y-4" role="status" aria-label={'Loading dashboard'}>
         {/* Skeleton nav bar */}
         <div className="flex items-center gap-3 mb-6">
           <Skeleton className="h-10 w-10 rounded-full" />
@@ -478,7 +478,7 @@ export default function CitizenDashboard(): JSX.Element {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
       <div className="text-center">
         <Loader2 className="w-8 h-8 animate-spin text-aegis-600 mx-auto mb-3" />
-        <p className="text-sm text-gray-500 dark:text-gray-400">{t('citizen.loading', lang)}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{'Loading your dashboard...'}</p>
       </div>
     </div>
   )
@@ -545,7 +545,7 @@ export default function CitizenDashboard(): JSX.Element {
         <button
           onClick={() => setShowAssistant(true)}
           className="fixed bottom-24 left-6 z-[90] w-14 h-14 bg-aegis-600 hover:bg-aegis-700 text-white rounded-full shadow-2xl shadow-aegis-600/30 flex items-center justify-center transition-all hover:scale-105"
-          aria-label={t('cdash.openAiAssistant', lang)}
+          aria-label={'Open AI Assistant'}
         >
           <MessageSquare className="w-6 h-6" />
         </button>
@@ -565,7 +565,7 @@ export default function CitizenDashboard(): JSX.Element {
       )}
 
       {/* SOS Distress Beacon */}
-      {socket.socket && <SOSButton socket={socket.socket} citizenId={user.id} citizenName={user.displayName || t('cdash.citizenFallback', lang)} />}
+      {socket.socket && <SOSButton socket={socket.socket} citizenId={user.id} citizenName={user.displayName || 'Citizen'} />}
 
       {/* MODALS (code-split) */}
       <ErrorBoundary name="Modals" fallback={null}>
@@ -582,7 +582,7 @@ export default function CitizenDashboard(): JSX.Element {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setSelectedReport(null)}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h3 className="font-bold text-lg flex items-center gap-2"><FileText className="w-5 h-5 text-aegis-600" /> {t('citizen.reportDetail.title', lang)}</h3>
+              <h3 className="font-bold text-lg flex items-center gap-2"><FileText className="w-5 h-5 text-aegis-600" /> {'Report Details'}</h3>
               <button onClick={() => setSelectedReport(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-5 space-y-4">
@@ -601,14 +601,14 @@ export default function CitizenDashboard(): JSX.Element {
               </div>
               {selectedReport.aiAnalysis && (
                 <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 space-y-2">
-                  <h5 className="font-semibold text-sm text-blue-800 dark:text-blue-200 flex items-center gap-1.5"><Bot className="w-4 h-4" /> {t('admin.ai.title', lang)}</h5>
+                  <h5 className="font-semibold text-sm text-blue-800 dark:text-blue-200 flex items-center gap-1.5"><Bot className="w-4 h-4" /> {'AI Transparency & Model Analytics'}</h5>
                   {selectedReport.aiAnalysis.summary && <p className="text-xs text-blue-700 dark:text-blue-300">{selectedReport.aiAnalysis.summary}</p>}
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    {selectedReport.aiAnalysis.sentimentScore != null && <div><span className="text-blue-600 dark:text-blue-400 font-medium">{t('cdash.sentiment', lang)}:</span> {selectedReport.aiAnalysis.sentimentScore.toFixed(2)}</div>}
-                    {selectedReport.aiAnalysis.panicLevel && <div><span className="text-blue-600 dark:text-blue-400 font-medium">{t('cdash.panic', lang)}:</span> {selectedReport.aiAnalysis.panicLevel}</div>}
-                    {selectedReport.aiAnalysis.fakeProbability != null && <div><span className="text-blue-600 dark:text-blue-400 font-medium">{t('cdash.fakeRisk', lang)}:</span> {(selectedReport.aiAnalysis.fakeProbability * 100).toFixed(0)}%</div>}
+                    {selectedReport.aiAnalysis.sentimentScore != null && <div><span className="text-blue-600 dark:text-blue-400 font-medium">{'Sentiment'}:</span> {selectedReport.aiAnalysis.sentimentScore.toFixed(2)}</div>}
+                    {selectedReport.aiAnalysis.panicLevel && <div><span className="text-blue-600 dark:text-blue-400 font-medium">{'Panic'}:</span> {selectedReport.aiAnalysis.panicLevel}</div>}
+                    {selectedReport.aiAnalysis.fakeProbability != null && <div><span className="text-blue-600 dark:text-blue-400 font-medium">{'Fake Risk'}:</span> {(selectedReport.aiAnalysis.fakeProbability * 100).toFixed(0)}%</div>}
                   </div>
-                  {selectedReport.aiAnalysis.vulnerablePersonAlert && <div className="flex items-center gap-1.5 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 px-3 py-1.5 rounded-lg mt-1"><AlertTriangle className="w-3.5 h-3.5" /> {t('cdash.vulnerablePersonAlert', lang)}</div>}
+                  {selectedReport.aiAnalysis.vulnerablePersonAlert && <div className="flex items-center gap-1.5 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 px-3 py-1.5 rounded-lg mt-1"><AlertTriangle className="w-3.5 h-3.5" /> {'Vulnerable Person Alert'}</div>}
                 </div>
               )}
               {/* Media Attachments */}
@@ -643,9 +643,9 @@ export default function CitizenDashboard(): JSX.Element {
               )}
             </div>
             <div className="p-5 border-t border-gray-200 dark:border-gray-700 flex gap-3">
-              <button onClick={() => setSelectedReport(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition-colors">{t('cdash.close', lang)}</button>
-              <button onClick={() => handleShareReport(selectedReport)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2"><Share2 className="w-4 h-4" /> {t('cdash.share', lang)}</button>
-              <button onClick={() => handlePrintReport(selectedReport)} className="flex-1 bg-gray-600 hover:bg-gray-700 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2"><Printer className="w-4 h-4" /> {t('cdash.print', lang)}</button>
+              <button onClick={() => setSelectedReport(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition-colors">{'Close'}</button>
+              <button onClick={() => handleShareReport(selectedReport)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2"><Share2 className="w-4 h-4" /> {'Share'}</button>
+              <button onClick={() => handlePrintReport(selectedReport)} className="flex-1 bg-gray-600 hover:bg-gray-700 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2"><Printer className="w-4 h-4" /> {'Print'}</button>
             </div>
           </div>
         </div>
@@ -656,7 +656,7 @@ export default function CitizenDashboard(): JSX.Element {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setSelectedAlert(null)}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h3 className="font-bold text-lg flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-red-600" /> {t('citizen.alertDetail.title', lang)}</h3>
+              <h3 className="font-bold text-lg flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-red-600" /> {'Alert Details'}</h3>
               <button onClick={() => setSelectedAlert(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-5 space-y-4">
@@ -670,13 +670,13 @@ export default function CitizenDashboard(): JSX.Element {
                 <div className="flex items-center gap-2 text-sm"><Clock className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-400">{new Date(selectedAlert.createdAt).toLocaleString()}</span></div>
               </div>
               <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-                <h5 className="font-semibold text-sm text-amber-800 dark:text-amber-200 mb-1">{t('citizen.alertDetail.safetyAdvice', lang)}</h5>
-                <p className="text-xs text-amber-700 dark:text-amber-300">{t('citizen.alertDetail.safetyMsg', lang)}</p>
+                <h5 className="font-semibold text-sm text-amber-800 dark:text-amber-200 mb-1">{'Safety Advice'}</h5>
+                <p className="text-xs text-amber-700 dark:text-amber-300">{'Follow local authority guidance. If in immediate danger, call {{EMERGENCY_NUMBER}}.'}</p>
               </div>
             </div>
             <div className="p-5 border-t border-gray-200 dark:border-gray-700 flex gap-3">
-              <button onClick={() => setSelectedAlert(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition-colors">{t('cdash.close', lang)}</button>
-              <button onClick={() => { setSelectedAlert(null); setShowReportForm(true) }} className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2"><AlertTriangle className="w-4 h-4" /> {t('citizen.alertDetail.reportIncident', lang)}</button>
+              <button onClick={() => setSelectedAlert(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition-colors">{'Close'}</button>
+              <button onClick={() => { setSelectedAlert(null); setShowReportForm(true) }} className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2"><AlertTriangle className="w-4 h-4" /> {'Report Incident'}</button>
             </div>
           </div>
         </div>

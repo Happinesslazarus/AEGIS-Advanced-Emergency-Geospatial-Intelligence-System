@@ -483,11 +483,11 @@ const SEVERITY_CONFIG = {
 
 function getChannels(lang: string): { key: keyof ChannelState; label: string; icon: any; bg: string; text: string; border: string; desc: string }[] {
   return [
-    { key: 'web',      label: t('broadcast.webPush', lang),  icon: Bell,           bg: 'bg-blue-100 dark:bg-blue-900/30',    text: 'text-blue-600',    border: 'border-blue-400', desc: t('admin.alertBroadcast.browserNotifications', lang) },
-    { key: 'telegram', label: t('broadcast.telegram', lang),  icon: Send,           bg: 'bg-sky-100 dark:bg-sky-900/30',      text: 'text-sky-600',     border: 'border-sky-400',  desc: t('admin.alertBroadcast.telegramBot', lang) },
-    { key: 'email',    label: t('broadcast.email', lang),     icon: FileText,       bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-600', border: 'border-emerald-400', desc: t('admin.alertBroadcast.emailHtml', lang) },
-    { key: 'sms',      label: t('broadcast.sms', lang),       icon: MessageSquare,  bg: 'bg-violet-100 dark:bg-violet-900/30', text: 'text-violet-600',  border: 'border-violet-400', desc: t('admin.alertBroadcast.smsDesc', lang) },
-    { key: 'whatsapp', label: t('broadcast.whatsapp', lang),  icon: Globe,          bg: 'bg-green-100 dark:bg-green-900/30',  text: 'text-green-600',   border: 'border-green-400', desc: t('admin.alertBroadcast.whatsappMsg', lang) },
+    { key: 'web',      label: 'Web Push',  icon: Bell,           bg: 'bg-blue-100 dark:bg-blue-900/30',    text: 'text-blue-600',    border: 'border-blue-400', desc: 'Browser notifications' },
+    { key: 'telegram', label: 'Telegram',  icon: Send,           bg: 'bg-sky-100 dark:bg-sky-900/30',      text: 'text-sky-600',     border: 'border-sky-400',  desc: 'Telegram bot message' },
+    { key: 'email',    label: 'Email',     icon: FileText,       bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-600', border: 'border-emerald-400', desc: 'Email with HTML template' },
+    { key: 'sms',      label: 'SMS',       icon: MessageSquare,  bg: 'bg-violet-100 dark:bg-violet-900/30', text: 'text-violet-600',  border: 'border-violet-400', desc: 'Text message (160 char)' },
+    { key: 'whatsapp', label: 'WhatsApp',  icon: Globe,          bg: 'bg-green-100 dark:bg-green-900/30',  text: 'text-green-600',   border: 'border-green-400', desc: 'WhatsApp message' },
   ]
 }
 
@@ -634,17 +634,17 @@ export default function AdminAlertBroadcast({
       setDeliveryResult({ attempted, sent: delivered, failed, results: response?.delivery?.results })
 
       if (attempted === 0) {
-        pushNotification(t('broadcast.noSubscribers', lang), 'warning')
+        pushNotification('Alert saved but no subscribers found. Citizens need to subscribe first.', 'warning')
       } else if (failed > 0) {
-        pushNotification(`${t('broadcast.partialDelivery', lang)}: ${delivered}/${attempted} -- ${failed} ${t('delivery.failed', lang)}`, 'warning')
+        pushNotification(`${'Broadcast complete -- some deliveries failed'}: ${delivered}/${attempted} -- ${failed} ${'Failed'}`, 'warning')
       } else {
-        pushNotification(`${t('broadcast.successDelivery', lang)}: ${delivered}/${attempted} via ${activeChannels.join(', ')}`, 'success')
+        pushNotification(`${'Broadcast successful'}: ${delivered}/${attempted} via ${activeChannels.join(', ')}`, 'success')
       }
       setForm({ title: '', message: '', severity: 'warning', location: '', alertType: 'general', expiresAt: '' })
       setSelectedReportId(null)
       setShowConfirm(false)
     } catch (err: any) {
-      pushNotification(err?.message || t('admin.alertBroadcast.failed', lang), 'error')
+      pushNotification(err?.message || 'Failed to broadcast alert', 'error')
       setShowConfirm(false)
     } finally {
       setSending(false)
@@ -655,7 +655,7 @@ export default function AdminAlertBroadcast({
   const previewAlert = useMemo((): Alert => ({
     id: 'preview',
     severity: form.severity === 'critical' ? 'critical' : form.severity === 'warning' ? 'medium' : 'low',
-    title: form.title || t('broadcast.titlePlaceholder', lang),
+    title: form.title || 'e.g. Flash Flood Warning -- River District',
     message: form.message || '',
     area: form.location || '',
     source: 'operator',
@@ -700,8 +700,8 @@ export default function AdminAlertBroadcast({
               <Siren className={`w-6 h-6 ${cfg.iconPulse ? 'text-red-200 animate-pulse' : 'text-white'}`} />
             </div>
             <div>
-              <h2 className="text-white font-bold text-xl tracking-tight">{t('broadcast.title', lang)}</h2>
-              <p className="text-white/60 text-sm">{t('broadcast.subtitle', lang)}</p>
+              <h2 className="text-white font-bold text-xl tracking-tight">{'Alert Broadcast Centre'}</h2>
+              <p className="text-white/60 text-sm">{'Multi-channel emergency alert distribution'}</p>
             </div>
           </div>
 
@@ -711,7 +711,7 @@ export default function AdminAlertBroadcast({
             <div className="bg-white/5 rounded-xl p-3 border border-white/10 hover:border-white/20 transition-colors">
               <div className="flex items-center gap-1.5 mb-1">
                 <Radio className="w-3 h-3 text-red-300 opacity-70" />
-                <p className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">{t('alerts.title', lang)}</p>
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">{'Alerts'}</p>
               </div>
               <p className="text-lg font-bold text-red-300">{alerts.filter(a => a.active).length}</p>
             </div>
@@ -719,7 +719,7 @@ export default function AdminAlertBroadcast({
             <div className="bg-white/5 rounded-xl p-3 border border-white/10 hover:border-white/20 transition-colors">
               <div className="flex items-center gap-1.5 mb-1">
                 <Wifi className="w-3 h-3 text-green-300 opacity-70" />
-                <p className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">{t('broadcast.channels', lang)}</p>
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">{'Delivery Channels'}</p>
               </div>
               <p className="text-lg font-bold text-green-300">{activeChannels.length}/5</p>
             </div>
@@ -727,7 +727,7 @@ export default function AdminAlertBroadcast({
             <div className="bg-white/5 rounded-xl p-3 border border-white/10 hover:border-white/20 transition-colors" title={form.location || undefined}>
               <div className="flex items-center gap-1.5 mb-1">
                 <Target className={`w-3 h-3 ${form.location ? 'text-cyan-300' : 'text-white/30'} opacity-70`} />
-                <p className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">{t('broadcast.affectedArea', lang)}</p>
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">{'Affected Area'}</p>
               </div>
               {form.location ? (
                 <p className="text-sm font-bold text-cyan-300 leading-tight line-clamp-2 break-words">
@@ -741,10 +741,10 @@ export default function AdminAlertBroadcast({
             <div className="bg-white/5 rounded-xl p-3 border border-white/10 hover:border-white/20 transition-colors" title={user?.displayName || ''}>
               <div className="flex items-center gap-1.5 mb-1">
                 <Lock className="w-3 h-3 text-purple-300 opacity-70" />
-                <p className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">{t('common.operator', lang)}</p>
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">{'Operator'}</p>
               </div>
               <p className="text-xs font-bold text-purple-300 leading-tight break-words line-clamp-2">
-                {user?.displayName || t('common.system', lang)}
+                {user?.displayName || 'System'}
               </p>
             </div>
           </div>
@@ -756,7 +756,7 @@ export default function AdminAlertBroadcast({
         <div className="p-5">
           {/* Mode Toggle */}
           <div className="flex items-center gap-2 mb-4">
-            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">{t('broadcast.alertSource', lang)}</label>
+            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">{'Alert Source'}</label>
             <div className="flex-1" />
             <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-0.5">
               <button
@@ -767,7 +767,7 @@ export default function AdminAlertBroadcast({
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
                 }`}
               >
-                <Link2 className="w-3 h-3" /> {t('broadcast.fromReport', lang)}
+                <Link2 className="w-3 h-3" /> {'From Report'}
               </button>
               <button
                 onClick={() => { setMode('custom'); setSelectedReportId(null); setForm({ title: '', message: '', severity: 'warning', location: '', alertType: 'general', expiresAt: '' }) }}
@@ -777,7 +777,7 @@ export default function AdminAlertBroadcast({
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
                 }`}
               >
-                <FileText className="w-3 h-3" /> {t('broadcast.customAlert', lang)}
+                <FileText className="w-3 h-3" /> {'Custom Alert'}
               </button>
             </div>
           </div>
@@ -812,8 +812,8 @@ export default function AdminAlertBroadcast({
                     <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate mt-0.5">{selectedReport.location}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><Link2 className="w-3 h-3" /> {t('broadcast.linked', lang)}</span>
-                    <button onClick={handleUnlinkReport} className="p-1 rounded-lg hover:bg-white/50 dark:hover:bg-gray-700 transition-colors" title={t('broadcast.unlinkReport', lang)}>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><Link2 className="w-3 h-3" /> {'Linked'}</span>
+                    <button onClick={handleUnlinkReport} className="p-1 rounded-lg hover:bg-white/50 dark:hover:bg-gray-700 transition-colors" title={'Unlink report'}>
                       <Unlink className="w-3.5 h-3.5 text-gray-400 hover:text-red-500" />
                     </button>
                   </div>
@@ -827,7 +827,7 @@ export default function AdminAlertBroadcast({
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 outline-none"
-                      placeholder={t('broadcast.searchReports', lang)}
+                      placeholder={'Search reports by ID, location, or type...'}
                       value={reportSearch}
                       onChange={e => setReportSearch(e.target.value)}
                     />
@@ -836,9 +836,9 @@ export default function AdminAlertBroadcast({
                   {actionableReports.length === 0 ? (
                     <div className="text-center py-6">
                       <FileWarning className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{reportSearch ? t('broadcast.noMatchingReports', lang) : t('broadcast.noActiveReports', lang)}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{reportSearch ? 'No reports match your search' : 'No active reports available'}</p>
                       <button onClick={() => setMode('custom')} className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold mt-2 hover:underline">
-                        {t('broadcast.switchToCustom', lang)}
+                        {'Switch to custom alert instead'}
                       </button>
                     </div>
                   ) : (
@@ -887,7 +887,7 @@ export default function AdminAlertBroadcast({
               {selectedReport && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
                   <Zap className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <p className="text-[10px] text-emerald-700 dark:text-emerald-300 font-medium">{t('broadcast.autoPopulated', lang)}</p>
+                  <p className="text-[10px] text-emerald-700 dark:text-emerald-300 font-medium">{'Title, severity, area, type, and message auto-populated from report. You can edit any field.'}</p>
                 </div>
               )}
             </div>
@@ -897,7 +897,7 @@ export default function AdminAlertBroadcast({
           {mode === 'custom' && (
             <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-800">
               <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <p className="text-[10px] text-blue-700 dark:text-blue-300 font-medium">{t('broadcast.customHint', lang)}</p>
+              <p className="text-[10px] text-blue-700 dark:text-blue-300 font-medium">{'Compose a custom alert manually. Fill in all fields below.'}</p>
             </div>
           )}
         </div>
@@ -909,7 +909,7 @@ export default function AdminAlertBroadcast({
 
           {/* Severity Selection */}
           <div>
-            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-2">{t('broadcast.severityLevel', lang)}</label>
+            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-2">{'Severity Level'}</label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {(['critical', 'warning', 'info'] as Severity[]).map(sev => {
                 const sc = SEVERITY_CONFIG[sev]
@@ -926,9 +926,9 @@ export default function AdminAlertBroadcast({
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <div className={`w-3 h-3 rounded-full ${sc.dot} ${selected && sev === 'critical' ? 'animate-pulse' : ''}`} />
-                      <span className="text-xs font-bold">{t(`admin.alertBroadcast.${sev === 'critical' ? 'critical' : sev === 'warning' ? 'warning' : 'advisory'}`, lang)}</span>
+                      <span className="text-xs font-bold">{sev === 'critical' ? 'Critical' : sev === 'warning' ? 'Warning' : 'Advisory'}</span>
                     </div>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-300">{t(`admin.alertBroadcast.${sev === 'critical' ? 'criticalDesc' : sev === 'warning' ? 'warningDesc' : 'advisoryDesc'}`, lang)}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-300">{sev === 'critical' ? 'Immediate life-threatening danger' : sev === 'warning' ? 'Potential threat — take precautions' : 'Situational awareness update'}</p>
                   </button>
                 )
               })}
@@ -937,10 +937,10 @@ export default function AdminAlertBroadcast({
 
           {/* Title */}
           <div>
-            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-1.5">{t('broadcast.titleLabel', lang)} <span className="text-red-500">*</span></label>
+            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-1.5">{'Title'} <span className="text-red-500">*</span></label>
             <input
               className="w-full px-4 py-3 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 outline-none font-medium"
-              placeholder={t('broadcast.titlePlaceholder', lang)}
+              placeholder={'e.g. Flash Flood Warning -- River District'}
               value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
               maxLength={200}
@@ -952,25 +952,25 @@ export default function AdminAlertBroadcast({
 
           {/* Message */}
           <div>
-            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-1.5">{t('broadcast.messageLabel', lang)} <span className="text-red-500">*</span></label>
+            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-1.5">{'Message'} <span className="text-red-500">*</span></label>
             <textarea
               className="w-full px-4 py-3 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 outline-none min-h-[120px] leading-relaxed resize-y"
-              placeholder={t('admin.alertBroadcast.messagePlaceholder', lang)}
+              placeholder={'Describe the emergency situation, affected areas and recommended actions...'}
               value={form.message}
               onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
             />
             <div className="flex items-center justify-between mt-1">
               <div className="flex items-center gap-3">
-                <span className="text-[10px] text-gray-400 dark:text-gray-300">{form.message.length} {t('admin.alertBroadcast.charCount', lang)}</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-300">{form.message.length} {'characters'}</span>
                 {channels.sms && form.message.length > 0 && (
                   <span className={`text-[10px] font-medium ${segments > 1 ? 'text-amber-600' : 'text-gray-400 dark:text-gray-300'}`}>
-                    SMS: {segments} {t('admin.alertBroadcast.smsSegments', lang)}
+                    SMS: {segments} {'SMS segments'}
                   </span>
                 )}
               </div>
               {form.message.length > 0 && form.message.length < 20 && (
                 <span className="text-[10px] text-amber-600 font-medium flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> {t('broadcast.messageShort', lang)}
+                  <AlertTriangle className="w-3 h-3" /> {'Message is very short'}
                 </span>
               )}
             </div>
@@ -978,12 +978,12 @@ export default function AdminAlertBroadcast({
 
           {/* Location */}
           <div>
-            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-1.5">{t('broadcast.affectedArea', lang)}</label>
+            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-1.5">{'Affected Area'}</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-300" />
               <input
                 className="w-full pl-10 pr-4 py-3 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 outline-none"
-                placeholder={t('broadcast.areaPlaceholder', lang)}
+                placeholder={'e.g. City Centre, Bridge of Don, Coastal areas'}
                 value={form.location}
                 onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
               />
@@ -992,7 +992,7 @@ export default function AdminAlertBroadcast({
 
           {/* Alert Type */}
           <div>
-            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-1.5">{t('broadcast.alertType', lang)}</label>
+            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-1.5">{'Alert Type'}</label>
             <div className="relative">
               <Bell className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-300" />
               <select
@@ -1000,24 +1000,24 @@ export default function AdminAlertBroadcast({
                 value={form.alertType}
                 onChange={e => setForm(f => ({ ...f, alertType: e.target.value }))}
               >
-                <option value="general">{t('broadcast.typeGeneral', lang)}</option>
-                <option value="flood">{t('broadcast.typeFlood', lang)}</option>
-                <option value="severe_storm">{t('broadcast.typeStorm', lang)}</option>
-                <option value="wildfire">{t('broadcast.typeFire', lang)}</option>
-                <option value="earthquake">{t('broadcast.typeEarthquake', lang)}</option>
-                <option value="heatwave">{t('broadcast.typeHeatwave', lang)}</option>
-                <option value="landslide">{t('broadcast.typeLandslide', lang)}</option>
-                <option value="drought">{t('broadcast.typeDrought', lang)}</option>
-                <option value="power_outage">{t('broadcast.typePowerOutage', lang)}</option>
-                <option value="water_supply">{t('broadcast.typeWaterSupply', lang)}</option>
-                <option value="infrastructure_damage">{t('broadcast.typeInfrastructure', lang)}</option>
-                <option value="public_safety">{t('broadcast.typePublicSafety', lang)}</option>
-                <option value="environmental_hazard">{t('broadcast.typeEnvironmental', lang)}</option>
-                <option value="tsunami">{t('broadcast.typeTsunami', lang)}</option>
-                <option value="volcanic">{t('broadcast.typeVolcanic', lang)}</option>
-                <option value="pandemic">{t('broadcast.typePandemic', lang)}</option>
-                <option value="chemical_spill">{t('broadcast.typeChemicalSpill', lang)}</option>
-                <option value="nuclear">{t('broadcast.typeNuclear', lang)}</option>
+                <option value="general">{'General'}</option>
+                <option value="flood">{'Flood'}</option>
+                <option value="severe_storm">{'Severe Storm'}</option>
+                <option value="wildfire">{'Wildfire'}</option>
+                <option value="earthquake">{'Earthquake'}</option>
+                <option value="heatwave">{'Heatwave'}</option>
+                <option value="landslide">{'Landslide'}</option>
+                <option value="drought">{'Drought'}</option>
+                <option value="power_outage">{'Power Outage'}</option>
+                <option value="water_supply">{'Water Supply Emergency'}</option>
+                <option value="infrastructure_damage">{'Infrastructure Damage'}</option>
+                <option value="public_safety">{'Public Safety'}</option>
+                <option value="environmental_hazard">{'Environmental Hazard'}</option>
+                <option value="tsunami">{'Tsunami'}</option>
+                <option value="volcanic">{'Volcanic Eruption'}</option>
+                <option value="pandemic">{'Pandemic / Health Emergency'}</option>
+                <option value="chemical_spill">{'Chemical / HazMat Spill'}</option>
+                <option value="nuclear">{'Nuclear / Radiological'}</option>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-300 pointer-events-none" />
             </div>
@@ -1025,7 +1025,7 @@ export default function AdminAlertBroadcast({
 
           {/* Expiration */}
           <div>
-            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-1.5">{t('broadcast.expiresAt', lang)}</label>
+            <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-1.5">{'Expiration (optional)'}</label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-300" />
               <input
@@ -1036,7 +1036,7 @@ export default function AdminAlertBroadcast({
                 min={new Date().toISOString().slice(0, 16)}
               />
             </div>
-            <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">{t('broadcast.expiresAtHint', lang)}</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">{'Leave blank for no expiration. Alert will be auto-deactivated after this time.'}</p>
           </div>
         </div>
 
@@ -1046,23 +1046,23 @@ export default function AdminAlertBroadcast({
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                  <Send className="w-3.5 h-3.5 text-purple-500" /> {t('broadcast.deliveryChannels', lang)}
+                  <Send className="w-3.5 h-3.5 text-purple-500" /> {'Delivery Channels'}
                 </p>
-                <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-0.5">{activeChannels.length}/5 {t('common.active', lang)}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-0.5">{activeChannels.length}/5 {'Active'}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setChannels({ web: true, telegram: true, email: true, sms: true, whatsapp: true })}
                   className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
                 >
-                  <ToggleRight className="w-3 h-3" /> {t('common.selectAll', lang)}
+                  <ToggleRight className="w-3 h-3" /> {'Select All'}
                 </button>
                 <span className="text-gray-300 dark:text-gray-400">|</span>
                 <button
                   onClick={() => setChannels({ web: false, telegram: false, email: false, sms: false, whatsapp: false })}
                   className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 hover:underline flex items-center gap-1"
                 >
-                  <ToggleLeft className="w-3 h-3" /> {t('common.deselectAll', lang)}
+                  <ToggleLeft className="w-3 h-3" /> {'Deselect All'}
                 </button>
               </div>
             </div>
@@ -1088,7 +1088,7 @@ export default function AdminAlertBroadcast({
                     </div>
                     <span className={`text-[10px] font-bold ${active ? ch.text : 'text-gray-500 dark:text-gray-300'}`}>{ch.label}</span>
                     <span className={`text-[8px] font-bold uppercase tracking-wide ${active ? 'text-emerald-600' : 'text-gray-400 dark:text-gray-300'}`}>
-                      {active ? t('common.active', lang) : t('common.off', lang)}
+                      {active ? 'Active' : 'Off'}
                     </span>
                   </label>
                 )
@@ -1097,7 +1097,7 @@ export default function AdminAlertBroadcast({
             {activeChannels.length === 0 && (
               <div className="mt-3 flex items-center gap-1.5 text-red-600">
                 <AlertTriangle className="w-3.5 h-3.5" />
-                <p className="text-[10px] font-bold">{t('admin.alertBroadcast.selectChannel', lang)}</p>
+                <p className="text-[10px] font-bold">{'Select at least one channel'}</p>
               </div>
             )}
           </div>
@@ -1110,7 +1110,7 @@ export default function AdminAlertBroadcast({
               {/* Preview tabs */}
               <div className="flex items-center gap-0 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-1 px-4 py-2 text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  <Eye className="w-3 h-3" /> {t('admin.alertBroadcast.preview', lang)}
+                  <Eye className="w-3 h-3" /> {'Live Preview'}
                 </div>
                 <div className="flex-1 flex gap-0 overflow-x-auto">
                   {(['card', 'email', 'sms', 'telegram', 'whatsapp', 'web'] as const).map(ch => (
@@ -1123,7 +1123,7 @@ export default function AdminAlertBroadcast({
                           : 'text-gray-400 dark:text-gray-300 hover:text-gray-600'
                       }`}
                     >
-                      {ch === 'card' ? t('broadcast.liveCard', lang) : ch}
+                      {ch === 'card' ? 'Live Card' : ch}
                     </button>
                   ))}
                 </div>
@@ -1133,7 +1133,7 @@ export default function AdminAlertBroadcast({
               <div className="p-4">
                 {previewChannel === 'card' ? (
                   <div className="max-w-md mx-auto">
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 text-center mb-3 font-medium">{t('broadcast.cardPreviewHint', lang)}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 text-center mb-3 font-medium">{'This is how citizens will see this alert'}</p>
                     <AlertCard alert={previewAlert} />
                   </div>
                 ) : (
@@ -1143,7 +1143,7 @@ export default function AdminAlertBroadcast({
                 )}
                 {previewChannel === 'sms' && (
                   <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-2">
-                    {t('admin.alertBroadcast.charCount', lang)}: {fullSmsText.length} / {segments} {t('admin.alertBroadcast.smsSegments', lang)}
+                    {'characters'}: {fullSmsText.length} / {segments} {'SMS segments'}
                   </p>
                 )}
               </div>
@@ -1161,21 +1161,21 @@ export default function AdminAlertBroadcast({
             {sending ? (
               <>
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                {t('broadcast.sending', lang)}
+                {'Broadcasting...'}
               </>
             ) : (
               <>
                 <Siren className="w-5 h-5" />
-                {t('broadcast.broadcastAlert', lang)}
+                {'Broadcast Emergency Alert'}
               </>
             )}
           </button>
           {!canSend && !sending && (
             <p className="text-[10px] text-gray-400 dark:text-gray-300 text-center mt-2">
-              {!form.title && !form.message ? t('broadcast.fillTitleMsg', lang) :
-               !form.title ? t('admin.alertBroadcast.titleRequired', lang) :
-               !form.message ? t('admin.alertBroadcast.messageRequired', lang) :
-               t('admin.alertBroadcast.selectChannel', lang)}
+              {!form.title && !form.message ? 'Fill in title and message to enable broadcast' :
+               !form.title ? 'Alert title is required' :
+               !form.message ? 'Alert message is required' :
+               'Select at least one channel'}
             </p>
           )}
         </div>
@@ -1192,8 +1192,8 @@ export default function AdminAlertBroadcast({
                   <AlertTriangle className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-lg">{t('broadcast.confirmBroadcast', lang)}</h3>
-                  <p className="text-white/60 text-xs">{t('broadcast.confirmMsg', lang)}</p>
+                  <h3 className="text-white font-bold text-lg">{'Confirm Broadcast'}</h3>
+                  <p className="text-white/60 text-xs">{'This will send to all subscribed citizens'}</p>
                 </div>
               </div>
             </div>
@@ -1201,15 +1201,15 @@ export default function AdminAlertBroadcast({
             <div className="p-5 space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500 dark:text-gray-300 font-semibold uppercase">{t('broadcast.severity', lang)}</span>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${cfg.badge}`}>{t(`admin.alertBroadcast.${form.severity === 'critical' ? 'critical' : form.severity === 'warning' ? 'warning' : 'advisory'}`, lang)}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-300 font-semibold uppercase">{'Severity'}</span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${cfg.badge}`}>{form.severity === 'critical' ? 'Critical' : form.severity === 'warning' ? 'Warning' : 'Advisory'}</span>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-gray-500 dark:text-gray-300 font-semibold uppercase">{t('broadcast.titleLabel', lang)}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-300 font-semibold uppercase">{'Title'}</span>
                   <span className="text-sm font-bold text-gray-900 dark:text-white">{form.title}</span>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-gray-500 dark:text-gray-300 font-semibold uppercase">{t('broadcast.messageLabel', lang)}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-300 font-semibold uppercase">{'Message'}</span>
                   <span className="text-xs text-gray-700 dark:text-gray-300 line-clamp-3">{form.message}</span>
                 </div>
                 {form.location && (
@@ -1220,24 +1220,24 @@ export default function AdminAlertBroadcast({
                 )}
                 <div className="flex items-center gap-1">
                   <Send className="w-3 h-3 text-gray-400 dark:text-gray-300" />
-                  <span className="text-xs text-gray-500 dark:text-gray-300">{t('broadcast.channelsLabel', lang)}: {activeChannels.join(', ')}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-300">{'Channels'}: {activeChannels.join(', ')}</span>
                 </div>
                 {form.alertType !== 'general' && (
                   <div className="flex items-center gap-1">
                     <Bell className="w-3 h-3 text-gray-400 dark:text-gray-300" />
-                    <span className="text-xs text-gray-500 dark:text-gray-300">{t('broadcast.alertType', lang)}: {ALERT_TYPE_LABELS[form.alertType] || form.alertType}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-300">{'Alert Type'}: {ALERT_TYPE_LABELS[form.alertType] || form.alertType}</span>
                   </div>
                 )}
                 {selectedReport && (
                   <div className="flex items-center gap-1">
                     <Link2 className="w-3 h-3 text-purple-400" />
-                    <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">{t('broadcast.sourceReport', lang)}: {selectedReport.reportNumber || `RPT-${selectedReport.id.slice(0, 6).toUpperCase()}`}</span>
+                    <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">{'Source Report'}: {selectedReport.reportNumber || `RPT-${selectedReport.id.slice(0, 6).toUpperCase()}`}</span>
                   </div>
                 )}
                 {form.expiresAt && (
                   <div className="flex items-center gap-1">
                     <Calendar className="w-3 h-3 text-gray-400 dark:text-gray-300" />
-                    <span className="text-xs text-gray-500 dark:text-gray-300">{t('broadcast.expiresAt', lang)}: {new Date(form.expiresAt).toLocaleString()}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-300">{'Expiration (optional)'}: {new Date(form.expiresAt).toLocaleString()}</span>
                   </div>
                 )}
               </div>
@@ -1246,7 +1246,7 @@ export default function AdminAlertBroadcast({
                 <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
                   <p className="text-[10px] font-bold text-red-600 flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" />
-                    {t('broadcast.criticalAlert', lang)}: {t('broadcast.criticalWarning', lang)}
+                    {'CRITICAL ALERT'}: {'This will trigger high-priority notifications on all selected channels.'}
                   </p>
                 </div>
               )}
@@ -1258,7 +1258,7 @@ export default function AdminAlertBroadcast({
                 disabled={sending}
                 className="flex-1 py-3 px-4 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
               >
-                {t('common.cancel', lang)}
+                {'Cancel'}
               </button>
               <button
                 onClick={handleSend}
@@ -1268,12 +1268,12 @@ export default function AdminAlertBroadcast({
                 {sending ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    {t('broadcast.sending', lang)}
+                    {'Broadcasting...'}
                   </>
                 ) : (
                   <>
                     <Siren className="w-4 h-4" />
-                    {t('broadcast.confirmBroadcast', lang)}
+                    {'Confirm Broadcast'}
                   </>
                 )}
               </button>
@@ -1292,7 +1292,7 @@ export default function AdminAlertBroadcast({
               ) : (
                 <AlertTriangle className="w-4 h-4 text-amber-500" />
               )}
-              {t('broadcast.deliverySummary', lang)}
+              {'Delivery Summary'}
             </h3>
             <button onClick={() => setDeliveryResult(null)} className="text-gray-400 dark:text-gray-300 hover:text-gray-600"><X className="w-4 h-4" /></button>
           </div>
@@ -1300,15 +1300,15 @@ export default function AdminAlertBroadcast({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
               <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 text-center">
                 <p className="text-xl font-bold text-blue-600">{deliveryResult.attempted}</p>
-                <p className="text-[10px] text-blue-500 font-semibold uppercase">{t('delivery.attempted', lang)}</p>
+                <p className="text-[10px] text-blue-500 font-semibold uppercase">{'Attempted'}</p>
               </div>
               <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 text-center">
                 <p className="text-xl font-bold text-emerald-600">{deliveryResult.sent}</p>
-                <p className="text-[10px] text-emerald-500 font-semibold uppercase">{t('delivery.delivered', lang)}</p>
+                <p className="text-[10px] text-emerald-500 font-semibold uppercase">{'Delivered'}</p>
               </div>
               <div className={`rounded-xl p-3 text-center ${deliveryResult.failed > 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-gray-50 dark:bg-gray-800'}`}>
                 <p className={`text-xl font-bold ${deliveryResult.failed > 0 ? 'text-red-600' : 'text-gray-400 dark:text-gray-300'}`}>{deliveryResult.failed}</p>
-                <p className={`text-[10px] font-semibold uppercase ${deliveryResult.failed > 0 ? 'text-red-500' : 'text-gray-400 dark:text-gray-300'}`}>{t('delivery.failed', lang)}</p>
+                <p className={`text-[10px] font-semibold uppercase ${deliveryResult.failed > 0 ? 'text-red-500' : 'text-gray-400 dark:text-gray-300'}`}>{'Failed'}</p>
               </div>
             </div>
             {deliveryResult.attempted > 0 && (
@@ -1321,7 +1321,7 @@ export default function AdminAlertBroadcast({
             )}
             {deliveryResult.results && deliveryResult.results.length > 0 && (
               <div className="mt-4 space-y-1.5">
-                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase mb-2">{t('delivery.channelResults', lang)}</p>
+                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase mb-2">{'Channel Results'}</p>
                 {deliveryResult.results.slice(0, 10).map((r, i) => (
                   <div key={i} className="flex items-center justify-between text-xs py-1.5 px-2 rounded-lg bg-gray-50 dark:bg-gray-800/50">
                     <div className="flex items-center gap-2">
@@ -1330,9 +1330,9 @@ export default function AdminAlertBroadcast({
                       <span className="text-gray-400 dark:text-gray-300 font-mono text-[10px] truncate max-w-[150px]">{r.recipient}</span>
                     </div>
                     {r.success ? (
-                      <span className="text-[10px] text-emerald-600 font-semibold">{t('delivery.delivered', lang)}</span>
+                      <span className="text-[10px] text-emerald-600 font-semibold">{'Delivered'}</span>
                     ) : (
-                      <span className="text-[10px] text-red-500 font-medium truncate max-w-[200px]">{r.error || t('delivery.failed', lang)}</span>
+                      <span className="text-[10px] text-red-500 font-medium truncate max-w-[200px]">{r.error || 'Failed'}</span>
                     )}
                   </div>
                 ))}
@@ -1350,10 +1350,10 @@ export default function AdminAlertBroadcast({
             className="w-full px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
           >
             <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <History className="w-4 h-4 text-gray-500 dark:text-gray-300" /> {t('broadcast.recentBroadcasts', lang)}
+              <History className="w-4 h-4 text-gray-500 dark:text-gray-300" /> {'Recent Broadcasts'}
             </h3>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-500 dark:text-gray-300">{alerts.length} {t('common.total', lang)}</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-300">{alerts.length} {'Total'}</span>
               {showHistory ? <ChevronUp className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />}
             </div>
           </button>
@@ -1389,10 +1389,10 @@ export default function AdminAlertBroadcast({
 
       {showKeyboard && (
         <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('broadcast.shortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">H</kbd> {t('broadcast.toggleHistory', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('broadcast.toggleShortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('broadcast.closeKey', lang)}</span>
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{'Shortcuts'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">H</kbd> {'Toggle History'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {'Toggle Shortcuts'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{'Esc'}</kbd> {'Close'}</span>
         </div>
       )}
     </div>

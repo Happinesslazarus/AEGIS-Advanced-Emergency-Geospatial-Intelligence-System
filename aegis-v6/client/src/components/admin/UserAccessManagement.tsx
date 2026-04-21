@@ -58,51 +58,51 @@ const UNASSIGNED_VALUE = '__unassigned__'
 function getRoleMeta(lang: string): Record<string, { label: string; color: string; bg: string; ring: string; icon: typeof Shield; desc: string; perms: string[] }> {
   return {
     admin: {
-      label: t('users.administrator', lang),
+      label: 'Administrator',
       color: 'text-purple-600 dark:text-purple-400',
       bg: 'bg-purple-50 dark:bg-purple-900/20',
       ring: 'ring-purple-500/20',
       icon: Shield,
-      desc: t('users.roleAdminDesc', lang),
+      desc: 'Full platform access. Manage users, configure system, and access all data.',
       perms: [
-        t('users.roleAdminPermManageOperators', lang),
-        t('users.roleAdminPermAccessAuditLogs', lang),
-        t('users.roleAdminPermConfigureRbac', lang),
-        t('users.roleAdminPermDeployResources', lang),
-        t('users.roleAdminPermSendEmergencyAlerts', lang),
-        t('users.roleAdminPermManageSystemSettings', lang),
-        t('users.roleAdminPermBulkOperations', lang),
-        t('users.roleAdminPermDeleteAccounts', lang),
+        'Manage operators',
+        'Access audit logs',
+        'Configure RBAC',
+        'Deploy resources',
+        'Send emergency alerts',
+        'Manage system settings',
+        'Bulk operations',
+        'Delete accounts',
       ],
     },
     operator: {
-      label: t('users.operator', lang),
+      label: 'Operator',
       color: 'text-blue-600 dark:text-blue-400',
       bg: 'bg-blue-50 dark:bg-blue-900/20',
       ring: 'ring-blue-500/20',
       icon: Activity,
-      desc: t('users.roleOperatorDesc', lang),
+      desc: 'Operational access. Handle reports, manage incidents, and deploy resources.',
       perms: [
-        t('users.roleOperatorPermViewReports', lang),
-        t('users.roleOperatorPermVerifyEscalate', lang),
-        t('users.roleOperatorPermDeployResources', lang),
-        t('users.roleOperatorPermSendAlerts', lang),
-        t('users.roleOperatorPermViewAnalytics', lang),
-        t('users.roleOperatorPermAccessCommunityChat', lang),
+        'View all reports',
+        'Verify, flag, and escalate reports',
+        'Deploy resources',
+        'Send alerts',
+        'View analytics',
+        'Access community chat',
       ],
     },
     viewer: {
-      label: t('users.viewer', lang),
+      label: 'Viewer',
       color: 'text-slate-600 dark:text-slate-400',
       bg: 'bg-slate-50 dark:bg-slate-900/20',
       ring: 'ring-slate-500/20',
       icon: Eye,
-      desc: t('users.roleViewerDesc', lang),
+      desc: 'Read-only access. View dashboards, reports, and analytics.',
       perms: [
-        t('users.roleViewerPermViewDashboard', lang),
-        t('users.roleViewerPermViewReportsReadOnly', lang),
-        t('users.roleViewerPermViewAnalytics', lang),
-        t('users.roleViewerPermViewDeploymentMap', lang),
+        'View dashboard',
+        'View reports (read-only)',
+        'View analytics',
+        'View deployment map',
       ],
     },
   }
@@ -110,52 +110,52 @@ function getRoleMeta(lang: string): Record<string, { label: string; color: strin
 
 function getStatusMeta(lang: string): Record<string, { label: string; color: string; bg: string; dot: string }> {
   return {
-    active: { label: t('common.active', lang), color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-900/20', dot: 'bg-emerald-500' },
-    suspended: { label: t('users.suspended', lang), color: 'text-red-700 dark:text-red-300', bg: 'bg-red-50 dark:bg-red-900/20', dot: 'bg-red-500' },
-    inactive: { label: t('users.inactive', lang), color: 'text-gray-600 dark:text-gray-300', bg: 'bg-gray-100 dark:bg-gray-800', dot: 'bg-gray-400' },
+    active: { label: 'Active', color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-900/20', dot: 'bg-emerald-500' },
+    suspended: { label: 'Suspended', color: 'text-red-700 dark:text-red-300', bg: 'bg-red-50 dark:bg-red-900/20', dot: 'bg-red-500' },
+    inactive: { label: 'Inactive', color: 'text-gray-600 dark:text-gray-300', bg: 'bg-gray-100 dark:bg-gray-800', dot: 'bg-gray-400' },
   }
 }
 
 function getDepartments(lang: string): Array<{ value: string; label: string }> {
   return [
-    { value: 'Emergency Operations', label: t('users.departmentEmergencyOperations', lang) },
-    { value: 'Fire & Rescue', label: t('users.departmentFireRescue', lang) },
-    { value: 'Police', label: t('users.departmentPolice', lang) },
-    { value: 'Health & Medical', label: t('users.departmentHealthMedical', lang) },
-    { value: 'Infrastructure', label: t('users.departmentInfrastructure', lang) },
-    { value: 'Environmental', label: t('users.departmentEnvironmental', lang) },
-    { value: 'Community Liaison', label: t('users.departmentCommunityLiaison', lang) },
-    { value: 'IT & Communications', label: t('users.departmentItCommunications', lang) },
-    { value: 'Logistics', label: t('users.departmentLogistics', lang) },
-    { value: 'Command & Control', label: t('users.departmentCommandControl', lang) },
+    { value: 'Emergency Operations', label: 'Emergency Operations' },
+    { value: 'Fire & Rescue', label: 'Fire & Rescue' },
+    { value: 'Police', label: 'Police' },
+    { value: 'Health & Medical', label: 'Health & Medical' },
+    { value: 'Infrastructure', label: 'Infrastructure' },
+    { value: 'Environmental', label: 'Environmental' },
+    { value: 'Community Liaison', label: 'Community Liaison' },
+    { value: 'IT & Communications', label: 'IT & Communications' },
+    { value: 'Logistics', label: 'Logistics' },
+    { value: 'Command & Control', label: 'Command & Control' },
   ]
 }
 
 function getAuditTypes(lang: string): Record<string, { label: string; color: string; icon: typeof Shield }> {
   return {
-    user_create: { label: t('users.auditTypeCreated', lang), color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600', icon: UserPlus },
-    user_update: { label: t('users.auditTypeUpdated', lang), color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600', icon: Edit2 },
-    user_suspend: { label: t('users.suspended', lang), color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600', icon: Ban },
-    user_activate: { label: t('users.auditTypeActivated', lang), color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600', icon: CheckCircle2 },
-    user_delete: { label: t('users.auditTypeDeleted', lang), color: 'bg-red-100 dark:bg-red-900/30 text-red-600', icon: Trash2 },
-    password_reset_generate: { label: t('users.auditTypePasswordReset', lang), color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600', icon: Key },
-    login: { label: t('users.auditTypeLogin', lang), color: 'bg-sky-100 dark:bg-sky-900/30 text-sky-600', icon: Fingerprint },
-    logout: { label: t('users.auditTypeLogout', lang), color: 'bg-gray-100 dark:bg-gray-800 text-gray-600', icon: XCircle },
-    role_change: { label: t('users.auditTypeRoleChange', lang), color: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600', icon: Shield },
+    user_create: { label: 'Created', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600', icon: UserPlus },
+    user_update: { label: 'Updated', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600', icon: Edit2 },
+    user_suspend: { label: 'Suspended', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600', icon: Ban },
+    user_activate: { label: 'Activated', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600', icon: CheckCircle2 },
+    user_delete: { label: 'Deleted', color: 'bg-red-100 dark:bg-red-900/30 text-red-600', icon: Trash2 },
+    password_reset_generate: { label: 'PW Reset', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600', icon: Key },
+    login: { label: 'Login', color: 'bg-sky-100 dark:bg-sky-900/30 text-sky-600', icon: Fingerprint },
+    logout: { label: 'Logout', color: 'bg-gray-100 dark:bg-gray-800 text-gray-600', icon: XCircle },
+    role_change: { label: 'Role Change', color: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600', icon: Shield },
   }
 }
 
 
 function getSecurityChecks(lang: string) {
   return [
-    { check: t('users.securityJwtTokenExpiryCheck', lang), status: t('users.securityJwtTokenExpiryStatus', lang), ok: true, detail: t('users.securityJwtTokenExpiryDetail', lang) },
-    { check: t('users.securityRefreshTokenRotationCheck', lang), status: t('users.securityRefreshTokenRotationStatus', lang), ok: true, detail: t('users.securityRefreshTokenRotationDetail', lang) },
-    { check: t('users.securityPasswordHashingCheck', lang), status: t('users.securityPasswordHashingStatus', lang), ok: true, detail: t('users.securityPasswordHashingDetail', lang) },
-    { check: t('users.securityAuditLoggingCheck', lang), status: t('users.securityAuditLoggingStatus', lang), ok: true, detail: t('users.securityAuditLoggingDetail', lang) },
-    { check: t('users.securityRateLimitingCheck', lang), status: t('users.securityRateLimitingStatus', lang), ok: true, detail: t('users.securityRateLimitingDetail', lang) },
-    { check: t('users.securitySuspendedAccountCheck', lang), status: t('users.securitySuspendedAccountStatus', lang), ok: true, detail: t('users.securitySuspendedAccountDetail', lang) },
-    { check: t('users.securityRoleEnforcementCheck', lang), status: t('users.securityRoleEnforcementStatus', lang), ok: true, detail: t('users.securityRoleEnforcementDetail', lang) },
-    { check: t('users.securityPasswordResetTokensCheck', lang), status: t('users.securityPasswordResetTokensStatus', lang), ok: true, detail: t('users.securityPasswordResetTokensDetail', lang) },
+    { check: 'JWT token expiry', status: '8 hours', ok: true, detail: 'Access tokens expire and auto-refresh' },
+    { check: 'Refresh token rotation', status: 'Enabled', ok: true, detail: 'New refresh token issued on each use' },
+    { check: 'Password hashing', status: 'bcrypt (12 rounds)', ok: true, detail: 'Industry-standard key derivation' },
+    { check: 'Audit logging', status: 'Immutable', ok: true, detail: 'All changes recorded with state capture' },
+    { check: 'Rate limiting', status: '50 req/hr login', ok: true, detail: 'Brute-force protection on auth endpoints' },
+    { check: 'Suspended account check', status: 'On refresh', ok: true, detail: 'Suspended accounts blocked at token refresh' },
+    { check: 'Role enforcement', status: 'API + UI', ok: true, detail: 'Dual-layer RBAC at middleware and client' },
+    { check: 'Password reset tokens', status: 'SHA-256 hashed', ok: true, detail: '30-minute expiry, single-use' },
   ]
 }
 
@@ -219,9 +219,9 @@ export default function UserAccessManagement({
     try {
       const d = await apiGetUsers()
       setUsers(d.users || [])
-      pushNotification(t('users.directoryRefreshed', lang), 'success')
+      pushNotification('User directory refreshed', 'success')
     } catch {
-      pushNotification(t('users.refreshUsersFailed', lang), 'error')
+      pushNotification('Failed to refresh users', 'error')
     }
     setRefreshing(false)
   }, [apiGetUsers, lang, pushNotification, setUsers])
@@ -353,30 +353,30 @@ export default function UserAccessManagement({
     const ids = Array.from(bulkSelected).filter(id => id !== currentUser.id)
     const count = ids.length
     const selectedUsersLabel = t(count === 1 ? 'users.selectedUser' : 'users.selectedUsers', lang)
-    if (count === 0) { pushNotification(t('users.bulkSelfBlocked', lang), 'error'); return }
+    if (count === 0) { pushNotification('Cannot perform bulk action on yourself', 'error'); return }
 
     if (bulkAction === 'suspend') {
-      askConfirm(t('users.bulkSuspendTitle', lang), `${t('users.bulkSuspendPrompt', lang)} ${count} ${selectedUsersLabel}? ${t('users.bulkSuspendSuffix', lang)}`, 'warning', async () => {
+      askConfirm('Bulk Suspend', `${'Suspend'} ${count} ${selectedUsersLabel}? ${'They will be locked out immediately.'}`, 'warning', async () => {
         let ok = 0
         for (const id of ids) { try { await apiSuspendUser(id, { reason: 'Bulk suspension by admin' }); ok++ } catch {} }
         setUsers(prev => prev.map(u => ids.includes(u.id) ? { ...u, is_suspended: true } : u))
-        pushNotification(`${ok}/${count} ${t('users.bulkSuspendedResult', lang)}`, 'warning')
+        pushNotification(`${ok}/${count} ${'users suspended'}`, 'warning')
         setBulkSelected(new Set()); setBulkAction('')
       })
     } else if (bulkAction === 'activate') {
-      askConfirm(t('users.bulkActivateTitle', lang), `${t('users.bulkActivatePrompt', lang)} ${count} ${selectedUsersLabel}?`, 'success', async () => {
+      askConfirm('Bulk Activate', `${'Activate'} ${count} ${selectedUsersLabel}?`, 'success', async () => {
         let ok = 0
         for (const id of ids) { try { await apiActivateUser(id); ok++ } catch {} }
         setUsers(prev => prev.map(u => ids.includes(u.id) ? { ...u, is_suspended: false, is_active: true } : u))
-        pushNotification(`${ok}/${count} ${t('users.bulkActivatedResult', lang)}`, 'success')
+        pushNotification(`${ok}/${count} ${'users activated'}`, 'success')
         setBulkSelected(new Set()); setBulkAction('')
       })
     } else if (bulkAction === 'delete') {
-      askConfirm(t('users.bulkDeleteTitle', lang), `${t('users.bulkDeletePrompt', lang)} ${count} ${t(count === 1 ? 'users.user' : 'users.accounts', lang)}? ${t('users.bulkDeleteSuffix', lang)}`, 'danger', async () => {
+      askConfirm('Bulk Delete', `${'Permanently delete'} ${count} ${t(count === 1 ? 'users.user' : 'users.accounts', lang)}? ${'This cannot be undone.'}`, 'danger', async () => {
         let ok = 0
         for (const id of ids) { try { await apiDeleteUser(id); ok++ } catch {} }
         setUsers(prev => prev.filter(u => !ids.includes(u.id)))
-        pushNotification(`${ok}/${count} ${t('users.bulkDeletedResult', lang)}`, 'error')
+        pushNotification(`${ok}/${count} ${'users deleted'}`, 'error')
         setBulkSelected(new Set()); setBulkAction('')
       })
     }
@@ -391,25 +391,25 @@ export default function UserAccessManagement({
       })
       setUsers(prev => prev.map(u => u.id === editModal.id ? { ...u, ...editForm, display_name: editForm.displayName, role: editForm.role, department: editForm.department } : u))
       apiAuditLog({ operator_name: currentUser?.displayName, action: `Updated user ${editModal.display_name}`, action_type: 'user_update', target_type: 'operator', target_id: editModal.id }).catch(() => {})
-      pushNotification(t('users.updateSuccess', lang), 'success')
+      pushNotification('User updated successfully', 'success')
       setEditModal(null)
     } catch {
-      pushNotification(t('users.updateFailed', lang), 'error')
+      pushNotification('Failed to update user', 'error')
     }
   }
 
   const handleSuspend = async () => {
     if (!suspendModal || !suspendForm.reason.trim()) {
-      pushNotification(t('users.suspensionReasonRequired', lang), 'error'); return
+      pushNotification('Suspension reason is required', 'error'); return
     }
     try {
       await apiSuspendUser(suspendModal.id, suspendForm)
       setUsers(prev => prev.map(u => u.id === suspendModal.id ? { ...u, is_suspended: true, suspended_until: suspendForm.until || null } : u))
       apiAuditLog({ operator_name: currentUser?.displayName, action: `Suspended ${suspendModal.display_name}: ${suspendForm.reason}`, action_type: 'user_suspend', target_type: 'operator', target_id: suspendModal.id }).catch(() => {})
-      pushNotification(`${suspendModal.display_name} ${t('users.suspendSuccessSuffix', lang)}`, 'warning')
+      pushNotification(`${suspendModal.display_name} ${'suspended'}`, 'warning')
       setSuspendModal(null); setSuspendForm({ until: '', reason: '' })
     } catch {
-      pushNotification(t('users.suspendFailed', lang), 'error')
+      pushNotification('Failed to suspend user', 'error')
     }
   }
 
@@ -430,24 +430,24 @@ export default function UserAccessManagement({
                   <Shield className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-white font-extrabold text-xl tracking-tight">{t('users.identityAccessMgmt', lang)}</h2>
+                  <h2 className="text-white font-extrabold text-xl tracking-tight">{'Identity & Access Management'}</h2>
                   <div className="text-blue-300/80 text-sm mt-0.5 flex items-center gap-2 flex-wrap">
-                    <span>{t('users.subtitle', lang)}</span>
+                    <span>{'RBAC, audit trail, account lifecycle'}</span>
                     <span aria-hidden="true" className="w-1 h-1 rounded-full bg-blue-300/60" />
-                    <span>{t('users.auditCompliance', lang)}</span>
+                    <span>{'Audit compliance'}</span>
                     <span aria-hidden="true" className="w-1 h-1 rounded-full bg-blue-300/60" />
-                    <span>{t('users.accountLifecycle', lang)}</span>
+                    <span>{'Account lifecycle'}</span>
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {currentUser?.role === 'admin' && (
                   <button onClick={() => setShowInviteModal(true)} className="px-3.5 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 border border-emerald-500/20 hover:border-emerald-500/40">
-                    <UserPlus className="w-3.5 h-3.5" /> {t('users.inviteOperator', lang) || 'Invite Operator'}
+                    <UserPlus className="w-3.5 h-3.5" /> {'Invite Operator'}
                   </button>
                 )}
                 <button onClick={doRefresh} className={`px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold transition-all flex items-center gap-2 border border-white/10 ${refreshing ? 'opacity-60 pointer-events-none' : ''}`}>
-                  <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} /> {t('common.refresh', lang)}
+                  <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} /> {'Refresh'}
                 </button>
               </div>
             </div>
@@ -455,14 +455,14 @@ export default function UserAccessManagement({
             {/* KPI strip */}
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 mt-5">
               {[
-                { label: t('common.total', lang), value: stats.total, color: 'text-cyan-300', icon: Users },
-                { label: t('common.active', lang), value: stats.active, color: 'text-emerald-300', icon: CheckCircle2 },
-                { label: t('users.suspended', lang), value: stats.suspended, color: stats.suspended > 0 ? 'text-red-300' : 'text-gray-500 dark:text-gray-300', icon: Ban },
-                { label: t('users.inactive', lang), value: stats.inactive, color: 'text-gray-400 dark:text-gray-300', icon: XCircle },
-                { label: t('users.admins', lang), value: stats.admin, color: 'text-purple-300', icon: Shield },
-                { label: t('users.operators', lang), value: stats.operator, color: 'text-blue-300', icon: Activity },
-                { label: t('users.viewers', lang), value: stats.viewer, color: 'text-slate-300', icon: Eye },
-                { label: t('users.24hLogins', lang), value: stats.recentLogin, color: 'text-amber-300', icon: Fingerprint },
+                { label: 'Total', value: stats.total, color: 'text-cyan-300', icon: Users },
+                { label: 'Active', value: stats.active, color: 'text-emerald-300', icon: CheckCircle2 },
+                { label: 'Suspended', value: stats.suspended, color: stats.suspended > 0 ? 'text-red-300' : 'text-gray-500 dark:text-gray-300', icon: Ban },
+                { label: 'Inactive', value: stats.inactive, color: 'text-gray-400 dark:text-gray-300', icon: XCircle },
+                { label: 'Admins', value: stats.admin, color: 'text-purple-300', icon: Shield },
+                { label: 'Operators', value: stats.operator, color: 'text-blue-300', icon: Activity },
+                { label: 'Viewers', value: stats.viewer, color: 'text-slate-300', icon: Eye },
+                { label: '24h Logins', value: stats.recentLogin, color: 'text-amber-300', icon: Fingerprint },
               ].map((s, i) => (
                 <div key={i} className="bg-white/[0.06] backdrop-blur-sm rounded-xl px-3 py-2.5 border border-white/[0.08] hover:bg-white/[0.1] transition-colors">
                   <div className="flex items-center justify-between mb-1">
@@ -479,10 +479,10 @@ export default function UserAccessManagement({
         {/* tab bar */}
         <div className="px-6 flex items-center gap-1 border-t border-white/[0.08]">
           {([
-            { id: 'directory' as Tab, label: t('users.userDirectory', lang), icon: Users },
-            { id: 'audit' as Tab, label: t('users.auditTrail', lang), icon: History },
-            { id: 'roles' as Tab, label: t('users.rolesPermissions', lang), icon: Shield },
-            { id: 'sessions' as Tab, label: t('users.accessOverview', lang), icon: Fingerprint },
+            { id: 'directory' as Tab, label: 'User Directory', icon: Users },
+            { id: 'audit' as Tab, label: 'Audit Trail', icon: History },
+            { id: 'roles' as Tab, label: 'Roles & Permissions', icon: Shield },
+            { id: 'sessions' as Tab, label: 'Access Overview', icon: Fingerprint },
           ]).map(item => (
             <button key={item.id} onClick={() => setTab(item.id)} className={`flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all border-b-2 ${tab === item.id ? 'text-white border-white' : 'text-blue-200/75 border-transparent hover:text-white hover:border-white/30'}`}>
               <item.icon className="w-3.5 h-3.5" /> {item.label}
@@ -499,43 +499,43 @@ export default function UserAccessManagement({
             <div className="px-5 py-3 flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
-                <input ref={searchRef} value={search} onChange={e => setSearch(e.target.value)} placeholder={t('users.searchPlaceholder', lang)} className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-aegis-500/40 focus:border-aegis-500 transition-all placeholder:text-gray-400 dark:text-gray-300" />
+                <input ref={searchRef} value={search} onChange={e => setSearch(e.target.value)} placeholder={'Search users...'} className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-aegis-500/40 focus:border-aegis-500 transition-all placeholder:text-gray-400 dark:text-gray-300" />
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="px-2.5 py-2.5 text-[11px] font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                  <option value="all">{t('users.allRoles', lang)}</option>
-                  <option value="admin">{t('users.admin', lang)}</option>
-                  <option value="operator">{t('users.operator', lang)}</option>
-                  <option value="viewer">{t('users.viewer', lang)}</option>
+                  <option value="all">{'All Roles'}</option>
+                  <option value="admin">{'Admin'}</option>
+                  <option value="operator">{'Operator'}</option>
+                  <option value="viewer">{'Viewer'}</option>
                 </select>
                 <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="px-2.5 py-2.5 text-[11px] font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                  <option value="all">{t('users.allStatus', lang)}</option>
-                  <option value="active">{t('common.active', lang)}</option>
-                  <option value="suspended">{t('users.suspended', lang)}</option>
-                  <option value="inactive">{t('users.inactive', lang)}</option>
+                  <option value="all">{'All Status'}</option>
+                  <option value="active">{'Active'}</option>
+                  <option value="suspended">{'Suspended'}</option>
+                  <option value="inactive">{'Inactive'}</option>
                 </select>
                 <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)} className="px-2.5 py-2.5 text-[11px] font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                  <option value="all">{t('users.allDepartments', lang)}</option>
+                  <option value="all">{'All Departments'}</option>
                   {departments.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
-                  <option value={UNASSIGNED_VALUE}>{t('users.unassigned', lang)}</option>
+                  <option value={UNASSIGNED_VALUE}>{'Unassigned'}</option>
                 </select>
                 <div className="h-5 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block" />
-                <span className="text-[11px] text-gray-400 dark:text-gray-300 font-medium">{filteredUsers.length} {t('common.of', lang)} {users.length}</span>
+                <span className="text-[11px] text-gray-400 dark:text-gray-300 font-medium">{filteredUsers.length} {'of'} {users.length}</span>
               </div>
             </div>
 
             {/* Bulk actions bar */}
             {bulkSelected.size > 0 && (
               <div className="px-5 py-2.5 bg-blue-50 dark:bg-blue-900/10 border-t border-blue-100 dark:border-blue-900/30 flex items-center gap-3 flex-wrap">
-                <span className="text-xs font-bold text-blue-700 dark:text-blue-300">{bulkSelected.size} {t('common.selected', lang)}</span>
+                <span className="text-xs font-bold text-blue-700 dark:text-blue-300">{bulkSelected.size} {'selected'}</span>
                 <select value={bulkAction} onChange={e => setBulkAction(e.target.value)} className="px-2.5 py-1.5 text-[11px] font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                  <option value="">{t('users.bulkAction', lang)}</option>
-                  <option value="suspend">{t('users.suspend', lang)}</option>
-                  <option value="activate">{t('users.activate', lang)}</option>
-                  <option value="delete">{t('common.delete', lang)}</option>
+                  <option value="">{'Bulk action...'}</option>
+                  <option value="suspend">{'Suspend'}</option>
+                  <option value="activate">{'Activate'}</option>
+                  <option value="delete">{'Delete'}</option>
                 </select>
-                <button onClick={executeBulk} disabled={!bulkAction} className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{t('common.apply', lang)}</button>
-                <button onClick={() => { setBulkSelected(new Set()); setBulkAction('') }} className="text-[11px] text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 transition-colors">{t('common.clear', lang)}</button>
+                <button onClick={executeBulk} disabled={!bulkAction} className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{'Apply'}</button>
+                <button onClick={() => { setBulkSelected(new Set()); setBulkAction('') }} className="text-[11px] text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 transition-colors">{'Clear'}</button>
               </div>
             )}
           </div>
@@ -552,7 +552,7 @@ export default function UserAccessManagement({
                   headerClassName: 'px-4 w-10',
                 },
                 {
-                  key: 'name', header: t('users.user', lang), sortable: true,
+                  key: 'name', header: 'User', sortable: true,
                   render: (u) => {
                     const isExpanded = expandedUser === u.id
                     const isSelf = u.id === currentUser?.id
@@ -565,7 +565,7 @@ export default function UserAccessManagement({
                         }
                         <div className="text-left min-w-0">
                           <p className="font-bold text-gray-900 dark:text-white group-hover/user:text-blue-600 dark:group-hover/user:text-blue-400 transition-colors truncate whitespace-nowrap">
-                            {u.display_name}{isSelf && <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold">{t('users.youBadge', lang)}</span>}
+                            {u.display_name}{isSelf && <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold">{'YOU'}</span>}
                           </p>
                           <p className="text-[10px] text-gray-400 dark:text-gray-300 truncate font-mono">{u.email}</p>
                         </div>
@@ -574,41 +574,41 @@ export default function UserAccessManagement({
                   },
                 },
                 {
-                  key: 'role', header: t('users.role', lang), sortable: true,
+                  key: 'role', header: 'Role', sortable: true,
                   render: (u) => { const rm = roleMeta[u.role] || roleMeta.viewer; return <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold ring-1 ${rm.bg} ${rm.color} ${rm.ring}`}><rm.icon className="w-3 h-3" /> {rm.label}</span> },
                 },
                 {
-                  key: 'department', header: t('users.department', lang), sortable: true,
-                  render: (u) => u.department ? (departmentLabels[u.department] || u.department) : <span className="text-gray-400 dark:text-gray-300 italic">{t('users.unassigned', lang)}</span>,
+                  key: 'department', header: 'Department', sortable: true,
+                  render: (u) => u.department ? (departmentLabels[u.department] || u.department) : <span className="text-gray-400 dark:text-gray-300 italic">{'Unassigned'}</span>,
                   className: 'text-gray-600 dark:text-gray-300 truncate max-w-[140px]',
                 },
                 {
-                  key: 'status', header: t('common.status', lang), sortable: true,
+                  key: 'status', header: 'Status', sortable: true,
                   render: (u) => { const sm = STATUS_META[getUserStatus(u)]; const status = getUserStatus(u); return <span className={`inline-flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full font-bold ${sm.bg} ${sm.color}`}><span className={`w-1.5 h-1.5 rounded-full ${sm.dot} ${status === 'active' ? 'animate-pulse' : ''}`} /> {sm.label}</span> },
                 },
                 {
-                  key: 'lastLogin', header: t('users.lastLogin', lang), sortable: true,
-                  render: (u) => u.last_login ? formatRelativeTime(u.last_login, lang) : <span className="text-gray-400 dark:text-gray-300 italic">{t('common.never', lang)}</span>,
+                  key: 'lastLogin', header: 'Last Login', sortable: true,
+                  render: (u) => u.last_login ? formatRelativeTime(u.last_login, lang) : <span className="text-gray-400 dark:text-gray-300 italic">{'Never'}</span>,
                   className: 'text-gray-500 dark:text-gray-300 whitespace-nowrap',
                 },
                 {
-                  key: 'created', header: t('common.created', lang), sortable: true,
+                  key: 'created', header: 'Created', sortable: true,
                   render: (u) => u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '--',
                   className: 'text-gray-400 dark:text-gray-300 whitespace-nowrap text-[10px]',
                 },
                 {
-                  key: 'actions', header: t('common.actions', lang), align: 'right',
+                  key: 'actions', header: 'Actions', align: 'right',
                   render: (u) => {
                     const isSelf = u.id === currentUser?.id
                     return (
                       <div className="flex items-center gap-1 justify-end">
-                        <button onClick={() => { setEditModal(u); setEditForm({ role: u.role, department: u.department || '', phone: u.phone || '', displayName: u.display_name }) }} title={t('users.editUser', lang)} className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => { setEditModal(u); setEditForm({ role: u.role, department: u.department || '', phone: u.phone || '', displayName: u.display_name }) }} title={'Edit User'} className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
                         {u.is_suspended
-                          ? <button onClick={() => askConfirm(t('users.activate', lang), `${t('users.activate', lang)} ${u.display_name}?`, 'success', async () => { await apiActivateUser(u.id); setUsers(prev => prev.map(x => x.id === u.id ? { ...x, is_suspended: false } : x)); pushNotification(t('users.activatedSuccess', lang), 'success') })} title={t('users.activate', lang)} className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"><CheckCircle2 className="w-3.5 h-3.5" /></button>
-                          : <button onClick={() => { setSuspendModal(u); setSuspendForm({ until: '', reason: '' }) }} title={t('users.suspend', lang)} className="p-1.5 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"><Ban className="w-3.5 h-3.5" /></button>
+                          ? <button onClick={() => askConfirm('Activate', `${'Activate'} ${u.display_name}?`, 'success', async () => { await apiActivateUser(u.id); setUsers(prev => prev.map(x => x.id === u.id ? { ...x, is_suspended: false } : x)); pushNotification('User activated successfully', 'success') })} title={'Activate'} className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"><CheckCircle2 className="w-3.5 h-3.5" /></button>
+                          : <button onClick={() => { setSuspendModal(u); setSuspendForm({ until: '', reason: '' }) }} title={'Suspend'} className="p-1.5 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"><Ban className="w-3.5 h-3.5" /></button>
                         }
-                        <button onClick={() => askConfirm(t('users.resetPassword', lang), `${t('users.resetPassword', lang)} ${u.display_name}?`, 'info', async () => { await apiResetUserPassword(u.id); pushNotification(t('users.resetLinkGenerated', lang), 'success') })} title={t('users.resetPassword', lang)} className="p-1.5 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"><Key className="w-3.5 h-3.5" /></button>
-                        {!isSelf && <button onClick={() => askConfirm(t('users.deleteUser', lang), `${t('users.bulkDeletePrompt', lang)} ${u.display_name}? ${t('users.bulkDeleteSuffix', lang)}`, 'danger', async () => { await apiDeleteUser(u.id); setUsers(prev => prev.filter(x => x.id !== u.id)); pushNotification(t('users.deletedSuccess', lang), 'success') })} title={t('common.delete', lang)} className="p-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>}
+                        <button onClick={() => askConfirm('Reset Password', `${'Reset Password'} ${u.display_name}?`, 'info', async () => { await apiResetUserPassword(u.id); pushNotification('Password reset link generated', 'success') })} title={'Reset Password'} className="p-1.5 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"><Key className="w-3.5 h-3.5" /></button>
+                        {!isSelf && <button onClick={() => askConfirm('Delete User', `${'Permanently delete'} ${u.display_name}? ${'This cannot be undone.'}`, 'danger', async () => { await apiDeleteUser(u.id); setUsers(prev => prev.filter(x => x.id !== u.id)); pushNotification('User deleted successfully', 'success') })} title={'Delete'} className="p-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>}
                       </div>
                     )
                   },
@@ -629,20 +629,20 @@ export default function UserAccessManagement({
                     return (
                       <>
                               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 text-xs">
-                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.accountId', lang)}</span><div className="flex items-center gap-1.5 group/aid"><span className="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">ACC-{(u.id || '').slice(0, 6).toUpperCase()}</span><button className="opacity-0 group-hover/aid:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(u.id || '') }} title={u.id || ''}><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg></button></div></div>
-                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('common.email', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 truncate">{u.email}</p></div>
-                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('common.phone', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.phone || '--'}</p></div>
-                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.role', lang)}</span><p className={`font-bold ${rm.color}`}>{rm.label}</p></div>
-                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.department', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.department || t('users.unassigned', lang)}</p></div>
-                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.accountCreated', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '--'}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{'Account ID'}</span><div className="flex items-center gap-1.5 group/aid"><span className="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">ACC-{(u.id || '').slice(0, 6).toUpperCase()}</span><button className="opacity-0 group-hover/aid:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(u.id || '') }} title={u.id || ''}><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg></button></div></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{'Email'}</span><p className="font-bold text-gray-700 dark:text-gray-300 truncate">{u.email}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{'Phone'}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.phone || '--'}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{'Role'}</span><p className={`font-bold ${rm.color}`}>{rm.label}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{'Department'}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.department || 'Unassigned'}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{'Account Created'}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '--'}</p></div>
                               </div>
                               {u.is_suspended && u.suspended_until && (
                                 <div className="mt-3 p-2.5 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-lg">
-                                  <p className="text-[11px] text-red-700 dark:text-red-300 flex items-center gap-1.5"><Ban className="w-3 h-3" /> {t('users.suspendedUntil', lang)} {new Date(u.suspended_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                  <p className="text-[11px] text-red-700 dark:text-red-300 flex items-center gap-1.5"><Ban className="w-3 h-3" /> {'Suspended until'} {new Date(u.suspended_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                                 </div>
                               )}
                               <div className="mt-3">
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2">{t('users.accountActivity', lang)}</p>
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2">{'Account Activity'}</p>
                                 {auditLog.filter(a => a.target_id === u.id || (a.operator_id === u.id && (a.action_type === 'login' || a.action_type === 'logout'))).slice(0, 5).map((log, li) => (
                                   <div key={li} className="flex items-center gap-2 text-[11px] py-1">
                                     <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${log.action_type?.includes('delete') ? 'bg-red-500' : log.action_type?.includes('suspend') ? 'bg-amber-500' : 'bg-blue-500'}`} />
@@ -650,22 +650,22 @@ export default function UserAccessManagement({
                                     <span className="ml-auto text-gray-400 dark:text-gray-300 text-[10px] whitespace-nowrap">{formatRelativeTime(log.created_at, lang)}</span>
                                   </div>
                                 ))}
-                                {auditLog.filter(a => a.target_id === u.id).length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('users.noAccountActivity', lang)}</p>}
+                                {auditLog.filter(a => a.target_id === u.id).length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">{'No activity recorded for this account'}</p>}
                               </div>
                       </>
                     )
                   }}
-                  emptyMessage={t('users.noUsersMatch', lang)}
+                  emptyMessage={'No users match your criteria'}
                 />
               )
             })()}
             {/* Footer */}
             <div className="px-5 py-2.5 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-500 dark:text-gray-300 flex items-center justify-between">
-              <span>{t('common.showing', lang)} {filteredUsers.length} {t('common.of', lang)} {users.length} {t('users.accounts', lang)}</span>
+              <span>{'Showing'} {filteredUsers.length} {'of'} {users.length} {'accounts'}</span>
               <span className="flex items-center gap-3">
-                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {stats.active} {t('common.active', lang).toLowerCase()}</span>
-                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> {stats.suspended} {t('users.suspended', lang).toLowerCase()}</span>
-                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-gray-400" /> {stats.inactive} {t('users.inactive', lang).toLowerCase()}</span>
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {stats.active} {'Active'.toLowerCase()}</span>
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> {stats.suspended} {'Suspended'.toLowerCase()}</span>
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-gray-400" /> {stats.inactive} {'Inactive'.toLowerCase()}</span>
               </span>
             </div>
           </div>
@@ -679,10 +679,10 @@ export default function UserAccessManagement({
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm px-5 py-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
-              <input value={auditSearch} onChange={e => setAuditSearch(e.target.value)} placeholder={t('admin.auditTrail.search', lang)} className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-aegis-500/40 transition-all placeholder:text-gray-400 dark:text-gray-300" />
+              <input value={auditSearch} onChange={e => setAuditSearch(e.target.value)} placeholder={'Search audit logs...'} className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-aegis-500/40 transition-all placeholder:text-gray-400 dark:text-gray-300" />
             </div>
             <select value={auditTypeFilter} onChange={e => setAuditTypeFilter(e.target.value)} className="px-2.5 py-2.5 text-[11px] font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <option value="all">{t('audit.allTypes', lang)}</option>
+              <option value="all">{'All Types'}</option>
               {Object.entries(AUDIT_TYPES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
           </div>
@@ -692,26 +692,26 @@ export default function UserAccessManagement({
             <DataTable
               columns={[
                 {
-                  key: 'action', header: t('audit.action', lang), className: 'px-5',
-                  render: (log) => { const at = AUDIT_TYPES[log.action_type] || { label: log.action_type || t('common.unknown', lang), color: 'bg-gray-100 dark:bg-gray-800 text-gray-600', icon: FileText }; const AtIcon = at.icon; return <div className="flex items-center gap-2.5"><div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${at.color}`}><AtIcon className="w-3.5 h-3.5" /></div><span className="font-medium text-gray-900 dark:text-white truncate max-w-[260px]">{log.action}</span></div> },
+                  key: 'action', header: 'Action', className: 'px-5',
+                  render: (log) => { const at = AUDIT_TYPES[log.action_type] || { label: log.action_type || 'Unknown', color: 'bg-gray-100 dark:bg-gray-800 text-gray-600', icon: FileText }; const AtIcon = at.icon; return <div className="flex items-center gap-2.5"><div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${at.color}`}><AtIcon className="w-3.5 h-3.5" /></div><span className="font-medium text-gray-900 dark:text-white truncate max-w-[260px]">{log.action}</span></div> },
                 },
                 {
-                  key: 'type', header: t('common.type', lang),
-                  render: (log) => { const at = AUDIT_TYPES[log.action_type] || { label: log.action_type || t('common.unknown', lang), color: 'bg-gray-100 dark:bg-gray-800 text-gray-600', icon: FileText }; return <span className={`inline-flex text-[10px] px-2 py-0.5 rounded-md font-bold ${at.color}`}>{at.label}</span> },
+                  key: 'type', header: 'Type',
+                  render: (log) => { const at = AUDIT_TYPES[log.action_type] || { label: log.action_type || 'Unknown', color: 'bg-gray-100 dark:bg-gray-800 text-gray-600', icon: FileText }; return <span className={`inline-flex text-[10px] px-2 py-0.5 rounded-md font-bold ${at.color}`}>{at.label}</span> },
                 },
-                { key: 'operator', header: t('users.operator', lang), render: (log) => <span className="text-gray-600 dark:text-gray-300">{log.operator_name || t('common.system', lang)}</span> },
-                { key: 'target', header: t('common.target', lang), render: (log) => log.target_id ? <span className="font-mono text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors" title={log.target_id} onClick={() => navigator.clipboard.writeText(log.target_id || '')}>TGT-{(log.target_id || '').slice(0, 6).toUpperCase()}</span> : <span className="text-[10px] text-gray-400 dark:text-gray-300">--</span> },
-                { key: 'details', header: t('common.details', lang), render: (log) => <span className="text-gray-400 dark:text-gray-300 text-[10px] truncate max-w-[160px] block">{log.before_state ? t('common.stateChangeCaptured', lang) : log.ip_address || '-'}</span> },
-                { key: 'timestamp', header: t('common.timestamp', lang), align: 'right', className: 'px-5',
+                { key: 'operator', header: 'Operator', render: (log) => <span className="text-gray-600 dark:text-gray-300">{log.operator_name || 'System'}</span> },
+                { key: 'target', header: 'Target', render: (log) => log.target_id ? <span className="font-mono text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors" title={log.target_id} onClick={() => navigator.clipboard.writeText(log.target_id || '')}>TGT-{(log.target_id || '').slice(0, 6).toUpperCase()}</span> : <span className="text-[10px] text-gray-400 dark:text-gray-300">--</span> },
+                { key: 'details', header: 'Details', render: (log) => <span className="text-gray-400 dark:text-gray-300 text-[10px] truncate max-w-[160px] block">{log.before_state ? 'State change captured' : log.ip_address || '-'}</span> },
+                { key: 'timestamp', header: 'Timestamp', align: 'right', className: 'px-5',
                   render: (log) => <div className="text-gray-500 dark:text-gray-300 whitespace-nowrap"><div>{new Date(log.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}</div><div className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(log.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div></div> },
               ]}
               rows={filteredAudit}
               rowKey={(log: any) => String(log.id ?? log.created_at)}
-              emptyMessage={t('audit.noEntriesFound', lang)}
+              emptyMessage={'No audit entries found'}
             />
             <div className="px-5 py-2.5 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-400 dark:text-gray-300 flex items-center justify-between">
-              <span>{filteredAudit.length} {t('common.entries', lang)}</span>
-              <span className="flex items-center gap-1"><Lock className="w-3 h-3" /> {t('users.immutableAuditLog', lang)}</span>
+              <span>{filteredAudit.length} {'entries'}</span>
+              <span className="flex items-center gap-1"><Lock className="w-3 h-3" /> {'Immutable audit log - entries cannot be modified or deleted'}</span>
             </div>
           </div>
         </div>
@@ -738,7 +738,7 @@ export default function UserAccessManagement({
                     <p className="text-[11px] text-gray-500 dark:text-gray-300 mt-1">{role.desc}</p>
                   </div>
                   <div className="p-4">
-                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2.5">{t('users.permissions', lang)}</p>
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2.5">{'Permissions'}</p>
                     <div className="space-y-1.5">
                       {role.perms.map((perm, pi) => (
                         <div key={pi} className="flex items-center gap-2 text-xs">
@@ -755,7 +755,7 @@ export default function UserAccessManagement({
 
           {/* Role distribution chart */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-5">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4"><BarChart3 className="w-4 h-4 text-blue-500" /> {t('users.roleDistribution', lang)}</h3>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4"><BarChart3 className="w-4 h-4 text-blue-500" /> {'Role Distribution'}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {Object.entries(roleMeta).map(([key, role]) => {
                 const count = key === 'admin' ? stats.admin : key === 'operator' ? stats.operator : stats.viewer
@@ -779,8 +779,8 @@ export default function UserAccessManagement({
               <div className="flex items-start gap-2">
                 <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-bold text-blue-800 dark:text-blue-200 mb-1">{t('users.rbacEnforcement', lang)}</p>
-                  <p className="text-[11px] text-blue-700 dark:text-blue-300">{t('users.rbacEnforcementPrefix', lang)} <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/40 rounded text-[10px] font-mono">{'requireSuperAdmin'}</code> {t('users.rbacEnforcementSuffix', lang)}</p>
+                  <p className="text-xs font-bold text-blue-800 dark:text-blue-200 mb-1">{'RBAC Enforcement'}</p>
+                  <p className="text-[11px] text-blue-700 dark:text-blue-300">{'RBAC is enforced at both API (middleware) and UI levels. JWT tokens carry role claims verified on every request. Admin actions require'} <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/40 rounded text-[10px] font-mono">{'requireSuperAdmin'}</code> {'middleware. Session tokens expire after 8 hours with automatic silent refresh.'}</p>
                 </div>
               </div>
             </div>
@@ -794,8 +794,8 @@ export default function UserAccessManagement({
           {/* Department breakdown */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
             <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><Building2 className="w-4 h-4 text-teal-500" /> {t('users.departmentAccessMatrix', lang)}</h3>
-              <span className="text-[11px] text-gray-400 dark:text-gray-300">{deptDistribution.length} {t('users.departments', lang).toLowerCase()}</span>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><Building2 className="w-4 h-4 text-teal-500" /> {'Department Access Matrix'}</h3>
+              <span className="text-[11px] text-gray-400 dark:text-gray-300">{deptDistribution.length} {'Departments'.toLowerCase()}</span>
             </div>
             <div className="p-5">
               <div className="space-y-2.5">
@@ -808,7 +808,7 @@ export default function UserAccessManagement({
                   return (
                     <div key={dept} className="group">
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">{dept === UNASSIGNED_VALUE ? t('users.unassigned', lang) : (departmentLabels[dept] || dept)}</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">{dept === UNASSIGNED_VALUE ? 'Unassigned' : (departmentLabels[dept] || dept)}</span>
                         <div className="flex items-center gap-3">
                           <div className="hidden sm:flex items-center gap-2 text-[10px] text-gray-400 dark:text-gray-300">
                             {deptAdmins > 0 && <span className="flex items-center gap-0.5"><Shield className="w-2.5 h-2.5 text-purple-500" />{deptAdmins}</span>}
@@ -832,7 +832,7 @@ export default function UserAccessManagement({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Security posture */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-5">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4"><ShieldAlert className="w-4 h-4 text-amber-500" /> {t('users.securityPosture', lang)}</h3>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4"><ShieldAlert className="w-4 h-4 text-amber-500" /> {'Security Posture'}</h3>
               <div className="space-y-3">
                 {securityChecks.map((item, i) => (
                   <div key={i} className="flex items-center gap-3 py-1.5">
@@ -851,7 +851,7 @@ export default function UserAccessManagement({
 
             {/* Recent access events */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-5">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4"><Clock className="w-4 h-4 text-purple-500" /> {t('users.recentAccountEvents', lang)}</h3>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4"><Clock className="w-4 h-4 text-purple-500" /> {'Recent Account Events'}</h3>
               <div className="space-y-0 border-l-2 border-gray-100 dark:border-gray-800 ml-2 pl-5 max-h-[360px] overflow-y-auto pr-1">
                 {auditLog.filter(a => a.action_type?.includes('user_') || a.action_type === 'login' || a.action_type === 'logout' || a.action_type === 'password_reset_generate').slice(0, 20).map((log, i) => {
                   const at = AUDIT_TYPES[log.action_type] || { label: log.action_type || '?', color: 'bg-gray-100 text-gray-600', icon: FileText }
@@ -866,7 +866,7 @@ export default function UserAccessManagement({
                             <span className="text-xs font-medium text-gray-900 dark:text-white truncate">{log.action}</span>
                           </div>
                           <div className="text-[10px] text-gray-400 dark:text-gray-300 flex items-center gap-1.5 flex-wrap">
-                            <span>{log.operator_name || t('common.system', lang)}</span>
+                            <span>{log.operator_name || 'System'}</span>
                             <span aria-hidden="true" className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
                             <span>{new Date(log.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
@@ -879,7 +879,7 @@ export default function UserAccessManagement({
                 {auditLog.filter(a => a.action_type?.includes('user_') || a.action_type === 'login' || a.action_type === 'password_reset_generate').length === 0 && (
                   <div className="text-center py-8">
                     <Clock className="w-6 h-6 text-gray-300 dark:text-gray-400 mx-auto mb-1.5" />
-                    <p className="text-xs text-gray-400 dark:text-gray-300">{t('users.noAccountEvents', lang)}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-300">{'No account events recorded'}</p>
                   </div>
                 )}
               </div>
@@ -907,11 +907,11 @@ export default function UserAccessManagement({
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('admin.users.displayName', lang)}</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{'Display Name'}</label>
                 <input className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 outline-none" value={editForm.displayName} onChange={e => setEditForm(f => ({ ...f, displayName: e.target.value }))} />
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('users.roleAssignment', lang)}</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{'Role Assignment'}</label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {Object.entries(roleMeta).map(([key, r]) => {
                     const RIcon = r.icon
@@ -925,19 +925,19 @@ export default function UserAccessManagement({
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('users.department', lang)}</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{'Department'}</label>
                 <select className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 outline-none" value={editForm.department} onChange={e => setEditForm(f => ({ ...f, department: e.target.value }))}>
-                  <option value="">{t('users.selectDepartment', lang)}</option>
+                  <option value="">{'Select Department'}</option>
                   {departments.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('common.phone', lang)}</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{'Phone'}</label>
                 <input className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 outline-none" placeholder="+44 1234 567890" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setEditModal(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl py-3 text-sm font-semibold transition-colors">{t('common.cancel', lang)}</button>
-                <button onClick={handleSave} className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl py-3 text-sm font-bold shadow-lg shadow-blue-500/20 transition-all">{t('common.saveChanges', lang)}</button>
+                <button onClick={() => setEditModal(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl py-3 text-sm font-semibold transition-colors">{'Cancel'}</button>
+                <button onClick={handleSave} className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl py-3 text-sm font-bold shadow-lg shadow-blue-500/20 transition-all">{'Save Changes'}</button>
               </div>
             </div>
           </div>
@@ -952,7 +952,7 @@ export default function UserAccessManagement({
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center"><Ban className="w-6 h-6 text-white" /></div>
                 <div>
-                  <h3 className="font-bold text-white text-lg">{t('users.suspendAccount', lang)}</h3>
+                  <h3 className="font-bold text-white text-lg">{'Suspend Account'}</h3>
                   <div className="text-amber-100 text-sm flex items-center gap-1.5 flex-wrap">
                     <span>{suspendModal.display_name}</span>
                     <span aria-hidden="true" className="w-1 h-1 rounded-full bg-amber-100/70" />
@@ -964,20 +964,20 @@ export default function UserAccessManagement({
             </div>
             <div className="p-5 space-y-4">
               <div className="p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-xl">
-                <p className="text-xs text-amber-800 dark:text-amber-200 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> {t('users.suspensionWarning', lang)}</p>
+                <p className="text-xs text-amber-800 dark:text-amber-200 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> {'This will immediately lock the user out. Existing active sessions will be blocked at next token refresh.'}</p>
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('common.reason', lang)} <span className="text-red-500">*</span></label>
-                <textarea rows={3} className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-amber-500 outline-none resize-none" placeholder={t('users.reasonPlaceholder', lang)} value={suspendForm.reason} onChange={e => setSuspendForm(f => ({ ...f, reason: e.target.value }))} />
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{'Reason'} <span className="text-red-500">*</span></label>
+                <textarea rows={3} className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-amber-500 outline-none resize-none" placeholder={'Provide justification for this suspension...'} value={suspendForm.reason} onChange={e => setSuspendForm(f => ({ ...f, reason: e.target.value }))} />
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('users.suspendUntilOptional', lang)}</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{'Suspend Until (optional)'}</label>
                 <input type="datetime-local" className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-amber-500 outline-none" value={suspendForm.until} onChange={e => setSuspendForm(f => ({ ...f, until: e.target.value }))} />
-                <p className="text-[10px] text-gray-400 dark:text-gray-300 mt-1">{t('users.leaveBlankIndefinite', lang)}</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-300 mt-1">{'Leave blank for indefinite suspension'}</p>
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setSuspendModal(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl py-3 text-sm font-semibold transition-colors">{t('common.cancel', lang)}</button>
-                <button onClick={handleSuspend} className="flex-1 bg-gradient-to-r from-amber-500 to-red-500 hover:from-amber-600 hover:to-red-600 text-white rounded-xl py-3 text-sm font-bold shadow-lg shadow-amber-500/20 transition-all">{t('users.confirmSuspension', lang)}</button>
+                <button onClick={() => setSuspendModal(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl py-3 text-sm font-semibold transition-colors">{'Cancel'}</button>
+                <button onClick={handleSuspend} className="flex-1 bg-gradient-to-r from-amber-500 to-red-500 hover:from-amber-600 hover:to-red-600 text-white rounded-xl py-3 text-sm font-bold shadow-lg shadow-amber-500/20 transition-all">{'Confirm Suspension'}</button>
               </div>
             </div>
           </div>
@@ -1043,18 +1043,18 @@ export default function UserAccessManagement({
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('users.department', lang)}</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{'Department'}</label>
                 <select className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-emerald-500 outline-none" value={inviteForm.department} onChange={e => setInviteForm(f => ({ ...f, department: e.target.value }))}>
-                  <option value="">{t('users.selectDepartment', lang)}</option>
+                  <option value="">{'Select Department'}</option>
                   {departments.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('common.phone', lang)}</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{'Phone'}</label>
                 <input className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="+44 1234 567890" value={inviteForm.phone} onChange={e => setInviteForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowInviteModal(false)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl py-3 text-sm font-semibold transition-colors">{t('common.cancel', lang)}</button>
+                <button onClick={() => setShowInviteModal(false)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl py-3 text-sm font-semibold transition-colors">{'Cancel'}</button>
                 <button onClick={handleInvite} disabled={inviteLoading} className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 disabled:from-gray-400 disabled:to-gray-400 text-white rounded-xl py-3 text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
                   {inviteLoading ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Creating...</> : <><UserPlus className="w-3.5 h-3.5" /> Send Invite</>}
                 </button>

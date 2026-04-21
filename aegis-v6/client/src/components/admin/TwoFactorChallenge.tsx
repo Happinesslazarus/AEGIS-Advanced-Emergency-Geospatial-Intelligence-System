@@ -39,12 +39,12 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
 
     const trimmedCode = code.trim()
     if (!trimmedCode) {
-      setError(t('twofa.enterCode', lang))
+      setError('Please enter your authentication code')
       return
     }
 
     if (mode === 'totp' && (trimmedCode.length !== 6 || !/^\d{6}$/.test(trimmedCode))) {
-      setError(t('twofa.invalidCode', lang))
+      setError('Invalid code. Please try again.')
       return
     }
 
@@ -56,9 +56,9 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
       }
       onSuccess(res.token, res.user)
     } catch (err: any) {
-      const msg = err.message || t('twofa.verifyFailed', lang)
+      const msg = err.message || 'Verification failed. Please try again.'
       if (msg.includes('expired') || msg.includes('log in again')) {
-        setError(t('twofa.sessionExpired', lang))
+        setError('Session expired. Please log in again.')
       } else {
         setError(msg)
       }
@@ -97,11 +97,11 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
           <div className="w-14 h-14 bg-gradient-to-br from-aegis-500 to-aegis-700 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-aegis-600/30">
             <Shield className="w-7 h-7 text-white" />
           </div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t('twofa.title', lang)}</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">{'Two-Factor Authentication'}</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {mode === 'totp'
-              ? t('twofa.enterTotpDesc', lang)
-              : t('twofa.enterBackupDesc', lang)}
+              ? 'Enter the 6-digit code from your authenticator app.'
+              : 'Enter one of your backup recovery codes.'}
           </p>
         </div>
 
@@ -132,7 +132,7 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
               mode === 'totp' ? 'bg-white dark:bg-gray-700 shadow text-aegis-700 dark:text-aegis-300' : 'text-gray-500 dark:text-gray-400'
             }`}
           >
-            <Shield className="w-3.5 h-3.5" /> {t('twofa.authenticator', lang)}
+            <Shield className="w-3.5 h-3.5" /> {'Authenticator'}
           </button>
           <button
             type="button"
@@ -141,7 +141,7 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
               mode === 'backup' ? 'bg-white dark:bg-gray-700 shadow text-aegis-700 dark:text-aegis-300' : 'text-gray-500 dark:text-gray-400'
             }`}
           >
-            <Key className="w-3.5 h-3.5" /> {t('twofa.backupCode', lang)}
+            <Key className="w-3.5 h-3.5" /> {'Use Backup Code'}
           </button>
         </div>
 
@@ -150,7 +150,7 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
           {mode === 'totp' ? (
             <div>
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
-                {t('twofa.authCode', lang)}
+                {'Authentication Code'}
               </label>
               <input
                 ref={inputRef}
@@ -166,7 +166,7 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
                     ? 'border-green-500 ring-2 ring-green-500/20'
                     : 'border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-2 focus:ring-aegis-500/20'
                 }`}
-                aria-label={t('twofa.aria.totpCode', lang)}
+                aria-label={'6-digit authentication code'}
               />
               {/* Digit progress dots */}
               <div className="flex justify-center gap-2 mt-2.5" aria-hidden="true">
@@ -190,7 +190,7 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
           ) : (
             <div>
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
-                {t('twofa.backupRecoveryCode', lang)}
+                {'Backup Recovery Code'}
               </label>
               <input
                 ref={inputRef}
@@ -201,10 +201,10 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
                 onChange={e => handleBackupInput(e.target.value)}
                 maxLength={9}
                 className="w-full text-center text-xl font-mono tracking-widest py-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-2 focus:ring-aegis-500/20 outline-none"
-                aria-label={t('twofa.aria.backupCode', lang)}
+                aria-label={'Backup recovery code'}
               />
               <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1 text-center">
-                {t('twofa.backupOnlyOnce', lang)}
+                {'Each backup code can only be used once'}
               </p>
             </div>
           )}
@@ -216,10 +216,10 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
               checked={rememberDevice}
               onChange={e => setRememberDevice(e.target.checked)}
               className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-aegis-600 focus:ring-aegis-500 focus:ring-offset-0"
-              aria-label={t('twofa.rememberDevice', lang)}
+              aria-label={'Remember this device for 30 days'}
             />
             <span className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 flex items-center gap-1">
-              <Monitor className="w-3 h-3" /> {t('twofa.rememberDevice', lang)}
+              <Monitor className="w-3 h-3" /> {'Remember this device for 30 days'}
             </span>
           </label>
 
@@ -229,9 +229,9 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
             className="w-full bg-gradient-to-r from-aegis-600 to-aegis-700 hover:from-aegis-500 hover:to-aegis-600 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed py-3 rounded-xl font-bold text-sm text-white transition-all shadow-lg shadow-aegis-600/25 flex items-center justify-center gap-2"
           >
             {loading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> {t('twofa.verifying', lang)}</>
+              <><Loader2 className="w-4 h-4 animate-spin" /> {'Verifying...'}</>
             ) : (
-              <><CheckCircle className="w-4 h-4" /> {t('twofa.verifySignIn', lang)}</>
+              <><CheckCircle className="w-4 h-4" /> {'Verify & Sign In'}</>
             )}
           </button>
         </form>
@@ -243,7 +243,7 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
             onClick={onCancel}
             className="w-full text-xs text-gray-500 dark:text-gray-400 hover:text-aegis-600 dark:hover:text-aegis-300 flex items-center justify-center gap-1.5 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> {t('twofa.backToLogin', lang)}
+            <ArrowLeft className="w-3.5 h-3.5" /> {'Back to Login'}
           </button>
         </div>
       </div>

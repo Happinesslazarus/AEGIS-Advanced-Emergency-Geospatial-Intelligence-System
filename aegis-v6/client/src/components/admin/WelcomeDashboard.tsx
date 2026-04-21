@@ -11,7 +11,6 @@ import {
   TrendingUp, ArrowRight, Shield, Thermometer,
   Wind, Droplets, Server, Database, Cpu, Wifi
 } from 'lucide-react'
-import { t } from '../../utils/i18n'
 import { apiFetch } from '../../utils/api'
 
 interface WelcomeDashboardProps {
@@ -29,22 +28,13 @@ const LOCALE_MAP: Record<string, string> = {
   hi: 'hi-IN', pt: 'pt-BR', pl: 'pl-PL', ur: 'ur-PK',
 }
 
-const STATUS_I18N: Record<string, string> = {
-  Urgent: 'admin.filters.status.urgent',
-  Unverified: 'admin.filters.status.unverified',
-  Verified: 'admin.filters.status.verified',
-  Flagged: 'admin.filters.status.flagged',
-  Resolved: 'admin.filters.status.resolved',
-  Archived: 'admin.filters.status.archived',
-  'False Report': 'admin.filters.status.falseReport',
-}
 
 export default function WelcomeDashboard({ user, stats, alerts, reports, lang, onNavigate, socketConnected }: WelcomeDashboardProps) {
   const greeting = (() => {
     const h = new Date().getHours()
-    if (h < 12) return t('cdash.overview.goodMorning', lang)
-    if (h < 17) return t('cdash.overview.goodAfternoon', lang)
-    return t('cdash.overview.goodEvening', lang)
+    if (h < 12) return 'Good morning'
+    if (h < 17) return 'Good afternoon'
+    return 'Good evening'
   })()
 
   const dateLocale = LOCALE_MAP[lang] || 'en-GB'
@@ -82,10 +72,7 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
   const activeAlerts = useMemo(() => activeAlertsFull.slice(0, 3), [activeAlertsFull])
   const criticalCount = useMemo(() => reports.filter(r => r.severity === 'High' && r.status !== 'Resolved' && r.status !== 'Archived').length, [reports])
 
-  const localizeStatus = (status: string) => {
-    const key = STATUS_I18N[status]
-    return key ? t(key, lang) : status
-  }
+  const localizeStatus = (status: string) => status
 
   //Keyboard shortcuts
   const [showKeyboard, setShowKeyboard] = useState(false)
@@ -110,13 +97,13 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
     <div className="space-y-6 animate-fade-in">
       {/* Operational Status Bar */}
       <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-gray-50 dark:bg-gray-900/60 ring-1 ring-gray-200 dark:ring-gray-800 overflow-x-auto scrollbar-thin stagger-children">
-        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest whitespace-nowrap">{t('admin.welcome.systemStatus', lang)}</span>
+        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest whitespace-nowrap">{'System Status'}</span>
         <span className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
         {([
-          { icon: Server, label: t('admin.welcome.statusApi', lang), ok: true },
-          { icon: Database, label: t('admin.welcome.statusDatabase', lang), ok: true },
-          { icon: Cpu, label: t('admin.welcome.statusAiEngine', lang), ok: true },
-          { icon: Wifi, label: t('admin.welcome.statusWebSocket', lang), ok: socketConnected ?? true },
+          { icon: Server, label: 'API', ok: true },
+          { icon: Database, label: 'Database', ok: true },
+          { icon: Cpu, label: 'AI Engine', ok: true },
+          { icon: Wifi, label: 'WebSocket', ok: socketConnected ?? true },
         ] as const).map(s => (
           <div key={s.label} className="flex items-center gap-1.5 whitespace-nowrap">
             <s.icon className="w-3 h-3 text-gray-400 dark:text-gray-400" />
@@ -168,23 +155,23 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
                 )}
                 <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-500/20 border border-emerald-400/30 px-2 py-0.5 rounded-full text-emerald-200">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  {t('admin.welcome.live', lang)}
+                  {'LIVE'}
                 </span>
               </p>
             </div>
           </div>
           <p className="text-white/80 text-sm max-w-xl leading-relaxed">
-            {t('admin.welcome.commandCentre', lang)} {t('admin.welcome.youHave', lang)}{' '}
-            <span className="font-bold text-white">{stats.unverified} {t('admin.welcome.unverifiedReports', lang)}</span>{' '}
-            {t('admin.welcome.and', lang)}{' '}
-            <span className="font-bold text-white">{stats.urgent} {t('admin.welcome.urgentIncidents', lang)}</span>{' '}
-            {t('admin.welcome.requiringAttention', lang)}
+            {'Welcome to your AEGIS Command Centre.'} {'You have'}{' '}
+            <span className="font-bold text-white">{stats.unverified} {'unverified reports'}</span>{' '}
+            {'and'}{' '}
+            <span className="font-bold text-white">{stats.urgent} {'urgent incidents'}</span>{' '}
+            {'requiring attention.'}
           </p>
 
           {/* Priority Heatmap Strip */}
           {stats.total > 0 && (
             <div className="mt-4 flex items-center gap-2">
-              <span className="text-[9px] text-white/50 font-bold uppercase tracking-wider">{t('admin.welcome.severity', lang)}</span>
+              <span className="text-[9px] text-white/50 font-bold uppercase tracking-wider">{'Severity'}</span>
               <div className="flex-1 flex h-2 rounded-full overflow-hidden bg-white/10">
                 {stats.high > 0 && <div className="bg-red-500 transition-all duration-700" style={{ width: `${(stats.high / stats.total) * 100}%` }} />}
                 {stats.medium > 0 && <div className="bg-amber-500 transition-all duration-700" style={{ width: `${(stats.medium / stats.total) * 100}%` }} />}
@@ -201,9 +188,9 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
           {criticalCount > 0 && (
             <div className="mt-4 flex items-center gap-2 bg-red-500/20 backdrop-blur-sm border border-red-400/30 rounded-xl px-4 py-2.5 w-fit animate-glow-pulse">
               <AlertTriangle className="w-4 h-4 text-red-300" />
-              <span className="text-sm font-bold text-red-100">{criticalCount} {t('admin.welcome.highSeverityActive', lang)}</span>
+              <span className="text-sm font-bold text-red-100">{criticalCount} {'high-severity incident(s) active'}</span>
               <button onClick={() => onNavigate('reports')} className="ml-2 text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition">
-                {t('admin.welcome.view', lang)} <ArrowRight className="w-3 h-3 inline ml-0.5" />
+                {'View'} <ArrowRight className="w-3 h-3 inline ml-0.5" />
               </button>
             </div>
           )}
@@ -212,10 +199,10 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
 
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 stagger-children">
-        <StatCard icon={FileText} label={t('stats.total', lang)} value={stats.total} color="blue" onClick={() => onNavigate('reports')} />
-        <StatCard icon={AlertTriangle} label={t('stats.urgent', lang)} value={stats.urgent} color="red" onClick={() => onNavigate('reports')} pulse={stats.urgent > 0} />
-        <StatCard icon={CheckCircle} label={t('stats.verified', lang)} value={stats.verified} color="emerald" onClick={() => onNavigate('reports')} />
-        <StatCard icon={TrendingUp} label={t('admin.verificationRate', lang)} value={`${stats.verifyRate}%`} color="violet" gauge={stats.verifyRate} />
+        <StatCard icon={FileText} label={'Total Reports'} value={stats.total} color="blue" onClick={() => onNavigate('reports')} />
+        <StatCard icon={AlertTriangle} label={'Urgent'} value={stats.urgent} color="red" onClick={() => onNavigate('reports')} pulse={stats.urgent > 0} />
+        <StatCard icon={CheckCircle} label={'Verified'} value={stats.verified} color="emerald" onClick={() => onNavigate('reports')} />
+        <StatCard icon={TrendingUp} label={'Verification Rate'} value={`${stats.verifyRate}%`} color="violet" gauge={stats.verifyRate} />
       </div>
 
       {/* Two Column Layout */}
@@ -224,15 +211,15 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
         <div className="glass-card rounded-2xl p-5 animate-slide-up">
           <h3 className="text-sm font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
             <Zap className="w-4 h-4 text-amber-500" />
-            {t('cdash.overview.quickActions', lang)}
+            {'Quick Actions'}
           </h3>
           <div className="grid grid-cols-2 gap-2 stagger-children">
-            <QuickAction icon={FileText} label={t('admin.welcome.viewReports', lang)} desc={`${stats.unverified} ${t('admin.welcome.pending', lang)}`} onClick={() => onNavigate('reports')} color="blue" />
-            <QuickAction icon={Bell} label={t('admin.sendAlert', lang)} desc={t('admin.welcome.broadcastNow', lang)} onClick={() => onNavigate('alert_send')} color="red" />
-            <QuickAction icon={BarChart3} label={t('admin.analytics', lang)} desc={t('admin.welcome.viewTrends', lang)} onClick={() => onNavigate('analytics')} color="violet" />
-            <QuickAction icon={MapPin} label={t('admin.liveMap', lang)} desc={t('admin.welcome.realTimeView', lang)} onClick={() => onNavigate('map')} color="emerald" />
-            <QuickAction icon={Users} label={t('admin.welcome.manageUsers', lang)} desc={t('admin.welcome.teamCitizens', lang)} onClick={() => onNavigate('users')} color="amber" />
-            <QuickAction icon={Activity} label={t('admin.systemHealth', lang)} desc={t('admin.welcome.monitorStatus', lang)} onClick={() => onNavigate('system_health')} color="cyan" />
+            <QuickAction icon={FileText} label={'View Reports'} desc={`${stats.unverified} ${'pending'}`} onClick={() => onNavigate('reports')} color="blue" />
+            <QuickAction icon={Bell} label={'Send Alert'} desc={'Broadcast now'} onClick={() => onNavigate('alert_send')} color="red" />
+            <QuickAction icon={BarChart3} label={'Analytics'} desc={'View trends'} onClick={() => onNavigate('analytics')} color="violet" />
+            <QuickAction icon={MapPin} label={'Live Map'} desc={'Real-time view'} onClick={() => onNavigate('map')} color="emerald" />
+            <QuickAction icon={Users} label={'Manage Users'} desc={'Team & citizens'} onClick={() => onNavigate('users')} color="amber" />
+            <QuickAction icon={Activity} label={'System Health'} desc={'Monitor status'} onClick={() => onNavigate('system_health')} color="cyan" />
           </div>
         </div>
 
@@ -241,16 +228,16 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
               <Bell className="w-4 h-4 text-red-500" />
-              {t('stats.activeAlerts', lang)}
+              {'Active Alerts'}
             </h3>
             <span className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-lg">
-              {activeAlertsFull.length} {t('admin.welcome.active', lang)}
+              {activeAlertsFull.length} {'active'}
             </span>
           </div>
           {activeAlerts.length === 0 ? (
             <div className="text-center py-8">
               <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t('admin.welcome.allClear', lang)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{'No active alerts. All clear.'}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -262,8 +249,8 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
                     alert.severity === 'Medium' ? 'bg-amber-500' : 'bg-blue-500'
                   }`} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{alert.title || alert.message || t('admin.welcome.alert', lang)}</p>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400">{alert.severity || t('admin.welcome.info', lang)} | {alert.area || t('admin.welcome.allAreas', lang)}</p>
+                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{alert.title || alert.message || 'Alert'}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">{alert.severity || 'Info'} | {alert.area || 'All areas'}</p>
                   </div>
                 </div>
               ))}
@@ -277,14 +264,14 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
             <Clock className="w-4 h-4 text-blue-500" />
-            {t('reports.title', lang)}
+            {'Recent Reports'}
           </h3>
           <button onClick={() => onNavigate('reports')} className="text-[10px] font-bold text-aegis-600 hover:text-aegis-700 flex items-center gap-1 transition-colors">
-            {t('admin.welcome.viewAll', lang)} <ArrowRight className="w-3 h-3" />
+            {'View all'} <ArrowRight className="w-3 h-3" />
           </button>
         </div>
         {recentReports.length === 0 ? (
-          <p className="text-xs text-gray-500 text-center py-6">{t('admin.welcome.noReports', lang)}</p>
+          <p className="text-xs text-gray-500 text-center py-6">{'No reports yet'}</p>
         ) : (
           <div className="space-y-2">
             {recentReports.map((r, i) => (
@@ -299,8 +286,8 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
                   }`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{r.type || t('admin.welcome.report', lang)} {r.reportNumber || ''}</p>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{r.location || t('admin.welcome.unknownLocation', lang)}</p>
+                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{r.type || 'Report'} {r.reportNumber || ''}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{r.location || 'Unknown location'}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
@@ -321,26 +308,26 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
 
       {/* System Overview Footer */}
       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 stagger-children">
-        <MiniStat label={t('admin.welcome.highSev', lang)} value={stats.high} accent={stats.high > 0 ? 'red' : undefined} />
-        <MiniStat label={t('admin.filters.severity.medium', lang)} value={stats.medium} accent={stats.medium > 0 ? 'amber' : undefined} />
-        <MiniStat label={t('admin.filters.severity.low', lang)} value={stats.low} />
-        <MiniStat label={t('admin.welcome.withMedia', lang)} value={stats.withMedia} />
-        <MiniStat label={t('admin.welcome.trapped', lang)} value={stats.trapped} accent={stats.trapped > 0 ? 'red' : undefined} />
-        <MiniStat label={t('admin.welcome.avgConf', lang)} value={`${stats.avgConf}%`} />
-        <MiniStat label={t('admin.welcome.activeAlerts', lang)} value={activeAlertsFull.length} accent={activeAlertsFull.length > 0 ? 'amber' : undefined} />
-        <MiniStat label={t('admin.welcome.resolutionRate', lang)} value={`${stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0}%`} />
+        <MiniStat label={'High Sev.'} value={stats.high} accent={stats.high > 0 ? 'red' : undefined} />
+        <MiniStat label={'Medium'} value={stats.medium} accent={stats.medium > 0 ? 'amber' : undefined} />
+        <MiniStat label={'Low'} value={stats.low} />
+        <MiniStat label={'With Media'} value={stats.withMedia} />
+        <MiniStat label={'Trapped'} value={stats.trapped} accent={stats.trapped > 0 ? 'red' : undefined} />
+        <MiniStat label={'Avg Conf.'} value={`${stats.avgConf}%`} />
+        <MiniStat label={'Active Alerts'} value={activeAlertsFull.length} accent={activeAlertsFull.length > 0 ? 'amber' : undefined} />
+        <MiniStat label={'Resolution'} value={`${stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0}%`} />
       </div>
 
       {showKeyboard && (
         <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('common.shortcuts', lang)}</span>
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{'Shortcuts'}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">D</kbd> Command Center</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> Reports</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">M</kbd> Map</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">A</kbd> Analytics</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">B</kbd> Broadcast</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('common.toggleShortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('common.close', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {'Toggle Shortcuts'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{'Esc'}</kbd> {'Close'}</span>
         </div>
       )}
     </div>

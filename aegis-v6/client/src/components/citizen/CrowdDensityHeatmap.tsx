@@ -128,30 +128,30 @@ function getRiskLabel(level: keyof typeof RISK_CONFIG, lang: string): string {
 
 function getPeakHourLabel(label: string, lang: string): string {
   switch (label) {
-    case 'quiet': return t('crowd.quiet', lang)
-    case 'waking': return t('crowd.waking', lang)
-    case 'building': return t('crowd.building', lang)
-    case 'rushHour': return t('crowd.rushHour', lang)
-    case 'peak': return t('crowd.peak', lang)
-    case 'high': return t('common.high', lang)
-    case 'moderate': return t('common.moderate', lang)
-    case 'peakLunch': return t('crowd.peakLunch', lang)
-    case 'settling': return t('crowd.settling', lang)
-    default: return t('common.unknown', lang)
+    case 'quiet': return 'Quiet'
+    case 'waking': return 'Waking'
+    case 'building': return 'Building'
+    case 'rushHour': return 'Rush hour'
+    case 'peak': return 'Peak'
+    case 'high': return 'High'
+    case 'moderate': return 'Moderate'
+    case 'peakLunch': return 'Peak lunch'
+    case 'settling': return 'Settling'
+    default: return 'Unknown'
   }
 }
 
 function getTrendLabel(trend: DensityZone['trend'], lang: string): string {
-  if (trend === 'rising') return t('crowd.rising', lang)
-  if (trend === 'falling') return t('crowd.falling', lang)
-  return t('crowd.stable', lang)
+  if (trend === 'rising') return 'Rising'
+  if (trend === 'falling') return 'Falling'
+  return 'Stable'
 }
 
 function formatRefreshAgo(lastRefresh: Date, lang: string): string {
   const seconds = Math.floor((Date.now() - lastRefresh.getTime()) / 1000)
-  if (seconds < 5) return t('common.justNow', lang)
-  if (seconds < 60) return `${seconds}${t('common.secondsShort', lang)} ${t('common.ago', lang)}`
-  return `${Math.floor(seconds / 60)}${t('common.minutesShort', lang)} ${t('common.ago', lang)}`
+  if (seconds < 5) return 'Just now'
+  if (seconds < 60) return `${seconds}${'s'} ${'ago'}`
+  return `${Math.floor(seconds / 60)}${'m'} ${'ago'}`
 }
 /* SVG COMPONENTS */
 
@@ -224,7 +224,7 @@ function DistributionBar({ zones, lang }: { zones: DensityZone[]; lang: string }
       <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
         {segments.map(s => (
           <div key={s.key} className={`${s.color} transition-all duration-700 rounded-full`} style={{ width: `${s.pct}%` }}
-            title={`${getRiskLabel(s.key as keyof typeof RISK_CONFIG, lang)}: ${s.count} ${t('resource.zones', lang)}`} />
+            title={`${getRiskLabel(s.key as keyof typeof RISK_CONFIG, lang)}: ${s.count} ${'Zones'}`} />
         ))}
       </div>
       <div className="flex gap-3 mt-1.5 flex-wrap">
@@ -313,7 +313,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
   const [userLat, setUserLat] = useState<number | null>(null)
   const [userLng, setUserLng] = useState<number | null>(null)
-  const [locationName, setLocationName] = useState<string>(() => t('crowd.searchOrUseGps', lang))
+  const [locationName, setLocationName] = useState<string>(() => 'Search or use GPS')
   const [locationError, setLocationError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching] = useState(false)
@@ -336,7 +336,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
 
   const loadData = useCallback((lat: number, lng: number) => {
     setLoading(true)
-    const generated = generateZones(lat, lng, t('crowd.zone', lang))
+    const generated = generateZones(lat, lng, 'Zone')
     setZones(generated)
     setLoading(false)
     setLastRefresh(new Date())
@@ -345,7 +345,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
 
   const requestGPS = async () => {
     setLocationError('')
-    setLocationName(t('crowd.detectingLocation', lang))
+    setLocationName('Detecting location...')
     try {
       const coords = await getDeviceLocation({ enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 })
       setUserLat(coords.lat)
@@ -354,8 +354,8 @@ export default function CrowdDensityHeatmap(): JSX.Element {
       setLocationName(place.displayName)
       loadData(coords.lat, coords.lng)
     } catch {
-      setLocationError(t('crowd.enableLocation', lang))
-      setLocationName(t('crowd.locationUnavailable', lang))
+      setLocationError('Enable location to see local data')
+      setLocationName('Location unavailable')
     }
   }
 
@@ -370,7 +370,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
       setLocationError('')
       loadData(result.lat, result.lng)
     } else {
-      setLocationError(t('crowd.locationNotFound', lang))
+      setLocationError('Location not found. Try a city, postcode, or region.')
     }
     setSearching(false)
   }
@@ -432,14 +432,14 @@ export default function CrowdDensityHeatmap(): JSX.Element {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('crowd.title', lang)}</h3>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white">{'Crowd Density'}</h3>
                 {lastRefresh && (
                   <span className="flex items-center gap-1 text-[8px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-full border border-emerald-200/50 dark:border-emerald-800/30">
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                     </span>
-                    {t('crowd.live', lang)}
+                    {'LIVE'}
                   </span>
                 )}
               </div>
@@ -450,11 +450,11 @@ export default function CrowdDensityHeatmap(): JSX.Element {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <button onClick={requestGPS} disabled={loading} className="text-[9px] font-bold bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 px-2.5 py-1.5 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all flex items-center gap-1 border border-orange-200/50 dark:border-orange-800/30" title={t('crowd.useGps', lang)}>
+            <button onClick={requestGPS} disabled={loading} className="text-[9px] font-bold bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 px-2.5 py-1.5 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all flex items-center gap-1 border border-orange-200/50 dark:border-orange-800/30" title={'Use GPS'}>
               {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
               //GPS
             </button>
-            <button onClick={() => { if (userLat != null && userLng != null) loadData(userLat, userLng) }} disabled={loading || userLat == null} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-30" title={t('common.refresh', lang)}>
+            <button onClick={() => { if (userLat != null && userLng != null) loadData(userLat, userLng) }} disabled={loading || userLat == null} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-30" title={'Refresh'}>
               {loading ? <Loader2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />}
             </button>
             <button onClick={() => setExpanded(!expanded)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
@@ -467,7 +467,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
         <div className="flex gap-1.5 mt-3">
           <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            placeholder={t('crowd.searchPlaceholder', lang)} className="flex-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 transition-all" />
+            placeholder={'Search city, postcode, or place...'} className="flex-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 transition-all" />
           <button onClick={handleSearch} disabled={searching || !searchQuery.trim()} className="px-3 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-40 shadow-sm">
             {searching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
           </button>
@@ -481,34 +481,34 @@ export default function CrowdDensityHeatmap(): JSX.Element {
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
               <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-2 text-center border border-gray-100 dark:border-gray-700/40">
                 <div className="text-sm font-black text-gray-900 dark:text-white">{zones.length}</div>
-                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('resource.zones', lang)}</div>
+                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{'Zones'}</div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-2 text-center border border-gray-100 dark:border-gray-700/40">
                 <div className="text-sm font-black text-gray-900 dark:text-white">
                   {summary.totalPeople >= 1000 ? `${(summary.totalPeople / 1000).toFixed(1)}k` : summary.totalPeople}
                 </div>
-                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('crowd.people', lang)}</div>
+                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{'People'}</div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-2 text-center border border-gray-100 dark:border-gray-700/40">
                 <div className={`text-sm font-black ${summary.avgDensity >= 70 ? 'text-red-500' : summary.avgDensity >= 50 ? 'text-orange-500' : summary.avgDensity >= 30 ? 'text-amber-500' : 'text-emerald-500'}`}>
                   {summary.avgDensity}%
                 </div>
-                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('crowd.density', lang)}</div>
+                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{'Density'}</div>
               </div>
               <div className={`rounded-xl p-2 text-center border ${summary.critical + summary.high > 0 ? 'bg-red-50 dark:bg-red-950/20 border-red-200/60 dark:border-red-800/40' : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-800/40'}`}>
                 <div className={`text-sm font-black ${summary.critical + summary.high > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{summary.critical + summary.high}</div>
-                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('command.alerts', lang)}</div>
+                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{'Alerts'}</div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-2 text-center border border-gray-100 dark:border-gray-700/40">
                 <div className={`text-sm font-black ${summary.risingCount > 2 ? 'text-red-500' : summary.risingCount > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>{summary.risingCount}</div>
-                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('crowd.rising', lang)}</div>
+                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{'Rising'}</div>
               </div>
             </div>
 
             {/* Capacity utilisation */}
             <div>
               <div className="flex justify-between items-baseline mb-1">
-                <span className="text-[9px] font-semibold text-gray-600 dark:text-gray-300">{t('crowd.totalCapacityUtilisation', lang)}</span>
+                <span className="text-[9px] font-semibold text-gray-600 dark:text-gray-300">{'Total capacity utilisation'}</span>
                 <span className="text-[9px] font-bold text-gray-900 dark:text-white">
                   {summary.totalPeople.toLocaleString()} <span className="text-gray-400 dark:text-gray-300 font-normal">/ {summary.totalCapacity.toLocaleString()}</span>
                 </span>
@@ -530,10 +530,10 @@ export default function CrowdDensityHeatmap(): JSX.Element {
               <div className="flex items-center gap-2">
                 <Zap className="w-3.5 h-3.5 text-amber-500" />
                 <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-200">
-                  {t('crowd.current', lang)} <span className={`${peakLabelKey === 'peak' || peakLabelKey === 'peakLunch' || peakLabelKey === 'rushHour' ? 'text-red-500' : peakLabelKey === 'high' ? 'text-orange-500' : 'text-gray-500 dark:text-gray-300'}`}>{peakLabel}</span>
+                  {'Current'} <span className={`${peakLabelKey === 'peak' || peakLabelKey === 'peakLunch' || peakLabelKey === 'rushHour' ? 'text-red-500' : peakLabelKey === 'high' ? 'text-orange-500' : 'text-gray-500 dark:text-gray-300'}`}>{peakLabel}</span>
                 </span>
               </div>
-              <span className="text-[9px] text-gray-400 dark:text-gray-300">{t('crowd.nextPeakIn', lang)} ~{nextPeakIn}{t('common.hoursShort', lang)}</span>
+              <span className="text-[9px] text-gray-400 dark:text-gray-300">{'Next peak in'} ~{nextPeakIn}{'h'}</span>
             </div>
           </div>
 
@@ -541,9 +541,9 @@ export default function CrowdDensityHeatmap(): JSX.Element {
           <div className="px-4 pt-3 flex items-center justify-between gap-2">
             <div className="flex items-center bg-gray-100 dark:bg-gray-800/60 rounded-lg p-0.5">
               {([
-                { mode: 'list' as ViewMode, icon: List, label: t('crowd.list', lang) },
-                { mode: 'grid' as ViewMode, icon: LayoutGrid, label: t('crowd.grid', lang) },
-                { mode: 'chart' as ViewMode, icon: BarChart3, label: t('crowd.chart', lang) },
+                { mode: 'list' as ViewMode, icon: List, label: 'List' },
+                { mode: 'grid' as ViewMode, icon: LayoutGrid, label: 'Grid' },
+                { mode: 'chart' as ViewMode, icon: BarChart3, label: 'Chart' },
               ]).map(({ mode, icon: Icon, label }) => (
                 <button key={mode} onClick={() => setViewMode(mode)}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-bold transition-all ${
@@ -557,21 +557,21 @@ export default function CrowdDensityHeatmap(): JSX.Element {
               <div className="relative">
                 <select value={filterLevel} onChange={e => setFilterLevel(e.target.value as FilterLevel)}
                   className="appearance-none bg-gray-100 dark:bg-gray-800/60 text-[9px] font-bold text-gray-600 dark:text-gray-300 rounded-lg pl-5 pr-2 py-1.5 border-0 focus:ring-1 focus:ring-orange-400/40 cursor-pointer">
-                  <option value="all">{t('common.all', lang)}</option>
-                  <option value="critical">{t('common.critical', lang)}</option>
-                  <option value="high">{t('common.high', lang)}</option>
-                  <option value="moderate">{t('common.moderate', lang)}</option>
-                  <option value="low">{t('common.low', lang)}</option>
+                  <option value="all">{'All'}</option>
+                  <option value="critical">{'Critical'}</option>
+                  <option value="high">{'High'}</option>
+                  <option value="moderate">{'Moderate'}</option>
+                  <option value="low">{'Low'}</option>
                 </select>
                 <Filter className="w-3 h-3 text-gray-400 dark:text-gray-300 absolute left-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
               <div className="relative">
                 <select value={sortKey} onChange={e => setSortKey(e.target.value as SortKey)}
                   className="appearance-none bg-gray-100 dark:bg-gray-800/60 text-[9px] font-bold text-gray-600 dark:text-gray-300 rounded-lg pl-5 pr-2 py-1.5 border-0 focus:ring-1 focus:ring-orange-400/40 cursor-pointer">
-                  <option value="density">{t('crowd.density', lang)}</option>
-                  <option value="name">{t('crowd.name', lang)}</option>
-                  <option value="trend">{t('crowd.trend', lang)}</option>
-                  <option value="risk">{t('crowd.risk', lang)}</option>
+                  <option value="density">{'Density'}</option>
+                  <option value="name">{'Name'}</option>
+                  <option value="trend">{'Trend'}</option>
+                  <option value="risk">{'Risk'}</option>
                 </select>
                 <ArrowUpDown className="w-3 h-3 text-gray-400 dark:text-gray-300 absolute left-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
@@ -587,7 +587,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
               {processedZones.length === 0 ? (
                 <div className="py-6 text-center">
                   <Filter className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                  <p className="text-xs text-gray-400 dark:text-gray-300">{t('crowd.noZonesMatch', lang)}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-300">{'No zones match your filter'}</p>
                 </div>
               ) : (
                 processedZones.map(zone => {
@@ -623,9 +623,9 @@ export default function CrowdDensityHeatmap(): JSX.Element {
                               <span className="text-[8px] text-gray-400 dark:text-gray-300">/ {zone.capacity.toLocaleString()}</span>
                             </span>
                             <span className={`flex items-center gap-1 font-semibold ${zone.trend === 'rising' ? 'text-red-500' : zone.trend === 'falling' ? 'text-emerald-500' : 'text-amber-500'}`}>
-                              {zone.trend === 'rising' && <><TrendingUp className="w-3 h-3" /> {t('crowd.rising', lang)}</>}
-                              {zone.trend === 'falling' && <><TrendingDown className="w-3 h-3" /> {t('crowd.falling', lang)}</>}
-                              {zone.trend === 'stable' && <><Minus className="w-3 h-3" /> {t('crowd.stable', lang)}</>}
+                              {zone.trend === 'rising' && <><TrendingUp className="w-3 h-3" /> {'Rising'}</>}
+                              {zone.trend === 'falling' && <><TrendingDown className="w-3 h-3" /> {'Falling'}</>}
+                              {zone.trend === 'stable' && <><Minus className="w-3 h-3" /> {'Stable'}</>}
                             </span>
                             <span className={`text-[9px] font-bold ${zone.delta > 0 ? 'text-red-500' : zone.delta < 0 ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-300'}`}>
                               {zone.delta > 0 ? `+${zone.delta}` : zone.delta < 0 ? `${zone.delta}` : '\u2014'}
@@ -640,10 +640,10 @@ export default function CrowdDensityHeatmap(): JSX.Element {
                           <div>
                             <div className="flex justify-between items-baseline mb-1">
                               <span className="text-[9px] font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1">
-                                <Shield className="w-3 h-3" /> {t('crowd.capacity', lang)}
+                                <Shield className="w-3 h-3" /> {'Capacity'}
                               </span>
                               <span className={`text-[9px] font-bold ${capacityPct > 80 ? 'text-red-500' : capacityPct > 60 ? 'text-orange-500' : 'text-emerald-500'}`}>
-                                {capacityPct}% {t('crowd.utilised', lang)}
+                                {capacityPct}% {'utilised'}
                               </span>
                             </div>
                             <div className="w-full h-1.5 bg-gray-200/60 dark:bg-gray-700/40 rounded-full overflow-hidden">
@@ -659,27 +659,27 @@ export default function CrowdDensityHeatmap(): JSX.Element {
                             <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-1.5">
                               <Clock className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-300 mb-0.5" />
                               <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300">{zone.lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                              <div className="text-micro text-gray-400 dark:text-gray-300">{t('crowd.updated', lang)}</div>
+                              <div className="text-micro text-gray-400 dark:text-gray-300">{'Updated'}</div>
                             </div>
                             <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-1.5">
                               <Radio className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-300 mb-0.5" />
-                              <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300">{zone.density >= 80 ? t('common.disperse', lang) : zone.density >= 55 ? t('common.monitor', lang) : t('crowd.actionNormal', lang)}</div>
-                              <div className="text-micro text-gray-400 dark:text-gray-300">{t('crowd.action', lang)}</div>
+                              <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300">{zone.density >= 80 ? 'Disperse' : zone.density >= 55 ? 'Monitor' : 'Normal'}</div>
+                              <div className="text-micro text-gray-400 dark:text-gray-300">{'Action'}</div>
                             </div>
                             <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-1.5">
                               <Activity className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-300 mb-0.5" />
-                              <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300">{zone.history.length} {t('crowd.pointsShort', lang)}</div>
-                              <div className="text-micro text-gray-400 dark:text-gray-300">{t('crowd.history', lang)}</div>
+                              <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300">{zone.history.length} {'pts'}</div>
+                              <div className="text-micro text-gray-400 dark:text-gray-300">{'History'}</div>
                             </div>
                           </div>
                           <div className="bg-white/50 dark:bg-gray-900/30 rounded-lg p-2">
-                            <div className="text-[8px] font-bold text-gray-500 dark:text-gray-300 mb-1 uppercase tracking-wider">{t('crowd.densityTrendLast8', lang)}</div>
+                            <div className="text-[8px] font-bold text-gray-500 dark:text-gray-300 mb-1 uppercase tracking-wider">{'Density trend (last 8 readings)'}</div>
                             <Sparkline data={zone.history} color={cfg.hex} width={280} height={36} />
                           </div>
                           {zone.riskLevel === 'critical' && (
                             <div className="flex items-center gap-1.5 bg-red-100/80 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-lg p-2">
                               <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 animate-pulse" />
-                              <span className="text-[9px] font-bold text-red-700 dark:text-red-300">{t('crowd.criticalDensityAdvice', lang)}</span>
+                              <span className="text-[9px] font-bold text-red-700 dark:text-red-300">{'Critical density - consider crowd control measures immediately'}</span>
                             </div>
                           )}
                         </div>
@@ -708,17 +708,17 @@ export default function CrowdDensityHeatmap(): JSX.Element {
                   <div className="skeleton-shimmer h-6 w-12 rounded-full bg-gray-200 dark:bg-gray-700 motion-reduce:animate-none motion-reduce:opacity-70" />
                 </div>
               ))}
-              <p className="text-[10px] text-center text-gray-400 dark:text-gray-300">{t('crowd.scanningAreaDensity', lang)}</p>
+              <p className="text-[10px] text-center text-gray-400 dark:text-gray-300">{'Scanning area density...'}</p>
             </div>
           ) : locationError ? (
             <div className="py-8 text-center space-y-3">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center mx-auto">
                 <MapPin className="w-7 h-7 text-gray-400 dark:text-gray-300" />
               </div>
-              <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{t('crowd.searchOrUseGps', lang)}</p>
+              <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{'Search or use GPS'}</p>
               <p className="text-xs text-gray-400 dark:text-gray-300">{locationError}</p>
               <button onClick={requestGPS} className="text-xs font-bold bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-orange-500/20">
-                <MapPin className="w-3.5 h-3.5 inline mr-1.5" /> {t('crowd.useGps', lang)}
+                <MapPin className="w-3.5 h-3.5 inline mr-1.5" /> {'Use GPS'}
               </button>
             </div>
           ) : (
@@ -726,8 +726,8 @@ export default function CrowdDensityHeatmap(): JSX.Element {
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 flex items-center justify-center mx-auto">
                 <Users className="w-7 h-7 text-orange-500" />
               </div>
-              <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{t('crowd.searchToBegin', lang)}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-300">{t('crowd.enterLocationHint', lang)}</p>
+              <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{'Search a location to begin'}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-300">{'Enter a city, postcode, or use GPS above'}</p>
             </div>
           )}
         </div>

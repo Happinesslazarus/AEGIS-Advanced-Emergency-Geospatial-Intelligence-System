@@ -25,7 +25,7 @@ export default function ConsentDialog({ config, onAccept, onDecline }: Props): J
             </div>
             <div>
               <h3 className="font-bold text-gray-900 dark:text-gray-100">{config.title}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-300">{t('consent.privacyTitle', lang)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-300">{'Privacy & Consent'}</p>
             </div>
           </div>
           <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">{config.description}</p>
@@ -33,13 +33,13 @@ export default function ConsentDialog({ config, onAccept, onDecline }: Props): J
           <div className="p-3 bg-warning-surface border border-muted rounded-lg mb-4 flex gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-amber-700 dark:text-amber-300">
-              {config.required ? t('consent.requiredWarning', lang) : t('consent.optionalWarning', lang)}
+              {config.required ? 'This permission is required for the feature to work. Your data is processed locally and never shared.' : 'This is optional. The feature will work with limited functionality without this permission.'}
             </p>
           </div>
 
           <div className="flex gap-3">
-            <button onClick={onAccept} className="btn-primary flex-1">{t('consent.accept', lang)}</button>
-            <button onClick={onDecline} className="btn-outline flex-1">{config.required ? t('consent.goBack', lang) : t('consent.decline', lang)}</button>
+            <button onClick={onAccept} className="btn-primary flex-1">{'Accept & Continue'}</button>
+            <button onClick={onDecline} className="btn-outline flex-1">{config.required ? 'Go Back' : 'Decline'}</button>
           </div>
         </div>
       </div>

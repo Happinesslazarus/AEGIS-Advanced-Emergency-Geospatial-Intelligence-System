@@ -155,9 +155,9 @@ export default function AlertsPanel() {
               <Bell className={`w-5 h-5 ${criticalCount > 0 ? 'animate-bounce' : ''}`} />
             </div>
             <div>
-              <h2 className="text-base font-black">{t('alerts.pageTitle', lang) || 'Live Alerts'}</h2>
+              <h2 className="text-base font-black">{'Active Alerts'}</h2>
               <p className="text-[11px] text-white/60">
-                {activeLocation || t('alerts.yourArea', lang) || 'Your area'}
+                {activeLocation || 'your area'}
                 {severityCounts.all > 0 && ` - ${severityCounts.all} active`}
               </p>
             </div>
@@ -174,7 +174,7 @@ export default function AlertsPanel() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-bold transition-all disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              {t('alerts.refresh', lang) || 'Refresh'}
+              {'Refresh'}
             </button>
           </div>
         </div>
@@ -189,7 +189,7 @@ export default function AlertsPanel() {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder={t('alerts.searchPlaceholder', lang) || 'Search alerts...'}
+              placeholder={'Search alerts by title, description, or area...'}
               className="flex-1 bg-transparent text-sm outline-none text-gray-900 dark:text-white placeholder-gray-400"
             />
             {searchQuery && (
@@ -207,7 +207,7 @@ export default function AlertsPanel() {
             }`}
           >
             <Filter className="w-3.5 h-3.5" />
-            {t('alerts.filters', lang) || 'Filter'}
+            {'Filters'}
             {filterSeverity !== 'all' && <span className="w-1.5 h-1.5 rounded-full bg-aegis-500" />}
           </button>
           <select
@@ -215,8 +215,8 @@ export default function AlertsPanel() {
             onChange={e => setSortBy(e.target.value as 'newest' | 'severity')}
             className="px-2.5 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs font-bold text-gray-700 dark:text-gray-300 outline-none cursor-pointer"
           >
-            <option value="newest">{t('alerts.sortNewest', lang) || 'Newest'}</option>
-            <option value="severity">{t('alerts.sortSeverity', lang) || 'Severity'}</option>
+            <option value="newest">{'Newest First'}</option>
+            <option value="severity">{'By Severity'}</option>
           </select>
         </div>
 
@@ -236,7 +236,7 @@ export default function AlertsPanel() {
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                   }`}
                 >
-                  {sev === 'all' ? (t('alerts.filterAll', lang) || 'All') : (cfg ? t(cfg.labelKey, lang) : sev)}
+                  {sev === 'all' ? ('All') : (cfg ? t(cfg.labelKey, lang) : sev)}
                   <span className="opacity-70">({count})</span>
                 </button>
               )
@@ -269,11 +269,11 @@ export default function AlertsPanel() {
           <div className="w-16 h-16 rounded-2xl bg-green-50 dark:bg-green-950/20 flex items-center justify-center mx-auto mb-4">
             <Shield className="w-8 h-8 text-green-500" />
           </div>
-          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t('alerts.allClear', lang) || 'All Clear'}</h3>
+          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{'All clear in your area'}</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
             {searchQuery || filterSeverity !== 'all'
-              ? (t('alerts.noMatchFilters', lang) || 'No alerts match your filters.')
-              : (t('alerts.noAlertsMessage', lang) || 'No active alerts in your area right now.')}
+              ? ('No alerts match your current filters. Try adjusting your search.')
+              : ('There are no active emergency alerts for your area at this time. Stay safe!')}
           </p>
         </div>
       )}
@@ -335,20 +335,20 @@ export default function AlertsPanel() {
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
                           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
-                            <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{t('alerts.source', lang) || 'Source'}</span>
+                            <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{'Source'}</span>
                             <span className="text-gray-700 dark:text-gray-300 font-semibold capitalize">{alert.source}</span>
                           </div>
                           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
-                            <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{t('alerts.type', lang) || 'Type'}</span>
-                            <span className="text-gray-700 dark:text-gray-300 font-semibold capitalize">{alert.disasterType || t('alerts.general', lang) || 'General'}</span>
+                            <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{'Type'}</span>
+                            <span className="text-gray-700 dark:text-gray-300 font-semibold capitalize">{alert.disasterType || 'General'}</span>
                           </div>
                           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
-                            <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{t('alerts.issued', lang) || 'Issued'}</span>
+                            <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{'Issued'}</span>
                             <span className="text-gray-700 dark:text-gray-300 font-semibold">{new Date(alert.timestamp).toLocaleString()}</span>
                           </div>
                           {alert.expiresAt && (
                             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
-                              <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{t('alerts.expires', lang) || 'Expires'}</span>
+                              <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{'Expires'}</span>
                               <span className={`font-semibold ${new Date(alert.expiresAt) < new Date() ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
                                 {new Date(alert.expiresAt).toLocaleString()}
                               </span>
@@ -356,7 +356,7 @@ export default function AlertsPanel() {
                           )}
                           {alert.channels && alert.channels.length > 0 && (
                             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5 col-span-2 sm:col-span-3">
-                              <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{t('alerts.broadcastChannels', lang) || 'Channels'}</span>
+                              <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{'Broadcast Channels'}</span>
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {alert.channels.map(ch => (
                                   <span key={ch} className="px-2 py-0.5 rounded-full bg-aegis-50 dark:bg-aegis-950/30 border border-aegis-200 dark:border-aegis-800 text-aegis-700 dark:text-aegis-300 text-[10px] font-bold uppercase">{ch}</span>

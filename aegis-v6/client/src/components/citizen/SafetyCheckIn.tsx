@@ -94,9 +94,9 @@ export default function SafetyCheckIn(): JSX.Element {
   }
 
   const items: { key: SafetyStatus; label: string; icon: typeof CheckCircle; base: string; active: string; pending: string; glow: string }[] = [
-    { key: 'safe', label: t('safetyCheck.imSafe', lang), icon: CheckCircle, base: 'bg-green-600/90 hover:bg-green-600 border-green-500/30', active: 'bg-green-600 ring-2 ring-green-300 shadow-lg shadow-green-500/30', pending: 'bg-green-600 ring-2 ring-green-300/60 animate-pulse', glow: 'shadow-green-500/40' },
-    { key: 'help', label: t('safetyCheck.needHelp', lang), icon: AlertTriangle, base: 'bg-red-600/90 hover:bg-red-600 border-red-500/30', active: 'bg-red-600 ring-2 ring-red-300 shadow-lg shadow-red-500/30', pending: 'bg-red-600 ring-2 ring-red-300/60 animate-pulse', glow: 'shadow-red-500/40' },
-    { key: 'unsure', label: t('safetyCheck.unsure', lang), icon: HelpCircle, base: 'bg-amber-600/90 hover:bg-amber-600 border-amber-500/30', active: 'bg-amber-600 ring-2 ring-amber-300 shadow-lg shadow-amber-500/30', pending: 'bg-amber-600 ring-2 ring-amber-300/60 animate-pulse', glow: 'shadow-amber-500/40' },
+    { key: 'safe', label: 'I\'m Safe', icon: CheckCircle, base: 'bg-green-600/90 hover:bg-green-600 border-green-500/30', active: 'bg-green-600 ring-2 ring-green-300 shadow-lg shadow-green-500/30', pending: 'bg-green-600 ring-2 ring-green-300/60 animate-pulse', glow: 'shadow-green-500/40' },
+    { key: 'help', label: 'Need Help', icon: AlertTriangle, base: 'bg-red-600/90 hover:bg-red-600 border-red-500/30', active: 'bg-red-600 ring-2 ring-red-300 shadow-lg shadow-red-500/30', pending: 'bg-red-600 ring-2 ring-red-300/60 animate-pulse', glow: 'shadow-red-500/40' },
+    { key: 'unsure', label: 'Unsure', icon: HelpCircle, base: 'bg-amber-600/90 hover:bg-amber-600 border-amber-500/30', active: 'bg-amber-600 ring-2 ring-amber-300 shadow-lg shadow-amber-500/30', pending: 'bg-amber-600 ring-2 ring-amber-300/60 animate-pulse', glow: 'shadow-amber-500/40' },
   ]
 
   const confirmedItem = items.find(i => i.key === status)
@@ -108,7 +108,7 @@ export default function SafetyCheckIn(): JSX.Element {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Shield className="w-4 h-4 text-aegis-300" />
-            <h3 className="text-sm font-bold text-aegis-100">{t('safetyCheck.areYouSafe', lang)}</h3>
+            <h3 className="text-sm font-bold text-aegis-100">{'Are you safe?'}</h3>
           </div>
           <div className="flex items-center gap-3">
             {/* Notify family toggle */}

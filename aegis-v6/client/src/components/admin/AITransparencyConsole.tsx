@@ -352,10 +352,10 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
     setLifecycleAction(version)
     try {
       await apiPromoteModel(selectedHazard, selectedRegion, version)
-      pushNotification(`${t('ai.promoted', lang)} ${humanizeName(selectedHazard)} v${version}`, 'success')
+      pushNotification(`${'Promoted'} ${humanizeName(selectedHazard)} v${version}`, 'success')
       await fetchVersions()
     } catch (err: any) {
-      pushNotification(err?.message || t('ai.promotionFailed', lang), 'error')
+      pushNotification(err?.message || 'Promotion failed', 'error')
     } finally {
       setLifecycleAction(null)
     }
@@ -365,10 +365,10 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
     setLifecycleAction('demote')
     try {
       await apiDemoteModel(selectedHazard, selectedRegion)
-      pushNotification(`${t('ai.overrideRemoved', lang)} -- ${humanizeName(selectedHazard)}`, 'success')
+      pushNotification(`${'Override removed'} -- ${humanizeName(selectedHazard)}`, 'success')
       await fetchVersions()
     } catch (err: any) {
-      pushNotification(err?.message || t('ai.demotionFailed', lang), 'error')
+      pushNotification(err?.message || 'Demotion failed', 'error')
     } finally {
       setLifecycleAction(null)
     }
@@ -379,12 +379,12 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
     try {
       const result: any = await apiValidateModel(selectedHazard, selectedRegion, version)
       if (result.valid) {
-        pushNotification(`${version}: ${t('ai.integrityOk', lang)}`, 'success')
+        pushNotification(`${version}: ${'Integrity OK'}`, 'success')
       } else {
-        pushNotification(`${version}: ${result.issues?.join(', ') || t('ai.validationIssues', lang)}`, 'warning')
+        pushNotification(`${version}: ${result.issues?.join(', ') || 'Validation issues found'}`, 'warning')
       }
     } catch (err: any) {
-      pushNotification(err?.message || t('ai.validationFailed', lang), 'error')
+      pushNotification(err?.message || 'Validation failed', 'error')
     } finally {
       setLifecycleAction(null)
     }
@@ -439,7 +439,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
         }).catch(() => {})
       }
     } catch {
-      pushNotification(t('ai.predictionFailed', lang), 'error')
+      pushNotification('Prediction run failed', 'error')
     } finally {
       setPredictionRunning(false)
     }
@@ -461,10 +461,10 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                 <Brain className="w-5 h-5 text-indigo-400" />
               </div>
               <div>
-                <h1 className="text-base font-bold text-white tracking-tight">{t('ai.commandGovernance', lang)}</h1>
+                <h1 className="text-base font-bold text-white tracking-tight">{'AI Command & Governance'}</h1>
                 <div className="flex items-center gap-2 mt-0.5">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${predictionRunning ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400 animate-pulse'}`} />
-                  <span className="text-xs text-gray-400">{loc.name || t('common.global', lang)}</span>
+                  <span className="text-xs text-gray-400">{loc.name || 'Global'}</span>
                   <span className="text-gray-500">-</span>
                   <span className="text-xs font-mono text-gray-400">{zuluTime}</span>
                 </div>
@@ -478,7 +478,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
               )}
               <button
                 onClick={() => setShowKeyboard(p => !p)}
-                title={t('common.shortcuts', lang)}
+                title={'Shortcuts'}
                 className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors ring-1 ring-gray-700"
               >
                 <Keyboard className="w-3.5 h-3.5 text-gray-400" />
@@ -489,12 +489,12 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
           {/* KPI strip */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-5">
             {[
-              { label: t('ai.activePredictions', lang), value: localPredictions.length, icon: Zap, color: localPredictions.length > 0 ? 'text-emerald-400' : 'text-gray-500', bg: 'bg-emerald-500/5 border-emerald-500/10' },
-              { label: t('ai.highRiskAreas', lang), value: predMetrics.highRisk, icon: AlertTriangle, color: predMetrics.highRisk > 0 ? 'text-red-400' : 'text-gray-500', bg: 'bg-red-500/5 border-red-500/10' },
-              { label: t('ai.avgConfidence', lang), value: predMetrics.avgConf > 0 ? `${predMetrics.avgConf}%` : '--', icon: Gauge, color: predMetrics.avgConf >= 70 ? 'text-emerald-400' : 'text-amber-400', bg: 'bg-indigo-500/5 border-indigo-500/10' },
-              { label: t('ai.dataSources', lang), value: predMetrics.dataSources, icon: Database, color: 'text-cyan-400', bg: 'bg-cyan-500/5 border-cyan-500/10' },
-              { label: t('ai.heatmapPoints', lang), value: heatmapData.length, icon: Map, color: 'text-purple-400', bg: 'bg-purple-500/5 border-purple-500/10' },
-              { label: t('ai.engineStatus', lang), value: predictionRunning ? t('common.processing', lang) : t('common.ready', lang), icon: Cpu, color: predictionRunning ? 'text-amber-400' : 'text-emerald-400', bg: 'bg-gray-500/5 border-gray-500/10' },
+              { label: 'Active Predictions', value: localPredictions.length, icon: Zap, color: localPredictions.length > 0 ? 'text-emerald-400' : 'text-gray-500', bg: 'bg-emerald-500/5 border-emerald-500/10' },
+              { label: 'High Risk Areas', value: predMetrics.highRisk, icon: AlertTriangle, color: predMetrics.highRisk > 0 ? 'text-red-400' : 'text-gray-500', bg: 'bg-red-500/5 border-red-500/10' },
+              { label: 'Avg Confidence', value: predMetrics.avgConf > 0 ? `${predMetrics.avgConf}%` : '--', icon: Gauge, color: predMetrics.avgConf >= 70 ? 'text-emerald-400' : 'text-amber-400', bg: 'bg-indigo-500/5 border-indigo-500/10' },
+              { label: 'Data Sources', value: predMetrics.dataSources, icon: Database, color: 'text-cyan-400', bg: 'bg-cyan-500/5 border-cyan-500/10' },
+              { label: 'Heatmap Points', value: heatmapData.length, icon: Map, color: 'text-purple-400', bg: 'bg-purple-500/5 border-purple-500/10' },
+              { label: 'Engine Status', value: predictionRunning ? 'Processing' : 'Ready', icon: Cpu, color: predictionRunning ? 'text-amber-400' : 'text-emerald-400', bg: 'bg-gray-500/5 border-gray-500/10' },
             ].map((kpi, i) => (
               <div key={i} className={`${kpi.bg} rounded-lg px-3 py-2.5 border flex items-center gap-2.5`}>
                 <kpi.icon className={`w-4 h-4 ${kpi.color} flex-shrink-0`} />
@@ -509,11 +509,11 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
           {/* Tab bar */}
           <div className="flex items-center overflow-x-auto scrollbar-none -mb-px">
             {([
-              { id: 'feed' as const,     label: t('ai.livePredictionFeed', lang), icon: Radio },
-              { id: 'analysis' as const, label: t('ai.runOnDemandAnalysis', lang), icon: Zap },
-              { id: 'models' as const,   label: t('ai.models', lang),             icon: Brain },
-              { id: 'drift' as const,    label: t('ai.driftHealth', lang),        icon: Activity },
-              { id: 'audit' as const,    label: t('ai.enhancedAuditTrail', lang), icon: Eye },
+              { id: 'feed' as const,     label: 'Live Prediction Feed', icon: Radio },
+              { id: 'analysis' as const, label: 'Run On-Demand Analysis', icon: Zap },
+              { id: 'models' as const,   label: 'Models',             icon: Brain },
+              { id: 'drift' as const,    label: 'Drift & Health',        icon: Activity },
+              { id: 'audit' as const,    label: 'Enhanced Audit Trail', icon: Eye },
             ]).map(tab => (
               <button
                 key={tab.id}
@@ -558,14 +558,14 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
 
               {/* Pipeline flow */}
               <div>
-                <h4 className="text-xs font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider mb-3">{t('ai.pipeline', lang)}</h4>
+                <h4 className="text-xs font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider mb-3">{'AI PIPELINE'}</h4>
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 flex-wrap sm:flex-nowrap">
                   {[
-                    { label: t('ai.ingest', lang),   desc: t('ai.dataCollection', lang),    icon: Database, color: 'text-cyan-700 dark:text-cyan-400',   bg: 'bg-cyan-50   dark:bg-cyan-900/20   border-cyan-200   dark:border-cyan-800' },
-                    { label: t('ai.classify', lang),  desc: t('ai.aiClassification', lang),  icon: Brain,    color: 'text-purple-700 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800' },
-                    { label: t('ai.predict', lang),   desc: t('ai.riskScoring', lang),       icon: Target,   color: 'text-amber-700 dark:text-amber-400',   bg: 'bg-amber-50  dark:bg-amber-900/20  border-amber-200  dark:border-amber-800' },
-                    { label: t('ai.verify', lang),    desc: t('ai.humanReview', lang),       icon: Eye,      color: 'text-blue-700 dark:text-blue-400',     bg: 'bg-blue-50   dark:bg-blue-900/20   border-blue-200   dark:border-blue-800' },
-                    { label: t('ai.alertStep', lang), desc: t('ai.notification', lang),      icon: Radio,    color: 'text-red-700 dark:text-red-400',       bg: 'bg-red-50    dark:bg-red-900/20    border-red-200    dark:border-red-800' },
+                    { label: 'INGEST',   desc: 'Data Collection',    icon: Database, color: 'text-cyan-700 dark:text-cyan-400',   bg: 'bg-cyan-50   dark:bg-cyan-900/20   border-cyan-200   dark:border-cyan-800' },
+                    { label: 'CLASSIFY',  desc: 'AI Classification',  icon: Brain,    color: 'text-purple-700 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800' },
+                    { label: 'PREDICT',   desc: 'Risk Scoring',       icon: Target,   color: 'text-amber-700 dark:text-amber-400',   bg: 'bg-amber-50  dark:bg-amber-900/20  border-amber-200  dark:border-amber-800' },
+                    { label: 'VERIFY',    desc: 'Human Review',       icon: Eye,      color: 'text-blue-700 dark:text-blue-400',     bg: 'bg-blue-50   dark:bg-blue-900/20   border-blue-200   dark:border-blue-800' },
+                    { label: 'ALERT', desc: 'Notification',      icon: Radio,    color: 'text-red-700 dark:text-red-400',       bg: 'bg-red-50    dark:bg-red-900/20    border-red-200    dark:border-red-800' },
                   ].map((stage, i, arr) => (
                     <React.Fragment key={stage.label}>
                       <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${stage.bg} flex-shrink-0`}>
@@ -584,12 +584,12 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
               {/* Live predictions */}
               <div>
                 <h4 className="font-bold text-sm mb-3 flex items-center gap-2 text-gray-900 dark:text-white">
-                  <TrendingUp className="w-4 h-4 text-indigo-600" /> {t('ai.livePredictionFeed', lang)}
+                  <TrendingUp className="w-4 h-4 text-indigo-600" /> {'Live Prediction Feed'}
                 </h4>
                 {localPredictions.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
                     <Waves className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('ai.noActivePredictions', lang)}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{'No active predictions. Model awaiting data from monitored rivers.'}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -617,7 +617,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                                 <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 flex items-center gap-1">
                                   <Clock className="w-3 h-3" /> {ttf}
                                 </span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400">{t('ai.confShort', lang)} {confDisplay}%</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{'Conf:'} {confDisplay}%</span>
                               </div>
                               <div className="flex items-center gap-3 mb-2">
                                 <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -627,10 +627,10 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                               <p className={`text-xs font-medium mb-2 ${probPct > 70 ? 'text-red-700 dark:text-red-300' : probPct > 40 ? 'text-amber-700 dark:text-amber-400' : 'text-blue-700 dark:text-blue-400'}`}>
                                 {probPct > 70 ? 'Immediate attention required -- consider escalating to emergency services.' : probPct > 40 ? 'Elevated risk detected -- prepare response and consider sending a pre-alert.' : 'Risk within acceptable range -- continue monitoring.'}
                               </p>
-                              {pattern && <p className="text-xs text-gray-600 dark:text-gray-400 mb-1"><span className="font-semibold">{t('ai.pattern', lang)}:</span> {pattern}</p>}
+                              {pattern && <p className="text-xs text-gray-600 dark:text-gray-400 mb-1"><span className="font-semibold">{'Pattern'}:</span> {pattern}</p>}
                               {(Array.isArray(pred.next_areas) && pred.next_areas.length > 0) && (
                                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                                  <span className="font-semibold">{t('ai.nextAreas', lang)}:</span> {pred.next_areas.map((a: string) => cleanAreaName(a)).join(', ')}
+                                  <span className="font-semibold">{'Next Areas'}:</span> {pred.next_areas.map((a: string) => cleanAreaName(a)).join(', ')}
                                 </p>
                               )}
                               <div className="flex gap-1 flex-wrap">
@@ -641,16 +641,16 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                             </div>
                             <button
                               onClick={() => askConfirm(
-                                t('ai.preAlertConfirmTitle', lang),
-                                `${t('ai.preAlertConfirmPrefix', lang)} ${cleanAreaName(pred.area)}? ${t('ai.preAlertConfirmSuffix', lang)}`,
+                                'Send Pre-Alert',
+                                `${'Send pre-alert for'} ${cleanAreaName(pred.area)}? ${'This will notify matched subscribers.'}`,
                                 'warning',
                                 async () => {
                                   try {
                                     await apiSendPreAlert(pred.id, user?.id)
                                     setPredictions(p => p.map(x => x.id === pred.id ? { ...x, pre_alert_sent: true } : x))
-                                    pushNotification(t('ai.preAlertSent', lang), 'success')
+                                    pushNotification('Pre-alert sent', 'success')
                                   } catch (err: any) {
-                                    pushNotification(err?.message || t('ai.preAlertFailed', lang), 'error')
+                                    pushNotification(err?.message || 'Failed to send pre-alert', 'error')
                                   }
                                 }
                               )}
@@ -661,7 +661,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                                   : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:shadow-md'
                               }`}
                             >
-                              {pred.pre_alert_sent ? t('common.sent', lang) : t('ai.sendPreAlert', lang)}
+                              {pred.pre_alert_sent ? 'Sent' : 'Send Pre-Alert'}
                             </button>
                           </div>
                         </div>
@@ -678,14 +678,14 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                     <Map className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   </div>
                   <div>
-                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{t('ai.heatmapCoverage', lang)}</p>
+                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{'Heatmap Coverage'}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {heatmapData.length} {t('ai.dataPoints', lang).toLowerCase()} - {t('common.updated', lang)}: {new Date().toLocaleString(lang || 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      {heatmapData.length} {'Data Points'.toLowerCase()} - {'Updated'}: {new Date().toLocaleString(lang || 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                 </div>
                 <span className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-200 text-xs font-bold rounded-full">
-                  {heatmapData.length} {t('ai.pts', lang)}
+                  {heatmapData.length} {'pts'}
                 </span>
               </div>
             </div>
@@ -696,11 +696,11 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
             <div className="space-y-5">
               <div className="bg-gray-50 dark:bg-gray-800/30 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
                 <h4 className="font-bold text-sm mb-4 text-gray-900 dark:text-white flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-indigo-600" /> {t('ai.runOnDemandAnalysis', lang)}
+                  <Zap className="w-4 h-4 text-indigo-600" /> {'Run On-Demand Analysis'}
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">{t('ai.targetArea', lang)}</label>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">{'Target Area'}</label>
                     <select
                       className="w-full px-3 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       value={predictionArea}
@@ -710,9 +710,9 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">{t('ai.model', lang)}</label>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">{'Model'}</label>
                     <div className="px-3 py-2.5 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl font-mono text-gray-600 dark:text-gray-400">
-                      {predictionResult?.model_version || t('ai.defaultModelVersion', lang)}
+                      {predictionResult?.model_version || 'Default flood model'}
                     </div>
                   </div>
                   <div className="flex flex-col justify-end">
@@ -726,7 +726,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                       }`}
                     >
                       <Package className="w-4 h-4" />
-                      {predictionRunning ? `${t('common.analyzing', lang)}...` : t('ai.runAnalysis', lang)}
+                      {predictionRunning ? `${'Analyzing'}...` : 'Run Analysis'}
                     </button>
                   </div>
                 </div>
@@ -741,11 +741,11 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                     <div className="mt-5 space-y-4">
                       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                         {[
-                          { label: t('common.risk', lang), value: resultRisk, icon: AlertTriangle, bg: 'bg-red-50 dark:bg-red-900/20', tc: 'text-red-700 dark:text-red-300' },
-                          { label: t('ai.probability', lang), value: `${resultProb}%`, icon: TrendingUp, bg: 'bg-blue-50 dark:bg-blue-900/20', tc: 'text-blue-700 dark:text-blue-300' },
-                          { label: t('ai.confidence', lang), value: `${resultConf}%`, icon: CheckCircle, bg: 'bg-green-50 dark:bg-green-900/20', tc: 'text-green-700 dark:text-green-300' },
-                          { label: t('ai.peakTime', lang), value: predictionResult.predicted_peak_time ? new Date(predictionResult.predicted_peak_time).toLocaleString(lang || 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '--', icon: Clock, bg: 'bg-purple-50 dark:bg-purple-900/20', tc: 'text-purple-700 dark:text-purple-300' },
-                          { label: t('ai.radius', lang), value: `${(predictionResult.affected_radius_km || 0).toFixed?.(1) || predictionResult.affected_radius_km || 0} km`, icon: Waves, bg: 'bg-cyan-50 dark:bg-cyan-900/20', tc: 'text-cyan-700 dark:text-cyan-300' },
+                          { label: 'Risk', value: resultRisk, icon: AlertTriangle, bg: 'bg-red-50 dark:bg-red-900/20', tc: 'text-red-700 dark:text-red-300' },
+                          { label: 'Probability', value: `${resultProb}%`, icon: TrendingUp, bg: 'bg-blue-50 dark:bg-blue-900/20', tc: 'text-blue-700 dark:text-blue-300' },
+                          { label: 'Confidence', value: `${resultConf}%`, icon: CheckCircle, bg: 'bg-green-50 dark:bg-green-900/20', tc: 'text-green-700 dark:text-green-300' },
+                          { label: 'Peak Time', value: predictionResult.predicted_peak_time ? new Date(predictionResult.predicted_peak_time).toLocaleString(lang || 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '--', icon: Clock, bg: 'bg-purple-50 dark:bg-purple-900/20', tc: 'text-purple-700 dark:text-purple-300' },
+                          { label: 'Radius', value: `${(predictionResult.affected_radius_km || 0).toFixed?.(1) || predictionResult.affected_radius_km || 0} km`, icon: Waves, bg: 'bg-cyan-50 dark:bg-cyan-900/20', tc: 'text-cyan-700 dark:text-cyan-300' },
                         ].map((m, i) => {
                           const Icon = m.icon
                           return (
@@ -761,11 +761,11 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                       </div>
                       {predictionResult.contributing_factors?.length > 0 && (
                         <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                          <h5 className="font-bold text-xs mb-3 uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('ai.contributingFactors', lang)}</h5>
+                          <h5 className="font-bold text-xs mb-3 uppercase tracking-wider text-gray-500 dark:text-gray-400">{'Contributing Factors'}</h5>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {(predictionResult.contributing_factors || []).map((f: any, idx: number) => {
                               const imp = typeof f.importance === 'number' ? Math.round(f.importance * 100) : 0
-                              const name = typeof f === 'string' ? humanizeName(f) : humanizeName(f.factor || f.name || t('common.unknown', lang))
+                              const name = typeof f === 'string' ? humanizeName(f) : humanizeName(f.factor || f.name || 'Unknown')
                               const bc = imp >= 50 ? 'from-red-500 to-red-400' : imp >= 30 ? 'from-amber-400 to-amber-500' : 'from-blue-400 to-blue-500'
                               return (
                                 <div key={idx}>
@@ -813,14 +813,14 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-bold text-sm flex items-center gap-2 text-gray-900 dark:text-white">
-                    <Brain className="w-4 h-4 text-purple-600" /> {t('ai.interactiveModelExplorer', lang)}
+                    <Brain className="w-4 h-4 text-purple-600" /> {'Interactive Model Explorer'}
                   </h4>
                   <button
                     onClick={fetchExplorerModels}
                     disabled={explorerLoading}
                     className="text-xs px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-1"
                   >
-                    <RefreshCw className={`w-3 h-3 ${explorerLoading ? 'animate-spin' : ''}`} /> {t('common.refresh', lang)}
+                    <RefreshCw className={`w-3 h-3 ${explorerLoading ? 'animate-spin' : ''}`} /> {'Refresh'}
                   </button>
                 </div>
                 {explorerLoading ? (
@@ -828,7 +828,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                 ) : explorerModels.length === 0 ? (
                   <div className="text-center py-8 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
                     <Brain className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('ai.noModelsAvailable', lang)}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{'No models available'}</p>
                   </div>
                 ) : (
                   <>
@@ -862,10 +862,10 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                         <div className="mt-4 space-y-5">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             {[
-                              { label: t('ai.accuracy', lang), value: accuracy },
-                              { label: t('ai.precision', lang), value: precision },
-                              { label: t('ai.recall', lang), value: recall },
-                              { label: t('ai.f1Score', lang), value: f1 },
+                              { label: 'Accuracy', value: accuracy },
+                              { label: 'Precision', value: precision },
+                              { label: 'Recall', value: recall },
+                              { label: 'F1 Score', value: f1 },
                             ].map((metric, mi2) => (
                               <div key={mi2} className={`rounded-xl p-4 border-2 ${
                                 metric.value >= 0.85 ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
@@ -886,7 +886,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                           {Array.isArray(fi) && fi.length > 0 && (
                             <div className="bg-white dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
                               <h4 className="font-bold text-sm flex items-center gap-2 mb-4 text-gray-900 dark:text-white">
-                                <Activity className="w-4 h-4 text-purple-600" /> {t('ai.featureImportance', lang)}
+                                <Activity className="w-4 h-4 text-purple-600" /> {'Feature Importance'}
                               </h4>
                               <div className="space-y-2.5">
                                 {fi.slice(0, 12).map((f: any, fIdx: number) => {
@@ -912,13 +912,13 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                           {cm.matrix && Array.isArray(cm.matrix) && cm.matrix.length > 0 && (
                             <div className="bg-white dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
                               <h4 className="font-bold text-sm flex items-center gap-2 mb-4 text-gray-900 dark:text-white">
-                                <BarChart3 className="w-4 h-4 text-purple-600" /> {t('ai.confusionMatrix', lang)}
+                                <BarChart3 className="w-4 h-4 text-purple-600" /> {'Confusion Matrix'}
                               </h4>
                               <div className="overflow-x-auto">
                                 <table className="text-xs">
                                   <thead>
                                     <tr>
-                                      <th className="p-2 text-left text-gray-500 dark:text-gray-400 font-semibold">{t('ai.actualVsPredicted', lang)}</th>
+                                      <th className="p-2 text-left text-gray-500 dark:text-gray-400 font-semibold">{'Actual \\\\ Predicted'}</th>
                                       {(cm.labels || []).map((l: string) => <th key={l} className="p-2 text-center font-semibold text-gray-700 dark:text-gray-300">{l}</th>)}
                                     </tr>
                                   </thead>
@@ -955,7 +955,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                           {Array.isArray(cd) && cd.length > 0 && (
                             <div className="bg-white dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
                               <h4 className="font-bold text-sm flex items-center gap-2 mb-4 text-gray-900 dark:text-white">
-                                <Gauge className="w-4 h-4 text-purple-600" /> {t('ai.confidenceDistribution', lang)}
+                                <Gauge className="w-4 h-4 text-purple-600" /> {'Confidence Distribution'}
                               </h4>
                               <div className="flex items-end gap-1.5 h-36 px-2">
                                 {cd.map((bucket: any, bi: number) => {
@@ -994,12 +994,12 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-bold text-sm flex items-center gap-2 text-gray-900 dark:text-white">
-                    <GitBranch className="w-4 h-4 text-emerald-600" /> {t('ai.modelVersionManagement', lang)}
+                    <GitBranch className="w-4 h-4 text-emerald-600" /> {'Model Version Management'}
                   </h4>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{t('ai.hazardType', lang)}</label>
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{'Hazard Type'}</label>
                     <select
                       className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl"
                       value={selectedHazard}
@@ -1009,7 +1009,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{t('ai.region', lang)}</label>
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{'Region'}</label>
                     <select
                       className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl"
                       value={selectedRegion}
@@ -1032,10 +1032,10 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                       className="flex-1 px-4 py-2 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
                       {versionsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                      {t('common.refresh', lang)}
+                      {'Refresh'}
                     </button>
                     <button
-                      onClick={() => askConfirm(t('ai.removeOverride', lang), t('ai.revertAutoSelection', lang), 'warning', handleDemote)}
+                      onClick={() => askConfirm('Remove Override', 'Revert to automatic model selection?', 'warning', handleDemote)}
                       disabled={lifecycleAction === 'demote'}
                       className="p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-xl transition-colors disabled:opacity-50"
                     >
@@ -1047,30 +1047,30 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                 {currentKey && (
                   <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl mb-3">
                     <Crown className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-xs font-mono text-emerald-700 dark:text-emerald-300">{t('ai.activeLabel', lang)} {currentKey}</span>
+                    <span className="text-xs font-mono text-emerald-700 dark:text-emerald-300">{'Active:'} {currentKey}</span>
                   </div>
                 )}
 
                 {(modelHealth || driftSnapshot || rollbackHint) && (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
                     <div className="rounded-xl border border-sky-200 dark:border-sky-900/60 bg-sky-50/70 dark:bg-sky-950/20 p-4 space-y-2">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">{t('ai.modelHealth', lang)}</h4>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">{'Model Health'}</h4>
                       <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div><p className="text-gray-500 dark:text-gray-400">{t('ai.currentVersion', lang)}</p><p className="font-mono font-bold text-gray-900 dark:text-white">{modelHealth?.current_version || '--'}</p></div>
-                        <div><p className="text-gray-500 dark:text-gray-400">{t('ai.healthBadge', lang)}</p><p className="font-bold text-gray-900 dark:text-white">{String(modelHealth?.health_status || 'healthy').toUpperCase()}</p></div>
-                        <div><p className="text-gray-500 dark:text-gray-400">{t('ai.driftScore', lang)}</p><p className="font-bold text-gray-900 dark:text-white">{Number(modelHealth?.drift_score ?? driftSnapshot?.drift_score ?? 0).toFixed(3)}</p></div>
-                        <div><p className="text-gray-500 dark:text-gray-400">{t('ai.confidenceTrend', lang)}</p><p className="font-bold text-gray-900 dark:text-white">{Number(driftSnapshot?.avg_confidence ?? 0).toFixed(3)}</p></div>
-                        <div><p className="text-gray-500 dark:text-gray-400">{t('ai.fallbackCount', lang)}</p><p className="font-bold text-gray-900 dark:text-white">{modelHealth?.fallback_count ?? 0}</p></div>
-                        <div><p className="text-gray-500 dark:text-gray-400">{t('ai.lastSnapshot', lang)}</p><p className="font-bold text-gray-900 dark:text-white">{modelHealth?.last_monitoring_snapshot ? new Date(modelHealth.last_monitoring_snapshot).toLocaleString() : '--'}</p></div>
+                        <div><p className="text-gray-500 dark:text-gray-400">{'Current version'}</p><p className="font-mono font-bold text-gray-900 dark:text-white">{modelHealth?.current_version || '--'}</p></div>
+                        <div><p className="text-gray-500 dark:text-gray-400">{'Health badge'}</p><p className="font-bold text-gray-900 dark:text-white">{String(modelHealth?.health_status || 'healthy').toUpperCase()}</p></div>
+                        <div><p className="text-gray-500 dark:text-gray-400">{'Drift score'}</p><p className="font-bold text-gray-900 dark:text-white">{Number(modelHealth?.drift_score ?? driftSnapshot?.drift_score ?? 0).toFixed(3)}</p></div>
+                        <div><p className="text-gray-500 dark:text-gray-400">{'Confidence trend'}</p><p className="font-bold text-gray-900 dark:text-white">{Number(driftSnapshot?.avg_confidence ?? 0).toFixed(3)}</p></div>
+                        <div><p className="text-gray-500 dark:text-gray-400">{'Fallback count'}</p><p className="font-bold text-gray-900 dark:text-white">{modelHealth?.fallback_count ?? 0}</p></div>
+                        <div><p className="text-gray-500 dark:text-gray-400">{'Last snapshot'}</p><p className="font-bold text-gray-900 dark:text-white">{modelHealth?.last_monitoring_snapshot ? new Date(modelHealth.last_monitoring_snapshot).toLocaleString() : '--'}</p></div>
                       </div>
                     </div>
                     <div className="rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/70 dark:bg-amber-950/20 p-4 space-y-2">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">{t('ai.versionTrend', lang)}</h4>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">{'Version Trend'}</h4>
                       <div className="space-y-1 text-xs">
-                        <p><span className="text-gray-500 dark:text-gray-400">{t('ai.promotedVersion', lang)}</span> <span className="font-mono font-bold">{versions.find((v: any) => v.promotion_status === 'promoted')?.version || '--'}</span></p>
-                        <p><span className="text-gray-500 dark:text-gray-400">{t('ai.currentLiveVersion', lang)}</span> <span className="font-mono font-bold">{modelHealth?.current_version || versions.find((v: any) => v.is_current)?.version || '--'}</span></p>
-                        <p><span className="text-gray-500 dark:text-gray-400">{t('ai.previousCandidate', lang)}</span> <span className="font-mono font-bold">{versions.find((v: any) => !v.is_current)?.version || '--'}</span></p>
-                        <p><span className="text-gray-500 dark:text-gray-400">{t('ai.rollbackRecommendation', lang)}</span> <span className="font-mono font-bold">{modelHealth?.recommended_rollback_version || rollbackHint?.recommended_rollback_version || '--'}</span></p>
+                        <p><span className="text-gray-500 dark:text-gray-400">{'Promoted version:'}</span> <span className="font-mono font-bold">{versions.find((v: any) => v.promotion_status === 'promoted')?.version || '--'}</span></p>
+                        <p><span className="text-gray-500 dark:text-gray-400">{'Current live version:'}</span> <span className="font-mono font-bold">{modelHealth?.current_version || versions.find((v: any) => v.is_current)?.version || '--'}</span></p>
+                        <p><span className="text-gray-500 dark:text-gray-400">{'Previous candidate:'}</span> <span className="font-mono font-bold">{versions.find((v: any) => !v.is_current)?.version || '--'}</span></p>
+                        <p><span className="text-gray-500 dark:text-gray-400">{'Rollback recommendation:'}</span> <span className="font-mono font-bold">{modelHealth?.recommended_rollback_version || rollbackHint?.recommended_rollback_version || '--'}</span></p>
                       </div>
                     </div>
                   </div>
@@ -1081,7 +1081,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                 ) : versions.length === 0 ? (
                   <div className="text-center py-8 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
                     <Package className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('ai.noVersionsFound', lang)}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{'No versions found'}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1109,7 +1109,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                                 }`}>{humanizeName(v.promotion_status || 'pending')}</span>
                                 {aucStr && <span className="text-[10px] text-gray-500 dark:text-gray-400 font-mono">{aucStr}</span>}
                                 <span className="text-[10px] text-gray-400 dark:text-gray-400">{v.trained_at?.split('T')[0]}</span>
-                                {!v.has_model_file && <span className="text-[10px] text-red-500 font-bold">{t('ai.noFile', lang)}</span>}
+                                {!v.has_model_file && <span className="text-[10px] text-red-500 font-bold">{'NO FILE'}</span>}
                               </div>
                             </div>
                           </div>
@@ -1117,16 +1117,16 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                             <button
                               onClick={() => handleValidate(v.version)}
                               disabled={!!lifecycleAction}
-                              title={t('ai.validateIntegrity', lang)}
+                              title={'Validate integrity'}
                               className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors disabled:opacity-30"
                             >
                               {lifecycleAction === `validate-${v.version}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
                             </button>
                             {!v.is_current && (
                               <button
-                                onClick={() => askConfirm(t('ai.promoteModel', lang), `${t('ai.setActiveModel', lang)} ${v.version} -- ${humanizeName(selectedHazard)}?`, 'warning', () => handlePromote(v.version))}
+                                onClick={() => askConfirm('Promote Model', `${'Set as active model'} ${v.version} -- ${humanizeName(selectedHazard)}?`, 'warning', () => handlePromote(v.version))}
                                 disabled={!!lifecycleAction}
-                                title={t('ai.promoteAsActive', lang)}
+                                title={'Promote as active'}
                                 className="p-1.5 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 transition-colors disabled:opacity-30"
                               >
                                 {lifecycleAction === v.version ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" />}
@@ -1147,14 +1147,14 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h4 className="font-bold text-sm flex items-center gap-2 text-gray-900 dark:text-white">
-                  <Activity className="w-4 h-4 text-amber-600" /> {t('ai.modelDriftMonitoring', lang)}
+                  <Activity className="w-4 h-4 text-amber-600" /> {'Model Drift Monitoring'}
                 </h4>
                 <button
                   onClick={fetchDriftData}
                   disabled={driftLoading}
                   className="text-xs px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-100 transition-colors font-semibold flex items-center gap-1"
                 >
-                  <RefreshCw className={`w-3 h-3 ${driftLoading ? 'animate-spin' : ''}`} /> {t('common.refresh', lang)}
+                  <RefreshCw className={`w-3 h-3 ${driftLoading ? 'animate-spin' : ''}`} /> {'Refresh'}
                 </button>
               </div>
 
@@ -1190,7 +1190,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
               ) : driftEntries.length === 0 ? (
                 <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-6 text-center">
                   <ShieldCheck className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                  <p className="font-semibold text-emerald-700 dark:text-emerald-300">{t('ai.allModelsStable', lang)}</p>
+                  <p className="font-semibold text-emerald-700 dark:text-emerald-300">{'All models stable -- no drift detected'}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1205,27 +1205,27 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                       : magnitude > 0.05 ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20'
                       : 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20'
                     const statusColor = !hasDrift ? 'text-emerald-600' : magnitude > 0.1 ? 'text-red-600' : magnitude > 0.05 ? 'text-amber-600' : 'text-emerald-600'
-                    const statusLabel = !hasDrift ? t('ai.stable', lang) : magnitude > 0.1 ? t('ai.significantDrift', lang) : magnitude > 0.05 ? t('ai.minorDrift', lang) : t('ai.minimal', lang)
+                    const statusLabel = !hasDrift ? 'Stable' : magnitude > 0.1 ? 'Significant drift' : magnitude > 0.05 ? 'Minor drift' : 'Minimal'
                     return (
                       <div key={di} className={`rounded-xl p-4 border-2 transition-all ${driftColor}`}>
                         <div className="flex items-center justify-between flex-wrap gap-2">
                           <div className="flex items-center gap-3">
                             {hasDrift ? <AlertTriangle className="w-5 h-5 text-red-600" /> : <ShieldCheck className="w-5 h-5 text-emerald-600" />}
                             <div>
-                              <p className="font-semibold text-sm text-gray-900 dark:text-white">{humanizeName(d.modelName || d.model_name || t('ai.model', lang))}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{humanizeName(d.metricName || d.metric_name || t('ai.accuracy', lang))} -- v{d.modelVersion || d.model_version || '?'}</p>
+                              <p className="font-semibold text-sm text-gray-900 dark:text-white">{humanizeName(d.modelName || d.model_name || 'Model')}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{humanizeName(d.metricName || d.metric_name || 'Accuracy')} -- v{d.modelVersion || d.model_version || '?'}</p>
                             </div>
                           </div>
                           <div className="text-right">
                             <span className={`text-sm font-bold ${statusColor}`}>{statusLabel}</span>
-                            {magnitude > 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{t('ai.driftMagnitude', lang)}: {magPct}%</p>}
+                            {magnitude > 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{'Drift magnitude'}: {magPct}%</p>}
                           </div>
                         </div>
                         {(baseVal || curVal) ? (
                           <div className="flex items-center gap-4 mt-3">
                             <div className="flex-1">
                               <div className="flex justify-between text-xs mb-1">
-                                <span className="text-gray-500 dark:text-gray-400">{t('ai.baseline', lang)}</span>
+                                <span className="text-gray-500 dark:text-gray-400">{'Baseline'}</span>
                                 <span className="font-bold">{pct(baseVal)}</span>
                               </div>
                               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -1235,7 +1235,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                             <ArrowRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
                             <div className="flex-1">
                               <div className="flex justify-between text-xs mb-1">
-                                <span className="text-gray-500 dark:text-gray-400">{t('ai.current', lang)}</span>
+                                <span className="text-gray-500 dark:text-gray-400">{'Current'}</span>
                                 <span className={`font-bold ${hasDrift ? 'text-red-600' : ''}`}>{pct(curVal)}</span>
                               </div>
                               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -1254,12 +1254,12 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                                 disabled={!!retrainingDrift}
                                 onClick={async () => {
                                   setRetrainingDrift(hazardName)
-                                  pushNotification(`${t('ai.retrainingScheduled', lang)} -- ${humanizeName(hazardName)}`, 'info')
+                                  pushNotification(`${'Retraining scheduled. This may take several minutes.'} -- ${humanizeName(hazardName)}`, 'info')
                                   try {
                                     await apiRetrainModel(hazardName)
-                                    pushNotification(`${t('ai.retrainQueued', lang)} -- ${humanizeName(hazardName)}`, 'success')
+                                    pushNotification(`${'Retrain job queued successfully'} -- ${humanizeName(hazardName)}`, 'success')
                                   } catch (err: any) {
-                                    pushNotification(err?.message || t('ai.retrainFailed', lang), 'error')
+                                    pushNotification(err?.message || 'Retrain failed', 'error')
                                   } finally {
                                     setRetrainingDrift(null)
                                   }
@@ -1267,7 +1267,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                                 className="px-4 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-all shadow-sm disabled:opacity-60 flex items-center gap-1.5"
                               >
                                 {isRetraining ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
-                                {isRetraining ? t('ai.submittingRetrain', lang) : t('ai.scheduleRetraining', lang)}
+                                {isRetraining ? 'Submitting retrain job...' : 'Schedule Retraining'}
                               </button>
                             </div>
                           )
@@ -1310,10 +1310,10 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
               {/* Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: t('ai.totalExecutions', lang), value: auditStats.total, color: 'text-gray-900 dark:text-white' },
-                  { label: t('ai.avgLatency', lang), value: auditStats.total > 0 ? `${auditStats.avgLatency}ms` : '--', color: 'text-blue-600 dark:text-blue-400' },
-                  { label: t('ai.errors', lang), value: auditStats.errorCount, color: auditStats.errorCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' },
-                  { label: t('ai.errorRate', lang), value: `${auditStats.errorRate}%`, color: parseFloat(auditStats.errorRate) > 5 ? 'text-red-600' : 'text-emerald-600' },
+                  { label: 'Total Executions', value: auditStats.total, color: 'text-gray-900 dark:text-white' },
+                  { label: 'Avg Latency', value: auditStats.total > 0 ? `${auditStats.avgLatency}ms` : '--', color: 'text-blue-600 dark:text-blue-400' },
+                  { label: 'Errors', value: auditStats.errorCount, color: auditStats.errorCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' },
+                  { label: 'Error Rate', value: `${auditStats.errorRate}%`, color: parseFloat(auditStats.errorRate) > 5 ? 'text-red-600' : 'text-emerald-600' },
                 ].map((s, i) => (
                   <div key={i} className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{s.label}</p>
@@ -1327,8 +1327,8 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                 <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
                   {(['All', 'Governance', 'Analysis', 'Classification'] as const).map(f => {
                     const filterLabels: Record<string, string> = {
-                      'All': t('ai.filterAll', lang), 'Governance': t('ai.filterGovernance', lang),
-                      'Analysis': t('ai.filterAnalysis', lang), 'Classification': t('ai.filterClassification', lang),
+                      'All': 'All', 'Governance': 'Governance',
+                      'Analysis': 'Analysis', 'Classification': 'Classification',
                     }
                     return (
                       <button key={f} onClick={() => setAuditFilter(f)}
@@ -1346,30 +1346,30 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                   <Calendar className="w-3.5 h-3.5 text-gray-400" />
                   <input type="date" value={auditDateFrom} onChange={e => setAuditDateFrom(e.target.value)}
                     className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg" />
-                  <span className="text-gray-400">{t('common.to', lang)}</span>
+                  <span className="text-gray-400">{'To'}</span>
                   <input type="date" value={auditDateTo} onChange={e => setAuditDateTo(e.target.value)}
                     className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg" />
                 </div>
                 <button onClick={exportAuditCSV} disabled={filteredAuditEntries.length === 0}
                   className="ml-auto px-3 py-1.5 text-xs font-semibold bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-40">
-                  <Download className="w-3 h-3" /> {t('ai.exportCsv', lang)}
+                  <Download className="w-3 h-3" /> {'Export CSV'}
                 </button>
               </div>
 
               {/* Table */}
               <DataTable<any>
                 columns={[
-                  { key: 'model', header: t('ai.thModel', lang), render: e => <span className="font-semibold text-gray-700 dark:text-gray-300">{humanizeName(e.modelName || e.model_name || '') || '--'}</span> },
-                  { key: 'action', header: t('ai.thAction', lang), render: e => <span className="text-gray-600 dark:text-gray-400 truncate max-w-[180px] block">{humanizeName(e.action || e.inputSummary || e.input_summary || '') || '--'}</span> },
-                  { key: 'target', header: t('ai.thTarget', lang), render: e => <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400 text-[10px]">{humanizeName(e.targetType || e.target_type || '') || '--'}</span> },
-                  { key: 'status', header: t('ai.thStatus', lang), render: e => <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${(e.status || '').toLowerCase() === 'success' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : (e.status || '').toLowerCase() === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>{humanizeName(e.status || '') || '--'}</span> },
-                  { key: 'latency', header: t('ai.thLatency', lang), render: e => <span className="font-mono text-gray-600 dark:text-gray-400">{e.executionTimeMs != null ? `${e.executionTimeMs}ms` : e.execution_time_ms != null ? `${e.execution_time_ms}ms` : '--'}</span> },
-                  { key: 'ts', header: t('ai.thTimestamp', lang), render: e => { const ts = e.createdAt || e.created_at || ''; const fmtTs = ts ? (() => { try { const d = new Date(ts); return isNaN(d.getTime()) ? ts : d.toLocaleDateString(lang || 'en-GB', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) } catch { return ts } })() : '--'; return <span className="text-gray-500 dark:text-gray-400">{fmtTs}</span> } },
+                  { key: 'model', header: 'Model', render: e => <span className="font-semibold text-gray-700 dark:text-gray-300">{humanizeName(e.modelName || e.model_name || '') || '--'}</span> },
+                  { key: 'action', header: 'Action', render: e => <span className="text-gray-600 dark:text-gray-400 truncate max-w-[180px] block">{humanizeName(e.action || e.inputSummary || e.input_summary || '') || '--'}</span> },
+                  { key: 'target', header: 'Target', render: e => <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400 text-[10px]">{humanizeName(e.targetType || e.target_type || '') || '--'}</span> },
+                  { key: 'status', header: 'Status', render: e => <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${(e.status || '').toLowerCase() === 'success' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : (e.status || '').toLowerCase() === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>{humanizeName(e.status || '') || '--'}</span> },
+                  { key: 'latency', header: 'Latency', render: e => <span className="font-mono text-gray-600 dark:text-gray-400">{e.executionTimeMs != null ? `${e.executionTimeMs}ms` : e.execution_time_ms != null ? `${e.execution_time_ms}ms` : '--'}</span> },
+                  { key: 'ts', header: 'Timestamp', render: e => { const ts = e.createdAt || e.created_at || ''; const fmtTs = ts ? (() => { try { const d = new Date(ts); return isNaN(d.getTime()) ? ts : d.toLocaleDateString(lang || 'en-GB', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) } catch { return ts } })() : '--'; return <span className="text-gray-500 dark:text-gray-400">{fmtTs}</span> } },
                 ]}
                 rows={filteredAuditEntries.slice(0, 50)}
                 rowKey={e => String(e.id || e.created_at || e.createdAt || '')}
                 loading={auditLoading}
-                emptyMessage={t('ai.noAuditEntries', lang)}
+                emptyMessage={'No audit entries match filters'}
                 className="rounded-xl border border-gray-200 dark:border-gray-700"
               />
             </div>
@@ -1381,12 +1381,12 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
       {/* Keyboard shortcuts overlay */}
       {showKeyboard && (
         <div className="bg-slate-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-xs font-mono ring-1 ring-slate-700">
-          <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">{t('common.shortcuts', lang)}:</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 ring-1 ring-gray-700">R</kbd> {t('common.refresh', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 ring-1 ring-gray-700">P</kbd> {t('ai.runPrediction', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 ring-1 ring-gray-700">M</kbd> {t('ai.models', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 ring-1 ring-gray-700">D</kbd> {t('ai.driftHealth', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 ring-1 ring-gray-700">?</kbd> {t('common.shortcuts', lang)}</span>
+          <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">{'Shortcuts'}:</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 ring-1 ring-gray-700">R</kbd> {'Refresh'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 ring-1 ring-gray-700">P</kbd> {'Run Prediction'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 ring-1 ring-gray-700">M</kbd> {'Models'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 ring-1 ring-gray-700">D</kbd> {'Drift & Health'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 ring-1 ring-gray-700">?</kbd> {'Shortcuts'}</span>
           <button onClick={() => setShowKeyboard(false)} className="ml-auto text-gray-400 hover:text-white"><X className="w-3 h-3" /></button>
         </div>
       )}

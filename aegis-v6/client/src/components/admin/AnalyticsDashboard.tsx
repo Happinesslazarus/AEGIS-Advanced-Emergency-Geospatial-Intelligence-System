@@ -294,7 +294,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
   const clusters = data?.intelligenceMetrics?.locationClusters || []
   const quality = data?.dataQuality
   const lastAgeSec = lastRefreshRef.current > 0 ? Math.max(0, Math.floor((nowTick - lastRefreshRef.current) / 1000)) : 0
-  const trendLabel = hybrid.trendFromSeries > 0 ? t('analytics.rising', lang) : hybrid.trendFromSeries < 0 ? t('analytics.falling', lang) : t('analytics.stable', lang)
+  const trendLabel = hybrid.trendFromSeries > 0 ? 'Rising' : hybrid.trendFromSeries < 0 ? 'Falling' : 'Stable'
   const recentWindow = series.slice(Math.max(0, series.length - 4))
   //forecastNext: 4-period rolling average of the most recent data points.
   //Gives a rough "next period" estimate without a server round-trip.
@@ -336,10 +336,10 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
             onChange={(e) => setRange(e.target.value as RangeValue)}
             className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-aegis-500/30 focus:border-aegis-500 transition-colors"
           >
-            <option value="24h">{t('analytics.last24h', lang)}</option>
-            <option value="7d">{t('analytics.last7days', lang)}</option>
-            <option value="30d">{t('analytics.last30days', lang)}</option>
-            <option value="all">{t('analytics.allTime', lang)}</option>
+            <option value="24h">{'Last 24h'}</option>
+            <option value="7d">{'Last 7 days'}</option>
+            <option value="30d">{'Last 30 days'}</option>
+            <option value="all">{'All time'}</option>
             <option value="custom">Custom Range...</option>
           </select>
           {range === 'custom' && (
@@ -373,28 +373,28 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
           </button>
           <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border ${socketConnected ? 'text-green-700 bg-green-50 border-green-200 dark:bg-green-950/20 dark:text-green-300 dark:border-green-800' : 'text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-800'}`}>
             <Wifi className="w-3 h-3" />
-            {socketConnected ? t('analytics.liveStreamConnected', lang) : t('analytics.pollingFallback', lang)}
+            {socketConnected ? 'Live stream connected' : 'Polling fallback active'}
           </span>
           {/* Export buttons */}
           <button
             onClick={() => handleExport('csv')}
             disabled={!data}
             className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 flex items-center gap-1 disabled:opacity-40"
-            title={t('common.exportCSV', lang)}
+            title={'Export CSV'}
           >
-            <Download className="w-3.5 h-3.5" /> {t('common.csv', lang)}
+            <Download className="w-3.5 h-3.5" /> {'CSV'}
           </button>
           <button
             onClick={() => handleExport('json')}
             disabled={!data}
             className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 flex items-center gap-1 disabled:opacity-40"
-            title={t('common.exportJson', lang)}
+            title={'Export JSON'}
           >
-            <Download className="w-3.5 h-3.5" /> {t('common.json', lang)}
+            <Download className="w-3.5 h-3.5" /> {'JSON'}
           </button>
         </div>
         <p className="text-[10px] text-gray-500 dark:text-gray-300">
-          {data?.generatedAt ? `${t('analytics.liveAsOf', lang)} ${new Date(data.generatedAt).toLocaleTimeString()} - ${lastAgeSec}s ago` : t('analytics.liveData', lang)}
+          {data?.generatedAt ? `${'Live as of'} ${new Date(data.generatedAt).toLocaleTimeString()} - ${lastAgeSec}s ago` : 'Live data'}
         </p>
       </div>
 
@@ -412,18 +412,18 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
       ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
         {[
-          { label: t('analytics.reportsToday', lang), value: reportsToday, color: 'text-aegis-600' },
-          { label: t('analytics.reportsThisWeek', lang), value: reportsThisWeek, color: 'text-blue-600' },
-          { label: t('analytics.totalReports', lang), value: total, color: 'text-gray-900 dark:text-white' },
-          { label: t('analytics.avgAIConfidence', lang), value: `${data?.kpis.avgConfidence || 0}%`, color: 'text-aegis-600' },
-          { label: t('analytics.aiAccuracyRate', lang), value: `${data?.kpis.aiAccuracyRate || 0}%`, color: 'text-emerald-600' },
-          { label: t('analytics.falseReportRate', lang), value: `${falseReportRate}%`, color: 'text-purple-600' },
-          { label: t('analytics.verificationRate', lang), value: `${data?.kpis.verificationRate || 0}%`, color: 'text-green-600' },
-          { label: t('analytics.avgResponseTime', lang), value: fmtMins(adminResponse), color: 'text-cyan-600' },
-          { label: t('analytics.avgVerifyTime', lang), value: fmtMins(data?.kpis.avgVerifyMinutes || 0), color: 'text-indigo-600' },
-          { label: t('analytics.avgResolution', lang), value: fmtMins(data?.kpis.avgResolveMinutes || 0), color: 'text-amber-600' },
-          { label: t('analytics.geoCoverage', lang), value: `${data?.kpis.geoCoverageKm || 0} km`, color: 'text-teal-600' },
-          { label: t('analytics.threatLevelIndex', lang), value: data?.kpis.threatLevelIndex || 0, color: data?.kpis.threatLevelIndex && data.kpis.threatLevelIndex >= 70 ? 'text-red-600' : data?.kpis.threatLevelIndex && data.kpis.threatLevelIndex >= 40 ? 'text-amber-600' : 'text-green-600' },
+          { label: 'Reports Today', value: reportsToday, color: 'text-aegis-600' },
+          { label: 'Reports This Week', value: reportsThisWeek, color: 'text-blue-600' },
+          { label: 'Total Reports', value: total, color: 'text-gray-900 dark:text-white' },
+          { label: 'Avg AI Confidence', value: `${data?.kpis.avgConfidence || 0}%`, color: 'text-aegis-600' },
+          { label: 'AI Accuracy Rate', value: `${data?.kpis.aiAccuracyRate || 0}%`, color: 'text-emerald-600' },
+          { label: 'False Report Rate', value: `${falseReportRate}%`, color: 'text-purple-600' },
+          { label: 'Verification Rate', value: `${data?.kpis.verificationRate || 0}%`, color: 'text-green-600' },
+          { label: 'Avg Response Time', value: fmtMins(adminResponse), color: 'text-cyan-600' },
+          { label: 'Avg Verify Time', value: fmtMins(data?.kpis.avgVerifyMinutes || 0), color: 'text-indigo-600' },
+          { label: 'Avg Resolution', value: fmtMins(data?.kpis.avgResolveMinutes || 0), color: 'text-amber-600' },
+          { label: 'Geographic Coverage', value: `${data?.kpis.geoCoverageKm || 0} km`, color: 'text-teal-600' },
+          { label: 'Threat Level Index', value: data?.kpis.threatLevelIndex || 0, color: data?.kpis.threatLevelIndex && data.kpis.threatLevelIndex >= 70 ? 'text-red-600' : data?.kpis.threatLevelIndex && data.kpis.threatLevelIndex >= 40 ? 'text-amber-600' : 'text-green-600' },
         ].map((kpi) => (
           <div key={kpi.label} className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800 shadow-sm">
             <p className="text-[10px] text-gray-500 dark:text-gray-300 font-bold uppercase">{kpi.label}</p>
@@ -436,63 +436,63 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200 col-span-2 md:col-span-2">
           <TrendingUp className="w-4 h-4 text-aegis-600" />
-          {t('analytics.hybridTrend', lang)}
+          {'Hybrid Trend (Live + Client Approximation)'}
         </div>
         <div className="text-right">
           <p className={`text-lg font-extrabold ${trendClass}`}>{weekOverWeek}%</p>
-          <p className="text-[10px] text-gray-500 dark:text-gray-300">{t('analytics.weekOverWeek', lang)}</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-300">{'Week-over-week'}</p>
         </div>
         <div className="text-right">
           <p className={`text-lg font-extrabold ${monthlyTrend >= 0 ? 'text-green-600' : 'text-red-600'}`}>{monthlyTrend}%</p>
-          <p className="text-[10px] text-gray-500 dark:text-gray-300">{t('analytics.monthlyTrend', lang)}</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-300">{'Monthly trend'}</p>
         </div>
         <div className="text-right">
           <p className="text-lg font-extrabold text-amber-600">{hybrid.incidentSpikes}</p>
-          <p className="text-[10px] text-gray-500 dark:text-gray-300">{t('analytics.detectedSpikes', lang)}</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-300">{'Detected spikes'}</p>
         </div>
         <div className="text-right">
           <p className={`text-lg font-extrabold ${hybrid.trendFromSeries >= 0 ? 'text-green-600' : 'text-red-600'}`}>{hybrid.trendFromSeries}%</p>
-          <p className="text-[10px] text-gray-500 dark:text-gray-300">{t('analytics.clientTrendEstimate', lang)}</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-300">{'Client trend estimate'}</p>
         </div>
       </div>
 
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
         <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
           <Activity className="w-4 h-4 text-aegis-600" />
-          {t('analytics.systemHealth', lang)}
+          {'System Health'}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           <div className="flex flex-col gap-1 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full ${data ? 'bg-green-500 animate-pulse' : error ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`} />
-              <span className="text-gray-600 dark:text-gray-300">{t('analytics.database', lang)}</span>
+              <span className="text-gray-600 dark:text-gray-300">{'Database'}</span>
             </div>
             <span className={`text-sm font-bold ${data ? 'text-green-600' : error ? 'text-red-600' : 'text-amber-600'}`}>
-              {data ? t('common.connected', lang) : error ? t('common.error', lang) : t('common.connecting', lang)}
+              {data ? 'Connected' : error ? 'Error' : 'Connecting'}
             </span>
           </div>
           <div className="flex flex-col gap-1 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
-              <span className="text-gray-600 dark:text-gray-300">{t('analytics.liveStream', lang)}</span>
+              <span className="text-gray-600 dark:text-gray-300">{'Live Stream'}</span>
             </div>
             <span className={`text-sm font-bold ${socketConnected ? 'text-green-600' : 'text-amber-600'}`}>
-              {socketConnected ? t('common.active', lang) : t('analytics.polling', lang)}
+              {socketConnected ? 'Active' : 'Polling'}
             </span>
           </div>
           <div className="flex flex-col gap-1 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full ${data?.kpis?.aiScored != null && data.kpis.aiScored > 0 ? 'bg-green-500 animate-pulse' : data ? 'bg-amber-500' : 'bg-gray-400'}`} />
-              <span className="text-gray-600 dark:text-gray-300">{t('analytics.analyticsEngine', lang)}</span>
+              <span className="text-gray-600 dark:text-gray-300">{'Analytics Engine'}</span>
             </div>
             <span className={`text-sm font-bold ${data?.kpis?.aiScored != null && data.kpis.aiScored > 0 ? 'text-green-600' : data ? 'text-amber-600' : 'text-gray-500'}`}>
-              {data?.kpis?.aiScored != null && data.kpis.aiScored > 0 ? t('common.running', lang) : data ? t('analytics.idle', lang) : '--'}
+              {data?.kpis?.aiScored != null && data.kpis.aiScored > 0 ? 'Running' : data ? 'Idle' : '--'}
             </span>
           </div>
           <div className="flex flex-col gap-1 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-blue-500" />
-              <span className="text-gray-600 dark:text-gray-300">{t('analytics.lastDataSync', lang)}</span>
+              <span className="text-gray-600 dark:text-gray-300">{'Last Data Sync'}</span>
             </div>
             <span className="text-sm font-bold text-blue-600">
               {data?.generatedAt ? new Date(data.generatedAt).toLocaleTimeString() : '--:--:--'}
@@ -503,13 +503,13 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-aegis-600" /> {t('analytics.reportVolume', lang)}</h3>
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-aegis-600" /> {'Report Volume + Moving Average'}</h3>
           {series.length === 0 ? (
-            emptyState(t('analytics.noReportsInRange', lang), t('analytics.submitToGenerate', lang))
+            emptyState('No reports in selected range', 'Submit a report to generate analytics')
           ) : (
             <>
               {series.every(s => s.count === 0) && (
-                <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-2 italic">{t('analytics.noReportsPopulate', lang)}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-2 italic">{'No reports in this time range - bars will populate as data arrives.'}</p>
               )}
               <div className="relative flex items-end gap-1 h-28">
                 {series.map((point, i) => {
@@ -541,19 +541,19 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
                 ))}
               </div>
               <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-500 dark:text-gray-300">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-aegis-500 inline-block" /> {t('common.reports', lang)}</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> {t('analytics.spike', lang)}</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500 inline-block" /> {t('analytics.movingAvg', lang)}</span>
-                <span className="ml-auto">{t('analytics.scale', lang)}: {hybrid.chartScaleMax} - {t('analytics.spike', lang)} ≥ {hybrid.spikeThreshold}</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-aegis-500 inline-block" /> {'reports'}</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> {'Spike'}</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500 inline-block" /> {'Moving avg'}</span>
+                <span className="ml-auto">{'Scale'}: {hybrid.chartScaleMax} - {'Spike'} ≥ {hybrid.spikeThreshold}</span>
               </div>
             </>
           )}
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><PieChart className="w-4 h-4 text-aegis-600" /> {t('analytics.severityDistribution', lang)}</h3>
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><PieChart className="w-4 h-4 text-aegis-600" /> {'Severity Distribution'}</h3>
           {severity.length === 0 ? (
-            emptyState(t('analytics.noSeverityData', lang), t('analytics.reportsAppearHere', lang))
+            emptyState('No severity data available', 'Reports will appear here once submitted')
           ) : (
             <div className="space-y-2">
             {severity.map(({ label, count }) => {
@@ -571,9 +571,9 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-aegis-600" /> {t('analytics.topIncidentTypes', lang)}</h3>
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-aegis-600" /> {'Top Incident Types'}</h3>
           {(data?.byCategory || []).length === 0 ? (
-            emptyState(t('analytics.noCategories', lang), t('analytics.categoriesPopulate', lang))
+            emptyState('No incident categories yet', 'Categories will populate as reports arrive')
           ) : (
             <div className="space-y-2">
             {(data?.byCategory || []).map((row) => {
@@ -590,9 +590,9 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-aegis-600" /> {t('analytics.statusDistribution', lang)}</h3>
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-aegis-600" /> {'Status Distribution'}</h3>
           {statuses.length === 0 ? (
-            emptyState(t('analytics.noStatusData', lang), t('analytics.statusesAppear', lang))
+            emptyState('No status data available', 'Report statuses will appear here')
           ) : (
             <div className="space-y-2">
             {statuses.map(({ label, count }) => {
@@ -610,9 +610,9 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-aegis-600" /> {t('analytics.categoryHeatmap', lang)}</h3>
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-aegis-600" /> {'Category Heatmap (Severity)'}</h3>
           {!heatmap.length ? (
-            emptyState(t('analytics.noHeatmapData', lang), t('analytics.crossCategoryData', lang))
+            emptyState('No heatmap data yet', 'Cross-category severity data will appear here')
           ) : (
             <div className="space-y-2">
             {(heatmapExpanded ? heatmap : heatmap.slice(0, COLLAPSE_COUNT)).map((row) => (
@@ -633,7 +633,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
                 onClick={() => setHeatmapExpanded(!heatmapExpanded)}
                 className="text-[10px] text-aegis-600 hover:text-aegis-700 font-semibold mt-1"
               >
-                {heatmapExpanded ? `${t('common.showLess', lang)} ▲` : `${t('common.showMore', lang)} ${heatmap.length - COLLAPSE_COUNT} ▼`}
+                {heatmapExpanded ? `${'Show less'} ▲` : `${'Show more'} ${heatmap.length - COLLAPSE_COUNT} ▼`}
               </button>
             )}
           </div>
@@ -641,9 +641,9 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><MapPin className="w-4 h-4 text-aegis-600" /> {t('analytics.locationClusters', lang)}</h3>
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><MapPin className="w-4 h-4 text-aegis-600" /> {'Location Clusters'}</h3>
           {clusters.length === 0 ? (
-            emptyState(t('analytics.noClusters', lang), t('analytics.clustersAppear', lang))
+            emptyState('No geospatial clusters detected', 'Location clusters will appear as reports arrive')
           ) : (
             <div className="space-y-2">
             {(clustersExpanded ? clusters : clusters.slice(0, COLLAPSE_COUNT)).map((cluster, idx) => (
@@ -657,7 +657,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
                 onClick={() => setClustersExpanded(!clustersExpanded)}
                 className="text-[10px] text-aegis-600 hover:text-aegis-700 font-semibold mt-1"
               >
-                {clustersExpanded ? `${t('common.showLess', lang)} ▲` : `${t('common.showMore', lang)} ${clusters.length - COLLAPSE_COUNT} ▼`}
+                {clustersExpanded ? `${'Show less'} ▲` : `${'Show more'} ${clusters.length - COLLAPSE_COUNT} ▼`}
               </button>
             )}
           </div>
@@ -665,9 +665,9 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Users className="w-4 h-4 text-aegis-600" /> {t('analytics.reportsPerOfficer', lang)}</h3>
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Users className="w-4 h-4 text-aegis-600" /> {'Reports per Officer'}</h3>
           {reportsPerOfficer.length === 0 ? (
-            emptyState(t('analytics.noOfficerActivity', lang), t('analytics.officerPerformance', lang))
+            emptyState('No officer activity yet', 'Officer performance will be tracked here')
           ) : (
             <div className="space-y-2">
             {reportsPerOfficer.map((row) => {
@@ -684,46 +684,46 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Activity className="w-4 h-4 text-aegis-600" /> {t('analytics.performanceMetrics', lang)}</h3>
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Activity className="w-4 h-4 text-aegis-600" /> {'Performance Metrics'}</h3>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-2">
-              <p className="text-gray-500 dark:text-gray-300">{t('analytics.adminResponseTime', lang)}</p>
+              <p className="text-gray-500 dark:text-gray-300">{'Admin response time'}</p>
               <p className="text-base font-bold text-blue-600">{fmtMins(adminResponse)}</p>
             </div>
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-2">
-              <p className="text-gray-500 dark:text-gray-300">{t('analytics.investigationCompletion', lang)}</p>
+              <p className="text-gray-500 dark:text-gray-300">{'Investigation completion'}</p>
               <p className="text-base font-bold text-green-600">{fmtMins(completionTime)}</p>
             </div>
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-2 col-span-2">
-              <p className="text-gray-500 dark:text-gray-300">{t('analytics.movingAverageWindow', lang)}</p>
-              <p className="text-base font-bold text-aegis-600">{t('analytics.clientSideBuckets', lang)}</p>
+              <p className="text-gray-500 dark:text-gray-300">{'Moving average window'}</p>
+              <p className="text-base font-bold text-aegis-600">{'3 buckets (client-side)'}</p>
             </div>
           </div>
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-aegis-600" /> {t('analytics.forecastIntel', lang)}</h3>
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-aegis-600" /> {'Forecast & Anomaly Intelligence'}</h3>
           {series.length === 0 ? (
-            emptyState(t('analytics.noForecastData', lang), t('analytics.predictionsAppear', lang))
+            emptyState('No forecast data yet', 'Predictions will appear once time-series builds')
           ) : (
             <>
             <div className="grid grid-cols-2 gap-2 text-xs mb-3">
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-2">
-              <p className="text-gray-500 dark:text-gray-300">{t('analytics.nextBucketForecast', lang)}</p>
+              <p className="text-gray-500 dark:text-gray-300">{'Next bucket forecast'}</p>
               <p className="text-base font-bold text-aegis-600">{forecastNext}</p>
             </div>
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-2">
-              <p className="text-gray-500 dark:text-gray-300">{t('analytics.seriesDirection', lang)}</p>
+              <p className="text-gray-500 dark:text-gray-300">{'Series direction'}</p>
               <p className="text-base font-bold text-blue-600">{trendLabel}</p>
             </div>
           </div>
           <div className="space-y-2">
-            {hybrid.spikes.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-300">{t('analytics.noAnomalies', lang)}</p>}
+            {hybrid.spikes.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-300">{'No anomalies currently above dynamic threshold.'}</p>}
             {(spikesExpanded ? hybrid.spikes : hybrid.spikes.slice(0, 4)).map((spike) => (
               <div key={`spike-${spike.label}`} className="text-xs border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 rounded-lg px-2 py-1.5 flex items-center justify-between">
-                <span>{t('analytics.spikeAt', lang)} {spike.label}</span>
+                <span>{'Spike at'} {spike.label}</span>
                 <span className="font-semibold text-amber-700 dark:text-amber-300">
-                  {spike.count} ({t('analytics.movingAvg', lang).toLowerCase()} {spike.movingAvg})
+                  {spike.count} ({'Moving avg'.toLowerCase()} {spike.movingAvg})
                 </span>
               </div>
             ))}
@@ -732,7 +732,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
                 onClick={() => setSpikesExpanded(!spikesExpanded)}
                 className="text-[10px] text-aegis-600 hover:text-aegis-700 font-semibold mt-1"
               >
-                {spikesExpanded ? `${t('common.showLess', lang)} ▲` : `${t('common.showMore', lang)} ${hybrid.spikes.length - 4} ▼`}
+                {spikesExpanded ? `${'Show less'} ▲` : `${'Show more'} ${hybrid.spikes.length - 4} ▼`}
               </button>
             )}
           </div>
@@ -741,12 +741,12 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-aegis-600" /> {t('analytics.dataQualityCoverage', lang)}</h3>
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-aegis-600" /> {'Data Quality & Coverage'}</h3>
           <div className="space-y-2">
             {[
-              { label: t('analytics.aiCoverage', lang), value: quality?.aiCoverageRate ?? (total > 0 ? Math.round(((data?.kpis.aiScored || 0) / total) * 100) : 0), color: 'bg-indigo-500' },
-              { label: t('analytics.mediaCoverage', lang), value: quality?.mediaCoverageRate ?? data?.kpis.mediaRate ?? 0, color: 'bg-purple-500' },
-              { label: t('analytics.verificationCoverage', lang), value: quality?.verificationCoverageRate ?? data?.kpis.verificationRate ?? 0, color: 'bg-green-500' },
+              { label: 'AI Coverage', value: quality?.aiCoverageRate ?? (total > 0 ? Math.round(((data?.kpis.aiScored || 0) / total) * 100) : 0), color: 'bg-indigo-500' },
+              { label: 'Media coverage', value: quality?.mediaCoverageRate ?? data?.kpis.mediaRate ?? 0, color: 'bg-purple-500' },
+              { label: 'Verification coverage', value: quality?.verificationCoverageRate ?? data?.kpis.verificationRate ?? 0, color: 'bg-green-500' },
             ].map((item) => (
               <div key={item.label}>
                 <div className="flex justify-between text-xs mb-0.5"><span>{item.label}</span><span className="text-gray-500 dark:text-gray-300">{item.value}%</span></div>
@@ -759,7 +759,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
 
       <div className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-300 flex items-center gap-2">
         <Timer className="w-4 h-4 text-aegis-600" />
-        {t('analytics.hybridAnalyticsFootnote', lang)}
+        {'Hybrid analytics: live DB aggregates + client approximations, with auto-refresh via WebSocket events and 60s polling fallback.'}
       </div>
     </div>
   )

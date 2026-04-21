@@ -146,7 +146,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       if (!el) return
       el.textContent = ''
       setTimeout(() => {
-        el.textContent = t('error.unexpected', getLanguage())
+        el.textContent = 'An unexpected error occurred.'
       }, 100)
     })
   }
@@ -260,7 +260,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       ? 'Could not connect to the server. Check your internet connection.'
       : rawMsg.includes('Cannot read properties') || rawMsg.includes('is not a function') || rawMsg.includes('is undefined')
       ? 'An unexpected error occurred in this section. Our team has been notified.'
-      : rawMsg || t('error.unexpected', lang)
+      : rawMsg || 'An unexpected error occurred.'
     return (
       <>
         {srAnnouncer}
@@ -268,7 +268,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           <div className="bg-danger-surface border border-muted rounded-2xl p-6 max-w-md w-full">
             <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" aria-hidden="true" />
             <h2 className="text-lg font-bold text-red-700 dark:text-red-400 mb-2">
-              {this.props.name ? `${this.props.name} failed to load` : t('shared.error.title', lang)}
+              {this.props.name ? `${this.props.name} failed to load` : 'Something went wrong'}
             </h2>
             <p className="text-sm text-red-600 dark:text-red-300 mb-1">
               {friendlyMsg}
@@ -276,14 +276,14 @@ export default class ErrorBoundary extends Component<Props, State> {
 
             {this.state.correlationId && (
               <p className="text-[10px] font-mono text-red-400 dark:text-red-600 mb-1 select-all">
-                {t('error.correlationId', lang)}: {this.state.correlationId}
+                {'Reference'}: {this.state.correlationId}
               </p>
             )}
 
             <p className="text-xs text-red-400 dark:text-red-500 mb-4">
               {retriesExhausted
-                ? t('error.retryCountExhausted', lang)
-                : t('error.sectionCrashed', lang)}
+                ? 'Multiple retries failed. Please refresh the page or contact support.'
+                : 'This section crashed. Other parts of the app should still work.'}
             </p>
 
             {!retriesExhausted && (
@@ -294,8 +294,8 @@ export default class ErrorBoundary extends Component<Props, State> {
               >
                 <RefreshCw className={`w-4 h-4 ${isCooling ? 'animate-spin' : ''}`} aria-hidden="true" />
                 {isCooling
-                  ? t('error.retryIn', lang).replace('{seconds}', String(this.state.cooldownSeconds))
-                  : `${t('error.tryAgain', lang)} (${this.state.retryCount + 1}/${maxRetries})`}
+                  ? 'Retrying in {seconds}s...'.replace('{seconds}', String(this.state.cooldownSeconds))
+                  : `${'Try Again'} (${this.state.retryCount + 1}/${maxRetries})`}
               </button>
             )}
 
@@ -305,7 +305,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                 className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
               >
                 <RefreshCw className="w-4 h-4" aria-hidden="true" />
-                {t('shared.error.refresh', lang)}
+                {'Refresh Page'}
               </button>
             )}
           </div>

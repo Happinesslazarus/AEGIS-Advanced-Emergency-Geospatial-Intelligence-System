@@ -69,7 +69,7 @@ export default memo(function AlertCard({ alert, onDismiss, compact = false }: Pr
         <div className="flex items-center gap-1.5 px-4 py-1 bg-gray-100 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700">
           <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500" />
           <span className="text-[9px] font-extrabold uppercase tracking-widest text-gray-500 dark:text-gray-400">
-            {isInactive ? (t('alertCard.inactive', lang) || 'Inactive') : (t('alertCard.expired', lang) || 'Expired')}
+            {isInactive ? ('Inactive') : ('Expired')}
           </span>
         </div>
       )}
@@ -110,8 +110,8 @@ export default memo(function AlertCard({ alert, onDismiss, compact = false }: Pr
                     className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-aegis-600 dark:text-aegis-400 hover:text-aegis-700 dark:hover:text-aegis-300 transition-colors"
                   >
                     {expanded
-                      ? <><ChevronUp className="w-3 h-3" />{t('alertCard.showLess', lang) || 'Show less'}</>
-                      : <><ChevronDown className="w-3 h-3" />{t('alertCard.readMore', lang) || 'Read more'}</>}
+                      ? <><ChevronUp className="w-3 h-3" />{'Show Less'}</>
+                      : <><ChevronDown className="w-3 h-3" />{'Read More'}</>}
                   </button>
                 )}
               </div>
@@ -135,7 +135,7 @@ export default memo(function AlertCard({ alert, onDismiss, compact = false }: Pr
               {alert.expiresAt && (
                 <span className={`flex items-center gap-1 text-[11px] font-semibold ${isExpired ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
                   <Timer className="w-3 h-3" />
-                  {isExpired ? t('alertCard.expired', lang) : new Date(alert.expiresAt).toLocaleString()}
+                  {isExpired ? 'Expired' : new Date(alert.expiresAt).toLocaleString()}
                 </span>
               )}
               {alert.channels && alert.channels.length > 0 && (
@@ -151,7 +151,7 @@ export default memo(function AlertCard({ alert, onDismiss, compact = false }: Pr
             <button
               onClick={() => onDismiss(alert.id)}
               className="flex-shrink-0 p-1 rounded-lg text-gray-300 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-800 opacity-0 group-hover:opacity-100 transition-all"
-              aria-label={t('alertCard.dismiss', lang)}
+              aria-label={'Dismiss'}
             >
               <X className="w-4 h-4" />
             </button>

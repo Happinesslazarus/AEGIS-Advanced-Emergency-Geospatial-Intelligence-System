@@ -55,9 +55,9 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
   }, [])
 
   const featureHighlights = [
-    { icon: Radio, title: t('login.realTimeMonitoring', lang), desc: t('login.liveIncidentTracking', lang) },
-    { icon: Zap, title: t('login.aiPoweredAnalysis', lang), desc: t('login.automatedSeverity', lang) },
-    { icon: Fingerprint, title: t('login.secureAccess', lang), desc: t('login.endToEndEncrypted', lang) },
+    { icon: Radio, title: 'Real-Time Monitoring', desc: 'Live incident tracking across all channels' },
+    { icon: Zap, title: 'AI-Powered Analysis', desc: 'Automated severity assessment and prediction' },
+    { icon: Fingerprint, title: 'Secure Access', desc: 'End-to-end encrypted with role-based controls' },
   ]
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,7 +79,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
       setUser(res.user!)
       onLogin(res.user!)
     } catch (err: any) {
-      setError(err.message || t('admin.login.invalidCredentials', lang))
+      setError(err.message || 'Invalid credentials. Please try again.')
     } finally { setLoading(false) }
   }
 
@@ -118,7 +118,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
                 <span className="text-aegis-600 dark:text-aegis-400">AEGIS</span>
               </span>
             </div>
-            <span className="block text-[9px] text-gray-400 dark:text-aegis-300 tracking-[0.2em] uppercase mt-0.5">{t('admin.portal.title', lang)}</span>
+            <span className="block text-[9px] text-gray-400 dark:text-aegis-300 tracking-[0.2em] uppercase mt-0.5">{'AEGIS Operator Portal'}</span>
           </div>
         </Link>
         {/* Separator + System Status */}
@@ -126,7 +126,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
         <div className="hidden md:flex items-center gap-2">
           <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 px-2.5 py-1 rounded-lg">
             <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" /></span>
-            <span className="text-[10px] font-bold text-green-600 dark:text-green-400">{t('common.systemOnline', lang)}</span>
+            <span className="text-[10px] font-bold text-green-600 dark:text-green-400">{'SYSTEM ONLINE'}</span>
           </div>
           <div className="flex items-center gap-1.5 bg-aegis-50 dark:bg-aegis-500/10 border border-aegis-200 dark:border-aegis-500/20 px-2.5 py-1 rounded-lg">
             <Lock className="w-3 h-3 text-aegis-500" />
@@ -145,13 +145,13 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
               onClick={() => setNavDropdownOpen(v => !v)}
               className="flex items-center gap-2 text-xs font-bold px-3.5 sm:px-4 py-2.5 rounded-xl bg-aegis-600 hover:bg-aegis-700 active:bg-aegis-800 shadow-lg shadow-aegis-600/20 hover:shadow-aegis-500/40 transition-all hover:scale-[1.02] active:scale-[0.97] text-white cursor-pointer select-none min-h-[40px]">
               <Menu className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('common.navigate', lang)}</span>
+              <span className="hidden sm:inline">{'Navigate'}</span>
               <ChevronDown className={`w-3.5 h-3.5 opacity-80 transition-transform duration-200 ${navDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
             {navDropdownOpen && (
               <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-white/10 rounded-2xl shadow-2xl shadow-black/15 dark:shadow-black/50 overflow-hidden z-[60]" style={{ animation: 'aegis-fade-up 0.18s ease-out' }}>
                 <div className="px-4 py-3 bg-gradient-to-r from-aegis-50 to-blue-50/50 dark:from-aegis-950/40 dark:to-blue-950/20 border-b border-gray-200/60 dark:border-white/8">
-                  <p className="text-[10px] text-aegis-600 dark:text-aegis-400 font-extrabold uppercase tracking-[0.18em]">{t('common.quickNavigation', lang)}</p>
+                  <p className="text-[10px] text-aegis-600 dark:text-aegis-400 font-extrabold uppercase tracking-[0.18em]">{'Quick Navigation'}</p>
                 </div>
                 <div className="p-2 space-y-0.5">
                   <Link to="/" onClick={() => setNavDropdownOpen(false)}
@@ -160,8 +160,8 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
                       <Globe className="w-[18px] h-[18px] text-gray-500 dark:text-white/60 group-hover:text-aegis-600 dark:group-hover:text-aegis-400 transition-colors duration-150" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-aegis-700 dark:group-hover:text-aegis-300 transition-colors">{t('common.home', lang)}</p>
-                      <p className="text-[10px] text-gray-400 dark:text-white/40 mt-0.5 leading-tight">{t('common.returnToMain', lang)}</p>
+                      <p className="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-aegis-700 dark:group-hover:text-aegis-300 transition-colors">{'Home'}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-white/40 mt-0.5 leading-tight">{'Return to the main landing page'}</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-gray-300 dark:text-white/15 group-hover:text-aegis-500 dark:group-hover:text-aegis-400 group-hover:translate-x-1 transition-all duration-150 flex-shrink-0" />
                   </Link>
@@ -171,8 +171,8 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
                       <Users className="w-[18px] h-[18px] text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors duration-150" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">{t('common.citizenPortal', lang)}</p>
-                      <p className="text-[10px] text-gray-400 dark:text-white/40 mt-0.5 leading-tight">{t('common.publicSafetyDashboard', lang)}</p>
+                      <p className="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">{'Citizen Portal'}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-white/40 mt-0.5 leading-tight">{'Public safety dashboard & services'}</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-gray-300 dark:text-white/15 group-hover:text-blue-500 dark:group-hover:text-blue-400 group-hover:translate-x-1 transition-all duration-150 flex-shrink-0" />
                   </Link>
@@ -218,9 +218,9 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
             <div className="w-20 h-20 bg-gradient-to-br from-aegis-500 to-aegis-700 rounded-2xl flex items-center justify-center mb-6 shadow-2xl shadow-aegis-600/30">
               <Shield className="w-11 h-11 text-white" />
             </div>
-            <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">{t('admin.portal.title', lang)}</h1>
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">{'AEGIS Operator Portal'}</h1>
             <p className="text-sm text-gray-500 dark:text-gray-300 mt-3 leading-relaxed">
-              {t('admin.portal.signin', lang)}
+              {'Sign in to manage emergency operations'}
             </p>
           </div>
           <div className="space-y-4">
@@ -238,7 +238,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
           </div>
           <div className="mt-8 pt-6 border-t border-gray-200/60 dark:border-gray-800/60">
             <p className="text-[11px] text-gray-400 dark:text-gray-300 leading-relaxed">
-              {t('admin.login.protectedSystem', lang)}
+              {'Protected system -- Authorised personnel only'}
             </p>
           </div>
         </div>
@@ -251,8 +251,8 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
             <div className="w-16 h-16 bg-gradient-to-br from-aegis-500 to-aegis-700 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-aegis-600/30">
               <Shield className="w-9 h-9 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('admin.portal.title', lang)}</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-300 dark:text-aegis-200 mt-1">{t('admin.portal.signin', lang)}</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{'AEGIS Operator Portal'}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-300 dark:text-aegis-200 mt-1">{'Sign in to manage emergency operations'}</p>
           </div>
           {/* Compact feature highlights for mobile */}
           <div className="grid grid-cols-3 gap-2 mt-4">
@@ -271,13 +271,13 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
         <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/80 dark:border-gray-700/50 shadow-2xl shadow-gray-300/20 dark:shadow-black/40 p-8 sm:p-10" style={{ animation: 'aegis-fade-up 0.6s ease-out' }}>
           <div className="flex mb-6 items-center justify-center gap-2.5">
             <LogIn className="w-5 h-5 text-aegis-600" />
-            <span className="text-base font-semibold text-aegis-700 dark:text-aegis-300">{t('login.signIn', lang)}</span>
+            <span className="text-base font-semibold text-aegis-700 dark:text-aegis-300">{'Sign In'}</span>
           </div>
 
           {sessionExpired && (
             <div role="status" aria-live="polite" className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 px-3 py-2.5 rounded-xl text-sm mb-4 flex items-center gap-2" style={{ animation: 'aegis-fade-up 0.4s ease-out' }}>
-              <AlertCircle className="w-4 h-4 flex-shrink-0"/>{t('common.sessionExpired', lang)}
-              <button onClick={() => { searchParams.delete('session'); setSearchParams(searchParams, { replace: true }) }} className="ml-auto text-amber-500 hover:text-amber-700 dark:hover:text-amber-200 transition-colors" aria-label={t('common.dismiss', lang)}>&times;</button>
+              <AlertCircle className="w-4 h-4 flex-shrink-0"/>{'Your session has expired. Please sign in again.'}
+              <button onClick={() => { searchParams.delete('session'); setSearchParams(searchParams, { replace: true }) }} className="ml-auto text-amber-500 hover:text-amber-700 dark:hover:text-amber-200 transition-colors" aria-label={'Dismiss'}>&times;</button>
             </div>
           )}
           {regSuccess && <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-3 py-2.5 rounded-xl text-sm mb-4 flex items-center gap-2"><CheckCircle className="w-4 h-4 flex-shrink-0"/>{regSuccess}</div>}
@@ -286,16 +286,16 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
               <Mail className="absolute left-3.5 top-3.5 w-4.5 h-4.5 text-gray-400 dark:text-gray-300" />
-              <input type="email" placeholder={t('login.email', lang)} value={email} onChange={e => setEmail(e.target.value)} required
+              <input type="email" placeholder={'Email'} value={email} onChange={e => setEmail(e.target.value)} required
                 className="w-full pl-11 pr-4 py-3 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-1 focus:ring-aegis-500 outline-none" />
             </div>
 
             <div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3.5 w-4.5 h-4.5 text-gray-400 dark:text-gray-300" />
-                <input type={showPassword ? 'text' : 'password'} placeholder={t('login.password', lang)} value={password} onChange={e => setPassword(e.target.value)} required
+                <input type={showPassword ? 'text' : 'password'} placeholder={'Password'} value={password} onChange={e => setPassword(e.target.value)} required
                   className="w-full pl-11 pr-11 py-3 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-1 focus:ring-aegis-500 outline-none" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-3.5 text-gray-400 dark:text-gray-300 hover:text-gray-600" aria-label={showPassword ? t('admin.login.hidePassword', lang) : t('admin.login.showPassword', lang)}>
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-3.5 text-gray-400 dark:text-gray-300 hover:text-gray-600" aria-label={showPassword ? 'Hide password' : 'Show password'}>
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
@@ -305,19 +305,19 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
                     type="button"
                     onClick={async () => {
                       const targetEmail = email.trim()
-                      if (!targetEmail) { setError(t('citizen.auth.forgot.subtitle', lang)); return }
+                      if (!targetEmail) { setError('Enter your email address and we will send you a password reset link.'); return }
                       setLoading(true)
                       try {
                         await apiForgotPassword(targetEmail)
-                        setRegSuccess(t('citizen.auth.forgot.sentDesc', lang))
+                        setRegSuccess('Check your email for a password reset link. It may take a few minutes to arrive.')
                         setError('')
                       } catch (err: any) {
-                        setError(err?.message || t('common.error', lang))
+                        setError(err?.message || 'Error')
                       } finally { setLoading(false) }
                     }}
                     className="text-[11px] text-aegis-600 hover:underline"
                   >
-                    {t('login.forgotPassword', lang)}
+                    {'Forgot Password?'}
                   </button>
                 </div>
               )}
@@ -326,8 +326,8 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
             <button type="submit" disabled={loading}
               className="w-full bg-gradient-to-r from-aegis-600 to-aegis-700 hover:from-aegis-500 hover:to-aegis-600 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-sm text-white transition-all shadow-lg shadow-aegis-600/25 flex items-center justify-center gap-2 mt-2">
               {loading
-                ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('admin.login.signingIn', lang)}</>
-                : t('login.signIn', lang)}
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> {'Signing In...'}</>
+                : 'Sign In'}
             </button>
           </form>
 
@@ -335,7 +335,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
           <div className="relative my-3">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700" /></div>
             <div className="relative flex justify-center text-xs">
-              <span className="px-3 bg-white dark:bg-gray-900 text-gray-400 dark:text-gray-300">{t('common.continueWith', lang)}</span>
+              <span className="px-3 bg-white dark:bg-gray-900 text-gray-400 dark:text-gray-300">{'or continue with'}</span>
             </div>
           </div>
 
@@ -366,14 +366,14 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
             </div>
           )}
 
-          <p className="text-center text-[10px] text-gray-400 dark:text-gray-300 mt-4">{t('admin.portal.signin', lang)}</p>
+          <p className="text-center text-[10px] text-gray-400 dark:text-gray-300 mt-4">{'Sign in to manage emergency operations'}</p>
 
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
-            <span className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-300 whitespace-nowrap"><Lock className="w-3 h-3 flex-shrink-0"/>{t('admin.login.secureConnection', lang)}</span>
+            <span className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-300 whitespace-nowrap"><Lock className="w-3 h-3 flex-shrink-0"/>{'Secure encrypted connection'}</span>
             <span className="text-gray-300 dark:text-gray-700 hidden sm:inline">-</span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-300 whitespace-nowrap">{t('users.sessions', lang)}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-300 whitespace-nowrap">{'Sessions'}</span>
             <span className="text-gray-300 dark:text-gray-700 hidden sm:inline">-</span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-300 whitespace-nowrap text-center">{t('admin.login.protectedSystem', lang)}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-300 whitespace-nowrap text-center">{'Protected system -- Authorised personnel only'}</span>
           </div>
         </div>
         </div>

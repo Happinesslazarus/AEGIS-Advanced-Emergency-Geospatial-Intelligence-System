@@ -25,8 +25,8 @@ function formatDateSeparator(dateStr: string, lang: string): string {
   const today = new Date()
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
-  if (d.toDateString() === today.toDateString()) return t('citizenMsg.today', lang)
-  if (d.toDateString() === yesterday.toDateString()) return t('citizenMsg.yesterday', lang)
+  if (d.toDateString() === today.toDateString()) return 'Today'
+  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday'
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
@@ -57,12 +57,12 @@ function StatusBadge({ status, lang }: { status: string; lang: string }) {
   return (
     <span className={`${s.bg} ${s.text} text-[9px] font-bold uppercase px-1.5 py-0.5 rounded`}>
       {status === 'open'
-        ? t('common.open', lang)
+        ? 'Open'
         : status === 'in_progress'
-          ? t('common.active', lang)
+          ? 'Active'
           : status === 'resolved'
-            ? t('common.resolved', lang)
-            : t('common.closed', lang)}
+            ? 'Resolved'
+            : 'Closed'}
     </span>
   )
 }
@@ -191,8 +191,8 @@ export default function CitizenMessaging(): JSX.Element {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) { setError(t('citizenMsg.selectImageFile', lang)); return }
-    if (file.size > 5 * 1024 * 1024) { setError(t('citizenMsg.imageSizeLimit', lang)); return }
+    if (!file.type.startsWith('image/')) { setError('Select image file'); return }
+    if (file.size > 5 * 1024 * 1024) { setError('Image must be under 5MB'); return }
     setSelectedImage(file)
     const reader = new FileReader()
     reader.onload = (evt) => setPreviewUrl(evt.target?.result as string)
@@ -217,7 +217,7 @@ export default function CitizenMessaging(): JSX.Element {
             ...(csrfUpload ? { 'X-CSRF-Token': csrfUpload } : {}),
           }
         })
-        if (!uploadRes.ok) throw new Error(t('citizenMsg.uploadFailed', lang))
+        if (!uploadRes.ok) throw new Error('Upload failed')
         const { url: imageUrl } = await uploadRes.json()
         const content = msgInput.trim() ? `${msgInput}\n[Image: ${imageUrl}]` : `[Image: ${imageUrl}]`
         sendMessage(activeThread.id, content)
@@ -229,7 +229,7 @@ export default function CitizenMessaging(): JSX.Element {
       setPreviewUrl('')
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (err: any) {
-      setError(err.message || t('citizenMsg.sendFailed', lang))
+      setError(err.message || 'Send failed')
     } finally {
       setIsLoading(false)
     }
@@ -266,13 +266,13 @@ export default function CitizenMessaging(): JSX.Element {
                 <Inbox className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-sm font-bold tracking-wide">{t('citizenMsg.myMessages', lang)}</h2>
+                <h2 className="text-sm font-bold tracking-wide">{'My Messages'}</h2>
                 <p className="text-[10px] text-white/60">{threads.length} {t(threads.length === 1 ? 'common.conversation' : 'common.conversations', lang)}</p>
               </div>
             </div>
             <div className="flex items-center gap-1.5">
-              {connected && <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse ring-2 ring-green-400/30" title={t('common.live', lang)} />}
-              <button onClick={() => fetchCitizenThreads()} className="p-1.5 hover:bg-white/10 rounded-lg transition" title={t('common.refresh', lang)}>
+              {connected && <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse ring-2 ring-green-400/30" title={'Live'} />}
+              <button onClick={() => fetchCitizenThreads()} className="p-1.5 hover:bg-white/10 rounded-lg transition" title={'Refresh'}>
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -282,14 +282,14 @@ export default function CitizenMessaging(): JSX.Element {
           <div className="flex gap-1.5 flex-wrap">
             {totalUnread > 0 && (
               <span className="bg-red-500/30 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 border border-red-400/30">
-                <MessageSquare className="w-3 h-3" /> {totalUnread} {t('citizenMsg.unread', lang)}
+                <MessageSquare className="w-3 h-3" /> {totalUnread} {'unread'}
               </span>
             )}
             <span className="bg-white/10 backdrop-blur-sm text-white/90 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-              <Hash className="w-3 h-3" /> {openCount} {t('common.open', lang)}
+              <Hash className="w-3 h-3" /> {openCount} {'Open'}
             </span>
             <span className="bg-white/10 backdrop-blur-sm text-white/90 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-              <Zap className="w-3 h-3" /> {activeCount} {t('common.active', lang)}
+              <Zap className="w-3 h-3" /> {activeCount} {'Active'}
             </span>
           </div>
         </div>
@@ -302,7 +302,7 @@ export default function CitizenMessaging(): JSX.Element {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-8 py-2.5 text-xs bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition shadow-sm"
-              placeholder={t('citizenMsg.searchConversations', lang)}
+              placeholder={'Search conversations...'}
             />
             {searchTerm && (
               <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-gray-400 dark:text-gray-300 hover:text-gray-600">
@@ -314,7 +314,7 @@ export default function CitizenMessaging(): JSX.Element {
             onClick={() => setShowNewThread(true)}
             className="w-full py-2 bg-gradient-to-r from-aegis-500 to-aegis-600 hover:from-aegis-600 hover:to-aegis-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition shadow-md shadow-aegis-500/20"
           >
-            <Plus className="w-3.5 h-3.5" /> {t('citizenMsg.newConversation', lang)}
+            <Plus className="w-3.5 h-3.5" /> {'New Conversation'}
           </button>
         </div>
 
@@ -322,7 +322,7 @@ export default function CitizenMessaging(): JSX.Element {
         {showNewThread && (
           <div className="p-3 border-b border-gray-200 dark:border-gray-800 bg-aegis-50/50 dark:bg-aegis-950/10 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t('citizenMsg.newConversation', lang)}</span>
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{'New Conversation'}</span>
               <button onClick={() => setShowNewThread(false)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded">
                 <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
               </button>
@@ -331,7 +331,7 @@ export default function CitizenMessaging(): JSX.Element {
               <input
                 value={newSubject}
                 onChange={(e) => setNewSubject(e.target.value.slice(0, 120))}
-                placeholder={t('citizenMsg.subjectPlaceholder', lang)}
+                placeholder={'Subject (e.g. Emergency help needed)'}
                 maxLength={120}
                 className="w-full px-3 py-2 pr-16 text-xs bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500"
               />
@@ -344,16 +344,16 @@ export default function CitizenMessaging(): JSX.Element {
               onChange={(e) => setNewCategory(e.target.value)}
               className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500"
             >
-              <option value="general">{t('citizenMsg.generalInquiry', lang)}</option>
-              <option value="emergency">{t('common.emergency', lang)}</option>
-              <option value="report">{t('citizenMsg.reportIssue', lang)}</option>
-              <option value="feedback">{t('citizenMsg.feedback', lang)}</option>
+              <option value="general">{'General Inquiry'}</option>
+              <option value="emergency">{'Emergency'}</option>
+              <option value="report">{'Report Issue'}</option>
+              <option value="feedback">{'Feedback'}</option>
             </select>
             <div className="relative">
               <textarea
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value.slice(0, 500))}
-                placeholder={t('citizenMsg.describePlaceholder', lang)}
+                placeholder={'Describe your issue...'}
                 rows={2}
                 maxLength={500}
                 className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 resize-none"
@@ -367,7 +367,7 @@ export default function CitizenMessaging(): JSX.Element {
               disabled={!newSubject.trim() || !newMessage.trim()}
               className="w-full py-2 bg-aegis-600 hover:bg-aegis-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-bold rounded-lg transition"
             >
-              {t('common.send', lang)}
+              {'Send'}
             </button>
           </div>
         )}
@@ -380,10 +380,10 @@ export default function CitizenMessaging(): JSX.Element {
                 <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-600" />
               </div>
               <p className="text-sm font-semibold text-gray-500 dark:text-gray-300">
-                {searchTerm ? t('citizenMsg.noConversationsFound', lang) : t('citizenMsg.noConversations', lang)}
+                {searchTerm ? 'No conversations found' : 'No conversations yet'}
               </p>
               <p className="text-[11px] text-gray-400 dark:text-gray-300 mt-0.5">
-                {searchTerm ? t('citizenMsg.tryDifferentSearch', lang) : t('citizenMsg.startNewConversation', lang)}
+                {searchTerm ? 'Try a different search term' : 'Start a new conversation with our team'}
               </p>
             </div>
           ) : (
@@ -427,7 +427,7 @@ export default function CitizenMessaging(): JSX.Element {
                         <span className="text-xs font-bold text-gray-900 dark:text-white truncate">{thread.subject}</span>
                       </div>
                       <p className="text-[10px] text-gray-400 dark:text-gray-300 truncate mt-0.5 leading-relaxed">
-                      {thread.last_message || t('citizen.messages.noMessages', lang)}
+                      {thread.last_message || 'No messages yet'}
                       </p>
                     </div>
 
@@ -454,7 +454,7 @@ export default function CitizenMessaging(): JSX.Element {
         <div className="p-2.5 border-t border-gray-200 dark:border-gray-800 flex items-center gap-2 text-[10px]">
           <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
           <span className="text-gray-500 dark:text-gray-300">
-            {connected ? t('citizenMsg.liveUpdatesActive', lang) : t('common.reconnecting', lang)}
+            {connected ? 'Live - Real-time updates active' : 'Reconnecting...'}
           </span>
         </div>
       </div>
@@ -468,14 +468,14 @@ export default function CitizenMessaging(): JSX.Element {
               <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-aegis-100 to-aegis-200 dark:from-aegis-950/30 dark:to-aegis-900/20 flex items-center justify-center shadow-lg shadow-aegis-500/10">
                 <MessageSquare className="w-10 h-10 text-aegis-500" />
               </div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t('citizenMsg.myMessages', lang)}</h3>
+              <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{'My Messages'}</h3>
               <p className="text-xs text-gray-500 dark:text-gray-300 max-w-xs">
-                {t('citizenMsg.emptyStateDescription', lang)}
+                {'Select a conversation from the inbox to view messages and communicate with our emergency response team.'}
               </p>
               <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-gray-400 dark:text-gray-300">
-                <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> {t('citizenMsg.endToEndSecure', lang)}</span>
-                <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> {t('common.live', lang)}</span>
-                <span className="flex items-center gap-1"><Headphones className="w-3 h-3" /> {t('citizenMsg.support247', lang)}</span>
+                <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> {'End-to-end secure'}</span>
+                <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> {'Live'}</span>
+                <span className="flex items-center gap-1"><Headphones className="w-3 h-3" /> {'24/7 Support'}</span>
               </div>
             </div>
           </div>
@@ -505,7 +505,7 @@ export default function CitizenMessaging(): JSX.Element {
                 <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-300">
                   <StatusBadge status={activeThread.status} lang={lang} />
                   <span className="text-gray-300 dark:text-gray-600">|</span>
-                  <span>{activeThread.status === 'in_progress' ? t('citizenMsg.operatorAssigned', lang) : t('citizen.messages.waitingOperator', lang)}</span>
+                  <span>{activeThread.status === 'in_progress' ? 'Operator assigned' : 'Waiting for operator'}</span>
                 </div>
               </div>
             </div>
@@ -517,8 +517,8 @@ export default function CitizenMessaging(): JSX.Element {
                   <AlertTriangle className="w-4 h-4 text-red-600 animate-pulse" />
                 </div>
                 <div className="flex-1">
-                  <span className="text-xs font-bold text-red-700 dark:text-red-300">{t('citizenMsg.emergencyThread', lang)}</span>
-                  <span className="text-[10px] text-red-500 ml-2">{t('citizenMsg.urgentFlagged', lang)}</span>
+                  <span className="text-xs font-bold text-red-700 dark:text-red-300">{'EMERGENCY THREAD'}</span>
+                  <span className="text-[10px] text-red-500 ml-2">{'This conversation has been flagged as urgent'}</span>
                 </div>
               </div>
             )}
@@ -534,8 +534,8 @@ export default function CitizenMessaging(): JSX.Element {
                   <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                     <MessageSquare className="w-7 h-7 text-gray-300 dark:text-gray-600" />
                   </div>
-                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-300">{t('citizen.messages.noMessages', lang)}</p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-300 mt-0.5">{t('citizenMsg.startConversation', lang)}</p>
+                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-300">{'No messages yet'}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-300 mt-0.5">{'Send a message to start the conversation'}</p>
                 </div>
               )}
 
@@ -543,7 +543,7 @@ export default function CitizenMessaging(): JSX.Element {
                 const isMine = msg.sender_type === 'citizen' && msg.sender_id === user?.id
                 const consecutive = isConsecutive(messages, idx)
                 const showDate = shouldShowDateSep(messages, idx)
-                const senderName = msg.sender_name || (msg.sender_type === 'operator' ? t('citizenMsg.supportAgent', lang) : t('citizenMsg.you', lang))
+                const senderName = msg.sender_name || (msg.sender_type === 'operator' ? 'Support Agent' : 'You')
 
                 return (
                   <React.Fragment key={msg.id}>
@@ -568,7 +568,7 @@ export default function CitizenMessaging(): JSX.Element {
                               {senderName}
                             </span>
                             <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-aegis-100 text-aegis-700 dark:bg-aegis-900/30 dark:text-aegis-300">
-                              {t('citizenMsg.operatorLabel', lang)}
+                              {'Operator'}
                             </span>
                           </div>
                         )}
@@ -643,7 +643,7 @@ export default function CitizenMessaging(): JSX.Element {
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isLoading}
                     className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-300 hover:text-aegis-600 hover:border-aegis-300 hover:bg-aegis-50 dark:hover:bg-aegis-950/10 transition"
-                    title={t('citizenMsg.attachImage', lang)}
+                    title={'Attach image'}
                   >
                     <Paperclip className="w-4 h-4" />
                   </button>
@@ -658,7 +658,7 @@ export default function CitizenMessaging(): JSX.Element {
                           handleSendMessage()
                         }
                       }}
-                      placeholder={t('citizen.messages.typeMessage', lang)}
+                      placeholder={'Type a message...'}
                       disabled={isLoading}
                       rows={1}
                       maxLength={1000}
@@ -676,7 +676,7 @@ export default function CitizenMessaging(): JSX.Element {
                     onClick={handleSendMessage}
                     disabled={(!msgInput.trim() && !selectedImage) || isLoading}
                     className="bg-gradient-to-r from-aegis-500 to-aegis-600 hover:from-aegis-600 hover:to-aegis-700 disabled:from-gray-300 disabled:to-gray-300 dark:disabled:from-gray-700 dark:disabled:to-gray-700 text-white p-2.5 rounded-xl transition flex-shrink-0 shadow-md shadow-aegis-500/20 disabled:shadow-none"
-                    title={t('common.send', lang)}
+                    title={'Send'}
                   >
                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </button>
@@ -686,7 +686,7 @@ export default function CitizenMessaging(): JSX.Element {
               <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-800 text-center bg-gray-50 dark:bg-gray-900">
                 <div className="flex items-center justify-center gap-2 text-sm text-gray-400 dark:text-gray-300">
                   <CheckCircle className="w-4 h-4 text-green-400" />
-                  {t('citizen.messages.conversationClosed', lang)} <span className="font-semibold capitalize">{activeThread.status}</span>
+                  {'This conversation has been'} <span className="font-semibold capitalize">{activeThread.status}</span>
                 </div>
               </div>
             )}

@@ -32,12 +32,12 @@ export default function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATC
   }, [loadNews])
 
   const typeConfig: Record<string, { color: string; bg: string; label: string }> = {
-    alert:     { color: 'bg-red-500',    bg: 'bg-red-50 dark:bg-red-950/20 border-red-200/50 dark:border-red-800/50',        label: t('cdash.news.alert', lang) || 'Alert' },
-    warning:   { color: 'bg-amber-500',  bg: 'bg-amber-50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/50',  label: t('cdash.news.warning', lang) || 'Warning' },
+    alert:     { color: 'bg-red-500',    bg: 'bg-red-50 dark:bg-red-950/20 border-red-200/50 dark:border-red-800/50',        label: 'Alert' },
+    warning:   { color: 'bg-amber-500',  bg: 'bg-amber-50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/50',  label: 'Warning' },
     disaster:  { color: 'bg-rose-600',   bg: 'bg-rose-50 dark:bg-rose-950/20 border-rose-200/50 dark:border-rose-800/50',      label: 'Disaster' },
-    community: { color: 'bg-green-500',  bg: 'bg-green-50 dark:bg-green-950/20 border-green-200/50 dark:border-green-800/50',  label: t('cdash.news.community', lang) || 'Community' },
-    tech:      { color: 'bg-purple-500', bg: 'bg-purple-50 dark:bg-purple-950/20 border-purple-200/50 dark:border-purple-800/50', label: t('cdash.news.tech', lang) || 'Tech' },
-    info:      { color: 'bg-blue-500',   bg: 'bg-blue-50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-800/50',      label: t('cdash.news.info', lang) || 'Info' },
+    community: { color: 'bg-green-500',  bg: 'bg-green-50 dark:bg-green-950/20 border-green-200/50 dark:border-green-800/50',  label: 'Community' },
+    tech:      { color: 'bg-purple-500', bg: 'bg-purple-50 dark:bg-purple-950/20 border-purple-200/50 dark:border-purple-800/50', label: 'Tech' },
+    info:      { color: 'bg-blue-500',   bg: 'bg-blue-50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-800/50',      label: 'Info' },
   }
 
   const hazardFilters = [
@@ -57,7 +57,7 @@ export default function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATC
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-aegis-400 to-aegis-600 flex items-center justify-center">
             <Newspaper className="w-4 h-4 text-white" />
           </div>
-          {t('citizen.tab.news', lang) || 'News'}
+          {'News'}
           {newsPool.length > 0 && (
             <span className="text-xs font-normal text-gray-400 dark:text-gray-500">({newsTotal || newsPool.length} articles)</span>
           )}
@@ -120,7 +120,7 @@ export default function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATC
           <div className="glass-card rounded-2xl p-8 text-center">
             <Newspaper className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
             <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-              {newsHazardFilter !== 'all' ? `No ${newsHazardFilter} articles in this batch -- try Next ↺` : t('citizenPage.noNewsAvailable', lang)}
+              {newsHazardFilter !== 'all' ? `No ${newsHazardFilter} articles in this batch -- try Next ↺` : 'No news articles available'}
             </p>
           </div>
         )}
@@ -144,7 +144,7 @@ export default function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATC
                 </a>
                 <a href={n.url} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-1 text-[10px] text-aegis-600 hover:text-aegis-700 bg-aegis-50 dark:bg-aegis-950/20 border border-aegis-200/60 dark:border-aegis-800/60 px-3 py-1.5 rounded-xl transition-all font-bold">
-                  <ExternalLink className="w-3 h-3" /> {t('citizen.news.source', lang)}
+                  <ExternalLink className="w-3 h-3" /> {'Source'}
                 </a>
               </div>
             </div>

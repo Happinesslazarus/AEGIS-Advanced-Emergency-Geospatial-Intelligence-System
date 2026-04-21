@@ -67,7 +67,7 @@ export const SkipLinks = memo<SkipLinksProps>(({
   
   return (
     <nav
-      aria-label={t('skipLinks.label', 'Skip links')}
+      aria-label={'Label'}
       className={`skip-links ${className}`}
     >
       {links.map((link, index) => (
@@ -88,7 +88,7 @@ export const SkipLinks = memo<SkipLinksProps>(({
           "
           style={{ top: `${index * 48}px` }}
         >
-          {t(`skipLinks.${link.targetId}`, link.label)}
+          {link.label}
         </a>
       ))}
     </nav>

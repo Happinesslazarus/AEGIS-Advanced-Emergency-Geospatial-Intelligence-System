@@ -120,10 +120,10 @@ function dateLabel(dateStr: string): string {
   const lang = getLanguage()
   const d = new Date(dateStr)
   const today = new Date()
-  if (d.toDateString() === today.toDateString()) return t('communityChat.today', lang)
+  if (d.toDateString() === today.toDateString()) return 'Today'
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
-  if (d.toDateString() === yesterday.toDateString()) return t('communityChat.yesterday', lang)
+  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday'
   return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
@@ -256,7 +256,7 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
       </button>
       <img
         src={src}
-        alt={t('communityChat.zoomedImageAlt', lang)}
+        alt={'Expanded image'}
         className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
       />
@@ -275,8 +275,8 @@ function ConfirmDialog({ title, message, onConfirm, onCancel }: {
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{title}</h3>
         <p className="text-sm text-gray-600 dark:text-gray-300 mb-5">{message}</p>
         <div className="flex justify-end gap-3">
-          <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-200 transition">{t('common.cancel', lang)}</button>
-          <button onClick={onConfirm} className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium">{t('common.delete', lang)}</button>
+          <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-200 transition">{'Cancel'}</button>
+          <button onClick={onConfirm} className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium">{'Delete'}</button>
         </div>
       </div>
     </div>
@@ -293,8 +293,8 @@ function ReportDialog({ onSubmit, onCancel }: {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onClick={onCancel}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2"><Flag className="w-5 h-5 text-red-500" /> {t('communityChat.reportMessageTitle', lang)}</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">{t('communityChat.reportMessageSubtitle', lang)}</p>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2"><Flag className="w-5 h-5 text-red-500" /> {'Report Message'}</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">{'Select a reason for reporting this message.'}</p>
         <div className="space-y-2 mb-4">
           {REPORT_REASONS.map(r => (
             <label key={r.value} className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition border ${reason === r.value ? 'border-red-400 bg-red-50 dark:bg-red-950/20' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
@@ -306,13 +306,13 @@ function ReportDialog({ onSubmit, onCancel }: {
         <textarea
           value={details}
           onChange={e => setDetails(e.target.value)}
-          placeholder={t('communityChat.additionalDetails', lang)}
+          placeholder={'Additional details (optional)...'}
           rows={2}
           className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 mb-4 resize-none"
         />
         <div className="flex justify-end gap-3">
-          <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-200 transition">{t('common.cancel', lang)}</button>
-          <button onClick={() => { if (reason) onSubmit(reason, details) }} disabled={!reason} className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-lg transition font-medium">{t('communityChat.submitReport', lang)}</button>
+          <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-200 transition">{'Cancel'}</button>
+          <button onClick={() => { if (reason) onSubmit(reason, details) }} disabled={!reason} className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-lg transition font-medium">{'Submit Report'}</button>
         </div>
       </div>
     </div>
@@ -513,7 +513,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           setIsMember(data.isMember)
           if (data.isBanned) {
             setIsBanned(true)
-            setBanReason(data.ban?.reason || t('communityChat.leaveBanned', currentLang))
+            setBanReason(data.ban?.reason || 'You have been banned from community chat')
           }
           if (data.isMuted) {
             setIsMuted(true)
@@ -571,7 +571,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
               if (ack.users && Array.isArray(ack.users)) setOnlineUsers(ack.users)
             } else if (ack?.banned) {
               setIsBanned(true)
-              setBanReason(ack.reason || t('communityChat.leaveBanned', currentLang))
+              setBanReason(ack.reason || 'You have been banned from community chat')
               setIsMember(false)
             }
           })
@@ -580,7 +580,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         const data = await res.json()
         if (data.banned) {
           setIsBanned(true)
-          setBanReason(data.reason || t('communityChat.leaveBanned', currentLang))
+          setBanReason(data.reason || 'You have been banned from community chat')
         }
       }
     } catch {
@@ -592,7 +592,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
 
   const handleLeaveCommunity = async () => {
     if (!activeToken) return
-    if (!window.confirm(t('communityChat.leaveConfirm', currentLang))) return
+    if (!window.confirm('Are you sure you want to leave the community chat? You can rejoin anytime.')) return
     try {
       const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
       const res = await fetch('/api/community/leave', {
@@ -859,7 +859,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       // // console.log('[CommunityChat] Removed from chat:', data.reason)
       setJoined(false)
       hasJoinedRef.current = false
-      setError(data.reason || t('communityChat.removedFromChat', currentLang))
+      setError(data.reason || 'You have been removed from the community chat.')
       if (data.reason?.toLowerCase().includes('ban')) {
         setIsBanned(true)
         setBanReason(data.reason)
@@ -922,7 +922,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           fetchAndMergeMissedMessages()
         } else if (ack?.banned) {
           setIsBanned(true)
-          setBanReason(ack.reason || t('communityChat.leaveBanned', currentLang))
+          setBanReason(ack.reason || 'You have been banned from community chat')
           setIsMember(false)
           console.log('[CommunityChat] ⛔ Banned from chat')
         } else {
@@ -1069,8 +1069,8 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     
     setProfileView({
       userId: msg.sender_id,
-      name: msg.sender_name || t('communityHelp.anonymous', currentLang),
-      role: msg.sender_type === 'citizen' ? t('communityChat.citizen', currentLang) : (msg.sender_role || t('communityChat.opsRole', currentLang)),
+      name: msg.sender_name || 'Anonymous',
+      role: msg.sender_type === 'citizen' ? 'Citizen' : (msg.sender_role || 'Ops'),
       type: msg.sender_type,
       joinedAt: null,
       status: null,
@@ -1124,11 +1124,11 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     const file = e.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      alert(t('communityChat.onlyImages', currentLang))
+      alert('Only image files are supported')
       return
     }
     if (file.size > 10 * 1024 * 1024) {
-      alert(t('communityChat.imageSizeLimit', currentLang))
+      alert('Image must be less than 10MB')
       return
     }
     setImageFile(file)
@@ -1226,7 +1226,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     if (!socket || !socket.connected) {
       console.error('[CommunityChat] Socket not connected! socket:', !!socket, 'connected:', socket?.connected)
       setMessages((prev: ChatMsg[]) => prev.filter((m: ChatMsg) => m.id !== optimisticMsg.id))
-      setError(t('communityChat.socketDisconnected', currentLang))
+      setError('Socket disconnected. Please refresh.')
       return
     }
 
@@ -1273,7 +1273,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     //Find the message to check ownership
     const msg = messages.find(m => m.id === messageId)
     const isOwnMessage = msg?.sender_id === userId
-    setDeleteTarget({ messageId, senderName: msg?.sender_name || t('common.unknown', currentLang), isOwnMessage })
+    setDeleteTarget({ messageId, senderName: msg?.sender_name || 'Unknown', isOwnMessage })
     setDeleteReason('')
   }
   const confirmDelete = () => {
@@ -1453,7 +1453,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           setMessages(ack.messages || [])
           setError('')
         } else {
-          setError(ack?.error || t('communityChat.refreshFailed', currentLang))
+          setError(ack?.error || 'Failed to refresh chat history')
         }
         setLoading(false)
       })
@@ -1461,7 +1461,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         if (ack?.success) setOnlineUsers(ack.users || [])
       })
     } else {
-      setError(t('communityChat.notConnectedYet', currentLang))
+      setError('Not connected. Please wait and try again.')
       setLoading(false)
     }
   }
@@ -1484,8 +1484,8 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <Shield className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{t('communityChat.signInRequired', currentLang)}</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-300">{t('communityChat.signInMessage', currentLang)}</p>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{'Sign in Required'}</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-300">{'You must be signed in to access the community chat.'}</p>
         </div>
       </div>
     )
@@ -1497,8 +1497,8 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       <div className="flex items-center justify-center h-64">
         <div className="text-center max-w-sm">
           <Ban className="w-12 h-12 text-red-400 mx-auto mb-3" />
-          <h3 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-1">{t('communityChat.bannedTitle', currentLang)}</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-300">{banReason || t('communityChat.bannedDefault', currentLang)}</p>
+          <h3 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-1">{'Banned from Community Chat'}</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-300">{banReason || 'You have been banned from the community chat. Contact an administrator for more information.'}</p>
         </div>
       </div>
     )
@@ -1516,8 +1516,8 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                 <Hash className="w-5 h-5 text-aegis-600" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-gray-900 dark:text-white">{t('communityChat.roomTitle', currentLang)}</h2>
-                <p className="text-[11px] text-gray-500 dark:text-gray-300">{t('communityChat.joinPrompt', currentLang)}</p>
+                <h2 className="text-sm font-bold text-gray-900 dark:text-white">{'Community Chat'}</h2>
+                <p className="text-[11px] text-gray-500 dark:text-gray-300">{'Join the community to participate in discussions'}</p>
               </div>
             </div>
           </div>
@@ -1534,28 +1534,28 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                     </div>
                     <div>
                       <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{msg.sender_name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-300">{(translations[msg.id] || msg.content)?.slice(0, 80) || t('communityChat.imagePlaceholder', currentLang)}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-300">{(translations[msg.id] || msg.content)?.slice(0, 80) || '(image)'}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-8">{t('communityChat.previewUnavailable', currentLang)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-8">{'No preview available'}</p>
             )}
           </div>
 
           {/* Join CTA */}
           <div className="px-4 py-6 text-center border-t border-gray-100 dark:border-gray-800">
             <Users className="w-10 h-10 text-aegis-500 mx-auto mb-2" />
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">{t('communityChat.joinCommunityTitle', currentLang)}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">{t('communityChat.joinCommunityDesc', currentLang)}</p>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">{'Join the Community'}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">{'Become a member to send messages, share images, and connect with other community members.'}</p>
             <button
               onClick={handleJoinCommunity}
               disabled={joiningCommunity}
               className="inline-flex items-center gap-2 px-6 py-2.5 bg-aegis-600 hover:bg-aegis-700 disabled:bg-gray-300 text-white rounded-lg font-medium transition shadow-sm"
             >
               {joiningCommunity ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
-              {joiningCommunity ? t('communityChat.joining', currentLang) : t('communityChat.joinCommunity', currentLang)}
+              {joiningCommunity ? 'Joining...' : 'Join Community'}
             </button>
           </div>
         </div>
@@ -1586,19 +1586,19 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
               </div>
               <div>
                 <h2 className="text-sm font-bold tracking-wide flex items-center gap-2">
-                  {t('communityChat.roomTitle', currentLang)}
+                  {'Community Chat'}
                   {connected && joined && (
                     <span className="flex items-center gap-1 text-[10px] font-medium text-green-300 bg-green-500/20 px-2 py-0.5 rounded-full">
-                      <Radio className="w-2.5 h-2.5 animate-pulse" /> {t('common.live', currentLang)}
+                      <Radio className="w-2.5 h-2.5 animate-pulse" /> {'Live'}
                     </span>
                   )}
                   {!connected && (
                     <span className="flex items-center gap-1 text-[10px] font-medium text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full">
-                      <AlertCircle className="w-2.5 h-2.5" /> {t('common.reconnecting', currentLang)}
+                      <AlertCircle className="w-2.5 h-2.5" /> {'Reconnecting...'}
                     </span>
                   )}
                 </h2>
-                <p className="text-[11px] text-white/60">{onlineUsers.length} {t('communityChat.onlineDiscussion', currentLang)}</p>
+                <p className="text-[11px] text-white/60">{onlineUsers.length} {'members online - Open community discussion'}</p>
               </div>
             </div>
             <div className="flex items-center gap-1.5">
@@ -1607,10 +1607,10 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                 <button
                   onClick={handleLeaveCommunity}
                   className="flex items-center gap-1.5 text-[10px] font-bold text-red-700 dark:text-red-200 hover:text-red-900 dark:hover:text-white bg-red-100 dark:bg-red-500/20 hover:bg-red-200 dark:hover:bg-red-500/30 px-2.5 py-1.5 rounded-lg transition border border-red-300 dark:border-red-400/20"
-                  title={t('chat.leaveComm', currentLang)}
+                  title={'Leave community'}
                 >
                   <LogOut className="w-3 h-3" />
-                  <span className="hidden sm:inline">{t('chat.leaveComm', currentLang)}</span>
+                  <span className="hidden sm:inline">{'Leave community'}</span>
                 </button>
               )}
               {/* Translation controls */}
@@ -1624,7 +1624,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                     setAutoTranslate(true)
                   }}
                   className="text-[10px] bg-transparent text-white/90 outline-none cursor-pointer [&>option]:text-gray-900"
-                  title={t('communityChat.translateMessagesTo', currentLang)}
+                  title={'Translate messages to'}
                 >
                   {TRANSLATION_LANGUAGES.map(lang => (
                     <option key={lang.code} value={lang.code}>
@@ -1639,20 +1639,20 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                     onChange={() => setAutoTranslate(!autoTranslate)}
                     className="w-3 h-3 rounded border-white/30"
                   />
-                  {t('communityChat.autoLabel', currentLang)}
+                  {'Auto'}
                 </label>
               </div>
               <button
                 onClick={() => { setShowChatSearch(!showChatSearch); if (showChatSearch) setChatSearch('') }}
                 className={`p-1.5 rounded-lg transition ${showChatSearch ? 'bg-white/20 text-white' : 'hover:bg-white/10'}`}
-                title={t('communityChat.searchMessages', currentLang)}
+                title={'Search messages'}
               >
                 <Search className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={handleRefresh}
                 className="p-1.5 hover:bg-white/10 rounded-lg transition"
-                title={t('communityChat.refreshChat', currentLang)}
+                title={'Refresh chat'}
               >
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
@@ -1677,7 +1677,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
               type="text"
               value={chatSearch}
               onChange={e => setChatSearch(e.target.value)}
-              placeholder={t('communityChat.searchMessagesPlaceholder', currentLang)}
+              placeholder={'Search messages or usernames...'}
               autoFocus
               className="flex-1 text-sm bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:text-gray-300"
             />
@@ -1708,7 +1708,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                 </div>
                 <p className="text-sm font-semibold text-red-500">{error}</p>
                 <button onClick={() => window.location.reload()} className="mt-3 text-xs text-aegis-600 hover:underline font-medium bg-aegis-50 dark:bg-aegis-950/20 px-4 py-1.5 rounded-lg">
-                  {t('communityChat.retryConnection', currentLang)}
+                  {'Retry Connection'}
                 </button>
               </div>
             </div>
@@ -1718,8 +1718,8 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                 <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-aegis-100 to-aegis-200 dark:from-aegis-950/30 dark:to-aegis-900/20 flex items-center justify-center shadow-lg shadow-aegis-500/10">
                   <MessageSquare className="w-8 h-8 text-aegis-500" />
                 </div>
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">{t('communityChat.noMessagesYet', currentLang)}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-300">{t('communityChat.startConversation', currentLang)}</p>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">{'No messages yet'}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-300">{'Be the first to start the conversation!'}</p>
               </div>
             </div>
           ) : (
@@ -1754,20 +1754,20 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                           <div className="bg-red-50 dark:bg-red-950/20 border border-red-200/50 dark:border-red-800/30 rounded-xl px-4 py-2.5 max-w-md text-center">
                             <div className="flex items-center justify-center gap-1.5 mb-0.5">
                               <Trash2 className="w-3 h-3 text-red-400" />
-                              <span className="text-[10px] font-bold text-red-500 dark:text-red-400 uppercase tracking-wider">{t('communityChat.deleteMessage', currentLang)}</span>
+                              <span className="text-[10px] font-bold text-red-500 dark:text-red-400 uppercase tracking-wider">{'Delete Message'}</span>
                             </div>
                             <p className="text-[11px] text-red-600/80 dark:text-red-400/70">
                               {msg.deleted_by_name
-                                ? `${t('communityChat.thisMessageWasRemovedBy', currentLang)} ${msg.deleted_by_name}`
-                                : t('communityChat.thisMessageWasDeleted', currentLang)}
-                              {msg.delete_reason ? ` - ${msg.delete_reason}` : msg.deleted_by_name ? ` - ${t('communityChat.violatedPolicy', currentLang)}` : ''}
+                                ? `${'This message was removed by'} ${msg.deleted_by_name}`
+                                : 'This message was deleted'}
+                              {msg.delete_reason ? ` - ${msg.delete_reason}` : msg.deleted_by_name ? ` - ${'Violated community policy'}` : ''}
                             </p>
                             {/* Admin-only audit detail */}
                             {isAdmin && msg.delete_reason && (
                               <div className="mt-1.5 pt-1.5 border-t border-red-200/30 dark:border-red-800/20">
-                                <p className="text-[9px] text-red-400/70 dark:text-red-500/50 uppercase tracking-wider font-semibold">{t('communityChat.auditLabel', currentLang)}</p>
-                                <p className="text-[10px] text-red-500/60 dark:text-red-400/50">{t('common.reason', currentLang)}: {msg.delete_reason}</p>
-                                {msg.deleted_by_name && <p className="text-[10px] text-red-500/60 dark:text-red-400/50">{t('communityChat.byLabel', currentLang)} {msg.deleted_by_name}</p>}
+                                <p className="text-[9px] text-red-400/70 dark:text-red-500/50 uppercase tracking-wider font-semibold">{'Audit'}</p>
+                                <p className="text-[10px] text-red-500/60 dark:text-red-400/50">{'Reason'}: {msg.delete_reason}</p>
+                                {msg.deleted_by_name && <p className="text-[10px] text-red-500/60 dark:text-red-400/50">{'By:'} {msg.deleted_by_name}</p>}
                               </div>
                             )}
                           </div>
@@ -1811,10 +1811,10 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                 onClick={() => openProfile(msg)}
                                 className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors cursor-pointer"
                               >
-                                {msg.sender_name || t('communityHelp.anonymous', currentLang)}
+                                {msg.sender_name || 'Anonymous'}
                               </button>
                               <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400">
-                                {t('communityChat.citizen', currentLang)}
+                                {'Citizen'}
                               </span>
                             </div>
                           )}
@@ -1823,13 +1823,13 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                           {isOperator && (
                             <div className="flex items-center gap-1.5 mb-1 mr-1 justify-end">
                               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-aegis-100 text-aegis-700 dark:bg-aegis-950/30 dark:text-aegis-400">
-                                {msg.sender_role || t('communityChat.opsRole', currentLang)}
+                                {msg.sender_role || 'Ops'}
                               </span>
                               <button
                                 onClick={() => openProfile(msg)}
                                 className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors cursor-pointer"
                               >
-                                {msg.sender_name || t('communityHelp.anonymous', currentLang)}
+                                {msg.sender_name || 'Anonymous'}
                               </button>
                             </div>
                           )}
@@ -1854,7 +1854,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                   {msg.reply_sender_name}
                                 </p>
                                 <p className={`text-[11px] truncate ${isOperator ? 'text-gray-500 dark:text-gray-300' : 'text-gray-500 dark:text-gray-300'}`}>
-                                  {msg.reply_content || t('communityChat.imagePlaceholder', currentLang)}
+                                  {msg.reply_content || '(image)'}
                                 </p>
                               </div>
                             )}
@@ -1864,7 +1864,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                               <div className="mb-1.5">
                                 <img
                                   src={`${API_BASE}${msg.image_url}`}
-                                  alt={t('communityChat.postImageAlt', currentLang)}
+                                  alt={'Post image'}
                                   className="rounded-lg max-w-full max-h-64 object-cover cursor-pointer hover:opacity-90 transition"
                                   onClick={() => setLightboxSrc(`${API_BASE}${msg.image_url}`)}
                                   loading="lazy"
@@ -1887,21 +1887,21 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                   }}
                                 />
                                 <div className="flex items-center gap-1.5 justify-end">
-                                  <button onClick={cancelEdit} className="text-[10px] px-2 py-1 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 transition">{t('common.cancel', currentLang)}</button>
-                                  <button onClick={saveEdit} className="text-[10px] px-2 py-1 bg-aegis-600 hover:bg-aegis-700 text-white rounded transition flex items-center gap-0.5"><Check className="w-3 h-3" /> {t('common.save', currentLang)}</button>
+                                  <button onClick={cancelEdit} className="text-[10px] px-2 py-1 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 transition">{'Cancel'}</button>
+                                  <button onClick={saveEdit} className="text-[10px] px-2 py-1 bg-aegis-600 hover:bg-aegis-700 text-white rounded transition flex items-center gap-0.5"><Check className="w-3 h-3" /> {'Save'}</button>
                                 </div>
                               </div>
                             ) : (
                               <>
                                 {msg.content && <RenderContent text={msg.content} isMine={isOperator} />}
                                 {msg.edited_at && (
-                                  <span className={`text-[9px] italic text-gray-400 dark:text-gray-300`}> ({t('communityChat.edited', currentLang)})</span>
+                                  <span className={`text-[9px] italic text-gray-400 dark:text-gray-300`}> ({'edited'})</span>
                                 )}
                                 {/* Translated text */}
                                 {translations[msg.id] && (
                                   <div className="mt-1.5 pt-1.5 border-t border-gray-200/50 dark:border-gray-600/50">
                                     <p className="text-[10px] text-blue-500 dark:text-blue-400 font-semibold flex items-center gap-0.5 mb-0.5">
-                                      <Languages className="w-3 h-3" /> {t('communityChat.translatedLabel', currentLang)}
+                                      <Languages className="w-3 h-3" /> {'Translated'}
                                     </p>
                                     <p className="text-sm text-gray-700 dark:text-gray-300">{translations[msg.id]}</p>
                                   </div>
@@ -1918,7 +1918,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                   </span>
                                   {/* Read receipt ticks (only for own messages) */}
                                   {msg.sender_id === userId && (
-                                    <span className={`text-[10px] ${msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? 'text-blue-500' : 'text-gray-400 dark:text-gray-300'}`} title={msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? t('communityChat.read', currentLang) : t('common.sent', currentLang)}>
+                                    <span className={`text-[10px] ${msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? 'text-blue-500' : 'text-gray-400 dark:text-gray-300'}`} title={msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? 'Read' : 'Sent'}>
                                       {msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? '' : ''}
                                     </span>
                                   )}
@@ -1928,7 +1928,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                     <button
                                       onClick={() => handleReply(msg)}
                                       className={`text-[10px] flex items-center gap-0.5 p-0.5 rounded text-gray-400 dark:text-gray-300 hover:text-gray-600`}
-                                      title={t('common.reply', currentLang)}
+                                      title={'Reply'}
                                     >
                                       <Reply className="w-3 h-3" />
                                     </button>
@@ -1938,7 +1938,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                     <button
                                       onClick={() => startEdit(msg)}
                                       className="text-[10px] flex items-center gap-0.5 p-0.5 rounded text-gray-400 dark:text-gray-300 hover:text-gray-600"
-                                      title={t('common.edit', currentLang)}
+                                      title={'Edit'}
                                     >
                                       <Edit2 className="w-3 h-3" />
                                     </button>
@@ -1948,7 +1948,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                     <button
                                       onClick={() => handleTranslate(msg.id, msg.content)}
                                       className={`text-[10px] flex items-center gap-0.5 px-1 py-0.5 rounded transition ${translations[msg.id] ? 'text-blue-500 bg-blue-50 dark:bg-blue-950/30' : translatingId === msg.id ? 'text-blue-400 animate-pulse' : 'text-gray-400 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30'}`}
-                                      title={translations[msg.id] ? t('communityChat.removeTranslation', currentLang) : t('citizen.messages.translate', currentLang)}
+                                      title={translations[msg.id] ? 'Remove translation' : 'Translate'}
                                       disabled={translatingId === msg.id}
                                     >
                                       <Languages className="w-3 h-3" />
@@ -1959,7 +1959,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                     <button
                                       onClick={() => handleReport(msg)}
                                       className="text-[10px] flex items-center gap-0.5 p-0.5 rounded text-gray-400 dark:text-gray-300 hover:text-red-500"
-                                      title={t('communityChat.reportAction', currentLang)}
+                                      title={'Report'}
                                     >
                                       <Flag className="w-3 h-3" />
                                     </button>
@@ -1973,7 +1973,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                               <button
                                 onClick={() => handleDeleteMessage(msg.id)}
                                 className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover/msg:opacity-100 transition-all shadow-lg"
-                                title={t('communityChat.deleteMessage', currentLang)}
+                                title={'Delete Message'}
                               >
                                 <Trash2 className="w-3 h-3" />
                               </button>
@@ -2021,7 +2021,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             <Reply className="w-4 h-4 text-aegis-500 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-semibold text-aegis-600 dark:text-aegis-400">{replyTo.sender_name}</p>
-              <p className="text-[11px] text-gray-500 dark:text-gray-300 truncate">{replyTo.content || t('communityChat.imagePlaceholder', currentLang)}</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-300 truncate">{replyTo.content || '(image)'}</p>
             </div>
             <button onClick={clearReply} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition">
               <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
@@ -2033,7 +2033,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         {imagePreview && (
           <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 flex items-center gap-3">
             <div className="relative">
-              <img src={imagePreview} alt={t('communityChat.previewImageAlt', currentLang)} className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
+              <img src={imagePreview} alt={'Image preview'} className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
               <button
                 onClick={clearImage}
                 className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow"
@@ -2056,8 +2056,8 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                 <VolumeX className="w-4 h-4 text-red-500" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-red-600 dark:text-red-400">{t('communityChat.youAreMuted', currentLang)}</p>
-                <p className="text-[10px] text-red-500/70">{muteExpiresAt ? `${t('communityChat.expiresLabel', currentLang)} ${new Date(muteExpiresAt).toLocaleString()}` : t('communityChat.contactAdmin', currentLang)}</p>
+                <p className="text-xs font-semibold text-red-600 dark:text-red-400">{'You are muted'}</p>
+                <p className="text-[10px] text-red-500/70">{muteExpiresAt ? `${'Expires:'} ${new Date(muteExpiresAt).toLocaleString()}` : 'Contact an admin for more information.'}</p>
               </div>
             </div>
           ) : (
@@ -2072,7 +2072,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                     ? 'bg-aegis-100 dark:bg-aegis-950/30 text-aegis-600 shadow-sm'
                     : 'text-gray-400 dark:text-gray-300 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
-                title={t('communityChat.emoji', currentLang)}
+                title={'Emoji'}
               >
                 <Smile className="w-5 h-5" />
               </button>
@@ -2088,7 +2088,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             <button
               onClick={() => fileInputRef.current?.click()}
               className="p-2.5 text-gray-400 dark:text-gray-300 hover:text-aegis-600 hover:bg-aegis-50 dark:hover:bg-aegis-950/10 rounded-xl transition"
-              title={t('communityChat.shareImage', currentLang)}
+              title={'Share image'}
             >
               <ImageIcon className="w-5 h-5" />
             </button>
@@ -2111,7 +2111,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                   handleSend()
                 }
               }}
-              placeholder={replyTo ? `${t('communityChat.replyToPrefix', currentLang)} ${replyTo.sender_name}...` : t('citizen.messages.typeMessage', currentLang)}
+              placeholder={replyTo ? `${'Reply to'} ${replyTo.sender_name}...` : 'Type a message...'}
               rows={1}
               className="flex-1 px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition resize-none max-h-28 placeholder:text-gray-400 dark:text-gray-300"
             />
@@ -2131,11 +2131,11 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           </div>
           {!connected && (
             <p className="text-[10px] text-amber-500 mt-1 flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" /> {t('common.reconnecting', currentLang)}
+              <AlertCircle className="w-3 h-3" /> {'Reconnecting...'}
             </p>
           )}
           <p className="text-[9px] text-gray-300 dark:text-gray-700 mt-1">
-            {t('communityChat.newLineHint', currentLang)} - {t('communityChat.imageSizeLimit', currentLang)}
+            {'Shift+Enter for new line'} - {'Image must be less than 10MB'}
           </p>
           </>
           )}
@@ -2147,21 +2147,21 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         <div className="p-3 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-aegis-50 to-white dark:from-gray-900 dark:to-gray-900">
           <h3 className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 uppercase tracking-wider">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            {t('communityChat.onlineTitle', currentLang)} ({onlineUsers.length})
+            {'Online'} ({onlineUsers.length})
           </h3>
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {onlineUsers.length === 0 ? (
             <div className="text-center py-6">
               <Users className="w-8 h-8 text-gray-200 dark:text-gray-700 mx-auto mb-2" />
-              <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('communityChat.noUsersOnline', currentLang)}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-300">{'No users online'}</p>
             </div>
           ) : (
             <>
               {/* Staff/Operators first */}
               {onlineUsers.filter((u: OnlineUser) => String(u.role).toLowerCase() !== 'citizen').length > 0 && (
                 <div className="px-2 pt-2 pb-1">
-                  <p className="text-[9px] font-bold text-aegis-500 uppercase tracking-wider flex items-center gap-1"><Shield className="w-2.5 h-2.5" /> {t('communityChat.staff', currentLang)}</p>
+                  <p className="text-[9px] font-bold text-aegis-500 uppercase tracking-wider flex items-center gap-1"><Shield className="w-2.5 h-2.5" /> {'Staff'}</p>
                 </div>
               )}
               {onlineUsers.filter((u: OnlineUser) => String(u.role).toLowerCase() !== 'citizen').map((u: OnlineUser) => (
@@ -2181,7 +2181,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
               {/* Citizens */}
               {onlineUsers.filter((u: OnlineUser) => String(u.role).toLowerCase() === 'citizen').length > 0 && (
                 <div className="px-2 pt-3 pb-1">
-                  <p className="text-[9px] font-bold text-green-500 uppercase tracking-wider flex items-center gap-1"><UserCheck className="w-2.5 h-2.5" /> {t('communityChat.members', currentLang)}</p>
+                  <p className="text-[9px] font-bold text-green-500 uppercase tracking-wider flex items-center gap-1"><UserCheck className="w-2.5 h-2.5" /> {'Members'}</p>
                 </div>
               )}
               {onlineUsers.filter((u: OnlineUser) => String(u.role).toLowerCase() === 'citizen').map((u: OnlineUser) => (
@@ -2194,7 +2194,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] font-medium text-gray-800 dark:text-gray-200 truncate">{u.displayName}</p>
-                    <p className="text-[9px] font-bold text-green-600 dark:text-green-400">{t('communityChat.citizen', currentLang)}</p>
+                    <p className="text-[9px] font-bold text-green-600 dark:text-green-400">{'Citizen'}</p>
                   </div>
                 </div>
               ))}
@@ -2203,15 +2203,15 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         </div>
         {/* Features & Guidelines */}
         <div className="p-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900">
-          <h4 className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-2">{t('communityChat.chatFeatures', currentLang)}</h4>
+          <h4 className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-2">{'Chat Features'}</h4>
           <div className="grid grid-cols-2 gap-1">
             {[
-              { icon: ImageIcon, label: t('communityChat.featureImages', currentLang) },
-              { icon: Reply, label: t('communityChat.featureReply', currentLang) },
-              { icon: Edit2, label: t('communityChat.featureEdit', currentLang) },
-              { icon: Flag, label: t('communityChat.featureReport', currentLang) },
-              { icon: Smile, label: t('communityChat.emoji', currentLang) },
-              { icon: Languages, label: t('citizen.messages.translate', currentLang) },
+              { icon: ImageIcon, label: 'Images' },
+              { icon: Reply, label: 'Reply' },
+              { icon: Edit2, label: 'Edit' },
+              { icon: Flag, label: 'Report' },
+              { icon: Smile, label: 'Emoji' },
+              { icon: Languages, label: 'Translate' },
             ].map((f, i) => (
               <div key={i} className="flex items-center gap-1 text-[9px] text-gray-400 dark:text-gray-300 bg-white dark:bg-gray-800 px-2 py-1.5 rounded-lg">
                 <f.icon className="w-2.5 h-2.5 text-aegis-500 flex-shrink-0" />
@@ -2220,12 +2220,12 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             ))}
           </div>
           <div className="mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700">
-            <h4 className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1.5">{t('communityChat.guidelinesTitle', currentLang)}</h4>
+            <h4 className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1.5">{'Guidelines'}</h4>
             <ul className="space-y-1">
               {[
-                { icon: UserCheck, text: t('communityChat.guidelineRespect', currentLang) },
-                { icon: Shield, text: t('communityChat.guidelineNoPersonalInfo', currentLang) },
-                { icon: AlertCircle, text: t('communityChat.guidelineEmergency', currentLang) },
+                { icon: UserCheck, text: 'Be respectful' },
+                { icon: Shield, text: 'No personal info' },
+                { icon: AlertCircle, text: 'Emergencies: call 999' },
               ].map((g, i) => (
                 <li key={i} className="flex items-start gap-1 text-[9px] text-gray-400 dark:text-gray-300">
                   <g.icon className="w-2.5 h-2.5 mt-0.5 flex-shrink-0 text-gray-400 dark:text-gray-300" />
@@ -2246,24 +2246,24 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                 <Trash2 className="w-4 h-4 text-red-600" />
               </div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  {isAdmin && !deleteTarget.isOwnMessage ? t('communityChat.moderateMessage', currentLang) : t('communityChat.deleteMessage', currentLang)}
+                  {isAdmin && !deleteTarget.isOwnMessage ? 'Moderate Message' : 'Delete Message'}
               </h3>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
               {isAdmin && !deleteTarget.isOwnMessage
-                ? `${t('communityChat.deleteMessagePrompt', currentLang)} ${deleteTarget.senderName}? ${t('communityChat.deleteMessageSuffix', currentLang)}`
-                : t('communityChat.deleteOwnMessagePrompt', currentLang)}
+                ? `${'Delete message from'} ${deleteTarget.senderName}? ${'A notification will appear in the chat.'}`
+                : 'Delete your message?'}
             </p>
             {/* Admin reason field for audit -- only shown when deleting someone else's message */}
             {isAdmin && !deleteTarget.isOwnMessage && (
               <div className="mb-4">
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1.5">{t('communityChat.reasonForDeletionAudit', currentLang)}</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1.5">{'Reason for deletion (audit log)'}</label>
                 <select
                   value={deleteReason}
                   onChange={e => setDeleteReason(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white mb-2 focus:ring-2 focus:ring-red-400 focus:border-transparent"
                 >
-                  <option value="">{t('communityChat.selectReasonPlaceholder', currentLang)}</option>
+                  <option value="">{'Select a reason...'}</option>
                   {DELETE_REASONS.map((reason) => (
                     <option key={reason.value} value={reason.value}>{t(reason.key, currentLang)}</option>
                   ))}
@@ -2272,13 +2272,13 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                   type="text"
                   value={!DELETE_REASONS.map((reason) => reason.value).concat('').includes(deleteReason) ? deleteReason : ''}
                   onChange={e => setDeleteReason(e.target.value)}
-                  placeholder={t('communityChat.customReasonPlaceholder', currentLang)}
+                  placeholder={'Or type a custom reason...'}
                   className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-400 focus:border-transparent"
                 />
               </div>
             )}
             <div className="flex justify-end gap-3">
-              <button onClick={() => { setDeleteTarget(null); setDeleteReason('') }} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-200 transition">{t('common.cancel', currentLang)}</button>
+              <button onClick={() => { setDeleteTarget(null); setDeleteReason('') }} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-200 transition">{'Cancel'}</button>
               <button
                 onClick={confirmDelete}
                 disabled={isAdmin && !deleteTarget.isOwnMessage && !deleteReason.trim()}
@@ -2329,11 +2329,11 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">{profileView.name}</h3>
                   {profileView.type === 'operator' ? (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-aegis-100 text-aegis-700 dark:bg-aegis-950/30 dark:text-aegis-400">
-                      <Shield className="w-3 h-3" /> {profileView.role || t('communityChat.opsRole', currentLang)}
+                      <Shield className="w-3 h-3" /> {profileView.role || 'Ops'}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400">
-                      <UserCheck className="w-3 h-3" /> {t('communityChat.citizen', currentLang)}
+                      <UserCheck className="w-3 h-3" /> {'Citizen'}
                     </span>
                   )}
                 </div>
@@ -2342,23 +2342,23 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             <div className="space-y-3 border-t border-gray-200 dark:border-gray-800 pt-4">
               {profileView.bio && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1">{t('communityChat.profileBio', currentLang)}</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1">{'Bio'}</p>
                   <p className="text-sm text-gray-900 dark:text-white">{profileView.bio}</p>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1">{t('communityChat.profileJoined', currentLang)}</p>
-                  <p className="text-sm text-gray-900 dark:text-white">{profileView.joinedAt ? new Date(profileView.joinedAt).toLocaleDateString() : (profileView.loading ? t('common.loading', currentLang) : t('common.notAvailable', currentLang))}</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1">{'Joined'}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">{profileView.joinedAt ? new Date(profileView.joinedAt).toLocaleDateString() : (profileView.loading ? 'Loading...' : 'N/A')}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1">{t('communityChat.profileMessages', currentLang)}</p>
-                  <p className="text-sm text-gray-900 dark:text-white">{profileView.loading ? t('common.loading', currentLang) : (profileView.messageCount ?? 0)}</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1">{'Messages'}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">{profileView.loading ? 'Loading...' : (profileView.messageCount ?? 0)}</p>
                 </div>
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1">{t('common.status', currentLang)}</p>
-                <p className="text-sm text-gray-900 dark:text-white">{profileView.status || (profileView.loading ? t('common.loading', currentLang) : t('common.active', currentLang))}</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1">{'Status'}</p>
+                <p className="text-sm text-gray-900 dark:text-white">{profileView.status || (profileView.loading ? 'Loading...' : 'Active')}</p>
               </div>
             </div>
             
@@ -2368,7 +2368,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                 <>
                   <button
                     onClick={() => {
-                      if (window.confirm(`${t('communityChat.removeFromChatPrompt', currentLang)} ${profileView.name}?`)) {
+                      if (window.confirm(`${'Remove from community chat'} ${profileView.name}?`)) {
                         socket?.emit('community:chat:remove_member', { memberId: profileView.userId, memberType: 'citizen' }, (ack: any) => {
                           if (ack?.success) {
                             setProfileView(null)
@@ -2381,41 +2381,41 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                     }}
                     className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition text-sm flex items-center justify-center gap-2"
                   >
-                    <LogOut className="w-4 h-4" /> {t('communityChat.removeFromChat', currentLang)}
+                    <LogOut className="w-4 h-4" /> {'Remove from Chat'}
                   </button>
                   <button
                     onClick={() => setShowMuteModal({ userId: profileView.userId, name: profileView.name })}
                     className="w-full px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition text-sm flex items-center justify-center gap-2"
                   >
-                    <VolumeX className="w-4 h-4" /> {t('communityChat.muteUser', currentLang)}
+                    <VolumeX className="w-4 h-4" /> {'Mute User'}
                   </button>
                   <button
                     onClick={() => {
                       socket?.emit('community:chat:unmute_user', { userId: profileView.userId }, (ack: any) => {
-                        if (ack?.success) alert(`${profileView.name} ${t('communityChat.unmuteSuccess', currentLang)}`)
+                        if (ack?.success) alert(`${profileView.name} ${'has been unmuted.'}`)
                       })
                     }}
                     className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition text-sm flex items-center justify-center gap-2"
                   >
-                    <Volume2 className="w-4 h-4" /> {t('communityChat.unmuteUser', currentLang)}
+                    <Volume2 className="w-4 h-4" /> {'Unmute User'}
                   </button>
                   <button
                     onClick={() => setShowBanModal({ userId: profileView.userId, name: profileView.name })}
                     className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition text-sm flex items-center justify-center gap-2"
                   >
-                    <Ban className="w-4 h-4" /> {t('communityChat.banUser', currentLang)}
+                    <Ban className="w-4 h-4" /> {'Ban User'}
                   </button>
                   <button
                     onClick={() => {
-                      if (window.confirm(`${t('communityChat.unbanPrompt', currentLang)} ${profileView.name}?`)) {
+                      if (window.confirm(`${'Unban'} ${profileView.name}?`)) {
                         socket?.emit('community:chat:unban_user', { userId: profileView.userId }, (ack: any) => {
-                          if (ack?.success) alert(`${profileView.name} ${t('communityChat.unbanSuccess', currentLang)}`)
+                          if (ack?.success) alert(`${profileView.name} ${'has been unbanned.'}`)
                         })
                       }
                     }}
                     className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition text-sm flex items-center justify-center gap-2"
                   >
-                    <UserCheck className="w-4 h-4" /> {t('communityChat.unbanUser', currentLang)}
+                    <UserCheck className="w-4 h-4" /> {'Unban User'}
                   </button>
                 </>
               )}
@@ -2424,7 +2424,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                 onClick={() => setProfileView(null)}
                 className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition"
               >
-                {t('common.close', currentLang)}
+                {'Close'}
               </button>
             </div>
           </div>
@@ -2437,21 +2437,21 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000]" onClick={() => setShowBanModal(null)}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
-              <Ban className="w-5 h-5 text-red-500" /> {t('communityChat.banUser', currentLang)} {showBanModal.name}
+              <Ban className="w-5 h-5 text-red-500" /> {'Ban User'} {showBanModal.name}
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">{t('communityChat.banModalDesc', currentLang)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">{'Select ban duration and reason.'}</p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{t('common.reason', currentLang)}</label>
+                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{'Reason'}</label>
                 <input
                   id="ban-reason"
                   type="text"
-                  placeholder={t('communityChat.reasonForBan', currentLang)}
+                  placeholder={'Reason for ban...'}
                   className="w-full mt-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{t('communityChat.durationLabel', currentLang)}</label>
+                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{'Duration'}</label>
                 <div className="grid grid-cols-3 gap-2 mt-1">
                   {BAN_DURATIONS.map(opt => (
                     <button
@@ -2460,19 +2460,19 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                         const reason = (document.getElementById('ban-reason') as HTMLInputElement)?.value || ''
                         socket?.emit('community:chat:ban_user', {
                           userId: showBanModal.userId,
-                          reason: reason || t('communityChat.bannedByAdmin', currentLang),
+                          reason: reason || 'Banned by admin',
                           duration: opt.value === 'permanent' ? undefined : opt.value,
                           permanent: opt.value === 'permanent',
                         }, (ack: any) => {
                           if (ack?.success) {
-                            alert(`${showBanModal.name} ${t('communityChat.banSuccess', currentLang)} (${t(opt.key, currentLang)}).`)
+                            alert(`${showBanModal.name} ${'has been banned'} (${opt.value}).`)
                             setShowBanModal(null)
                             setProfileView(null)
                             socket?.emit('community:chat:online', (ack2: any) => {
                               if (ack2?.success) setOnlineUsers(ack2.users || [])
                             })
                           } else {
-                            alert(ack?.error || t('communityChat.banFailed', currentLang))
+                            alert(ack?.error || 'Ban failed')
                           }
                         })
                       }}
@@ -2482,7 +2482,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                           : 'bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-950/20 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-red-300'
                       }`}
                     >
-                      {t(opt.key, currentLang)}
+                      {opt.value}
                     </button>
                   ))}
                 </div>
@@ -2492,7 +2492,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
               onClick={() => setShowBanModal(null)}
               className="w-full mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition text-sm"
             >
-              {t('common.cancel', currentLang)}
+              {'Cancel'}
             </button>
           </div>
         </div>
@@ -2503,21 +2503,21 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000]" onClick={() => setShowMuteModal(null)}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
-              <VolumeX className="w-5 h-5 text-yellow-500" /> {t('communityChat.muteUser', currentLang)} {showMuteModal.name}
+              <VolumeX className="w-5 h-5 text-yellow-500" /> {'Mute User'} {showMuteModal.name}
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">{t('communityChat.muteModalDesc', currentLang)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">{'Select mute duration.'}</p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{t('common.reason', currentLang)}</label>
+                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{'Reason'}</label>
                 <input
                   id="mute-reason"
                   type="text"
-                  placeholder={t('communityChat.reasonForMuting', currentLang)}
+                  placeholder={'Reason for muting...'}
                   className="w-full mt-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{t('communityChat.durationLabel', currentLang)}</label>
+                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{'Duration'}</label>
                 <div className="grid grid-cols-3 gap-2 mt-1">
                   {MUTE_DURATIONS.map(opt => (
                     <button
@@ -2526,21 +2526,21 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                         const reason = (document.getElementById('mute-reason') as HTMLInputElement)?.value || ''
                         socket?.emit('community:chat:mute_user', {
                           userId: showMuteModal.userId,
-                          reason: reason || t('communityChat.mutedByAdmin', currentLang),
+                          reason: reason || 'Muted by admin',
                           duration: opt.value,
                         }, (ack: any) => {
                           if (ack?.success) {
-                            alert(`${showMuteModal.name} ${t('communityChat.muteSuccess', currentLang)} (${t(opt.key, currentLang)}).`)
+                            alert(`${showMuteModal.name} ${'has been muted'} (${opt.value}).`)
                             setShowMuteModal(null)
                             setProfileView(null)
                           } else {
-                            alert(ack?.error || t('communityChat.muteFailed', currentLang))
+                            alert(ack?.error || 'Mute failed')
                           }
                         })
                       }}
                       className="px-3 py-2 text-xs font-medium rounded-lg border transition bg-white dark:bg-gray-800 hover:bg-yellow-50 dark:hover:bg-yellow-950/20 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-yellow-300"
                     >
-                      {t(opt.key, currentLang)}
+                      {opt.value}
                     </button>
                   ))}
                 </div>
@@ -2550,7 +2550,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
               onClick={() => setShowMuteModal(null)}
               className="w-full mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition text-sm"
             >
-              {t('common.cancel', currentLang)}
+              {'Cancel'}
             </button>
           </div>
         </div>

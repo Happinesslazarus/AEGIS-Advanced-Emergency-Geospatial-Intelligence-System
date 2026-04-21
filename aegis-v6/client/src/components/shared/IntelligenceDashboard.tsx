@@ -371,15 +371,15 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
   }
 
   const threatDescMap: Record<string, string> = {
-    CRITICAL: t('intel.threatCritical', lang),
-    RED:      t('intel.threatRed', lang),
-    AMBER:    t('intel.threatAmber', lang),
-    GREEN:    t('intel.threatGreen', lang),
+    CRITICAL: 'Severe multi-incident emergency -- immediate response required',
+    RED:      'High-risk incidents active -- responders deployed',
+    AMBER:    'Elevated conditions -- monitoring in progress',
+    GREEN:    'All systems normal -- no significant incidents',
   }
   const compactUpdates = [
-    `${t('intel.active', lang)}: ${dashboard?.totalActiveIncidents ?? 0}`,
-    `${t('intel.alerts', lang)}: ${dashboard?.totalAlerts ?? 0}`,
-    `${t('intel.rivers', lang)}: ${criticalRivers}`,
+    `${'Active'}: ${dashboard?.totalActiveIncidents ?? 0}`,
+    `${'Alerts'}: ${dashboard?.totalAlerts ?? 0}`,
+    `${'Rivers'}: ${criticalRivers}`,
     `SOS: ${distressCount}`,
     threatDescMap[threatLevel],
   ]
@@ -397,7 +397,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
           </div>
           <div className="text-left">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('intel.title', lang)}</h3>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">{'Multi-Hazard Intelligence'}</h3>
               <span className={`text-xs font-black px-2 py-0.5 rounded-full ${threatLevel === 'CRITICAL' ? 'bg-red-600 text-white animate-pulse' : threatLevel === 'RED' ? 'bg-red-700 text-white' : threatLevel === 'AMBER' ? 'bg-amber-600 text-black' : 'bg-green-700 text-white'}`}>
                 {threatLevel}
               </span>
@@ -413,7 +413,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
           {/* Mini score bar */}
           <div className="px-4 pt-2.5 pb-1">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('intel.compositeScore', lang)}</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-300">{'Composite Threat Score'}</span>
               <span className="text-[10px] font-mono font-bold text-gray-900 dark:text-white">{score}/100</span>
             </div>
             <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -429,20 +429,20 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
               <div className={`text-sm font-bold ${(dashboard?.totalActiveIncidents ?? 0) > 0 ? 'text-red-400' : 'text-gray-400 dark:text-gray-300'}`}>
                 {dashboard?.totalActiveIncidents ?? 0}
               </div>
-              <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.active', lang)}</div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300">{'Active'}</div>
             </div>
             <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
               <div className={`text-sm font-bold ${(dashboard?.totalAlerts ?? 0) > 0 ? 'text-amber-400' : 'text-gray-400 dark:text-gray-300'}`}>
                 {dashboard?.totalAlerts ?? 0}
               </div>
-              <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.alerts', lang)}</div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300">{'Alerts'}</div>
             </div>
             <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
               <div className={`text-sm font-bold ${criticalRivers > 0 ? 'text-red-400' : 'text-blue-400'}`}>
                 {criticalRivers}
               </div>
               <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5">
-                <Droplets className="w-2 h-2" />{t('intel.rivers', lang)}
+                <Droplets className="w-2 h-2" />{'Rivers'}
               </div>
             </div>
             <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
@@ -467,7 +467,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
           {/* Composite threat score bar */}
           <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700/30">
             <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('intel.compositeScore', lang)}</span>
+            <span className="text-[10px] text-gray-500 dark:text-gray-300">{'Composite Threat Score'}</span>
               <span className="text-xs font-mono font-bold text-gray-900 dark:text-white">{score}/100</span>
             </div>
             <div className="w-full h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -477,9 +477,9 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
               />
             </div>
             <div className="flex justify-between mt-0.5">
-              <span className="text-[9px] text-green-500">{t('intel.safe', lang)}</span>
-              <span className="text-[9px] text-amber-500">{t('intel.elevated', lang)}</span>
-              <span className="text-[9px] text-red-500">{t('intel.critical', lang)}</span>
+              <span className="text-[9px] text-green-500">{'Safe'}</span>
+              <span className="text-[9px] text-amber-500">{'Elevated'}</span>
+              <span className="text-[9px] text-red-500">{'Critical'}</span>
             </div>
           </div>
 
@@ -489,20 +489,20 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
               <div className={`text-lg font-bold ${(dashboard?.totalActiveIncidents ?? 0) > 0 ? 'text-red-400' : 'text-gray-400 dark:text-gray-300'}`}>
                 {dashboard?.totalActiveIncidents ?? 0}
               </div>
-              <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.active', lang)}</div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300">{'Active'}</div>
             </div>
             <div className="text-center p-2 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
               <div className={`text-lg font-bold ${(dashboard?.totalAlerts ?? 0) > 0 ? 'text-amber-400' : 'text-gray-400 dark:text-gray-300'}`}>
                 {dashboard?.totalAlerts ?? 0}
               </div>
-              <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.alerts', lang)}</div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300">{'Alerts'}</div>
             </div>
             <div className="text-center p-2 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
               <div className={`text-lg font-bold ${criticalRivers > 0 ? 'text-red-400' : 'text-blue-400'}`}>
                 {criticalRivers}
               </div>
               <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5">
-                <Droplets className="w-2.5 h-2.5" /> {t('intel.rivers', lang)}
+                <Droplets className="w-2.5 h-2.5" /> {'Rivers'}
               </div>
             </div>
             <div className="text-center p-2 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
@@ -517,20 +517,20 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
               <div className={`text-lg font-bold ${incidentClusters.length > 0 ? 'text-lime-400' : 'text-gray-400 dark:text-gray-300'}`}>
                 {incidentClusters.length}
               </div>
-              <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.clusters', lang)}</div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300">{'Clusters'}</div>
             </div>
             <div className="text-center p-2 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
               <div className={`text-lg font-bold ${cascadingInsights.length > 0 ? 'text-fuchsia-400' : 'text-gray-400 dark:text-gray-300'}`}>
                 {cascadingInsights.length}
               </div>
-              <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.cascades', lang)}</div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300">{'Cascades'}</div>
             </div>
           </div>
 
           {/* Active incident types breakdown */}
           {activeIncidents.length > 0 && (
             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700/30">
-              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.activeByType', lang)}</p>
+              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{'Active Incidents by Type'}</p>
               <div className="space-y-1">
                 {activeIncidents.map(inc => {
                   const Icon = INCIDENT_ICONS[inc.id] || Eye
@@ -550,29 +550,29 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
 
           {incidentChanges && (
             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700/30">
-              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.whatChanged', lang)}</p>
+              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{'What Changed (Last 15m)'}</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
                 <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded">
                   <p className="text-sm font-bold text-emerald-400">{incidentChanges.totals.new_count}</p>
-                  <p className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.new', lang)}</p>
+                  <p className="text-[9px] text-gray-500 dark:text-gray-300">{'New'}</p>
                 </div>
                 <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded">
                   <p className="text-sm font-bold text-red-400">{incidentChanges.totals.escalated_count}</p>
-                  <p className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.escalated', lang)}</p>
+                  <p className="text-[9px] text-gray-500 dark:text-gray-300">{'Escalated'}</p>
                 </div>
                 <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded">
                   <p className="text-sm font-bold text-amber-400">{incidentChanges.totals.downgraded_count}</p>
-                  <p className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.downgraded', lang)}</p>
+                  <p className="text-[9px] text-gray-500 dark:text-gray-300">{'Downgraded'}</p>
                 </div>
                 <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded">
                   <p className="text-sm font-bold text-blue-400">{incidentChanges.totals.resolved_count}</p>
-                  <p className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.resolved', lang)}</p>
+                  <p className="text-[9px] text-gray-500 dark:text-gray-300">{'Resolved'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {(['weak', 'possible', 'probable', 'high', 'confirmed'] as const).map((state) => (
                   <span key={state} className="text-[9px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                    {t(`intel.lifecycle.${state}`, lang)}: {lifecycleCounts[state] || 0}
+                    {state.charAt(0).toUpperCase() + state.slice(1)}: {lifecycleCounts[state] || 0}
                   </span>
                 ))}
               </div>
@@ -581,7 +581,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
 
           {incidentObjects.length > 0 && (
             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700/30">
-              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.whyConfidence', lang)}</p>
+              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{'Why This Confidence?'}</p>
               <div className="space-y-1 max-h-[90px] overflow-y-auto mb-2">
                 {incidentObjects.slice(0, 4).map((incident) => (
                   <button
@@ -597,7 +597,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
                 <div className="rounded bg-gray-100 dark:bg-gray-800/50 p-2">
                   <p className="text-[10px] text-gray-800 dark:text-gray-200 font-semibold">{selectedExplanation.summary}</p>
                   <p className="text-[9px] text-gray-500 dark:text-gray-300 mt-1">
-                    {selectedExplanation.drivers?.slice(0, 2).join(' | ') || t('intel.noDrivers', lang)}
+                    {selectedExplanation.drivers?.slice(0, 2).join(' | ') || 'No drivers available'}
                   </p>
                 </div>
               )}
@@ -630,7 +630,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
           {/* Live alerts feed (Socket.IO pushed) */}
           {liveAlerts.length > 0 && (
             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700/30">
-              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.liveAlerts', lang)}</p>
+              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{'Live Alerts'}</p>
               <div className="space-y-1 max-h-[100px] overflow-y-auto">
                 {liveAlerts.map((a, i) => (
                   <div key={i} className="flex items-start gap-1.5 bg-gray-100 dark:bg-gray-800/40 rounded px-2 py-1">
@@ -647,7 +647,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
 
           {cascadingInsights.length > 0 && (
             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700/30">
-              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.cascadingChains', lang)}</p>
+              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{'Cascading Chains'}</p>
               <div className="space-y-1 max-h-[110px] overflow-y-auto">
                 {cascadingInsights.slice(0, 4).map((insight, i) => (
                   <div key={i} className="flex items-start gap-1.5 bg-gray-100 dark:bg-gray-800/40 rounded px-2 py-1">
@@ -670,7 +670,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
           {/* River gauge list (flood intelligence -- kept) */}
           {rivers.length > 0 && (
             <div className="max-h-[160px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600">
-              <p className="px-4 py-1 text-[10px] font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide border-b border-gray-100 dark:border-gray-700/20">{t('intel.riverGauges', lang)}</p>
+              <p className="px-4 py-1 text-[10px] font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide border-b border-gray-100 dark:border-gray-700/20">{'River Gauges'}</p>
               {rivers.map(river => (
                 <div key={river.stationId} className="px-4 py-2 flex items-center gap-3 border-b border-gray-100 dark:border-gray-700/20 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${river.status === 'CRITICAL' ? 'bg-red-500 animate-pulse' : river.status === 'HIGH' ? 'bg-orange-500' : river.status === 'ELEVATED' ? 'bg-amber-400' : 'bg-blue-500'}`} />
@@ -687,10 +687,10 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
           {/* Refresh */}
           <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-700/30 flex items-center justify-between">
             <span className="text-[9px] text-gray-600">
-              {dashboard ? `${dashboard.byType.length} ${t('intel.typesMonitored', lang)}` : t('common.loading', lang)}
+              {dashboard ? `${dashboard.byType.length} ${'incident types monitored'}` : 'Loading...'}
             </span>
             <button onClick={fetchAll} disabled={loading} className="text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1">
-              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> {t('intel.refresh', lang)}
+              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> {'Refresh'}
             </button>
           </div>
         </div>

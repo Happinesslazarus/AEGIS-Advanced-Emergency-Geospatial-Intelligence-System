@@ -132,7 +132,7 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label={t('community.guidelines', lang)}
+        aria-label={'Guidelines'}
       >
         {/* Header with progress */}
         <div className="sticky top-0 z-10 bg-gradient-to-r from-aegis-600 to-aegis-700 text-white p-6 flex flex-col gap-3">
@@ -140,11 +140,11 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
             <div className="flex items-center gap-3">
               <AlertCircle className="w-6 h-6 flex-shrink-0" />
               <div>
-                <h2 className="text-xl font-bold">{t('community.guidelines', lang)}</h2>
-                <p className="text-sm text-white/80">{t('community.guidelinesSubtitle', lang)}</p>
+                <h2 className="text-xl font-bold">{'Guidelines'}</h2>
+                <p className="text-sm text-white/80">{'Help keep our community safe and respectful'}</p>
               </div>
             </div>
-            <button onClick={onClose} aria-label={t('common.close', lang)} className="p-1 hover:bg-white/20 rounded-lg transition">
+            <button onClick={onClose} aria-label={'Close'} className="p-1 hover:bg-white/20 rounded-lg transition">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -236,7 +236,7 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
           {/* Consequences */}
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4">
             <p className="text-sm text-yellow-900 dark:text-yellow-100">
-              <strong>{t('community.guidelineConsequencesTitle', lang)}:</strong> {t('community.guidelineConsequencesBody', lang)}
+              <strong>{'Important:'}:</strong> {'Violations of these guidelines may result in content removal, account restrictions, or permanent ban. Serious violations may be reported to authorities.'}
             </p>
           </div>
         </div>
@@ -247,14 +247,14 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
             <div className="flex items-center justify-between animate-enter">
               <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                 <Sparkles className="w-4 h-4" />
-                <span className="text-sm font-semibold">{t('community.guidelinesAcknowledge', lang)}</span>
+                <span className="text-sm font-semibold">{'I understand and agree to follow these guidelines'}</span>
               </div>
               <button
                 onClick={onClose}
                 className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-[1.02] shadow-lg shadow-green-500/25 flex items-center gap-2"
               >
                 <CheckCircle className="w-4 h-4" />
-                {t('community.gotIt', lang)}
+                {'Got It'}
               </button>
             </div>
           ) : (
@@ -266,7 +266,7 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
                 disabled
                 className="bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-6 py-2.5 rounded-xl font-bold text-sm cursor-not-allowed"
               >
-                {t('community.gotIt', lang)}
+                {'Got It'}
               </button>
             </div>
           )}

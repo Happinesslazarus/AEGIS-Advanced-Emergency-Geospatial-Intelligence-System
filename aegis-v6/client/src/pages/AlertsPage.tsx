@@ -208,7 +208,7 @@ export default function AlertsPage(): JSX.Element {
 
           <div className="relative z-10 max-w-5xl mx-auto px-6 py-10 sm:py-14">
             <Link to="/citizen" className="inline-flex items-center gap-2 text-white/60 hover:text-white text-sm mb-5 transition-colors group">
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> {t('alerts.backToAegis', lang)}
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> {'Back to AEGIS'}
             </Link>
 
             <div className="flex items-start justify-between gap-4">
@@ -219,9 +219,9 @@ export default function AlertsPage(): JSX.Element {
                   <Bell className={`w-7 h-7 ${criticalCount > 0 ? 'animate-bounce' : ''}`} />
                 </div>
                 <div>
-                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{t('alerts.pageTitle', lang)}</h1>
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{'Active Alerts'}</h1>
                   <p className="text-white/60 text-sm mt-1">
-                    {t('alerts.subtitle', lang)} <span className="text-white font-semibold">{activeLocation || t('alerts.yourArea', lang)}</span>
+                    {'Emergency broadcasts for'} <span className="text-white font-semibold">{activeLocation || 'your area'}</span>
                   </p>
                 </div>
               </div>
@@ -232,7 +232,7 @@ export default function AlertsPage(): JSX.Element {
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-sm font-bold transition-all disabled:opacity-50 backdrop-blur-sm"
               >
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                {t('alerts.refresh', lang)}
+                {'Refresh'}
               </button>
             </div>
 
@@ -241,18 +241,18 @@ export default function AlertsPage(): JSX.Element {
               {criticalCount > 0 && (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/30 border border-red-400/30 text-xs font-bold backdrop-blur-sm animate-pulse">
                   <ShieldAlert className="w-3.5 h-3.5" />
-                  {criticalCount} {t('alerts.badgeCritical', lang)}
+                  {criticalCount} {'Critical'}
                 </div>
               )}
               {(severityCounts.warning || 0) + (severityCounts.medium || 0) > 0 && (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-xs font-bold backdrop-blur-sm">
                   <AlertTriangle className="w-3.5 h-3.5" />
-                  {(severityCounts.warning || 0) + (severityCounts.medium || 0)} {t('alerts.badgeWarnings', lang)}
+                  {(severityCounts.warning || 0) + (severityCounts.medium || 0)} {'Warnings'}
                 </div>
               )}
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-xs font-bold backdrop-blur-sm">
                 <Radio className="w-3.5 h-3.5" />
-                {severityCounts.all} {t('alerts.badgeTotalActive', lang)}
+                {severityCounts.all} {'Total Active'}
               </div>
             </div>
           </div>
@@ -271,7 +271,7 @@ export default function AlertsPage(): JSX.Element {
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder={t('alerts.searchPlaceholder', lang)}
+                placeholder={'Search alerts by title, description, or area...'}
                 className="flex-1 bg-transparent text-sm font-medium outline-none text-gray-900 dark:text-white placeholder-gray-400"
               />
               {searchQuery && (
@@ -289,7 +289,7 @@ export default function AlertsPage(): JSX.Element {
               }`}
             >
               <Filter className="w-4 h-4" />
-              {t('alerts.filters', lang)}
+              {'Filters'}
               {filterSeverity !== 'all' && <span className="w-2 h-2 rounded-full bg-aegis-500" />}
             </button>
             <select
@@ -297,8 +297,8 @@ export default function AlertsPage(): JSX.Element {
               onChange={e => setSortBy(e.target.value as 'newest' | 'severity')}
               className="px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300 outline-none cursor-pointer"
             >
-              <option value="newest">{t('alerts.sortNewest', lang)}</option>
-              <option value="severity">{t('alerts.sortSeverity', lang)}</option>
+              <option value="newest">{'Newest First'}</option>
+              <option value="severity">{'By Severity'}</option>
             </select>
           </div>
 
@@ -319,7 +319,7 @@ export default function AlertsPage(): JSX.Element {
                         : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                   >
-                    {sev === 'all' ? t('alerts.filterAll', lang) : cfg ? t(cfg.labelKey, lang) : sev}
+                    {sev === 'all' ? 'All' : cfg ? t(cfg.labelKey, lang) : sev}
                     <span className={`text-[10px] ${isActive ? 'opacity-80' : ''}`}>({count})</span>
                   </button>
                 )
@@ -352,11 +352,11 @@ export default function AlertsPage(): JSX.Element {
             <div className="w-16 h-16 rounded-2xl bg-green-50 dark:bg-green-950/20 flex items-center justify-center mx-auto mb-4">
               <Shield className="w-8 h-8 text-green-500" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t('alerts.allClear', lang)}</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{'All clear in your area'}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
               {searchQuery || filterSeverity !== 'all'
-                ? t('alerts.noMatchFilters', lang)
-                : t('alerts.noAlertsMessage', lang)}
+                ? 'No alerts match your current filters. Try adjusting your search.'
+                : 'There are no active emergency alerts for your area at this time. Stay safe!'}
             </p>
           </div>
         )}
@@ -440,20 +440,20 @@ export default function AlertsPage(): JSX.Element {
 
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
                             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
-                              <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{t('alerts.source', lang)}</span>
+                              <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{'Source'}</span>
                               <span className="text-gray-700 dark:text-gray-300 font-semibold capitalize">{alert.source}</span>
                             </div>
                             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
-                              <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{t('alerts.type', lang)}</span>
-                              <span className="text-gray-700 dark:text-gray-300 font-semibold capitalize">{alert.disasterType || t('alerts.general', lang)}</span>
+                              <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{'Type'}</span>
+                              <span className="text-gray-700 dark:text-gray-300 font-semibold capitalize">{alert.disasterType || 'General'}</span>
                             </div>
                             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
-                              <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{t('alerts.issued', lang)}</span>
+                              <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{'Issued'}</span>
                               <span className="text-gray-700 dark:text-gray-300 font-semibold">{new Date(alert.timestamp).toLocaleString()}</span>
                             </div>
                             {alert.expiresAt && (
                               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
-                                <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{t('alerts.expires', lang)}</span>
+                                <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{'Expires'}</span>
                                 <span className={`font-semibold ${new Date(alert.expiresAt) < new Date() ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
                                   {new Date(alert.expiresAt).toLocaleString()}
                                 </span>
@@ -461,7 +461,7 @@ export default function AlertsPage(): JSX.Element {
                             )}
                             {alert.channels && alert.channels.length > 0 && (
                               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5 col-span-2 sm:col-span-3">
-                                <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{t('alerts.broadcastChannels', lang)}</span>
+                                <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{'Broadcast Channels'}</span>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {alert.channels.map(ch => (
                                     <span key={ch} className="px-2 py-0.5 rounded-full bg-aegis-50 dark:bg-aegis-950/30 border border-aegis-200 dark:border-aegis-800 text-aegis-700 dark:text-aegis-300 text-[10px] font-bold uppercase">
@@ -498,9 +498,9 @@ export default function AlertsPage(): JSX.Element {
               <Info className="w-4.5 h-4.5 text-blue-500" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-gray-900 dark:text-white">{t('alerts.aboutTitle', lang)}</h4>
+              <h4 className="text-sm font-bold text-gray-900 dark:text-white">{'About Emergency Alerts'}</h4>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                {t('alerts.aboutDesc', lang)} <Link to="/citizen" className="text-aegis-600 hover:text-aegis-700 font-bold">{t('alerts.citizenPortal', lang)}</Link>.
+                {'Alerts are broadcast by AEGIS administrators through multiple channels including web, email, SMS, Telegram, and WhatsApp. All active alerts are displayed here regardless of your subscription status. For real-time push notifications, subscribe to alert channels on the'} <Link to="/citizen" className="text-aegis-600 hover:text-aegis-700 font-bold">{'citizen portal'}</Link>.
               </p>
             </div>
           </div>

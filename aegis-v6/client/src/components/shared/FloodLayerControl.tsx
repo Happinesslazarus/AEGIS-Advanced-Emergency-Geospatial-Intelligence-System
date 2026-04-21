@@ -69,9 +69,9 @@ export default function FloodLayerControl({ onLayerChange, className = '' }: Pro
   }
 
   const groupedLayers = {
-    [t('floodLayer.floodZonesWms', lang)]: layers.filter(l => l.type === 'wms'),
-    [t('floodLayer.predictions', lang)]: layers.filter(l => l.type === 'prediction'),
-    [t('floodLayer.evacuation', lang)]: layers.filter(l => l.type === 'evacuation'),
+    ['Flood Zones (WMS)']: layers.filter(l => l.type === 'wms'),
+    ['Predictions']: layers.filter(l => l.type === 'prediction'),
+    ['Evacuation']: layers.filter(l => l.type === 'evacuation'),
   }
 
   return (
@@ -86,8 +86,8 @@ export default function FloodLayerControl({ onLayerChange, className = '' }: Pro
             <Layers className="w-4 h-4 text-white" />
           </div>
           <div className="text-left">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('floodLayer.floodLayers', lang)}</h3>
-            <p className="text-[10px] text-gray-500 dark:text-gray-300">{activeCount} {t('floodLayer.active', lang)}</p>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">{'Flood Layers'}</h3>
+            <p className="text-[10px] text-gray-500 dark:text-gray-300">{activeCount} {'active'}</p>
           </div>
         </div>
         {expanded ? <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-300" /> : <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-300" />}
@@ -97,8 +97,8 @@ export default function FloodLayerControl({ onLayerChange, className = '' }: Pro
         <div className="border-t border-gray-700/40">
           {/* Quick actions */}
           <div className="px-4 py-2 flex gap-2 border-b border-gray-100 dark:border-gray-700/30">
-            <button onClick={enableAll} className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition">{t('floodLayer.showAll', lang)}</button>
-            <button onClick={disableAll} className="text-[10px] text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700/50 transition">{t('floodLayer.hideAll', lang)}</button>
+            <button onClick={enableAll} className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition">{'Show All'}</button>
+            <button onClick={disableAll} className="text-[10px] text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700/50 transition">{'Hide All'}</button>
           </div>
 
           {/* Grouped layers */}

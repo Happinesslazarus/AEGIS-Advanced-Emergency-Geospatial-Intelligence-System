@@ -120,18 +120,18 @@ function formatDist(km: number): string {
 
 function getTools(lang: string): ToolDef[] {
   return [
-  { id: 'distance', label: t('spatial.distance', lang), icon: <Ruler className="w-4 h-4" />, description: t('spatial.distanceDesc', lang) },
-  { id: 'area', label: t('spatial.area', lang), icon: <Pentagon className="w-4 h-4" />, description: t('spatial.areaDesc', lang) },
-  { id: 'buffer', label: t('spatial.bufferZone', lang), icon: <CircleDot className="w-4 h-4" />, description: t('spatial.bufferZoneDesc', lang) },
-  { id: 'radius-search', label: t('spatial.radiusSearch', lang), icon: <Search className="w-4 h-4" />, description: t('spatial.radiusSearchDesc', lang) },
-  { id: 'flood-risk', label: t('spatial.floodRisk', lang), icon: <Droplets className="w-4 h-4" />, description: t('spatial.floodRiskDesc', lang) },
-  { id: 'nearest-shelter', label: t('spatial.nearestShelter', lang), icon: <Home className="w-4 h-4" />, description: t('spatial.nearestShelterDesc', lang) },
-  { id: 'elevation', label: t('spatial.elevation', lang), icon: <Mountain className="w-4 h-4" />, description: t('spatial.elevationDesc', lang) },
-  { id: 'coord-lookup', label: t('spatial.coordinates', lang), icon: <MapPin className="w-4 h-4" />, description: t('spatial.coordinatesDesc', lang) },
-  { id: 'bearing', label: t('spatial.bearing', lang), icon: <Compass className="w-4 h-4" />, description: t('spatial.bearingDesc', lang) },
-  { id: 'buffer-analysis', label: t('spatial.fullAnalysis', lang), icon: <Database className="w-4 h-4" />, description: t('spatial.fullAnalysisDesc', lang) },
-  { id: 'density', label: t('spatial.density', lang), icon: <Flame className="w-4 h-4" />, description: t('spatial.densityDesc', lang) },
-  { id: 'export', label: t('spatial.exportView', lang), icon: <Download className="w-4 h-4" />, description: t('spatial.exportViewDesc', lang) },
+  { id: 'distance', label: 'Distance', icon: <Ruler className="w-4 h-4" />, description: 'Measure distance' },
+  { id: 'area', label: 'Area', icon: <Pentagon className="w-4 h-4" />, description: 'Calculate area' },
+  { id: 'buffer', label: 'Buffer Zone', icon: <CircleDot className="w-4 h-4" />, description: 'Create buffer zone' },
+  { id: 'radius-search', label: 'Radius Search', icon: <Search className="w-4 h-4" />, description: 'Search within radius' },
+  { id: 'flood-risk', label: 'Flood Risk', icon: <Droplets className="w-4 h-4" />, description: 'Assess flood risk' },
+  { id: 'nearest-shelter', label: 'Nearest Shelter', icon: <Home className="w-4 h-4" />, description: 'Find nearest shelter' },
+  { id: 'elevation', label: 'Elevation', icon: <Mountain className="w-4 h-4" />, description: 'Show elevation' },
+  { id: 'coord-lookup', label: 'Coordinates', icon: <MapPin className="w-4 h-4" />, description: 'Show coordinates' },
+  { id: 'bearing', label: 'Bearing', icon: <Compass className="w-4 h-4" />, description: 'Calculate bearing' },
+  { id: 'buffer-analysis', label: 'Full Analysis', icon: <Database className="w-4 h-4" />, description: 'Run full analysis' },
+  { id: 'density', label: 'Density', icon: <Flame className="w-4 h-4" />, description: 'Analyse density' },
+  { id: 'export', label: 'Export View', icon: <Download className="w-4 h-4" />, description: 'Export current view' },
 ]
 }
 
@@ -717,8 +717,8 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
           <Marker position={[nearestShelter.lat, nearestShelter.lng]} icon={toolIcon('#10b981', '<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;12&quot; height=&quot;12&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;white&quot; stroke-width=&quot;2.5&quot;><path d=&quot;m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z&quot;/><polyline points=&quot;9 22 9 12 15 12 15 22&quot;/></svg>')}>
             <Popup>
               <p className="font-semibold text-sm">{nearestShelter.name}</p>
-              <p className="text-xs">{t('spatial.distanceLabel', lang)}: {formatDist(nearestShelter.distance)}</p>
-              <p className="text-xs">{t('spatial.occupancy', lang)}: {nearestShelter.current_occupancy}/{nearestShelter.capacity}</p>
+              <p className="text-xs">{'Distance'}: {formatDist(nearestShelter.distance)}</p>
+              <p className="text-xs">{'Occupancy'}: {nearestShelter.current_occupancy}/{nearestShelter.capacity}</p>
             </Popup>
           </Marker>
           {points.length > 0 && (
@@ -754,8 +754,8 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
         >
           <Popup>
             <p className="font-semibold text-sm">{s.name}</p>
-            <p className="text-xs">{formatDist(parseFloat(s.distance_km) || 0)} {t('spatial.away', lang)}</p>
-            <p className="text-xs">{t('spatial.capacity', lang)}: {s.current_occupancy || 0}/{s.capacity || '?'}</p>
+            <p className="text-xs">{formatDist(parseFloat(s.distance_km) || 0)} {'away'}</p>
+            <p className="text-xs">{'Capacity'}: {s.current_occupancy || 0}/{s.capacity || '?'}</p>
           </Popup>
         </Marker>
       ))}
@@ -788,10 +788,10 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
           <button
             onClick={() => setExpanded(!expanded)}
             className="bg-white dark:bg-gray-800 shadow-lg rounded-lg px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5"
-            title={t('spatial.spatialAnalysisTools', lang)}
+            title={'Spatial Analysis Tools'}
           >
             <Ruler className="w-4 h-4" />
-            {t('spatial.displayTools', lang)}
+            {'Display Tools'}
             <ChevronRight className={`w-3 h-3 transition-transform ${expanded ? 'rotate-90' : ''}`} />
           </button>
         )}
@@ -824,10 +824,10 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{activeToolDef?.label}</p>
                   <div className="flex gap-1">
-                    <button onClick={reset} className="text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-200" title={t('common.reset', lang)}>
+                    <button onClick={reset} className="text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-200" title={'Reset'}>
                       <RotateCcw className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={() => { reset(); setActiveTool(null) }} className="text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-200" title={t('spatial.closeTool', lang)}>
+                    <button onClick={() => { reset(); setActiveTool(null) }} className="text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-200" title={'Close'}>
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -837,7 +837,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                 {/* Radius input for buffer/radius-search/buffer-analysis */}
                 {(activeTool === 'buffer' || activeTool === 'radius-search' || activeTool === 'buffer-analysis') && (
                   <div className="flex items-center gap-2 mb-2">
-                    <label className="text-[10px] text-gray-500 dark:text-gray-300">{t('spatial.radius', lang)}:</label>
+                    <label className="text-[10px] text-gray-500 dark:text-gray-300">{'Radius'}:</label>
                     <input
                       type="range"
                       min={0.1}
@@ -854,7 +854,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                 {/* Export format picker */}
                 {activeTool === 'export' && (
                   <div className="mb-2">
-                    <label className="text-[10px] text-gray-500 dark:text-gray-300 mb-1 block">{t('spatial.exportFormat', lang)}:</label>
+                    <label className="text-[10px] text-gray-500 dark:text-gray-300 mb-1 block">{'Export Format'}:</label>
                     <div className="grid grid-cols-2 gap-1">
                       {(['json', 'csv', 'geojson', 'kml'] as const).map(fmt => (
                         <button
@@ -877,7 +877,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                 {loading && (
                   <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
                     <span className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    {t('common.querying', lang)}
+                    {'Querying...'}
                   </div>
                 )}
 
@@ -895,7 +895,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                 {/* Elevation mini chart */}
                 {activeTool === 'elevation' && elevationData.length >= 2 && (
                   <div className="mt-2">
-                    <p className="text-[10px] text-gray-500 dark:text-gray-300 mb-1">{t('spatial.elevationProfile', lang)}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-300 mb-1">{'Elevation Profile'}</p>
                     <div className="flex items-end gap-px h-12 bg-gray-100 dark:bg-gray-900 rounded p-1">
                       {elevationData.map((e, i) => {
                         const vals = elevationData.filter(v => v.elevation !== null).map(v => v.elevation!)

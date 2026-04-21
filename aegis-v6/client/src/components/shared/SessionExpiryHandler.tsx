@@ -159,14 +159,14 @@ export function SessionExpiryHandler({
               id="session-warning-title"
               className="text-lg font-semibold text-gray-900 dark:text-white"
             >
-              {t('session.expiryWarningTitle', 'Session Expiring Soon')}
+              {'Expiry Warning Title'}
             </h2>
             
             <p
               id="session-warning-desc"
               className="mt-2 text-sm text-gray-600 dark:text-gray-400"
             >
-              {t('session.expiryWarningDesc', 'Your session will expire due to inactivity. Would you like to continue?')}
+              {'Expiry Warning Desc'}
             </p>
             
             <div className="mt-4 flex items-center gap-2 text-2xl font-mono font-bold text-amber-600 dark:text-amber-400">
@@ -185,14 +185,14 @@ export function SessionExpiryHandler({
             {isRefreshing ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : null}
-            {t('session.stayLoggedIn', 'Stay Logged In')}
+            {'Stay Logged In'}
           </button>
           
           <button
             onClick={onExpire}
             className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors"
           >
-            {t('session.logout', 'Log Out')}
+            {'Logout'}
           </button>
         </div>
       </div>

@@ -522,10 +522,10 @@ export default function DisasterMap({
           >
             <Popup>
               <div style={{ minWidth: 220 }}>
-                <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{incident.incident_type.replace(/_/g, ' ')} {t('dmap.incident', lang)}</p>
-                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.state', lang)}: {incident.lifecycle_state.toUpperCase()}</p>
-                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.confidence', lang)}: {Math.round(confidence * 100)}%</p>
-                <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{t('dmap.evidence', lang)}: {incident.evidence_count} -- {t('dmap.window', lang)}: {incident.time_window_minutes} {t('dmap.min', lang)}</p>
+                <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{incident.incident_type.replace(/_/g, ' ')} {'Incident'}</p>
+                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{'State'}: {incident.lifecycle_state.toUpperCase()}</p>
+                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{'Confidence'}: {Math.round(confidence * 100)}%</p>
+                <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{'Evidence'}: {incident.evidence_count} -- {'Window'}: {incident.time_window_minutes} {'min'}</p>
               </div>
             </Popup>
           </Circle>
@@ -579,10 +579,10 @@ export default function DisasterMap({
         >
           <Popup>
             <div style={{ minWidth: 220 }}>
-              <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{cluster.incident_type} {t('dmap.cluster', lang)}</p>
-              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.reports', lang)}: {cluster.reports} -- {t('dmap.radius', lang)}: {cluster.radius_m}m</p>
-              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.timeWindow', lang)}: {cluster.time_window_minutes} {t('dmap.min', lang)}</p>
-              <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{t('dmap.confidence', lang)}: {Math.round(confidence * 100)}%</p>
+              <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{cluster.incident_type} {'Cluster'}</p>
+              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{'Reports'}: {cluster.reports} -- {'Radius'}: {cluster.radius_m}m</p>
+              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{'Time Window'}: {cluster.time_window_minutes} {'min'}</p>
+              <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{'Confidence'}: {Math.round(confidence * 100)}%</p>
             </div>
           </Popup>
         </Circle>
@@ -597,7 +597,7 @@ export default function DisasterMap({
       <Circle key={i} center={z.coords} radius={500} pathOptions={ZS[z.risk] || ZS.low}>
         <Popup>
           <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 2px' }}>{z.name}</p>
-          <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{t('dmap.risk', lang)}: {z.risk.toUpperCase()}</p>
+          <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{'Risk'}: {z.risk.toUpperCase()}</p>
         </Popup>
       </Circle>
     ))
@@ -613,9 +613,9 @@ export default function DisasterMap({
         style={floodAreaStyle}
         onEachFeature={(feature: any, layer: any) => {
           const props = feature.properties || {}
-          const name = props.ta_name || props.fws_taname || t('dmap.floodArea', lang)
+          const name = props.ta_name || props.fws_taname || 'Flood Area'
           const severity = props.severity || 'watch'
-          layer.bindPopup(`<strong>${name}</strong><br/><span style="font-size:11px">${t('dmap.severity', lang)}: ${severity.toUpperCase()}</span>`)
+          layer.bindPopup(`<strong>${name}</strong><br/><span style="font-size:11px">${'Severity'}: ${severity.toUpperCase()}</span>`)
         }}
       />
     )
@@ -630,13 +630,13 @@ export default function DisasterMap({
         pointToLayer={stationPointToLayer}
         onEachFeature={(feature: any, layer: any) => {
           const props = feature.properties || {}
-          const name = props.station_name || t('dmap.unknownStation', lang)
-          const level = props.level_m ? `${props.level_m.toFixed(2)}m` : t('common.na', lang)
+          const name = props.station_name || 'Unknown Station'
+          const level = props.level_m ? `${props.level_m.toFixed(2)}m` : 'N/A'
           const status = props.level_status || 'normal'
           layer.bindPopup(
             `<strong>${name}</strong><br/>` +
-            `<span style="font-size:11px">${t('dmap.level', lang)}: ${level}</span><br/>` +
-            `<span style="font-size:11px">${t('dmap.status', lang)}: ${status.toUpperCase()}</span>`,
+            `<span style="font-size:11px">${'Level'}: ${level}</span><br/>` +
+            `<span style="font-size:11px">${'Status'}: ${status.toUpperCase()}</span>`,
           )
         }}
       />
@@ -653,12 +653,12 @@ export default function DisasterMap({
             <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 2px' }}>{s.name}</p>
             <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 4px' }}>{s.address}</p>
             <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>
-              {t('dmap.capacity', lang)}: {s.current_occupancy}/{s.capacity} |
-              {t('dmap.type', lang)}: {s.shelter_type}
+              {'Capacity'}: {s.current_occupancy}/{s.capacity} |
+              {'Type'}: {s.shelter_type}
             </p>
             {s.amenities.length > 0 && (
               <p style={{ fontSize: 11, color: '#374151', marginTop: 4 }}>
-                {t('dmap.amenities', lang)}: {s.amenities.join(', ')}
+                {'Amenities'}: {s.amenities.join(', ')}
               </p>
             )}
             {s.phone && (
@@ -706,10 +706,10 @@ export default function DisasterMap({
         <Marker key={`distress-${b.id || i}`} position={[lat, lng]} icon={dIcon}>
           <Popup>
             <div style={{ minWidth: 180 }}>
-              <p style={{ fontWeight: 700, color: '#dc2626', fontSize: 13, margin: '0 0 4px' }}>🚨 {t('dmap.distressBeacon', lang)}</p>
-              <p style={{ fontSize: 12, fontWeight: 600, color: '#111827', margin: '0 0 2px' }}>{b.citizenName || b.citizen_name || t('dmap.citizen', lang)}</p>
-              <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{b.message || t('dmap.emergencyAssistance', lang)}</p>
- {b.isVulnerable && <p style={{ fontSize: 11, color: '#d97706', marginTop: 4 }}>!️ {t('dmap.vulnerablePerson', lang)}</p>}
+              <p style={{ fontWeight: 700, color: '#dc2626', fontSize: 13, margin: '0 0 4px' }}>🚨 {'DISTRESS BEACON'}</p>
+              <p style={{ fontSize: 12, fontWeight: 600, color: '#111827', margin: '0 0 2px' }}>{b.citizenName || b.citizen_name || 'Citizen'}</p>
+              <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{b.message || 'Emergency assistance requested'}</p>
+ {b.isVulnerable && <p style={{ fontSize: 11, color: '#d97706', marginTop: 4 }}>!️ {'Vulnerable person'}</p>}
             </div>
           </Popup>
         </Marker>
@@ -730,26 +730,26 @@ export default function DisasterMap({
         <Polyline key={`evac-${route.id || i}`} positions={latlngs} pathOptions={{ color: route.isBlocked ? '#ef4444' : '#22c55e', weight: 4, opacity: 0.8, dashArray: route.isBlocked ? '4 8' : '10 6' }}>
           <Popup>
             <div style={{ minWidth: 220 }}>
-              <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{route.name || t('dmap.evacuationRoute', lang)}</p>
+              <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{route.name || 'Evacuation Route'}</p>
               {route.description && <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{route.description}</p>}
               {typeof route.recommendationScore === 'number' && (
-                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.recommendation', lang)}: {Math.round(route.recommendationScore * 100)}% -- {t('dmap.risk', lang)}: {Math.round((route.riskScore || 0) * 100)}%</p>
+                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{'Recommendation'}: {Math.round(route.recommendationScore * 100)}% -- {'Risk'}: {Math.round((route.riskScore || 0) * 100)}%</p>
               )}
               {typeof route.etaConfidence === 'number' && (
-                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.etaConfidence', lang)}: {Math.round(route.etaConfidence * 100)}%{route.closureProximityM ? ` -- ${t('dmap.closureProximity', lang)} ${route.closureProximityM}m` : ''}</p>
+                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{'ETA confidence'}: {Math.round(route.etaConfidence * 100)}%{route.closureProximityM ? ` -- ${'Closure proximity'} ${route.closureProximityM}m` : ''}</p>
               )}
               {route.explanation?.scoreBreakdown && (
-                <p style={{ fontSize: 11, color: '#374151', marginTop: 4 }}>{t('dmap.profile', lang)}: {route.explanation.scoreBreakdown.profile} -- {t('dmap.time', lang)} {Math.round(route.explanation.scoreBreakdown.timeScore * 100)} -- {t('dmap.riskPenalty', lang)} {Math.round(route.explanation.scoreBreakdown.riskPenalty * 100)}</p>
+                <p style={{ fontSize: 11, color: '#374151', marginTop: 4 }}>{'Profile'}: {route.explanation.scoreBreakdown.profile} -- {'Time'} {Math.round(route.explanation.scoreBreakdown.timeScore * 100)} -- {'Risk penalty'} {Math.round(route.explanation.scoreBreakdown.riskPenalty * 100)}</p>
               )}
               {route.explanation?.blockedSegments?.length ? (
                 <div style={{ marginTop: 4 }}>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: '#b91c1c' }}>{t('dmap.blockedSegments', lang)}</p>
-                  <p style={{ fontSize: 12, color: '#1f2937' }}>{route.explanation.blockedSegments.length} {t('dmap.segmentsAffected', lang)} {Math.min(...route.explanation.blockedSegments.map((segment) => segment.hazardDistanceM))}m</p>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: '#b91c1c' }}>{'Blocked segments'}</p>
+                  <p style={{ fontSize: 12, color: '#1f2937' }}>{route.explanation.blockedSegments.length} {'segment(s) affected -- closest'} {Math.min(...route.explanation.blockedSegments.map((segment) => segment.hazardDistanceM))}m</p>
                 </div>
               ) : null}
               {route.explanation?.topHazards?.length ? (
                 <div style={{ marginTop: 4 }}>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: '#111827' }}>{t('dmap.topHazards', lang)}</p>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: '#111827' }}>{'Top hazards'}</p>
                   <p style={{ fontSize: 12, color: '#1f2937' }}>{route.explanation.topHazards.slice(0, 2).map((h) => `${h.severity} ${h.distanceM}m${h.reason ? ` (${h.reason})` : ''}`).join(' -- ')}</p>
                 </div>
               ) : null}
@@ -782,10 +782,10 @@ export default function DisasterMap({
           <Popup>
             <div style={{ minWidth: 200 }}>
               <p style={{ fontWeight: 700, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{p.area}</p>
-              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.floodProbability', lang)}: <span style={{ fontWeight: 700, color: colour }}>{Math.round(prob * 100)}%</span></p>
-              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.severity', lang)}: {p.severity} -- {t('dmap.confidence', lang)}: {p.confidence}%</p>
-              <p style={{ fontSize: 12, color: '#374151', margin: '0 0 2px' }}>{t('dmap.uncertaintyBand', lang)}: {Math.max(0, Math.round((Number(p.probability || 0) - (100 - Number(p.confidence || 0)) / 200) * 100))}% - {Math.min(100, Math.round((Number(p.probability || 0) + (100 - Number(p.confidence || 0)) / 200) * 100))}%</p>
-              {p.time_to_flood && <p style={{ fontSize: 12, color: '#374151', margin: '0 0 2px' }}>{t('dmap.timeToFlood', lang)}: {p.time_to_flood}</p>}
+              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{'Flood probability'}: <span style={{ fontWeight: 700, color: colour }}>{Math.round(prob * 100)}%</span></p>
+              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{'Severity'}: {p.severity} -- {'Confidence'}: {p.confidence}%</p>
+              <p style={{ fontSize: 12, color: '#374151', margin: '0 0 2px' }}>{'Uncertainty band'}: {Math.max(0, Math.round((Number(p.probability || 0) - (100 - Number(p.confidence || 0)) / 200) * 100))}% - {Math.min(100, Math.round((Number(p.probability || 0) + (100 - Number(p.confidence || 0)) / 200) * 100))}%</p>
+              {p.time_to_flood && <p style={{ fontSize: 12, color: '#374151', margin: '0 0 2px' }}>{'Time to flood'}: {p.time_to_flood}</p>}
               <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>{p.model_version}</p>
             </div>
           </Popup>
@@ -858,16 +858,16 @@ export default function DisasterMap({
                 {d.deployed && <span style={{
                   padding: '1px 6px', borderRadius: 8, fontWeight: 700, fontSize: 10,
                   color: '#fff', backgroundColor: '#16a34a',
-                }}>{t('dmap.deployed', lang)}</span>}
+                }}>{'DEPLOYED'}</span>}
               </div>
-              <p style={{ fontSize: 11, margin: '2px 0' }}>{t('dmap.activeReports', lang)}: <strong>{d.active_reports}</strong></p>
-              {d.estimated_affected && <p style={{ fontSize: 11, margin: '2px 0' }} className="text-red-600 dark:text-red-400">{t('dmap.affected', lang)}: {d.estimated_affected}</p>}
+              <p style={{ fontSize: 11, margin: '2px 0' }}>{'Active Reports'}: <strong>{d.active_reports}</strong></p>
+              {d.estimated_affected && <p style={{ fontSize: 11, margin: '2px 0' }} className="text-red-600 dark:text-red-400">{'Affected'}: {d.estimated_affected}</p>}
               <div style={{ display: 'flex', gap: 8, fontSize: 11, marginTop: 4 }}>
                 {(d.ambulances ?? 0) > 0 && <span>🚑 {d.ambulances}</span>}
                 {(d.fire_engines ?? 0) > 0 && <span>🚒 {d.fire_engines}</span>}
                 {(d.rescue_boats ?? 0) > 0 && <span>⚓ {d.rescue_boats}</span>}
               </div>
-              {d.ai_recommendation && <p style={{ fontSize: 10, marginTop: 4, fontStyle: 'italic' }} className="text-gray-500 dark:text-gray-300">{t('dmap.ai', lang)}: {d.ai_recommendation}</p>}
+              {d.ai_recommendation && <p style={{ fontSize: 10, marginTop: 4, fontStyle: 'italic' }} className="text-gray-500 dark:text-gray-300">{'AI'}: {d.ai_recommendation}</p>}
             </div>
           </Popup>
         </Circle>
@@ -894,9 +894,9 @@ export default function DisasterMap({
         style={riskStyle}
         onEachFeature={(feature: any, layer: any) => {
           const p = feature.properties || {}
-          const name = p.name || p.area_name || t('dmap.riskZone', lang)
+          const name = p.name || p.area_name || 'Risk Zone'
           const risk = p.risk_level || p.severity || 'medium'
-          layer.bindPopup(`<strong>${name}</strong><br/><span style="font-size:11px;">${t('dmap.risk', lang)}: ${risk.toUpperCase()}</span>${p.description ? `<br/><span style="font-size:10px;">${p.description}</span>` : ''}`)
+          layer.bindPopup(`<strong>${name}</strong><br/><span style="font-size:11px;">${'Risk'}: ${risk.toUpperCase()}</span>${p.description ? `<br/><span style="font-size:10px;">${p.description}</span>` : ''}`)
         }}
       />
     )
@@ -923,25 +923,25 @@ export default function DisasterMap({
                 <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5 flex-shrink-0">
                   <path d="M8 1l6 3.5L8 8 2 4.5 8 1zm0 4.5L2 9l6 3.5L14 9 8 5.5zm0 4.5L2 13.5 8 17l6-3.5L8 10z"/>
                 </svg>
-                <span className="hidden sm:inline">{t('dmap.layers', lang)}</span>
+                <span className="hidden sm:inline">{'Layers'}</span>
                 <svg viewBox="0 0 10 6" fill="currentColor" className="w-2 h-2 flex-shrink-0 opacity-60">
                   <path d={overlayPanelOpen ? 'M5 0L0 6h10z' : 'M5 6L0 0h10z'} />
                 </svg>
               </button>
               {overlayPanelOpen && (
                 <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 shadow-xl rounded-lg p-3 w-56 max-h-[50vh] overflow-y-auto border border-gray-200 dark:border-gray-700 z-[760]">
-                  <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wider">{t('dmap.toggleOverlays', lang)}</p>
+                  <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wider">{'Toggle Map Overlays'}</p>
                   {([
-                    { key: 'floodZones' as const, label: t('dmap.overlay.floodZones', lang), color: 'bg-red-300', enabled: showFloodZones },
-                    { key: 'floodMonitoring' as const, label: t('dmap.overlay.floodMonitoring', lang), color: 'bg-amber-500', enabled: showFloodMonitoring },
-                    { key: 'predictions' as const, label: t('dmap.overlay.aiPredictions', lang), color: 'bg-yellow-500', enabled: showPredictions },
-                    { key: 'riskLayer' as const, label: t('dmap.overlay.riskZones', lang), color: 'bg-orange-400', enabled: showRiskLayer },
-                    { key: 'shelters' as const, label: t('dmap.overlay.shelters', lang), color: 'bg-green-500', enabled: showShelters },
-                    { key: 'evacuation' as const, label: t('dmap.overlay.evacuation', lang), color: 'bg-green-400', enabled: showEvacuation },
-                    { key: 'distress' as const, label: t('dmap.overlay.sosBeacons', lang), color: 'bg-red-600', enabled: showDistress },
-                    { key: 'heatmap' as const, label: t('dmap.overlay.densityHeatmap', lang), color: 'bg-gradient-to-r from-blue-400 to-red-400', enabled: showHeatmap },
-                    { key: 'confidenceHalos' as const, label: t('dmap.overlay.confidenceHalos', lang), color: 'bg-emerald-400', enabled: true },
-                    { key: 'clusters' as const, label: t('dmap.overlay.incidentClusters', lang), color: 'bg-lime-500', enabled: true },
+                    { key: 'floodZones' as const, label: 'Flood Zones', color: 'bg-red-300', enabled: showFloodZones },
+                    { key: 'floodMonitoring' as const, label: 'Flood Monitoring', color: 'bg-amber-500', enabled: showFloodMonitoring },
+                    { key: 'predictions' as const, label: 'AI Predictions', color: 'bg-yellow-500', enabled: showPredictions },
+                    { key: 'riskLayer' as const, label: 'Risk Zones', color: 'bg-orange-400', enabled: showRiskLayer },
+                    { key: 'shelters' as const, label: 'Shelters', color: 'bg-green-500', enabled: showShelters },
+                    { key: 'evacuation' as const, label: 'Evacuation Routes', color: 'bg-green-400', enabled: showEvacuation },
+                    { key: 'distress' as const, label: 'SOS Beacons', color: 'bg-red-600', enabled: showDistress },
+                    { key: 'heatmap' as const, label: 'Density Heatmap', color: 'bg-gradient-to-r from-blue-400 to-red-400', enabled: showHeatmap },
+                    { key: 'confidenceHalos' as const, label: 'Confidence Halos', color: 'bg-emerald-400', enabled: true },
+                    { key: 'clusters' as const, label: 'Incident Clusters', color: 'bg-lime-500', enabled: true },
                   ]).filter(l => l.enabled).map(layer => (
                     <label key={layer.key} className="flex items-center gap-2 text-xs py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded px-2 -mx-1 transition-colors">
                       <input
@@ -968,7 +968,7 @@ export default function DisasterMap({
                   <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 flex-shrink-0">
                     <path d="M12 3.5c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm4 10h-3v3h-2v-3H8v-2h3v-3h2v3h3v2z"/>
                   </svg>
-                  <span className="hidden sm:inline">{t('dmap.floodData', lang)}</span>
+                  <span className="hidden sm:inline">{'Flood Data'}</span>
                   <svg viewBox="0 0 10 6" fill="currentColor" className="w-2 h-2 flex-shrink-0 opacity-60">
                     <path d={layerPanelOpen ? 'M5 0L0 6h10z' : 'M5 6L0 0h10z'} />
                   </svg>
@@ -977,7 +977,7 @@ export default function DisasterMap({
                   <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 shadow-xl rounded-lg p-3 w-56 border border-gray-200 dark:border-gray-700 z-[760]">
                     {wmsLayers.length === 0 ? (
                       <p className="text-xs text-gray-500 dark:text-gray-300 py-2 text-center italic">
-                        {t('dmap.noWmsLayers', lang)}
+                        {'No WMS layers configured for this region'}
                       </p>
                     ) : wmsLayers.map((wms, idx) => (
                       <label key={idx} className="flex items-center gap-2 text-xs py-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded px-1 -mx-1 transition-colors">
@@ -1006,12 +1006,12 @@ export default function DisasterMap({
                   <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
                   <span className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0" />
                 </span>
-                <span className="hidden sm:inline">{t('dmap.legend', lang)}</span>
+                <span className="hidden sm:inline">{'Legend'}</span>
               </button>
               {legendOpen && (
                 <div className="absolute top-full left-0 mt-1 bg-white/95 dark:bg-gray-900/95 backdrop-blur rounded-lg p-3 shadow-xl text-xs max-h-[40vh] overflow-y-auto w-48 border border-gray-200 dark:border-gray-700 z-[760]">
                   <div className="space-y-1.5">
-                    {([['bg-red-500', t('dmap.legend.high', lang)], ['bg-amber-500', t('dmap.legend.medium', lang)], ['bg-blue-500', t('dmap.legend.low', lang)]] as [string, string][]).map(([c, l]) => (
+                    {([['bg-red-500', 'High'], ['bg-amber-500', 'Medium'], ['bg-blue-500', 'Low']] as [string, string][]).map(([c, l]) => (
                       <div key={l} className="flex items-center gap-2">
                         <span className={`w-2.5 h-2.5 rounded-full ${c} flex-shrink-0`} />
                         <span className="text-gray-600 dark:text-gray-300">{l}</span>
@@ -1020,35 +1020,35 @@ export default function DisasterMap({
                     {showFloodZones && layerToggles.floodZones && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-red-300/50 border border-red-400 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.floodZone', lang)}</span>
+                        <span className="text-gray-600 dark:text-gray-300">{'Flood zone'}</span>
                       </div>
                     )}
                     {showShelters && layerToggles.shelters && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.shelter', lang)}</span>
+                        <span className="text-gray-600 dark:text-gray-300">{'Shelter'}</span>
                       </div>
                     )}
                     {showFloodMonitoring && layerToggles.floodMonitoring && (
                       <>
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0" />
-                          <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.warning', lang)}</span>
+                          <span className="text-gray-600 dark:text-gray-300">{'Warning'}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0" />
-                          <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.watch', lang)}</span>
+                          <span className="text-gray-600 dark:text-gray-300">{'Watch'}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0" />
-                          <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.station', lang)}</span>
+                          <span className="text-gray-600 dark:text-gray-300">{'Station'}</span>
                         </div>
                       </>
                     )}
                     {showHeatmap && layerToggles.heatmap && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-blue-500 to-red-500 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.density', lang)}</span>
+                        <span className="text-gray-600 dark:text-gray-300">{'Density'}</span>
                       </div>
                     )}
                     {showDistress && layerToggles.distress && distressBeacons.length > 0 && (
@@ -1060,56 +1060,56 @@ export default function DisasterMap({
                     {showPredictions && layerToggles.predictions && predictions.length > 0 && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60 border border-yellow-500 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.aiPrediction', lang)} ({predictions.length})</span>
+                        <span className="text-gray-600 dark:text-gray-300">{'AI Prediction'} ({predictions.length})</span>
                       </div>
                     )}
                     {layerToggles.confidenceHalos && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/60 border border-emerald-500 flex-shrink-0" />
                         <span className="text-gray-600 dark:text-gray-300">
-                          {incidentObjects.length > 0 ? `${t('dmap.legend.confidenceLifecycle', lang)} (${incidentObjects.length})` : t('dmap.legend.confidenceHalo', lang)}
+                          {incidentObjects.length > 0 ? `${'Confidence lifecycle'} (${incidentObjects.length})` : 'Confidence halo'}
                         </span>
                       </div>
                     )}
                     {layerToggles.clusters && incidentClusters.length > 0 && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-lime-500/70 border border-lime-600 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.clusters', lang)} ({incidentClusters.length})</span>
+                        <span className="text-gray-600 dark:text-gray-300">{'Clusters'} ({incidentClusters.length})</span>
                       </div>
                     )}
                     {showRiskLayer && layerToggles.riskLayer && riskLayerData?.features?.length > 0 && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded bg-orange-200 border border-orange-400 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.riskZone', lang)} ({riskLayerData.features.length})</span>
+                        <span className="text-gray-600 dark:text-gray-300">{'Risk Zone'} ({riskLayerData.features.length})</span>
                       </div>
                     )}
                     {showEvacuation && layerToggles.evacuation && evacuationRoutes.length > 0 && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded bg-green-500 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.evacuation', lang)}</span>
+                        <span className="text-gray-600 dark:text-gray-300">{'Evacuation'}</span>
                       </div>
                     )}
                     {deployments.length > 0 && (
                       <>
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full border-2 border-green-500 bg-green-100 flex-shrink-0" />
-                          <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.deployed', lang)} ({deployments.filter(d => d.deployed).length})</span>
+                          <span className="text-gray-600 dark:text-gray-300">{'Deployed'} ({deployments.filter(d => d.deployed).length})</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full border-2 border-red-500 bg-red-100 flex-shrink-0" style={{ borderStyle: 'dashed' }} />
-                          <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.awaiting', lang)} ({deployments.filter(d => !d.deployed).length})</span>
+                          <span className="text-gray-600 dark:text-gray-300">{'Awaiting'} ({deployments.filter(d => !d.deployed).length})</span>
                         </div>
                       </>
                     )}
                   </div>
                   {showFloodMonitoring && floodData.loading && (
                     <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-500 dark:text-gray-300">{t('dmap.loadingFloodData', lang)}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-300">{'Loading flood data...'}</p>
                     </div>
                   )}
                   {showFloodMonitoring && floodData.error && (
                     <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-red-500">{t('dmap.dataUnavailable', lang)}</p>
+                      <p className="text-xs text-red-500">{'Data unavailable'}</p>
                     </div>
                   )}
                 </div>
@@ -1128,7 +1128,7 @@ export default function DisasterMap({
                   <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5 flex-shrink-0">
                     <path d="M8 1l6 3.5v7L8 15l-6-3.5v-7L8 1zm0 1.5L3.5 5.25v5.5L8 13.5l4.5-2.75v-5.5L8 2.5z"/>
                   </svg>
-                  <span className="hidden sm:inline">{t('dmap.export', lang)}</span>
+                  <span className="hidden sm:inline">{'Export'}</span>
                 </button>
               </>
             )}
@@ -1145,7 +1145,7 @@ export default function DisasterMap({
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 flex-shrink-0">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                   </svg>
-                  <span className="hidden sm:inline">{t('dmap.displayTools', lang)}</span>
+                  <span className="hidden sm:inline">{'Display Tools'}</span>
                 </button>
               </>
             )}
@@ -1162,7 +1162,7 @@ export default function DisasterMap({
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 flex-shrink-0">
                 <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/>
               </svg>
-              <span className="hidden sm:inline">{t('dmap.focus', lang)}</span>
+              <span className="hidden sm:inline">{'Focus'}</span>
             </button>
             <button
               onClick={toggleFullscreen}
@@ -1178,7 +1178,7 @@ export default function DisasterMap({
                   <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
                 </svg>
               )}
-              <span className="hidden sm:inline">{isFullscreen ? t('dmap.exit', lang) : t('dmap.full', lang)}</span>
+              <span className="hidden sm:inline">{isFullscreen ? 'Exit' : 'Full'}</span>
             </button>
           </div>
         </div>
@@ -1192,7 +1192,7 @@ export default function DisasterMap({
             <div className="w-10 h-10 rounded-xl bg-aegis-600 flex items-center justify-center animate-pulse">
               <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
             </div>
-            <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">{t('dmap.initialisingMap', lang)}</p>
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">{'Initialising map...'}</p>
           </div>
         )}
         <MapContainer center={mapCenter} zoom={mapZoom} className="h-full w-full" scrollWheelZoom
@@ -1281,7 +1281,7 @@ export default function DisasterMap({
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
-              {t('dmap.exitFocusMode', lang)}
+              {'Exit Focus Mode'}
             </button>
           </div>
         )}
@@ -1290,7 +1290,7 @@ export default function DisasterMap({
         {!focusMode && cascadingInsights.length > 0 && (
           <div className="absolute bottom-3 right-3 z-[720] max-w-[320px]">
             <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 mb-2">{t('dmap.cascadingInsights', lang)}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 mb-2">{'Cascading Insights'}</p>
               <div className="space-y-2 max-h-[180px] overflow-y-auto">
                 {cascadingInsights.slice(0, 3).map((insight, idx) => (
                   <div key={`cascade-${idx}`} className="rounded-md border border-gray-200 dark:border-gray-700 p-2">
@@ -1298,7 +1298,7 @@ export default function DisasterMap({
                       {insight.chain.join(' -> ')}
                     </p>
                     <p className="text-[11px] text-gray-600 dark:text-gray-300">
-                      {t('dmap.confidence', lang)}: {Math.round(insight.confidence * 100)}%
+                      {'Confidence'}: {Math.round(insight.confidence * 100)}%
                     </p>
                   </div>
                 ))}

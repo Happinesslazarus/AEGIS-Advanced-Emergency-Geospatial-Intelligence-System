@@ -1112,7 +1112,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
 
   //Custom field renderer -- citizen-friendly, all fields optional
   const renderCustomField = (field: CustomFieldDef): JSX.Element => {
-    const label = t(`incidents:fields.${field.key}`, { defaultValue: field.key.replace(/([A-Z])/g, ' $1').trim() })
+    const label = field.key.replace(/([A-Z])/g, ' $1').trim()
     const val = customFields[field.key]
     const base = 'py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0'
 

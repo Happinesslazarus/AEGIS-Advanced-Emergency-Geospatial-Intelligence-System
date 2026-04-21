@@ -110,8 +110,8 @@ function StatusBadge({ status }: { status: string }) {
   const ok = status === 'sent' || status === 'delivered'
   const fail = status === 'failed'
   if (ok)   return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-300 dark:ring-emerald-500/30"><CheckCircle className="w-2.5 h-2.5"/>{t(status === 'delivered' ? 'delivery.delivered' : 'common.sent', lang)}</span>
-  if (fail) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300 ring-1 ring-red-300 dark:ring-red-500/30"><XCircle className="w-2.5 h-2.5"/>{t('delivery.failed', lang)}</span>
-  return       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30"><Clock className="w-2.5 h-2.5 animate-pulse"/>{t('delivery.pending', lang)}</span>
+  if (fail) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300 ring-1 ring-red-300 dark:ring-red-500/30"><XCircle className="w-2.5 h-2.5"/>{'Failed'}</span>
+  return       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30"><Clock className="w-2.5 h-2.5 animate-pulse"/>{'Pending'}</span>
 }
 
 function ChanIcon({ ch, size = 'sm' }: { ch: string; size?: 'xs' | 'sm' | 'md' }) {
@@ -127,7 +127,7 @@ function ChanIcon({ ch, size = 'sm' }: { ch: string; size?: 'xs' | 'sm' | 'md' }
 function DonutChart({ slices, size = 120 }: { slices: { value: number; color: string }[]; size?: number }) {
   const total = slices.reduce((s, x) => s + x.value, 0)
   const cx = size / 2; const cy = size / 2; const r = 40; const sw = 13
-  if (!total) return <div className="flex items-center justify-center text-xs text-gray-600" style={{ width: size, height: size }}>{t('delivery.noData', getLanguage())}</div>
+  if (!total) return <div className="flex items-center justify-center text-xs text-gray-600" style={{ width: size, height: size }}>{'No data'}</div>
   let angle = -Math.PI / 2
   const arcs = slices.map(s => {
     const sweep = (s.value / total) * 2 * Math.PI
@@ -144,14 +144,14 @@ function DonutChart({ slices, size = 120 }: { slices: { value: number; color: st
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
         <span className="font-black text-gray-900 dark:text-white tabular-nums leading-none" style={{ fontSize: 14 }}>{total}</span>
-        <span className="text-gray-500" style={{ fontSize: 8 }}>{t('delivery.total', getLanguage())}</span>
+        <span className="text-gray-500" style={{ fontSize: 8 }}>{'total'}</span>
       </div>
     </div>
   )
 }
 
 function HourlyBars({ data }: { data: HourlyPoint[] }) {
-  if (!data.length) return <div className="flex items-center justify-center h-full text-xs text-gray-600">{t('delivery.noActivity24h', getLanguage())}</div>
+  if (!data.length) return <div className="flex items-center justify-center h-full text-xs text-gray-600">{'No activity in last 24h'}</div>
   const max = Math.max(...data.map(d => d.total), 1)
   const W = 480; const H = 76
   const bw = Math.max(2, Math.floor(W / data.length) - 2)
@@ -223,8 +223,8 @@ function ChannelHealthCard({ stat, onFilter }: { stat: ChannelStat; onFilter: (c
       <div>
         <p className={`text-[10px] font-bold ${cfg.color} leading-tight`}>{getChannelLabel(stat.channel, lang)}</p>
         <p className="text-sm font-black text-gray-900 dark:text-white tabular-nums">{rate}%</p>
-        <p className="text-[9px] text-gray-500 dark:text-gray-300 tabular-nums">{Number(stat.total).toLocaleString()} {t('delivery.sentLower', lang)}</p>
-        {Number(stat.failed) > 0 && <p className="text-[9px] text-red-400 font-bold">{stat.failed} {t('delivery.failed', lang).toLowerCase()}</p>}
+        <p className="text-[9px] text-gray-500 dark:text-gray-300 tabular-nums">{Number(stat.total).toLocaleString()} {'sent'}</p>
+        {Number(stat.failed) > 0 && <p className="text-[9px] text-red-400 font-bold">{stat.failed} {'Failed'.toLowerCase()}</p>}
       </div>
     </button>
   )
@@ -250,10 +250,10 @@ function AlertGroupRow({ group, onRetry, onRetryAll, retrying }: {
           </div>
           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
             <span className="text-[10px] text-gray-600">{new Date(group.last_attempt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}</span>
-            <span className="text-[10px] text-emerald-400 font-bold">{group.sent} {t('delivery.sentLower', lang)}</span>
-            {group.failed > 0  && <span className="text-[10px] text-red-400 font-bold">{group.failed} {t('delivery.failed', lang).toLowerCase()}</span>}
-            {group.pending > 0 && <span className="text-[10px] text-amber-400 font-bold">{group.pending} {t('delivery.pending', lang).toLowerCase()}</span>}
-            <span className="text-[10px] text-gray-600">{group.total} {t('delivery.total', lang)}</span>
+            <span className="text-[10px] text-emerald-400 font-bold">{group.sent} {'sent'}</span>
+            {group.failed > 0  && <span className="text-[10px] text-red-400 font-bold">{group.failed} {'Failed'.toLowerCase()}</span>}
+            {group.pending > 0 && <span className="text-[10px] text-amber-400 font-bold">{group.pending} {'Pending'.toLowerCase()}</span>}
+            <span className="text-[10px] text-gray-600">{group.total} {'total'}</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -272,7 +272,7 @@ function AlertGroupRow({ group, onRetry, onRetryAll, retrying }: {
             <button onClick={e => { e.stopPropagation(); onRetryAll(group.alert_id) }}
               className="ml-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 dark:bg-amber-500/20 ring-1 ring-amber-300 dark:ring-amber-500/40 text-amber-700 dark:text-amber-300 text-[10px] font-bold hover:bg-amber-200 dark:hover:bg-amber-500/30 transition-colors whitespace-nowrap">
               <RotateCcw className={`w-3 h-3 ${retrying.has('bulk-' + group.alert_id) ? 'animate-spin' : ''}`}/>
-              {t('delivery.retryAll', lang)}
+              {'Retry All Failed'}
             </button>
           )}
         </div>
@@ -291,7 +291,7 @@ function AlertGroupRow({ group, onRetry, onRetryAll, retrying }: {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`text-xs font-semibold ${cfg.color}`}>{getChannelLabel(d.channel, lang)}</span>
                     <StatusBadge status={d.status}/>
-                    {d.retry_count > 0 && <span className="text-[9px] text-gray-500 dark:text-gray-300 ring-1 ring-gray-300 dark:ring-gray-700 px-1.5 py-0.5 rounded-full">{d.retry_count}-- {t('delivery.retried', lang)}</span>}
+                    {d.retry_count > 0 && <span className="text-[9px] text-gray-500 dark:text-gray-300 ring-1 ring-gray-300 dark:ring-gray-700 px-1.5 py-0.5 rounded-full">{d.retry_count}-- {'retried'}</span>}
                     {d.provider_id && <span className="text-[9px] text-gray-600 font-mono truncate max-w-[100px]">{d.provider_id}</span>}
                   </div>
                   <p className="text-[10px] text-gray-500 dark:text-gray-300 truncate mt-0.5 font-mono">{d.recipient || '--'}</p>
@@ -302,10 +302,10 @@ function AlertGroupRow({ group, onRetry, onRetryAll, retrying }: {
                   <button onClick={() => onRetry(d.id)} disabled={isRetrying}
                     className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/10 text-gray-600 dark:text-gray-300 text-[10px] font-bold hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-40 transition-all">
                     <RotateCcw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`}/>
-                    {isRetrying ? '--' : t('delivery.retry', lang)}
+                    {isRetrying ? '--' : 'Retry'}
                   </button>
                 ) : d.retry_count >= 3 ? (
-                  <span className="text-[9px] text-gray-600 ring-1 ring-gray-300 dark:ring-gray-700 px-1.5 py-0.5 rounded-full flex-shrink-0">{t('delivery.maxRetries', lang)}</span>
+                  <span className="text-[9px] text-gray-600 ring-1 ring-gray-300 dark:ring-gray-700 px-1.5 py-0.5 rounded-full flex-shrink-0">{'Max retries'}</span>
                 ) : null}
               </div>
             )
@@ -458,7 +458,7 @@ export default function DeliveryDashboard() {
     setRetrying(s => new Set(s).add(id))
     try {
       const r = await apiFetch(`/api/alerts/delivery/${id}/retry`, { method: 'POST' })
-      showToast(r.success ? t('delivery.retrySucceeded', lang) : `${t('delivery.retryFailedPrefix', lang)}: ${r.error}`, r.success)
+      showToast(r.success ? 'Retry succeeded' : `${'Retry failed'}: ${r.error}`, r.success)
       refresh()
     } catch (e: any) { showToast(e.message, false) }
     finally { setRetrying(s => { const n = new Set(s); n.delete(id); return n }) }
@@ -469,7 +469,7 @@ export default function DeliveryDashboard() {
     setRetrying(s => new Set(s).add(key))
     try {
       const r = await apiFetch('/api/alerts/delivery/retry-failed', { method: 'POST', body: JSON.stringify({ alert_id: alertId }) })
-      showToast(`${t('delivery.bulkRetrySummary', lang)}: ${r.succeeded} ${t('delivery.retrySucceeded', lang).toLowerCase()}, ${r.failed} ${t('delivery.failed', lang).toLowerCase()}`, r.failed === 0)
+      showToast(`${'Bulk retry'}: ${r.succeeded} ${'Retry succeeded'.toLowerCase()}, ${r.failed} ${'Failed'.toLowerCase()}`, r.failed === 0)
       refresh()
     } catch (e: any) { showToast(e.message, false) }
     finally { setRetrying(s => { const n = new Set(s); n.delete(key); return n }) }
@@ -479,11 +479,11 @@ export default function DeliveryDashboard() {
     setExportingCSV(true)
     try {
       const res = await fetch(`/api/alerts/delivery/export.csv?${buildQS()}`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      if (!res.ok) throw new Error(t('delivery.exportFailed', lang))
+      if (!res.ok) throw new Error('Export failed')
       const blob = await res.blob()
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob); a.download = `delivery_log_${Date.now()}.csv`; a.click()
-      showToast(t('delivery.exportSuccess', lang))
+      showToast('CSV exported successfully')
     } catch (e: any) { showToast(e.message, false) }
     finally { setExportingCSV(false) }
   }
@@ -533,7 +533,7 @@ export default function DeliveryDashboard() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setErrorModal(null)}>
           <div className="bg-white dark:bg-gray-900 ring-1 ring-red-500/30 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-red-600 dark:text-red-300 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/>{t('common.error', lang)}</h3>
+              <h3 className="font-bold text-red-600 dark:text-red-300 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/>{'Error'}</h3>
               <button onClick={() => setErrorModal(null)} className="text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"><X className="w-4 h-4"/></button>
             </div>
             <pre className="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-black/50 rounded-xl p-4 overflow-auto max-h-64 whitespace-pre-wrap">{errorModal}</pre>
@@ -548,33 +548,33 @@ export default function DeliveryDashboard() {
             <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-700 shadow-lg shadow-violet-900/40 flex-shrink-0">
               <Activity className="w-4.5 h-4.5 text-white"/>
             </span>
-            {t('delivery.title', lang)}
+            {'Alert Delivery Control Center'}
           </h1>
           <p className="text-[11px] text-gray-600 dark:text-gray-300 mt-0.5 ml-12">
-            {t('delivery.subtitle', lang)}
+            {'Multi-channel delivery tracking'}
             <span className="ml-2">-- {lastRefresh.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={refresh} disabled={loading}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/10 text-gray-600 dark:text-gray-300 text-xs font-semibold hover:bg-gray-200 dark:hover:bg-white/10 transition-all disabled:opacity-50">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`}/>{t('common.refresh', lang)}
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`}/>{'Refresh'}
           </button>
           <button onClick={handleExportCSV} disabled={exportingCSV}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-100 dark:bg-emerald-600/20 ring-1 ring-emerald-300 dark:ring-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-200 dark:hover:bg-emerald-600/30 transition-all disabled:opacity-50">
             {exportingCSV ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Download className="w-3.5 h-3.5"/>}
-            {t('common.exportCSV', lang)}
+            {'Export CSV'}
           </button>
         </div>
       </div>
 
       {/* Stats*/}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <StatCard label={t('delivery.attempted', lang)} value={Number(s?.total ?? 0).toLocaleString()} icon={Layers}     color="text-violet-400" accent="bg-violet-500/15" trend={hourlyTrend}/>
-        <StatCard label={t('delivery.successRate', lang)} value={s ? successRate + '%' : '--'} sub={s ? `${s.sent} ${t('delivery.delivered', lang).toLowerCase()}` : undefined} icon={TrendingUp} color={successRate >= 95 ? 'text-emerald-400' : successRate >= 80 ? 'text-amber-400' : 'text-red-400'} accent={successRate >= 95 ? 'bg-emerald-500/15' : successRate >= 80 ? 'bg-amber-500/15' : 'bg-red-500/15'}/>
-        <StatCard label={t('common.sent', lang)} value={Number(s?.sent    ?? 0).toLocaleString()} icon={CheckCircle} color="text-emerald-400" accent="bg-emerald-500/15"/>
-        <StatCard label={t('delivery.failed', lang)} value={Number(s?.failed  ?? 0).toLocaleString()} icon={XCircle}     color={s?.failed ? 'text-red-400' : 'text-gray-600'} accent={s?.failed ? 'bg-red-500/15' : 'bg-gray-500/10'}/>
-        <StatCard label={t('delivery.pending', lang)} value={Number(s?.pending ?? 0).toLocaleString()} icon={Clock}       color="text-amber-400" accent="bg-amber-500/15"/>
+        <StatCard label={'Attempted'} value={Number(s?.total ?? 0).toLocaleString()} icon={Layers}     color="text-violet-400" accent="bg-violet-500/15" trend={hourlyTrend}/>
+        <StatCard label={'Success Rate'} value={s ? successRate + '%' : '--'} sub={s ? `${s.sent} ${'Delivered'.toLowerCase()}` : undefined} icon={TrendingUp} color={successRate >= 95 ? 'text-emerald-400' : successRate >= 80 ? 'text-amber-400' : 'text-red-400'} accent={successRate >= 95 ? 'bg-emerald-500/15' : successRate >= 80 ? 'bg-amber-500/15' : 'bg-red-500/15'}/>
+        <StatCard label={'Sent'} value={Number(s?.sent    ?? 0).toLocaleString()} icon={CheckCircle} color="text-emerald-400" accent="bg-emerald-500/15"/>
+        <StatCard label={'Failed'} value={Number(s?.failed  ?? 0).toLocaleString()} icon={XCircle}     color={s?.failed ? 'text-red-400' : 'text-gray-600'} accent={s?.failed ? 'bg-red-500/15' : 'bg-gray-500/10'}/>
+        <StatCard label={'Pending'} value={Number(s?.pending ?? 0).toLocaleString()} icon={Clock}       color="text-amber-400" accent="bg-amber-500/15"/>
         <StatCard label="Subscribers" value={Number(stats?.subscribers?.verified_subscribers ?? 0).toLocaleString()} sub={stats?.subscribers ? `${stats.subscribers.total_subscribers} total` : undefined} icon={Users} color="text-cyan-400" accent="bg-cyan-500/15"/>
       </div>
 
@@ -583,7 +583,7 @@ export default function DeliveryDashboard() {
         {/* Donut */}
         <div className="bg-white dark:bg-gray-900/60 ring-1 ring-gray-100 dark:ring-white/5 rounded-2xl p-4 shadow-lg">
           <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            <BarChart2 className="w-3.5 h-3.5"/>{t('delivery.channelResults', lang)}
+            <BarChart2 className="w-3.5 h-3.5"/>{'Channel Results'}
           </h3>
           <div className="flex items-center gap-4">
             <DonutChart slices={donutSlices} size={108}/>
@@ -600,7 +600,7 @@ export default function DeliveryDashboard() {
                   </div>
                 )
               })}
-              {!stats?.by_channel?.length && <p className="text-xs text-gray-700">{t('delivery.noData', lang)}</p>}
+              {!stats?.by_channel?.length && <p className="text-xs text-gray-700">{'No data'}</p>}
             </div>
           </div>
         </div>
@@ -609,13 +609,13 @@ export default function DeliveryDashboard() {
         <div className="lg:col-span-2 bg-white dark:bg-gray-900/60 ring-1 ring-gray-100 dark:ring-white/5 rounded-2xl p-4 shadow-lg flex flex-col gap-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Activity className="w-3.5 h-3.5"/>{t('allReports.activityTimeline', lang)}
+              <Activity className="w-3.5 h-3.5"/>{'24h Activity Timeline'}
               {statsLoading && <Loader2 className="w-3 h-3 animate-spin text-violet-400"/>}
             </h3>
             <div className="flex items-center gap-3 text-[10px] text-gray-600 dark:text-gray-300">
-              <span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-emerald-500 inline-block"/>{t('common.sent', lang)}</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-red-500 inline-block"/>{t('delivery.failed', lang)}</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-gray-700 inline-block"/>{t('common.total', lang)}</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-emerald-500 inline-block"/>{'Sent'}</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-red-500 inline-block"/>{'Failed'}</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-gray-700 inline-block"/>{'Total'}</span>
             </div>
           </div>
           <div className="flex-1 min-h-[76px]">
@@ -631,7 +631,7 @@ export default function DeliveryDashboard() {
       {(stats?.by_channel?.length ?? 0) > 0 && (
         <div>
           <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5"/>{t('delivery.channelPerformance', lang)}
+            <Zap className="w-3.5 h-3.5"/>{'Channel Performance'}
           </h3>
           <div className="flex gap-2.5 flex-wrap">
             {stats!.by_channel.map(c => (
@@ -645,7 +645,7 @@ export default function DeliveryDashboard() {
       {(stats?.top_failing?.length ?? 0) > 0 && (
         <div className="bg-white dark:bg-gray-900/60 ring-1 ring-red-500/15 rounded-2xl p-4 shadow-lg">
           <h3 className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            <AlertTriangle className="w-3.5 h-3.5"/>{t('delivery.failed', lang)}
+            <AlertTriangle className="w-3.5 h-3.5"/>{'Failed'}
           </h3>
           <div className="flex flex-col gap-1.5">
             {stats!.top_failing.map(f => (
@@ -656,7 +656,7 @@ export default function DeliveryDashboard() {
                 <span className="text-xs font-black text-red-400 tabular-nums flex-shrink-0">{f.fail_count}--</span>
                 <button onClick={() => handleRetryAll(f.alert_id)}
                   className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-100 dark:bg-red-500/15 ring-1 ring-red-300 dark:ring-red-500/25 text-red-700 dark:text-red-300 text-[10px] font-bold hover:bg-red-200 dark:hover:bg-red-500/25 transition-colors">
-                  <RotateCcw className={`w-3 h-3 ${retrying.has('bulk-' + f.alert_id) ? 'animate-spin' : ''}`}/>{t('delivery.retry', lang)}
+                  <RotateCcw className={`w-3 h-3 ${retrying.has('bulk-' + f.alert_id) ? 'animate-spin' : ''}`}/>{'Retry'}
                 </button>
               </div>
             ))}
@@ -667,10 +667,10 @@ export default function DeliveryDashboard() {
       {/* Filters*/}
       <div className="bg-white dark:bg-gray-900/60 ring-1 ring-gray-100 dark:ring-white/5 rounded-2xl p-4 shadow-lg">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5"><Filter className="w-3.5 h-3.5"/>{t('common.filter', lang)}</h3>
+          <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5"><Filter className="w-3.5 h-3.5"/>{'Filter'}</h3>
           {filterActive && (
             <button onClick={clearFilters} className="text-[10px] text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors">
-              <X className="w-3 h-3"/>{t('common.clear', lang)}
+              <X className="w-3 h-3"/>{'Clear'}
             </button>
           )}
         </div>
@@ -678,13 +678,13 @@ export default function DeliveryDashboard() {
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600 pointer-events-none"/>
             <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && applyFilters()}
-              placeholder={t('delivery.searchPlaceholder', lang)}
+              placeholder={'Search alerts, recipients...'}
               className="pl-8 pr-3 py-2 text-xs bg-gray-100 dark:bg-gray-800/60 ring-1 ring-gray-200 dark:ring-white/8 rounded-xl text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-700 focus:ring-violet-500/50 focus:outline-none w-52 transition-all"/>
           </div>
           {[
-            { label: t('delivery.allChannels', lang), value: channel, set: setChannel, opts: CHANNEL_OPTS.map(c => ({ v: c, l: getChannelLabel(c, lang) })) },
-            { label: t('delivery.allStatuses', lang), value: status,  set: setStatus,  opts: STATUS_OPTS.map(s => ({ v: s, l: t(s === 'sent' ? 'common.sent' : `delivery.${s}`, lang) })) },
-            { label: t('delivery.allSeverities', lang), value: severity, set: setSeverity, opts: SEV_OPTS.map(s => ({ v: s, l: s })) },
+            { label: 'All Channels', value: channel, set: setChannel, opts: CHANNEL_OPTS.map(c => ({ v: c, l: getChannelLabel(c, lang) })) },
+            { label: 'All Statuses', value: status,  set: setStatus,  opts: STATUS_OPTS.map(s => ({ v: s, l: t(s === 'sent' ? 'common.sent' : `delivery.${s}`, lang) })) },
+            { label: 'All Severities', value: severity, set: setSeverity, opts: SEV_OPTS.map(s => ({ v: s, l: s })) },
           ].map(({ label, value, set, opts }) => (
             <select key={label} value={value} onChange={e => set(e.target.value)}
               className="px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800/60 ring-1 ring-gray-200 dark:ring-white/8 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-violet-500/50 focus:outline-none">
@@ -702,7 +702,7 @@ export default function DeliveryDashboard() {
           </div>
           <button onClick={applyFilters}
             className="px-4 py-2 rounded-xl bg-violet-100 dark:bg-violet-600/30 ring-1 ring-violet-300 dark:ring-violet-500/40 text-violet-700 dark:text-violet-200 text-xs font-bold hover:bg-violet-200 dark:hover:bg-violet-600/50 transition-all">
-            {t('common.apply', lang)}
+            {'Apply'}
           </button>
         </div>
       </div>
@@ -711,7 +711,7 @@ export default function DeliveryDashboard() {
       <div className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-900/60 ring-1 ring-gray-200 dark:ring-white/5 rounded-xl p-1">
-            {([['grouped', t('delivery.grouped', lang), Layers], ['flat', t('delivery.flat', lang), List]] as const).map(([v, label, Icon]) => (
+            {([['grouped', 'Grouped', Layers], ['flat', 'Flat', List]] as const).map(([v, label, Icon]) => (
               <button key={v} onClick={() => setViewMode(v as ViewMode)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === v ? 'bg-violet-600 text-white shadow-md' : 'text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}>
                 <Icon className="w-3.5 h-3.5"/>{label}
@@ -731,7 +731,7 @@ export default function DeliveryDashboard() {
         {loading && !flatRows.length && !groups.length ? (
           <div className="flex items-center justify-center py-24 text-gray-600 gap-2">
             <Loader2 className="w-5 h-5 animate-spin text-violet-400"/>
-            <span className="text-sm">{t('common.loading', lang)} {t('delivery.recentDeliveries', lang).toLowerCase()}</span>
+            <span className="text-sm">{'Loading...'} {'Recent Deliveries'.toLowerCase()}</span>
           </div>
         ) : viewMode === 'grouped' ? (
           <div className="space-y-2">
@@ -741,21 +741,21 @@ export default function DeliveryDashboard() {
             {!groups.length && !loading && (
               <div className="flex flex-col items-center justify-center py-20 text-gray-600 gap-2">
                 <Layers className="w-8 h-8 opacity-20"/>
-                <p className="text-sm">{t('delivery.noDeliveries', lang)}</p>
+                <p className="text-sm">{'No delivery records found'}</p>
               </div>
             )}
           </div>
         ) : (
           <DataTable<DeliveryRow>
             columns={[
-              { key: 'created_at', header: t('delivery.time', lang), sortable: true, render: r => <span className="text-[11px] text-gray-500 dark:text-gray-300 whitespace-nowrap font-mono">{r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' }) : '--'}</span> },
-              { key: 'alert_title', header: t('delivery.alert', lang), sortable: true, render: r => <div className="flex items-center gap-1.5 max-w-[180px]">{r.alert_severity && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${r.alert_severity === 'critical' ? 'bg-red-400' : r.alert_severity === 'warning' ? 'bg-amber-400' : 'bg-blue-400'}`}/>}<span className="text-xs text-gray-600 dark:text-gray-200 truncate">{r.alert_title || <span className="font-mono text-gray-400 dark:text-gray-300">ALT-{r.alert_id?.slice(0, 6).toUpperCase()}</span>}</span></div> },
-              { key: 'channel', header: t('delivery.channel', lang), sortable: true, render: r => { const cfg = chCfg(r.channel); return <div className="flex items-center gap-1.5"><ChanIcon ch={r.channel} size="xs"/><span className={`text-[11px] font-semibold ${cfg.color}`}>{getChannelLabel(r.channel, lang)}</span></div> } },
-              { key: 'recipient', header: t('delivery.recipient', lang), sortable: true, render: r => <span className="text-[11px] text-gray-500 dark:text-gray-300 font-mono truncate block max-w-[180px]">{r.recipient || '--'}</span> },
-              { key: 'status', header: t('common.status', lang), sortable: true, render: r => <StatusBadge status={r.status}/> },
-              { key: 'retry_count', header: t('delivery.retries', lang), sortable: true, align: 'center', render: r => r.retry_count > 0 ? <span className="text-[10px] text-amber-400 font-bold">{r.retry_count}</span> : <span className="text-[10px] text-gray-700">--</span> },
-              { key: 'error', header: t('delivery.error', lang), render: r => r.error_message ? <span className="text-[10px] text-red-400 truncate block cursor-help max-w-[160px]" title={r.error_message}>{r.error_message}</span> : null },
-              { key: 'actions', header: '', render: r => { const ok = r.status === 'sent' || r.status === 'delivered'; const isRetrying = retrying.has(r.id); return !ok && r.channel !== 'web' && r.retry_count < 3 ? <button onClick={() => handleRetry(r.id)} disabled={isRetrying} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/8 text-gray-500 dark:text-gray-300 text-[10px] hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-40 transition-all whitespace-nowrap"><RotateCcw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`}/>{isRetrying ? '--' : t('delivery.retry', lang)}</button> : null } },
+              { key: 'created_at', header: 'Time', sortable: true, render: r => <span className="text-[11px] text-gray-500 dark:text-gray-300 whitespace-nowrap font-mono">{r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' }) : '--'}</span> },
+              { key: 'alert_title', header: 'Alert', sortable: true, render: r => <div className="flex items-center gap-1.5 max-w-[180px]">{r.alert_severity && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${r.alert_severity === 'critical' ? 'bg-red-400' : r.alert_severity === 'warning' ? 'bg-amber-400' : 'bg-blue-400'}`}/>}<span className="text-xs text-gray-600 dark:text-gray-200 truncate">{r.alert_title || <span className="font-mono text-gray-400 dark:text-gray-300">ALT-{r.alert_id?.slice(0, 6).toUpperCase()}</span>}</span></div> },
+              { key: 'channel', header: 'Channel', sortable: true, render: r => { const cfg = chCfg(r.channel); return <div className="flex items-center gap-1.5"><ChanIcon ch={r.channel} size="xs"/><span className={`text-[11px] font-semibold ${cfg.color}`}>{getChannelLabel(r.channel, lang)}</span></div> } },
+              { key: 'recipient', header: 'Recipient', sortable: true, render: r => <span className="text-[11px] text-gray-500 dark:text-gray-300 font-mono truncate block max-w-[180px]">{r.recipient || '--'}</span> },
+              { key: 'status', header: 'Status', sortable: true, render: r => <StatusBadge status={r.status}/> },
+              { key: 'retry_count', header: 'Retries', sortable: true, align: 'center', render: r => r.retry_count > 0 ? <span className="text-[10px] text-amber-400 font-bold">{r.retry_count}</span> : <span className="text-[10px] text-gray-700">--</span> },
+              { key: 'error', header: 'Error', render: r => r.error_message ? <span className="text-[10px] text-red-400 truncate block cursor-help max-w-[160px]" title={r.error_message}>{r.error_message}</span> : null },
+              { key: 'actions', header: '', render: r => { const ok = r.status === 'sent' || r.status === 'delivered'; const isRetrying = retrying.has(r.id); return !ok && r.channel !== 'web' && r.retry_count < 3 ? <button onClick={() => handleRetry(r.id)} disabled={isRetrying} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/8 text-gray-500 dark:text-gray-300 text-[10px] hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-40 transition-all whitespace-nowrap"><RotateCcw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`}/>{isRetrying ? '--' : 'Retry'}</button> : null } },
             ] as DataTableColumn<DeliveryRow>[]}
             rows={sortedFlat}
             rowKey={r => r.id}
@@ -763,7 +763,7 @@ export default function DeliveryDashboard() {
             sortDir={sortDir}
             onSort={col => handleSort(col)}
             rowClassName={r => { const ok = r.status === 'sent' || r.status === 'delivered'; return !ok && r.status !== 'pending' ? 'bg-red-50 dark:bg-red-950/5' : '' }}
-            emptyMessage={t('delivery.noRecordsMatchFilters', lang)}
+            emptyMessage={'No delivery records match your filters.'}
             className="rounded-2xl ring-1 ring-gray-200 dark:ring-white/5 max-h-[60vh] overflow-auto"
           />
         )}
@@ -773,12 +773,12 @@ export default function DeliveryDashboard() {
           <div className="flex items-center justify-center gap-2 pt-2">
             <button disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}
               className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/8 text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
-              {t('common.previous', lang)}
+              {'Previous'}
             </button>
             <span className="text-xs text-gray-600 tabular-nums">{currentPage + 1} / {totalPages}</span>
             <button disabled={currentPage >= totalPages - 1} onClick={() => setPage(currentPage + 1)}
               className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/8 text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
-              {t('common.next', lang)}
+              {'Next'}
             </button>
           </div>
         )}
@@ -788,7 +788,7 @@ export default function DeliveryDashboard() {
       {(stats?.recent_errors?.length ?? 0) > 0 && (
         <div className="bg-white dark:bg-gray-900/60 ring-1 ring-gray-100 dark:ring-white/5 rounded-2xl p-4 shadow-lg">
           <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5"/>{t('delivery.errorPatternsLast7Days', lang)}
+            <Info className="w-3.5 h-3.5"/>{'Error Patterns - last 7 days'}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {stats!.recent_errors.map((e, i) => {
@@ -813,13 +813,13 @@ export default function DeliveryDashboard() {
 
       {showKeyboard && (
         <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('delivery.shortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {t('common.refresh', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> {t('delivery.exportCSV', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">V</kbd> {t('delivery.toggleView', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">X</kbd> {t('delivery.clearFilters', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('delivery.toggleShortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('common.close', lang)}</span>
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{'Shortcuts'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {'Refresh'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> {'Export CSV'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">V</kbd> {'Toggle View'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">X</kbd> {'Clear Filters'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {'Toggle shortcuts'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{'Esc'}</kbd> {'Close'}</span>
         </div>
       )}
     </div>

@@ -64,19 +64,19 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
 
   const handleSubscribe = async (): Promise<void> => {
     const active = Object.entries(channels).filter(([, v]) => v.enabled)
-    if (active.length === 0) { pushNotification(t('alertSub.selectChannel', activeLang), 'warning'); return }
+    if (active.length === 0) { pushNotification('Select a channel', 'warning'); return }
     if (submitting) return
 
     if (channels.sms.enabled && !isValidE164(channels.sms.value)) {
-      pushNotification(t('alertSub.smsValidation', activeLang), 'error')
+      pushNotification('SMS must be in international format, e.g. +447700900123', 'error')
       return
     }
     if (channels.whatsapp.enabled && !isValidE164(channels.whatsapp.value)) {
-      pushNotification(t('alertSub.whatsappValidation', activeLang), 'error')
+      pushNotification('WhatsApp must be in international format, e.g. +447700900123', 'error')
       return
     }
     if (channels.email.enabled && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(channels.email.value)) {
-      pushNotification(t('alertSub.emailValidation', activeLang) || 'Please enter a valid email address', 'error')
+      pushNotification('Email Validation', 'error')
       return
     }
 
@@ -86,12 +86,12 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
       if (channels.web.enabled && webPushStatus.enabled) {
         try {
           await subscribeToWebPush(channels.email.enabled ? channels.email.value : undefined)
-          pushNotification(t('alertSub.webPushEnabled', activeLang), 'success')
+          pushNotification('Web Push enabled successfully', 'success')
         } catch (err: any) {
           //Only show error for non-config issues (permission denied, etc.) -- missing VAPID key is silently skipped
           const msg: string = err?.message || ''
           if (!msg.includes('not configured') && !msg.includes('public key')) {
-            pushNotification(`${t('alertSub.webPushFailed', activeLang)}: ${msg}`, 'warning')
+            pushNotification(`${'Web Push setup failed'}: ${msg}`, 'warning')
           }
         }
       }
@@ -112,59 +112,59 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
 
       await apiSubscribe(payload)
       setSubscribed(true)
-      pushNotification(t('subscribe.success', activeLang), 'success')
+      pushNotification('Subscribed successfully!', 'success')
     } catch (error: any) {
-      pushNotification(error?.message || t('alertSub.subscriptionFailed', activeLang), 'error')
+      pushNotification(error?.message || 'Subscription failed', 'error')
     } finally {
       setSubmitting(false)
     }
   }
 
   const channelConfig = [
-    { key: 'telegram', icon: MessageCircle, label: t('subscribe.telegram', activeLang), placeholder: t('subscribe.placeholder.telegram', activeLang), color: 'bg-blue-500' },
-    { key: 'email', icon: Mail, label: t('subscribe.email', activeLang), placeholder: t('subscribe.placeholder.email', activeLang), color: 'bg-red-500' },
-    { key: 'sms', icon: Phone, label: t('subscribe.sms', activeLang), placeholder: t('subscribe.placeholder.phone', activeLang), color: 'bg-green-500' },
-    { key: 'whatsapp', icon: MessageCircle, label: t('subscribe.whatsapp', activeLang), placeholder: t('subscribe.placeholder.phone', activeLang), color: 'bg-emerald-500' },
-    { key: 'web', icon: Globe, label: t('subscribe.web', activeLang), placeholder: '', color: 'bg-purple-500' },
+    { key: 'telegram', icon: MessageCircle, label: 'Telegram', placeholder: '@your_username', color: 'bg-blue-500' },
+    { key: 'email', icon: Mail, label: 'Email', placeholder: 'your@email.com', color: 'bg-red-500' },
+    { key: 'sms', icon: Phone, label: 'SMS', placeholder: '+1 (555) 123-4567', color: 'bg-green-500' },
+    { key: 'whatsapp', icon: MessageCircle, label: 'WhatsApp', placeholder: '+1 (555) 123-4567', color: 'bg-emerald-500' },
+    { key: 'web', icon: Globe, label: 'Web Push', placeholder: '', color: 'bg-purple-500' },
   ]
 
   const areas = [
-    { key: 'cityCentre', label: t('alertSub.area.cityCentre', activeLang) },
-    { key: 'northDistrict', label: t('alertSub.area.northDistrict', activeLang) },
-    { key: 'southDistrict', label: t('alertSub.area.southDistrict', activeLang) },
-    { key: 'eastDistrict', label: t('alertSub.area.eastDistrict', activeLang) },
-    { key: 'westDistrict', label: t('alertSub.area.westDistrict', activeLang) },
-    { key: 'coastalRiverside', label: t('alertSub.area.coastalRiverside', activeLang) },
-    { key: 'suburbanOutskirts', label: t('alertSub.area.suburbanOutskirts', activeLang) },
-    { key: 'allAreas', label: t('alertSub.area.allAreas', activeLang) },
+    { key: 'cityCentre', label: 'City Centre' },
+    { key: 'northDistrict', label: 'North District' },
+    { key: 'southDistrict', label: 'South District' },
+    { key: 'eastDistrict', label: 'East District' },
+    { key: 'westDistrict', label: 'West District' },
+    { key: 'coastalRiverside', label: 'Coastal / Riverside' },
+    { key: 'suburbanOutskirts', label: 'Suburban / Outskirts' },
+    { key: 'allAreas', label: 'All Areas' },
   ]
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-fade-in">
         <div className="bg-amber-600 text-white p-5 rounded-t-2xl flex items-center justify-between">
-          <h2 className="text-xl font-bold flex items-center gap-2"><Bell className="w-5 h-5" /> {t('subscribe.title', activeLang)}</h2>
-          <button onClick={onClose} className="hover:bg-amber-700 p-2 rounded-lg" aria-label={t('common.close', activeLang)}><X className="w-5 h-5" /></button>
+          <h2 className="text-xl font-bold flex items-center gap-2"><Bell className="w-5 h-5" /> {'Subscribe to Alerts'}</h2>
+          <button onClick={onClose} className="hover:bg-amber-700 p-2 rounded-lg" aria-label={'Close'}><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-5">
           {subscribed ? (
             <div className="text-center py-8 animate-fade-in">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('alertSub.subscribed', activeLang)}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{t('alertSub.successDescription', activeLang)}</p>
-              <button onClick={onClose} className="btn-primary mt-4">{t('common.done', activeLang)}</button>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{'Subscribed'}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{'You\'ll receive alerts via your selected channels when emergencies are confirmed in your areas.'}</p>
+              <button onClick={onClose} className="btn-primary mt-4">{'Done'}</button>
             </div>
           ) : (
             <>
               {/* Name field (optional) */}
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-                  <User className="w-4 h-4" /> {t('alertSub.yourName', activeLang) || 'Your Name'} <span className="text-xs text-gray-400 font-normal">({t('alertSub.optional', activeLang) || 'optional'})</span>
+                  <User className="w-4 h-4" /> {'Your Name'} <span className="text-xs text-gray-400 font-normal">({'Optional'})</span>
                 </h3>
                 <div className="relative">
                   <input
                     className="input text-sm w-full pr-16"
-                    placeholder={t('alertSub.namePlaceholder', activeLang) || 'e.g. John Smith'}
+                    placeholder={'Name Placeholder'}
                     value={subscriberName}
                     onChange={e => setSubscriberName(e.target.value.slice(0, 80))}
                     maxLength={80}
@@ -178,7 +178,7 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">{t('alertSub.channels', activeLang)}</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">{'Alert Channels'}</h3>
                 <div className="space-y-3">
                   {channelConfig.map(ch => {
                     const fieldState = getFieldState(ch.key)
@@ -230,7 +230,7 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">{t('alertSub.areas', activeLang)} - {location.name}</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">{'Areas'} - {location.name}</h3>
                 <div className="flex flex-wrap gap-2">
                   {areas.map(area => (
                     <button key={area.key} onClick={() => toggleArea(area.key)}
@@ -241,9 +241,9 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
                 </div>
               </div>
               <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <p className="text-xs text-blue-700 dark:text-blue-300">{t('alertSub.info', activeLang)}</p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">{'Alerts are sent when operators confirm an emergency. You can unsubscribe at any time. Your contact details are encrypted and never shared.'}</p>
               </div>
-              <button onClick={handleSubscribe} disabled={submitting} className="btn-primary w-full py-3 disabled:opacity-60 disabled:cursor-not-allowed">{submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />} {submitting ? t('alertSub.subscribing', activeLang) : t('alertSub.subscribeToAlerts', activeLang)}</button>
+              <button onClick={handleSubscribe} disabled={submitting} className="btn-primary w-full py-3 disabled:opacity-60 disabled:cursor-not-allowed">{submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />} {submitting ? 'Subscribing' : 'Subscribe to Alerts'}</button>
             </>
           )}
         </div>

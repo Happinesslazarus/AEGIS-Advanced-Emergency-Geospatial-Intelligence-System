@@ -55,7 +55,7 @@ export default function ActivityLog(): JSX.Element {
   const lang = useLanguage()
   return (
     <div className="card p-4 animate-fade-in">
-      <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-3"><Clock className="w-4 h-4 text-aegis-600" /> {t('admin.activityLog.title', lang)}</h3>
+      <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-3"><Clock className="w-4 h-4 text-aegis-600" /> {'Activity Log'}</h3>
       <div className="space-y-1.5 max-h-96 overflow-y-auto">
         {log.map(entry => {
           const Icon = ICONS[entry.type] || Clock
@@ -63,7 +63,7 @@ export default function ActivityLog(): JSX.Element {
           const [textColor, bgColor] = color.split(' ')
           const time = new Date(entry.timestamp)
           const ago = Math.round((Date.now() - time.getTime()) / 60000)
-          const timeStr = ago < 60 ? `${ago}${t('time.mAgo', lang)}` : ago < 1440 ? `${Math.round(ago / 60)}${t('time.hAgo', lang)}` : time.toLocaleDateString()
+          const timeStr = ago < 60 ? `${ago}${'m ago'}` : ago < 1440 ? `${Math.round(ago / 60)}${'h ago'}` : time.toLocaleDateString()
           return (
             <div key={entry.id} className={`flex items-start gap-2.5 p-2 rounded-lg ${bgColor} dark:bg-opacity-10`}>
               <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${bgColor} dark:bg-opacity-20`}>

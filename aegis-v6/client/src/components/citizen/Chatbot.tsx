@@ -586,7 +586,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
         : '\n\n✅ No active alerts in your region right now.'
       return `Welcome back, **${citizenName}**! 👋 Your conversation history is saved to your account.${alertLine}\n\nHow can I help you today?`
     }
-    return t('chat.welcomeMessage', activeLanguage)
+    return 'Hello! I\'m the AEGIS Emergency Assistant. I can help with safety guidance for **all disaster types** -- floods, storms, heatwaves, wildfires, landslides, power outages, water supply issues, infrastructure damage, public safety, and environmental hazards.\\n\\nI can also help you:\\n- **Report incidents** and check active alerts\\n- Find **evacuation routes** and shelters\\n- Get **real-time predictions** from our AI models\\n\\nI understand multiple languages -- feel free to ask in yours.\\n\\nWhat do you need help with?'
   }
 
   const [messages, setMessages] = useState<ChatbotMessage[]>(() => {
@@ -1210,7 +1210,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
           : 'w-[440px] max-w-[calc(100vw-2rem)]'
       }`}
       role="dialog"
-      aria-label={t('chat.title', activeLanguage)}
+      aria-label={'AI Emergency Assistant'}
     >
       {/* Ambient glow behind the card */}
       <div className={`absolute -inset-1 bg-gradient-to-br from-aegis-500/20 via-transparent to-aegis-600/20 rounded-[28px] blur-xl opacity-60 pointer-events-none transition-opacity duration-500 ${inputFocused ? 'opacity-100' : 'opacity-40'}`} />
@@ -1236,15 +1236,15 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
             </div>
             <div>
               <h3 className="font-bold text-[15px] tracking-tight flex items-center gap-2">
-                {t('chat.title', activeLanguage)}
+                {'AI Emergency Assistant'}
                 {adminMode && <span className="text-[9px] bg-amber-400/90 text-amber-950 px-2 py-0.5 rounded-full uppercase tracking-wider font-extrabold shadow-sm animate-pop">Admin</span>}
               </h3>
               <p className="text-[11px] text-white/60 font-medium mt-0.5">
                 {isStreaming
-                  ? <span className="flex items-center gap-1.5"><TypingWaveform /><span>{t('chat.typing', activeLanguage) || 'Analyzing...'}</span></span>
+                  ? <span className="flex items-center gap-1.5"><TypingWaveform /><span>{'Thinking...'}</span></span>
                   : isOnline
-                    ? <span className="flex items-center gap-1.5"><Zap className="w-3 h-3 text-emerald-300 animate-pulse" />{t('chat.subtitle', activeLanguage)}</span>
-                    : <span className="flex items-center gap-1"><WifiOff className="w-3 h-3" />{t('chat.offlineMode', activeLanguage)}</span>}
+                    ? <span className="flex items-center gap-1.5"><Zap className="w-3 h-3 text-emerald-300 animate-pulse" />{'Multi-disaster guidance'}</span>
+                    : <span className="flex items-center gap-1"><WifiOff className="w-3 h-3" />{'Offline mode -- local responses'}</span>}
               </p>
             </div>
           </div>
@@ -1335,7 +1335,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
             <button
               onClick={onClose}
               className="p-2 rounded-xl hover:bg-white/10 active:bg-white/20 transition-all hover:scale-105"
-              aria-label={t('general.close', activeLanguage)}
+              aria-label={'Close'}
             >
               <X className="w-4 h-4" />
             </button>
@@ -1637,7 +1637,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
                 placeholder={isListening ? '🎙 Listening...' : isExpanded ? 'Ask AEGIS anything... (Shift+Enter for new line)' : 'Ask AEGIS anything...'}
                 className="relative input text-[13px] py-3 w-full min-h-[44px] max-h-[120px] resize-none leading-snug rounded-xl bg-gray-50/80 dark:bg-gray-800/50 border-gray-200/60 dark:border-gray-700/40 focus:ring-2 focus:ring-aegis-500/20 focus:border-aegis-400/50 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 style={{ overflow: 'hidden' }}
-                aria-label={t('chat.messageLabel', activeLanguage)}
+                aria-label={'Message'}
                 disabled={isStreaming || isListening}
               />
             </div>
@@ -1679,7 +1679,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
                   onClick={() => handleSend()}
                   className="p-2.5 flex-shrink-0 bg-gradient-to-r from-aegis-500 to-aegis-600 hover:from-aegis-600 hover:to-aegis-700 text-white rounded-xl shadow-md shadow-aegis-500/25 hover:shadow-lg hover:shadow-aegis-500/30 disabled:opacity-40 disabled:shadow-none transition-all active:scale-90"
                   disabled={!input.trim()}
-                  aria-label={t('chat.sendLabel', activeLanguage)}
+                  aria-label={'Send'}
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -1697,7 +1697,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right',
               <span className="text-gray-300 dark:text-gray-700">-</span>
               <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-md text-[9px] font-mono border border-gray-200/40 dark:border-gray-700/40">Shift+↵</kbd>
               <span className="text-gray-300 dark:text-gray-700">-</span>
-              <span>{t('chat.disclaimer', activeLanguage)}</span>
+              <span>{'AI assistant -- for emergencies call {{EMERGENCY_NUMBER}}'}</span>
             </p>
           </div>
         </div>

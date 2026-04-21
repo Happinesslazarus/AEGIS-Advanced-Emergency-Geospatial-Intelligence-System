@@ -58,7 +58,7 @@ export default function TwoFactorSettings(): JSX.Element {
       const s = await api2FAGetStatus()
       setStatus(s)
     } catch (err: any) {
-      setError(t('twofa.loadFailed', lang))
+      setError('Failed to load 2FA status')
     } finally {
       setLoading(false)
     }
@@ -75,7 +75,7 @@ export default function TwoFactorSettings(): JSX.Element {
       setSetupData({ manualKey: data.manualKey, qrCodeDataUrl: data.qrCodeDataUrl })
       setTimeout(() => verifyInputRef.current?.focus(), 100)
     } catch (err: any) {
-      setError(err.message || t('twofa.setupFailed', lang))
+      setError(err.message || 'Failed to start 2FA setup')
     } finally {
       setSetupLoading(false)
     }
@@ -86,7 +86,7 @@ export default function TwoFactorSettings(): JSX.Element {
     setError('')
     const trimmed = setupCode.trim()
     if (!trimmed || trimmed.length !== 6 || !/^\d{6}$/.test(trimmed)) {
-      setError(t('twofa.invalidSetupCode', lang))
+      setError('Please enter a valid 6-digit code')
       return
     }
     setSetupLoading(true)
@@ -95,10 +95,10 @@ export default function TwoFactorSettings(): JSX.Element {
       setBackupCodes(res.backupCodes)
       setSetupData(null)
       setSetupCode('')
-      setSuccess(t('twofa.enabled', lang))
+      setSuccess('Two-factor authentication enabled successfully')
       await loadStatus()
     } catch (err: any) {
-      setError(err.message || t('twofa.verifyFreshCode', lang))
+      setError(err.message || 'Please use a fresh code from your authenticator')
       setSetupCode('')
       verifyInputRef.current?.focus()
     } finally {
@@ -117,18 +117,18 @@ export default function TwoFactorSettings(): JSX.Element {
   async function handleDisable(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    if (!disablePassword.trim()) { setError(t('twofa.passwordRequired', lang)); return }
-    if (!disableCode.trim()) { setError(t('twofa.codeRequired', lang)); return }
+    if (!disablePassword.trim()) { setError('Password is required'); return }
+    if (!disableCode.trim()) { setError('Authentication code is required'); return }
     setDisableLoading(true)
     try {
       await api2FADisable(disablePassword, disableCode.trim())
       setShowDisable(false)
       setDisablePassword('')
       setDisableCode('')
-      setSuccess(t('twofa.disabled', lang))
+      setSuccess('Two-factor authentication disabled')
       await loadStatus()
     } catch (err: any) {
-      setError(err.message || t('twofa.disableFailed', lang))
+      setError(err.message || 'Failed to disable 2FA')
     } finally {
       setDisableLoading(false)
     }

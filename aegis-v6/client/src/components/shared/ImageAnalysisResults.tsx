@@ -139,7 +139,7 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
       <div className={`bg-white dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700/60 rounded-xl p-4 ${className}`}>
         <div className="flex items-center gap-2 text-xs text-gray-400">
           <Search className="w-4 h-4 animate-pulse" />
-          {t('imgAnalysis.processing', lang)}
+          {'Analysing image...'}
         </div>
       </div>
     )
@@ -150,7 +150,7 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
       <div className={`bg-white dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700/60 rounded-xl p-4 ${className}`}>
         <div className="flex items-center gap-2 text-xs text-gray-400">
           <ImageIcon className="w-4 h-4" />
-          {t('imgAnalysis.noAnalysis', lang)}
+          {'No analysis available'}
         </div>
       </div>
     )
@@ -178,7 +178,7 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
           <Camera className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 text-left">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('imgAnalysis.title', lang)}</h3>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white">{'AI Image Analysis'}</h3>
           <p className="text-[10px] text-gray-500 dark:text-gray-300">
             {pv?.disasterConfidence != null && `${Math.round(pv.disasterConfidence)}% disaster conf`}
             {analysis.processingTimeMs && ` -- ${analysis.processingTimeMs}ms`}
@@ -213,7 +213,7 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
               {pv.disasterConfidence != null && (
                 <div>
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[9px] text-gray-500 dark:text-gray-300">{t('imgAnalysis.disasterConfidence', lang)}</span>
+                    <span className="text-[9px] text-gray-500 dark:text-gray-300">{'Disaster Confidence'}</span>
                     <span className="text-[10px] font-bold text-gray-900 dark:text-white">{Math.round(pv.disasterConfidence)}%</span>
                   </div>
                   <ConfidenceBar value={pv.disasterConfidence} colour={pv.disasterConfidence > 70 ? 'red' : pv.disasterConfidence > 40 ? 'amber' : 'green'} />
@@ -224,7 +224,7 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
               {pv.waterConfidence != null && pv.waterDetected && (
                 <div>
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[9px] text-gray-500 dark:text-gray-300">{t('imgAnalysis.waterDetected', lang)}</span>
+                    <span className="text-[9px] text-gray-500 dark:text-gray-300">{'Water Detected'}</span>
                     <span className="text-[10px] font-bold text-blue-400">{Math.round(pv.waterConfidence)}%</span>
                   </div>
                   <ConfidenceBar value={pv.waterConfidence} colour="blue" />
@@ -234,7 +234,7 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
               {/* Top classifications */}
               {pv.classifications && pv.classifications.length > 0 && (
                 <div>
-                  <p className="text-[9px] text-gray-500 dark:text-gray-400 mb-1">{t('imgAnalysis.classifications', lang)}</p>
+                  <p className="text-[9px] text-gray-500 dark:text-gray-400 mb-1">{'Classifications'}</p>
                   <div className="space-y-1">
                     {pv.classifications.slice(0, 5).map((cls, i) => (
                       <div key={i} className="flex items-center gap-2">
@@ -252,7 +252,7 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
               {/* Object detections */}
               {pv.detections && pv.detections.length > 0 && (
                 <div>
-                  <p className="text-[9px] text-gray-500 dark:text-gray-400 mb-1">{t('imgAnalysis.detections', lang)}</p>
+                  <p className="text-[9px] text-gray-500 dark:text-gray-400 mb-1">{'Object Detections'}</p>
                   <div className="flex flex-wrap gap-1">
                     {pv.detections.slice(0, 10).map((det, i) => (
                       <span key={i} className="text-[9px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded">
@@ -268,7 +268,7 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
           {/* EXIF Verification */}
           {exif && exif.hasExif && (
             <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700/30 space-y-2">
-              <p className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('imgAnalysis.exifVerification', lang)}</p>
+              <p className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{'EXIF Verification'}</p>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex items-center gap-1">
                   <MapPin className="w-3 h-3 text-gray-400" />
@@ -295,7 +295,7 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
             <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700/30 space-y-1.5">
               <div className="flex items-center gap-1.5">
                 <Shield className="w-3 h-3 text-gray-400" />
-                <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('imgAnalysis.manipulationRisk', lang)}</span>
+                <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{'Manipulation Risk'}</span>
                 <span className={`text-[9px] font-bold ${manipRiskColour}`}>{manip.riskLevel || 'LOW'}</span>
               </div>
               {manip.indicators && manip.indicators.length > 0 && (
@@ -313,7 +313,7 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
           {/* Damage assessment */}
           {damage && damage.severity && (
             <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700/30 space-y-1.5">
-              <p className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('imgAnalysis.damageAssessment', lang)}</p>
+              <p className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{'Damage Assessment'}</p>
               <div className="flex flex-wrap gap-1.5">
                 <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
                   damage.severity === 'severe' ? 'bg-red-500/20 text-red-400'
@@ -338,7 +338,7 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
           {analysis.sceneType && (
             <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-700/30">
               <p className="text-[9px] text-gray-400">
-                {t('imgAnalysis.sceneType', lang)}: <span className="font-medium text-gray-300">{analysis.sceneType}</span>
+                {'Scene Type'}: <span className="font-medium text-gray-300">{analysis.sceneType}</span>
               </p>
             </div>
           )}

@@ -72,7 +72,7 @@ export default function CookieConsent(): JSX.Element | null {
       ref={bannerRef}
       role="dialog"
       aria-modal="false"
-      aria-label={t('cookieConsent.title', lang)}
+      aria-label={'Cookie Preferences'}
       /* z-40 is below emergency UI (z-50+), SOS (z-[90]), and alerts */
       className="fixed bottom-0 inset-x-0 z-40 animate-slide-up"
     >
@@ -87,10 +87,10 @@ export default function CookieConsent(): JSX.Element | null {
               </div>
               <div className="min-w-0">
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white">
-                  {t('cookieConsent.title', lang)}
+                  {'Cookie Preferences'}
                 </h2>
                 <p className="mt-1 text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                  {t('cookieConsent.description', lang)}
+                  {'We use cookies to ensure essential platform functions and, with your consent, to improve your experience. You can change your preferences at any time.'}
                 </p>
               </div>
             </div>
@@ -101,26 +101,26 @@ export default function CookieConsent(): JSX.Element | null {
                 ref={firstBtnRef}
                 onClick={handleAcceptAll}
                 className="px-4 py-2 text-xs font-semibold rounded-lg text-white bg-gradient-to-r from-aegis-600 to-aegis-700 hover:from-aegis-700 hover:to-aegis-800 shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-aegis-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-                aria-label={t('cookieConsent.acceptAll', lang)}
+                aria-label={'Accept All'}
               >
-                {t('cookieConsent.acceptAll', lang)}
+                {'Accept All'}
               </button>
               <button
                 onClick={handleEssentialOnly}
                 className="px-4 py-2 text-xs font-semibold rounded-lg text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 transition-all focus:outline-none focus:ring-2 focus:ring-aegis-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-                aria-label={t('cookieConsent.essentialOnly', lang)}
+                aria-label={'Essential Only'}
               >
-                {t('cookieConsent.essentialOnly', lang)}
+                {'Essential Only'}
               </button>
               <button
                 onClick={() => setShowPrefs((p: boolean) => !p)}
                 className="px-4 py-2 text-xs font-semibold rounded-lg text-aegis-700 dark:text-aegis-300 border border-aegis-300 dark:border-aegis-600 hover:bg-aegis-50 dark:hover:bg-aegis-900/30 transition-all flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-aegis-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                 aria-expanded={showPrefs}
                 aria-controls="cookie-prefs-panel"
-                aria-label={t('cookieConsent.managePreferences', lang)}
+                aria-label={'Manage Preferences'}
               >
                 <Settings className="w-3.5 h-3.5" />
-                {t('cookieConsent.managePreferences', lang)}
+                {'Manage Preferences'}
                 {showPrefs ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
               </button>
             </div>
@@ -131,14 +131,14 @@ export default function CookieConsent(): JSX.Element | null {
             <div
               id="cookie-prefs-panel"
               role="region"
-              aria-label={t('cookieConsent.managePreferences', lang)}
+              aria-label={'Manage Preferences'}
               className="border-t border-gray-200 dark:border-white/10 px-5 py-4 space-y-4"
             >
               {/* Essential -- always on */}
               <CategoryRow
                 id="essential"
-                label={t('cookieConsent.cat.essential', lang)}
-                description={t('cookieConsent.cat.essentialDesc', lang)}
+                label={'Essential'}
+                description={'Authentication, CSRF protection, and security cookies. Always active.'}
                 checked={true}
                 disabled
                 icon={<Shield className="w-4 h-4 text-aegis-600 dark:text-aegis-400" />}
@@ -147,8 +147,8 @@ export default function CookieConsent(): JSX.Element | null {
               {/* Preferences */}
               <CategoryRow
                 id="preferences"
-                label={t('cookieConsent.cat.preferences', lang)}
-                description={t('cookieConsent.cat.preferencesDesc', lang)}
+                label={'Preferences'}
+                description={'Language selection, theme settings, and UI preferences.'}
                 checked={preferences}
                 onChange={setPreferences}
                 icon={<Settings className="w-4 h-4 text-amber-500" />}
@@ -157,8 +157,8 @@ export default function CookieConsent(): JSX.Element | null {
               {/* Analytics */}
               <CategoryRow
                 id="analytics"
-                label={t('cookieConsent.cat.analytics', lang)}
-                description={t('cookieConsent.cat.analyticsDesc', lang)}
+                label={'Analytics'}
+                description={'Usage analytics and performance monitoring to improve the platform.'}
                 checked={analytics}
                 onChange={setAnalytics}
                 icon={<svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>}
@@ -169,14 +169,14 @@ export default function CookieConsent(): JSX.Element | null {
                 <button
                   onClick={handleSavePreferences}
                   className="px-5 py-2 text-xs font-semibold rounded-lg text-white bg-gradient-to-r from-aegis-600 to-aegis-700 hover:from-aegis-700 hover:to-aegis-800 shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-aegis-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-                  aria-label={t('cookieConsent.savePreferences', lang)}
+                  aria-label={'Save Preferences'}
                 >
-                  {t('cookieConsent.savePreferences', lang)}
+                  {'Save Preferences'}
                 </button>
                 <button
                   onClick={() => setShowPrefs(false)}
                   className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-aegis-500"
-                  aria-label={t('actions.close', lang)}
+                  aria-label={'Close'}
                 >
                   <X className="w-4 h-4" />
                 </button>

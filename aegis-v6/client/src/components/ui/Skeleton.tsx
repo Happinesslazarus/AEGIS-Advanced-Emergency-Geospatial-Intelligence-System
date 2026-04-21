@@ -25,7 +25,7 @@ export function Skeleton({ className = '', label }: SkeletonProps) {
     <div
       className={`${SHIMMER} rounded bg-gray-200 dark:bg-gray-700 ${className}`}
       role="status"
-      aria-label={label || t('loading.content', lang)}
+      aria-label={label || 'Loading content...'}
       aria-busy="true"
     />
   )
@@ -38,7 +38,7 @@ export function SkeletonCard({ className = '' }: { className?: string }) {
     <div
       className={`rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3 ${className}`}
       role="status"
-      aria-label={t('loading.content', lang)}
+      aria-label={'Loading content...'}
       aria-busy="true"
     >
       <div className={`${SHIMMER} h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700`} />
@@ -59,7 +59,7 @@ export function SkeletonList({ count = 3, className = '' }: { count?: number; cl
     <div
       className={`space-y-3 ${className}`}
       role="status"
-      aria-label={t('loading.content', lang)}
+      aria-label={'Loading content...'}
       aria-busy="true"
     >
       {Array.from({ length: count }).map((_, i) => (
@@ -82,7 +82,7 @@ export function SkeletonStat({ className = '' }: { className?: string }) {
     <div
       className={`rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-2 ${className}`}
       role="status"
-      aria-label={t('loading.content', lang)}
+      aria-label={'Loading content...'}
       aria-busy="true"
     >
       <div className={`${SHIMMER} h-3 w-20 rounded bg-gray-200 dark:bg-gray-700`} />
@@ -106,7 +106,7 @@ export function SkeletonTable({
     <div
       className={`rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${className}`}
       role="status"
-      aria-label={t('loading.table', lang)}
+      aria-label={'Loading table...'}
       aria-busy="true"
     >
       {/* Header row */}
@@ -138,7 +138,7 @@ export function SkeletonMap({ className = '' }: { className?: string }) {
       className={`rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 overflow-hidden relative ${className}`}
       style={{ minHeight: 320 }}
       role="status"
-      aria-label={t('loading.map', lang)}
+      aria-label={'Loading map...'}
       aria-busy="true"
     >
       <div className={`${SHIMMER} absolute inset-0 flex flex-col items-center justify-center gap-3`}>
@@ -169,7 +169,7 @@ export function SkeletonChart({
       className={`rounded-lg border border-gray-200 dark:border-gray-700 p-4 ${className}`}
       style={{ minHeight: height }}
       role="status"
-      aria-label={t('loading.chart', lang)}
+      aria-label={'Loading chart...'}
       aria-busy="true"
     >
       <div className={`${SHIMMER} h-3 w-32 rounded bg-gray-200 dark:bg-gray-700 mb-4`} />

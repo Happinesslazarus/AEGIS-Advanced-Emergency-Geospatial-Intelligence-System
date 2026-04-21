@@ -143,9 +143,9 @@ export default function LandingPage(): JSX.Element {
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-6">
             {[
-              { href: '#features', label: t('landing.nav.features', lang) },
-              { href: '#how-it-works', label: t('landing.nav.howItWorks', lang) },
-              { href: '#data-sources', label: t('landing.nav.dataSources', lang) },
+              { href: '#features', label: 'Features' },
+              { href: '#how-it-works', label: 'How It Works' },
+              { href: '#data-sources', label: 'Data Sources' },
               { href: '/about', label: 'About', external: true },
             ].map(link => (
               link.external ? (
@@ -160,7 +160,7 @@ export default function LandingPage(): JSX.Element {
             <LanguageSelector darkNav={dark} />
             <ThemeSelector darkNav={dark} />
             <Link to="/citizen" className="hidden sm:flex text-xs font-bold text-white bg-aegis-600 hover:bg-aegis-500 px-4 py-2 rounded-xl transition-all shadow-lg shadow-aegis-600/20 hover:shadow-aegis-500/30 items-center gap-1.5">
-              {t('landing.cta.getStarted', lang)} <ArrowRight className="w-3.5 h-3.5" />
+              {'Get Started -- Free'} <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             {/* Mobile hamburger */}
             <button onClick={() => setMobileNav(!mobileNav)} className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors" aria-label="Toggle menu" aria-expanded={mobileNav}>
@@ -176,14 +176,14 @@ export default function LandingPage(): JSX.Element {
         {mobileNav && (
           <div className="md:hidden border-t border-gray-200/60 dark:border-white/5 bg-white/95 dark:bg-gray-950/95 backdrop-blur-2xl px-4 py-4 space-y-3">
             {[
-              { href: '#features', label: t('landing.nav.features', lang) },
-              { href: '#how-it-works', label: t('landing.nav.howItWorks', lang) },
-              { href: '#data-sources', label: t('landing.nav.dataSources', lang) },
+              { href: '#features', label: 'Features' },
+              { href: '#how-it-works', label: 'How It Works' },
+              { href: '#data-sources', label: 'Data Sources' },
               { href: '/about', label: 'About' },
             ].map(link => (
               <a key={link.label} href={link.href} onClick={() => setMobileNav(false)} className="block text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors">{link.label}</a>
             ))}
-            <Link to="/citizen" onClick={() => setMobileNav(false)} className="block text-center text-sm font-bold text-white bg-aegis-600 hover:bg-aegis-500 px-4 py-2.5 rounded-xl transition-all">{t('landing.cta.getStarted', lang)}</Link>
+            <Link to="/citizen" onClick={() => setMobileNav(false)} className="block text-center text-sm font-bold text-white bg-aegis-600 hover:bg-aegis-500 px-4 py-2.5 rounded-xl transition-all">{'Get Started -- Free'}</Link>
           </div>
         )}
       </nav>
@@ -198,22 +198,22 @@ export default function LandingPage(): JSX.Element {
               <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75" />
               <span className="relative block w-2 h-2 rounded-full bg-green-400" />
             </span>
-            <span className="text-xs font-semibold text-aegis-600 dark:text-aegis-300 tracking-wide">{t('landing.monitoring', lang)} 12 {t('landing.monitoringRegions', lang)}</span>
+            <span className="text-xs font-semibold text-aegis-600 dark:text-aegis-300 tracking-wide">{'NOW MONITORING'} 12 {'REGIONS WORLDWIDE'}</span>
           </div>
         </Reveal>
 
         <Reveal delay={100}>
           <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tight mb-6 leading-[1.08] text-gray-900 dark:text-white">
-            {t('landing.hero.mainTitle', lang).split('\n').map((line, i) => i === 0 ? <span key={i}>{line}<br/></span> : <span key={i} className="gradient-text">{line}</span>)}
+            {'Protecting Communities\\nBefore Disaster Strikes'.split('\n').map((line, i) => i === 0 ? <span key={i}>{line}<br/></span> : <span key={i} className="gradient-text">{line}</span>)}
           </h1>
         </Reveal>
 
         <Reveal delay={200}>
           <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 mb-4 max-w-2xl mx-auto leading-relaxed">
-            {t('landing.hero.subtitle', lang)}
+            {'Advanced Emergency Geospatial Intelligence System'}
           </p>
           <p className="text-sm text-gray-400 dark:text-gray-300 dark:text-white/50 mb-10 max-w-xl mx-auto leading-relaxed">
-            {t('landing.hero.description', lang)}
+            {'Multi-modal AI-powered disaster response platform.'}
           </p>
         </Reveal>
 
@@ -221,13 +221,13 @@ export default function LandingPage(): JSX.Element {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
             <Link to="/citizen" className="group relative bg-gradient-to-r from-aegis-600 to-aegis-500 hover:from-aegis-500 hover:to-aegis-400 text-white px-8 py-4 rounded-2xl font-bold text-base sm:text-lg flex items-center justify-center gap-3 transition-all shadow-xl shadow-aegis-600/25 hover:shadow-aegis-500/35 hover:scale-[1.02] active:scale-[0.98]">
               <Users className="w-5 h-5" />
-              {t('landing.hero.btnCitizen', lang)}
+              {'Access Citizen Portal'}
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
             <Link to="/admin" className="group relative bg-white/80 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 backdrop-blur-sm text-gray-900 dark:text-white px-8 py-4 rounded-2xl font-bold text-base sm:text-lg flex items-center justify-center gap-3 transition-all border border-gray-200 dark:border-white/10 hover:border-aegis-400/40 dark:hover:border-aegis-500/30 shadow-lg shadow-gray-200/30 dark:shadow-none hover:scale-[1.02] active:scale-[0.98]">
               <Settings className="w-5 h-5 text-aegis-500" />
-              {t('landing.hero.btnOperator', lang)}
+              {'Operator Login'}
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
@@ -448,7 +448,7 @@ export default function LandingPage(): JSX.Element {
               <p className="text-xs text-gray-500 dark:text-gray-300 leading-relaxed mb-3">
                 Advanced Emergency Geospatial Intelligence System -- AI-powered disaster response for the UK.
               </p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-300">{t('landing.meta.projectCredit', lang)}</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-300">{'BSc Computing Science Capstone Project -- Robert Gordon University 2026'}</p>
             </div>
 
             {/* Platform links */}
@@ -495,14 +495,14 @@ export default function LandingPage(): JSX.Element {
                 ].map(l => (
                   <Link key={l.to} to={l.to} className="block text-xs text-gray-500 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors">{l.label}</Link>
                 ))}
-                <button onClick={resetConsent} className="block text-xs text-gray-500 dark:text-gray-400 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors text-left">{t('footer.cookiePreferences', lang)}</button>
+                <button onClick={resetConsent} className="block text-xs text-gray-500 dark:text-gray-400 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors text-left">{'Cookie Preferences'}</button>
               </div>
             </div>
           </div>
 
           {/* Bottom bar */}
           <div className="pt-6 border-t border-gray-200/60 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-[10px] text-gray-400 dark:text-gray-300">{t('landing.footerSignature', lang)}</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-300">{'AEGIS -- Advanced Emergency Geospatial Intelligence System -- © 2026 Happiness Ada Lazarus -- Robert Gordon University'}</p>
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-300"><Lock className="w-3 h-3" /> End-to-End Encrypted</span>
               <span className="text-gray-300 dark:text-gray-700">-</span>

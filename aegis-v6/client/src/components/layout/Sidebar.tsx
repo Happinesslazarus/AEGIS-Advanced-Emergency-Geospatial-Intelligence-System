@@ -168,7 +168,7 @@ export default function Sidebar({
                 onClick={e => e.stopPropagation()}
                 className="text-[9px] font-bold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 whitespace-nowrap"
               >
-                {t('citizen.auth.signIn', lang)}
+                {'Sign In'}
               </Link>
             )}
           </>
@@ -179,7 +179,7 @@ export default function Sidebar({
         {collapsed && (
           <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-gray-900 dark:bg-gray-700 text-white text-[10px] font-medium rounded-lg shadow-lg whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50">
             {item.label}
-            {isLocked && <span className="text-amber-400 ml-1">({t('citizen.auth.signIn', lang)})</span>}
+            {isLocked && <span className="text-amber-400 ml-1">({'Sign In'})</span>}
           </div>
         )}
       </button>
@@ -191,12 +191,12 @@ export default function Sidebar({
       {/* Sidebar header */}
       <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-3 py-3 border-b border-gray-200 dark:border-white/5`}>
         {!collapsed && (
-          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{t('layout.sidebar.navigation', lang)}</span>
+          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{'Navigation'}</span>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 transition-colors hidden lg:flex"
-          title={collapsed ? t('layout.sidebar.expandSidebar', lang) : t('layout.sidebar.collapseSidebar', lang)}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
@@ -223,7 +223,7 @@ export default function Sidebar({
             <div className={`my-3 ${collapsed ? 'mx-2' : 'mx-1'}`}>
               <div className="h-px bg-gray-200 dark:bg-white/5" />
               {!collapsed && (
-                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-widest mt-2 block px-1">{t('layout.sidebar.myAccount', lang)}</span>
+                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-widest mt-2 block px-1">{'My Account'}</span>
               )}
             </div>
             <div className="space-y-0.5">
@@ -245,8 +245,8 @@ export default function Sidebar({
                 <User className="w-3.5 h-3.5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="leading-tight">{t('citizen.auth.signIn', lang)}</p>
-                <p className="text-[9px] font-normal text-amber-600 dark:text-amber-500 leading-tight">{t('layout.sidebar.unlockFullFeatures', lang)}</p>
+                <p className="leading-tight">{'Sign In'}</p>
+                <p className="text-[9px] font-normal text-amber-600 dark:text-amber-500 leading-tight">{'Unlock full features'}</p>
               </div>
               <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
             </Link>
@@ -259,13 +259,13 @@ export default function Sidebar({
            the same way as a regular nav click without a dedicated route. */}
       <div className={`px-2 pb-3 pt-2 border-t border-gray-200 dark:border-white/5 ${collapsed ? 'px-1.5' : ''}`}>
         <button
-          onClick={() => onNavigate({ key: 'report_emergency', label: t('nav.reportEmergency', lang), icon: AlertTriangle, path: '', guestAccess: true })}
-          title={collapsed ? t('nav.reportEmergency', lang) : undefined}
+          onClick={() => onNavigate({ key: 'report_emergency', label: 'Report Emergency', icon: AlertTriangle, path: '', guestAccess: true })}
+          title={collapsed ? 'Report Emergency' : undefined}
           className={`w-full flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold rounded-xl shadow-lg shadow-red-600/25 hover:shadow-red-500/40 transition-all hover:scale-[1.02] active:scale-[0.98]
             ${collapsed ? 'px-2 py-2.5' : 'px-4 py-2.5 text-xs'}`}
         >
           <AlertTriangle className="w-4 h-4" />
-          {!collapsed && <span>{t('nav.reportEmergency', lang)}</span>}
+          {!collapsed && <span>{'Report Emergency'}</span>}
         </button>
       </div>
     </div>
@@ -285,7 +285,7 @@ export default function Sidebar({
       <button
         onClick={() => setMobileOpen(true)}
         className="hidden md:flex lg:hidden fixed top-[68px] left-3 z-30 w-10 h-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        aria-label={t('layout.sidebar.openNavigation', lang)}
+        aria-label={'Open navigation'}
       >
         <ChevronRight className="w-5 h-5" />
       </button>
@@ -296,11 +296,11 @@ export default function Sidebar({
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
           <aside className="absolute top-0 left-0 bottom-0 w-[280px] max-w-[85vw] bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-white/5 shadow-2xl animate-slide-in-left flex flex-col pt-[56px]">
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-white/5">
-              <span className="text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{t('layout.sidebar.menu', lang)}</span>
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{'Menu'}</span>
               <button
                 onClick={() => setMobileOpen(false)}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 dark:text-gray-300 hover:text-gray-600 transition-colors"
-                aria-label={t('layout.sidebar.closeMenu', lang)}
+                aria-label={'Close menu'}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -317,7 +317,7 @@ export default function Sidebar({
                 <>
                   <div className="my-3 mx-1">
                     <div className="h-px bg-gray-200 dark:bg-white/5" />
-                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-widest mt-2 block px-1">{t('layout.sidebar.myAccount', lang)}</span>
+                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-widest mt-2 block px-1">{'My Account'}</span>
                   </div>
                   {items.filter(i => i.citizenOnly && i.key !== 'home').map(item => renderItem(item, () => setMobileOpen(false)))}
                 </>
@@ -332,8 +332,8 @@ export default function Sidebar({
                       <User className="w-3.5 h-3.5 text-white" />
                     </div>
                     <div className="flex-1">
-                      <p className="leading-tight">{t('citizen.auth.signIn', lang)}</p>
-                      <p className="text-[9px] font-normal text-amber-600 dark:text-amber-500">{t('layout.sidebar.unlockFullFeatures', lang)}</p>
+                      <p className="leading-tight">{'Sign In'}</p>
+                      <p className="text-[9px] font-normal text-amber-600 dark:text-amber-500">{'Unlock full features'}</p>
                     </div>
                   </Link>
                 </div>
@@ -342,10 +342,10 @@ export default function Sidebar({
             {/* Emergency button */}
             <div className="px-2 pb-3 pt-2 border-t border-gray-200 dark:border-white/5">
               <button
-                onClick={() => { setMobileOpen(false); onNavigate({ key: 'report_emergency', label: t('nav.reportEmergency', lang), icon: AlertTriangle, path: '', guestAccess: true }) }}
+                onClick={() => { setMobileOpen(false); onNavigate({ key: 'report_emergency', label: 'Report Emergency', icon: AlertTriangle, path: '', guestAccess: true }) }}
                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs rounded-xl py-2.5 shadow-lg shadow-red-600/25 transition-all"
               >
-                <AlertTriangle className="w-4 h-4" /> {t('nav.reportEmergency', lang)}
+                <AlertTriangle className="w-4 h-4" /> {'Report Emergency'}
               </button>
             </div>
           </aside>

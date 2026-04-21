@@ -77,7 +77,7 @@ export default function CountrySearch({ countries, selected, onChange, className
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder={t('country.searchPlaceholder', lang)}
+              placeholder={'Type country name or +code...'}
               className="flex-1 bg-transparent text-sm outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
               style={{ colorScheme: themeDark ? 'dark' : 'light' }}
             />
@@ -90,7 +90,7 @@ export default function CountrySearch({ countries, selected, onChange, className
           {/* Country list */}
           <div className="max-h-56 overflow-y-auto">
             {filtered.length === 0 ? (
-              <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-4">{t('country.noResults', lang)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-4">{'No countries found'}</p>
             ) : (
                 filtered.map(c => (
                 <button
@@ -110,7 +110,7 @@ export default function CountrySearch({ countries, selected, onChange, className
             )}
           </div>
           <div className="text-[9px] text-gray-400 dark:text-gray-300 text-center py-1 border-t border-gray-100 dark:border-gray-800">
-            {filtered.length} / {countries.length} {t('country.countries', lang)}
+            {filtered.length} / {countries.length} {'countries'}
           </div>
         </div>
       )}

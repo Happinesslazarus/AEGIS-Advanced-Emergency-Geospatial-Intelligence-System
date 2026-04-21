@@ -116,7 +116,7 @@ export default function IncidentFilterPanel(): JSX.Element {
               title={mod?.description || type}
             >
               <IconComp className="w-3 h-3 flex-shrink-0" />
-              <span className="capitalize">{t(`incidents:types.${type}.name`, type.replace(/_/g, ' '))}</span>
+              <span className="capitalize">{type.replace(/_/g, ' ')}</span>
             </button>
           )
         })}
@@ -142,7 +142,7 @@ export default function IncidentFilterPanel(): JSX.Element {
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-200'
               }`}
             >
-              {(() => { const label = t(`common:severity.${opt.label}`, opt.label); return label.charAt(0).toUpperCase() + label.slice(1) })()}
+              {opt.label.charAt(0).toUpperCase() + opt.label.slice(1)}
             </button>
           ))}
         </div>

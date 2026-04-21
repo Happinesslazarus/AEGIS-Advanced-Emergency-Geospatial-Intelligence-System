@@ -46,8 +46,8 @@ export default memo(function ReportCard({ report, onClick, showActions = false, 
             <span className={`badge ${getStatusClass(report.status)}`}>{report.status}</span>
             {report.confidence != null && <span className="badge badge-info"><Bot className="w-3 h-3 mr-1" />{report.confidence}%</span>}
             {report.hasMedia && <Camera className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" aria-label="Has media" />}
-            {report.aiAnalysis && report.aiAnalysis.fakeProbability > 0.6 && <span className="badge bg-orange-600 text-white">{t('report.possibleFake', lang)}</span>}
-            {report.aiAnalysis?.vulnerablePersonAlert && <span className="badge bg-purple-600 text-white">{t('report.vulnerablePerson', lang)}</span>}
+            {report.aiAnalysis && report.aiAnalysis.fakeProbability > 0.6 && <span className="badge bg-orange-600 text-white">{'Possible Fake'}</span>}
+            {report.aiAnalysis?.vulnerablePersonAlert && <span className="badge bg-purple-600 text-white">{'Vulnerable Person'}</span>}
           </div>
           <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{report.type}</p>
           <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{truncate(report.description, 120)}</p>
@@ -65,7 +65,7 @@ export default memo(function ReportCard({ report, onClick, showActions = false, 
               className="btn-success text-xs px-2.5 py-1.5 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1"
             >
               {verifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-              {t('report.verify', lang)}
+              {'Verify'}
             </button>
             <button
               onClick={handleFlag}
@@ -73,7 +73,7 @@ export default memo(function ReportCard({ report, onClick, showActions = false, 
               className="btn-warning text-xs px-2.5 py-1.5 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1"
             >
               {flagging ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-              {t('report.flag', lang)}
+              {'Flag'}
             </button>
           </div>
         )}

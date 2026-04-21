@@ -56,11 +56,11 @@ export function getPasswordStrength(pw: string, lang = 'en'): { score: number; l
   if (/[A-Z]/.test(pw)) score++
   if (/[0-9]/.test(pw)) score++
   if (/[^A-Za-z0-9]/.test(pw)) score++  // has a special character
-  if (score <= 1) return { score, label: t('citizen.auth.password.weak', lang), color: 'bg-red-500' }
-  if (score <= 2) return { score, label: t('citizen.auth.password.fair', lang), color: 'bg-amber-500' }
-  if (score <= 3) return { score, label: t('citizen.auth.password.good', lang), color: 'bg-yellow-500' }
-  if (score <= 4) return { score, label: t('citizen.auth.password.strong', lang), color: 'bg-green-500' }
-  return { score, label: t('citizen.auth.password.veryStrong', lang), color: 'bg-emerald-500' }
+  if (score <= 1) return { score, label: 'Weak', color: 'bg-red-500' }
+  if (score <= 2) return { score, label: 'Fair', color: 'bg-amber-500' }
+  if (score <= 3) return { score, label: 'Good', color: 'bg-yellow-500' }
+  if (score <= 4) return { score, label: 'Strong', color: 'bg-green-500' }
+  return { score, label: 'Very Strong', color: 'bg-emerald-500' }
 }
 
 //EXISTING STYLE HELPERS

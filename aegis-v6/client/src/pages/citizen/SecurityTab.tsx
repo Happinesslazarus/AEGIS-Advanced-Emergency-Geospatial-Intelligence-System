@@ -20,19 +20,19 @@ export default function SecurityTab({ changePassword }: any) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setMsg('')
-    if (newPw !== confirmPw) { setMsg(t('cdash.security.mismatch', lang)); setMsgType('error'); return }
-    if (newPw.length < 8) { setMsg(t('cdash.security.minLength', lang)); setMsgType('error'); return }
+    if (newPw !== confirmPw) { setMsg('Passwords do not match'); setMsgType('error'); return }
+    if (newPw.length < 8) { setMsg('Password must be at least 8 characters'); setMsgType('error'); return }
 
     setSubmitting(true)
     const result = await changePassword(currentPw, newPw)
     setSubmitting(false)
 
     if (result.success) {
-      setMsg(t('cdash.security.success', lang))
+      setMsg('Password changed successfully')
       setMsgType('success')
       setCurrentPw(''); setNewPw(''); setConfirmPw('')
     } else {
-      setMsg(result.error || t('cdash.security.failed', lang))
+      setMsg(result.error || 'Failed to change password')
       setMsgType('error')
     }
   }
@@ -45,9 +45,9 @@ export default function SecurityTab({ changePassword }: any) {
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-md">
             <Lock className="w-4 h-4 text-white" />
           </div>
-          {t('citizen.security.title', lang)}
+          {'Change Password'}
         </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-[42px]">{t('cdash.security.desc', lang)}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-[42px]">{'Change your account password'}</p>
       </div>
 
       {msg && (
@@ -64,7 +64,7 @@ export default function SecurityTab({ changePassword }: any) {
       <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-6 space-y-5">
         <div>
           <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
-            <Lock className="w-3 h-3" /> {t('citizen.security.currentPassword', lang)}
+            <Lock className="w-3 h-3" /> {'Current Password'}
           </label>
           <div className="relative">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
@@ -85,7 +85,7 @@ export default function SecurityTab({ changePassword }: any) {
 
         <div>
           <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
-            <Lock className="w-3 h-3" /> {t('citizen.security.newPassword', lang)}
+            <Lock className="w-3 h-3" /> {'New Password'}
           </label>
           <div className="relative">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
@@ -96,7 +96,7 @@ export default function SecurityTab({ changePassword }: any) {
               value={newPw}
               onChange={e => setNewPw(e.target.value)}
               className="w-full pl-14 pr-4 py-3 text-sm bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition"
-              placeholder={t('cdash.security.minChars', lang)}
+              placeholder={'Minimum 8 characters'}
               required
             />
           </div>
@@ -114,7 +114,7 @@ export default function SecurityTab({ changePassword }: any) {
 
         <div>
           <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
-            <Lock className="w-3 h-3" /> {t('citizen.security.confirmNewPassword', lang)}
+            <Lock className="w-3 h-3" /> {'Confirm New Password'}
           </label>
           <div className="relative">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
@@ -136,7 +136,7 @@ export default function SecurityTab({ changePassword }: any) {
         <button type="submit" disabled={submitting || !currentPw || !newPw || !confirmPw}
           className="w-full bg-gradient-to-r from-aegis-600 to-aegis-700 hover:from-aegis-700 hover:to-aegis-800 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 shadow-lg shadow-aegis-600/20 hover:shadow-aegis-600/30 hover:scale-[1.01] active:scale-[0.99]">
           {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-          {t('citizen.security.changePassword', lang)}
+          {'Change Password'}
         </button>
       </form>
 

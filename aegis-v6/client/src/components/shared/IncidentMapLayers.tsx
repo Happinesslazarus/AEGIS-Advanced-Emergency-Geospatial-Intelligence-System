@@ -141,7 +141,7 @@ export default function IncidentMapLayers({
                 style={{ backgroundColor: INCIDENT_COLORS[type] }}
               />
               <span className="capitalize text-gray-700 dark:text-gray-300">
-                {t(`incidents:types.${type}`, { defaultValue: type.replace(/_/g, ' ') })}
+                {type.replace(/_/g, ' ')}
               </span>
             </label>
           ))}
@@ -163,7 +163,7 @@ export default function IncidentMapLayers({
                   className="px-2 py-0.5 rounded text-xs text-white font-medium"
                   style={{ backgroundColor: INCIDENT_COLORS[marker.incidentType] }}
                 >
-                  {t(`incidents:types.${marker.incidentType}`, { defaultValue: marker.incidentType.replace(/_/g, ' ') })}
+                  {marker.incidentType.replace(/_/g, ' ')}
                 </span>
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                   marker.severity === 'critical' ? 'bg-red-100 text-red-800' :

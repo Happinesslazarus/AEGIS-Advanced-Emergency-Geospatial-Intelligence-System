@@ -149,9 +149,9 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
               <div>
                 <h1 className="text-base font-black text-white tracking-tight flex items-center gap-2">
                   Intelligence & Analytics
-                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 ring-1 ring-green-500/30 font-mono">{t('common.live', lang)}</span>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 ring-1 ring-green-500/30 font-mono">{'Live'}</span>
                 </h1>
-                <p className="text-[9px] text-cyan-400/70 font-mono tracking-wider uppercase">{t('analytics.situationAssessment', lang)} - Data Intelligence - Performance Metrics</p>
+                <p className="text-[9px] text-cyan-400/70 font-mono tracking-wider uppercase">{'Situation Assessment - Data Intelligence - Performance Metrics'} - Data Intelligence - Performance Metrics</p>
               </div>
             </div>
 
@@ -182,7 +182,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
           className="w-full px-5 py-2 bg-gray-950/60 border-t border-gray-800/60 flex items-center justify-between hover:bg-gray-800/30 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <span className="text-[8px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{t('analytics.optempo', lang)}</span>
+            <span className="text-[8px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{'OPTEMPO'}</span>
             <span className={`text-[10px] font-black px-2 py-0.5 rounded ring-1 ${optempo.tempoBg} ${optempo.tempoColor}`}>
               {optempo.tempoLevel}
             </span>
@@ -193,14 +193,14 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
         {optempoExpanded && (
           <div className="px-5 py-3 bg-gray-950/40 border-t border-gray-800/40 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
             {[
-              { label: t('analytics.totalIncidents', lang), value: stats.total, icon: FileText, color: 'text-white' },
-              { label: t('analytics.lastHour', lang), value: optempo.last1h, icon: Zap, color: optempo.last1h >= 10 ? 'text-red-400' : optempo.last1h >= 5 ? 'text-amber-400' : 'text-green-400' },
-              { label: t('analytics.last24h', lang), value: optempo.last24h, icon: Clock, color: 'text-cyan-400' },
-              { label: t('analytics.reportsPerHr', lang), value: optempo.reportsPerHour, icon: Activity, color: 'text-blue-400' },
-              { label: t('common.urgent', lang), value: stats.urgent, icon: AlertTriangle, color: stats.urgent > 0 ? 'text-red-400' : 'text-gray-500 dark:text-gray-300' },
-              { label: t('common.unverified', lang), value: stats.unverified, icon: Eye, color: stats.unverified > 5 ? 'text-amber-400' : 'text-gray-400 dark:text-gray-300' },
-              { label: t('ai.confidence', lang), value: `${stats.avgConf}%`, icon: Brain, color: stats.avgConf >= 70 ? 'text-emerald-400' : 'text-amber-400' },
-              { label: t('analytics.mediaAttached', lang), value: stats.withMedia, icon: Signal, color: 'text-purple-400' },
+              { label: 'Total Incidents', value: stats.total, icon: FileText, color: 'text-white' },
+              { label: 'Last Hour', value: optempo.last1h, icon: Zap, color: optempo.last1h >= 10 ? 'text-red-400' : optempo.last1h >= 5 ? 'text-amber-400' : 'text-green-400' },
+              { label: 'Last 24h', value: optempo.last24h, icon: Clock, color: 'text-cyan-400' },
+              { label: 'Reports/hr', value: optempo.reportsPerHour, icon: Activity, color: 'text-blue-400' },
+              { label: 'Urgent', value: stats.urgent, icon: AlertTriangle, color: stats.urgent > 0 ? 'text-red-400' : 'text-gray-500 dark:text-gray-300' },
+              { label: 'Unverified', value: stats.unverified, icon: Eye, color: stats.unverified > 5 ? 'text-amber-400' : 'text-gray-400 dark:text-gray-300' },
+              { label: 'Confidence', value: `${stats.avgConf}%`, icon: Brain, color: stats.avgConf >= 70 ? 'text-emerald-400' : 'text-amber-400' },
+              { label: 'Media Attached', value: stats.withMedia, icon: Signal, color: 'text-purple-400' },
             ].map((m, i) => (
               <div key={i} className="flex items-center gap-2">
                 <m.icon className={`w-3.5 h-3.5 ${m.color} flex-shrink-0`} />
@@ -217,13 +217,13 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
       {/* Keyboard Shortcuts */}
       {showKeyboard && (
         <div className="bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider text-[9px]">{t('common.shortcuts', lang)}:</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">R</kbd> {t('shortcuts.refresh', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">E</kbd> {t('shortcuts.exportCsv', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">F</kbd> {t('shortcuts.toggleFullscreen', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">O</kbd> {t('shortcuts.toggleOptempo', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">?</kbd> {t('common.shortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">{t('common.esc', lang)}</kbd> {t('shortcuts.close', lang)}</span>
+          <span className="text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider text-[9px]">{'Shortcuts'}:</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">R</kbd> {'Refresh'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">E</kbd> {'Export CSV'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">F</kbd> {'Toggle Fullscreen'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">O</kbd> {'Toggle OPTEMPO'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">?</kbd> {'Shortcuts'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">{'Esc'}</kbd> {'Close'}</span>
           <button onClick={() => setShowKeyboard(false)} className="ml-auto text-gray-400 dark:text-gray-300 hover:text-white"><X className="w-3 h-3" /></button>
         </div>
       )}
@@ -236,15 +236,15 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
         <div className="lg:col-span-2 bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
             <Target className="w-4 h-4 text-aegis-600" />
-            <h3 className="text-sm font-extrabold">{t('analytics.slaTargets', lang)}</h3>
-            <span className="text-[9px] text-gray-400 dark:text-gray-300 ml-1">{t('analytics.slaSubtitle', lang)}</span>
+            <h3 className="text-sm font-extrabold">{'SLA Performance Targets'}</h3>
+            <span className="text-[9px] text-gray-400 dark:text-gray-300 ml-1">{'Service level compliance indicators'}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { label: t('analytics.verificationRate', lang), value: sla.verifyRate, target: 80, unit: '%', color: sla.verifyRate >= 80 ? 'emerald' : sla.verifyRate >= 50 ? 'amber' : 'red' },
-              { label: t('analytics.resolutionRate', lang), value: sla.resolveRate, target: 60, unit: '%', color: sla.resolveRate >= 60 ? 'emerald' : sla.resolveRate >= 30 ? 'amber' : 'red' },
-              { label: t('analytics.urgentResponse', lang), value: sla.urgentResponseRate, target: 90, unit: '%', color: sla.urgentResponseRate >= 90 ? 'emerald' : sla.urgentResponseRate >= 70 ? 'amber' : 'red' },
-              { label: t('analytics.aiCoverage', lang), value: sla.aiCoverage, target: 75, unit: '%', color: sla.aiCoverage >= 75 ? 'emerald' : sla.aiCoverage >= 50 ? 'amber' : 'red' },
+              { label: 'Verification Rate', value: sla.verifyRate, target: 80, unit: '%', color: sla.verifyRate >= 80 ? 'emerald' : sla.verifyRate >= 50 ? 'amber' : 'red' },
+              { label: 'Resolution Rate', value: sla.resolveRate, target: 60, unit: '%', color: sla.resolveRate >= 60 ? 'emerald' : sla.resolveRate >= 30 ? 'amber' : 'red' },
+              { label: 'Urgent Response', value: sla.urgentResponseRate, target: 90, unit: '%', color: sla.urgentResponseRate >= 90 ? 'emerald' : sla.urgentResponseRate >= 70 ? 'amber' : 'red' },
+              { label: 'AI Coverage', value: sla.aiCoverage, target: 75, unit: '%', color: sla.aiCoverage >= 75 ? 'emerald' : sla.aiCoverage >= 50 ? 'amber' : 'red' },
             ].map((g, i) => (
               <div key={i} className="text-center">
                 {/* Circular gauge */}
@@ -282,7 +282,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
         <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
             <Shield className="w-4 h-4 text-red-500" />
-            <h3 className="text-sm font-extrabold">{t('analytics.severityDistribution', lang)}</h3>
+            <h3 className="text-sm font-extrabold">{'Severity Distribution'}</h3>
           </div>
           <div className="flex items-center justify-center mb-4">
             {/* CSS donut */}
@@ -307,16 +307,16 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                   <p className="text-lg font-black tabular-nums">{stats.total}</p>
-                  <p className="text-[8px] text-gray-500 dark:text-gray-300 uppercase">{t('common.total', lang)}</p>
+                  <p className="text-[8px] text-gray-500 dark:text-gray-300 uppercase">{'Total'}</p>
                 </div>
               </div>
             </div>
           </div>
           <div className="space-y-2">
             {[
-              { label: t('severity.high', lang), count: severityDonut.high, pct: severityDonut.highPct, color: 'bg-red-500', text: 'text-red-600 dark:text-red-400' },
-              { label: t('severity.medium', lang), count: severityDonut.medium, pct: severityDonut.medPct, color: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400' },
-              { label: t('severity.low', lang), count: severityDonut.low, pct: severityDonut.lowPct, color: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400' },
+              { label: 'High', count: severityDonut.high, pct: severityDonut.highPct, color: 'bg-red-500', text: 'text-red-600 dark:text-red-400' },
+              { label: 'Medium', count: severityDonut.medium, pct: severityDonut.medPct, color: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400' },
+              { label: 'Low', count: severityDonut.low, pct: severityDonut.lowPct, color: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400' },
             ].map(s => (
               <div key={s.label} className="flex items-center gap-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${s.color} flex-shrink-0`} />
@@ -352,8 +352,8 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
               <Clock className="w-4 h-4 text-white" />
             </div>
             <div className="text-left">
-              <h3 className="text-sm font-extrabold">{t('admin.analytics.activityLog', lang)}</h3>
-              <p className="text-[9px] text-gray-400 dark:text-gray-300">{t('analytics.activitySubtitle', lang)}</p>
+              <h3 className="text-sm font-extrabold">{'Activity Log'}</h3>
+              <p className="text-[9px] text-gray-400 dark:text-gray-300">{'Operator actions, system events, and audit trail'}</p>
             </div>
             <span className="text-[10px] font-bold text-aegis-600 bg-aegis-50 dark:bg-aegis-950/30 px-2 py-0.5 rounded-full tabular-nums">{auditLog.length}</span>
           </div>
@@ -368,7 +368,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
                 { key: 'all', label: 'All', count: auditLog.length },
                 { key: 'verify', label: 'Verify', count: auditLog.filter(e => e.action_type === 'verify').length },
                 { key: 'flag', label: 'Flag', count: auditLog.filter(e => e.action_type === 'flag').length },
-                { key: 'urgent', label: t('common.urgent', lang), count: auditLog.filter(e => e.action_type === 'urgent').length },
+                { key: 'urgent', label: 'Urgent', count: auditLog.filter(e => e.action_type === 'urgent').length },
                 { key: 'resolve', label: 'Resolve', count: auditLog.filter(e => e.action_type === 'resolve').length },
                 { key: 'alert', label: 'Alerts', count: auditLog.filter(e => (e.action_type || '').includes('alert')).length },
                 { key: 'deploy', label: 'Deploy', count: auditLog.filter(e => e.action_type === 'deploy').length },
@@ -391,7 +391,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
             {/* Log entries */}
             <div className="divide-y divide-gray-100 dark:divide-gray-800/50 max-h-[400px] overflow-y-auto scrollbar-thin">
               {filteredLog.length === 0 ? (
-                <p className="py-6 text-center text-xs text-gray-500 dark:text-gray-300">{t('admin.analytics.noActivity', lang)}</p>
+                <p className="py-6 text-center text-xs text-gray-500 dark:text-gray-300">{'No activity recorded yet.'}</p>
               ) : filteredLog.map((e: any, i: number) => {
                 const iconCls = 'w-4 h-4'
                 const mapping = AUDIT_ICON_MAP[e.action_type || '']
@@ -454,15 +454,15 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
       <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm p-5">
         <div className="flex items-center gap-2 mb-4">
           <Gauge className="w-4 h-4 text-indigo-500" />
-          <h3 className="text-sm font-extrabold">{t('analytics.dataQualityScorecard', lang)}</h3>
-          <span className="text-[9px] text-gray-400 dark:text-gray-300 ml-1">{t('analytics.dataQualitySubtitle', lang)}</span>
+          <h3 className="text-sm font-extrabold">{'Data Quality Scorecard'}</h3>
+          <span className="text-[9px] text-gray-400 dark:text-gray-300 ml-1">{'Report completeness and coverage metrics'}</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: t('analytics.aiAnalyzed', lang), value: stats.avgConf > 0 ? Math.round((reports.filter(r => (r.confidence || 0) > 0).length / Math.max(stats.total, 1)) * 100) : 0, icon: Brain, color: 'violet' },
-            { label: t('analytics.hasMedia', lang), value: stats.total > 0 ? Math.round((stats.withMedia / stats.total) * 100) : 0, icon: Signal, color: 'blue' },
-            { label: t('analytics.hasLocation', lang), value: stats.total > 0 ? Math.round((reports.filter(r => r.location && r.location !== 'Unknown').length / Math.max(stats.total, 1)) * 100) : 0, icon: MapPin, color: 'emerald' },
-            { label: t('common.verified', lang), value: stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0, icon: CheckCircle, color: 'cyan' },
+            { label: 'AI Analyzed', value: stats.avgConf > 0 ? Math.round((reports.filter(r => (r.confidence || 0) > 0).length / Math.max(stats.total, 1)) * 100) : 0, icon: Brain, color: 'violet' },
+            { label: 'Has Media', value: stats.total > 0 ? Math.round((stats.withMedia / stats.total) * 100) : 0, icon: Signal, color: 'blue' },
+            { label: 'Has Location', value: stats.total > 0 ? Math.round((reports.filter(r => r.location && r.location !== 'Unknown').length / Math.max(stats.total, 1)) * 100) : 0, icon: MapPin, color: 'emerald' },
+            { label: 'Verified', value: stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0, icon: CheckCircle, color: 'cyan' },
           ].map((m, i) => (
             <div key={i} className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 ring-1 ring-gray-100 dark:ring-gray-800">
               <div className="flex items-center gap-2 mb-2">

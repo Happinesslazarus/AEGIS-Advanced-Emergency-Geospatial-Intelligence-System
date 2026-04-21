@@ -43,11 +43,11 @@ export default function LiveMapTab({ reports, loc, userPosition, detectLocation,
       <div className="flex items-center gap-2 px-2 md:px-4 flex-wrap">
         <h2 className="text-lg font-bold text-primary flex items-center gap-2">
           <Globe className="w-5 h-5 icon-primary" />
-          {t('citizen.map.operations', lang)}
+          {'Live Operations Map'}
         </h2>
         <div className="ml-auto flex gap-2">
           <button onClick={detectLocation} className="text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors">
-            <Crosshair className="w-3.5 h-3.5" /> {t('citizen.map.myLocationBtn', lang)}
+            <Crosshair className="w-3.5 h-3.5" /> {'My Location'}
           </button>
           <button
             onClick={() => setShowWeather(v => !v)}
@@ -55,7 +55,7 @@ export default function LiveMapTab({ reports, loc, userPosition, detectLocation,
               showWeather ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
             }`}
           >
-            {t('citizen.map.weather', lang)}
+            {'Weather'}
           </button>
           <button
             onClick={() => setShowRivers(v => !v)}
@@ -63,7 +63,7 @@ export default function LiveMapTab({ reports, loc, userPosition, detectLocation,
               showRivers ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
             }`}
           >
-            {t('citizen.map.riverLevels', lang)}
+            {'River Levels'}
           </button>
         </div>
       </div>

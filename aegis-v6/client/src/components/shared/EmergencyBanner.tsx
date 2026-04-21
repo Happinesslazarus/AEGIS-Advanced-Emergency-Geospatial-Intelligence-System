@@ -43,7 +43,7 @@ export default function EmergencyBanner({ forceShow = false }: EmergencyBannerPr
 
   if (dismissed) return null
 
-  const bannerText = t('emergency.banner', lang).replace('{number}', '999 / 112')
+  const bannerText = 'If this is an emergency, call {number} immediately.'.replace('{number}', '999 / 112')
 
   return (
     <div

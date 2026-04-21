@@ -174,7 +174,7 @@ export default function LocationDropdown({ compact = false, className = '' }: Pr
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder={t('location.searchPlaceholder', lang)}
+                placeholder={'Search countries & regions...'}
                 className="flex-1 bg-transparent text-xs font-medium outline-none text-gray-900 dark:text-white placeholder-gray-400"
               />
               {search && (
@@ -187,7 +187,7 @@ export default function LocationDropdown({ compact = false, className = '' }: Pr
             <div className="flex items-center gap-2 mt-2 px-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
               <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 tracking-wide">
-                {t('location.active', lang)} <span className="text-gray-900 dark:text-white">{activeName}</span>
+                {'Active:'} <span className="text-gray-900 dark:text-white">{activeName}</span>
               </span>
             </div>
           </div>
@@ -326,7 +326,7 @@ export default function LocationDropdown({ compact = false, className = '' }: Pr
             {filteredGroups.length === 0 && (
               <div className="py-8 text-center">
                 <Search className="w-5 h-5 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                <p className="text-xs text-gray-400 dark:text-gray-500">{t('location.noResults', lang)}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{'No countries or regions match your search'}</p>
               </div>
             )}
           </div>
@@ -336,11 +336,11 @@ export default function LocationDropdown({ compact = false, className = '' }: Pr
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[9px] font-semibold text-gray-400 dark:text-gray-500">{t('location.detailedMonitoring', lang)}</span>
+                <span className="text-[9px] font-semibold text-gray-400 dark:text-gray-500">{'Detailed monitoring'}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400 opacity-60" />
-                <span className="text-[9px] font-semibold text-gray-400 dark:text-gray-500">{t('location.countryOverview', lang)}</span>
+                <span className="text-[9px] font-semibold text-gray-400 dark:text-gray-500">{'Country overview'}</span>
               </div>
             </div>
           </div>

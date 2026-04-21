@@ -9,8 +9,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Shield, ChevronDown, ChevronUp, Scale, FileText, AlertCircle, Users, Globe2, Gavel, ClipboardCheck, Ban, ArrowLeft, BookOpen, Info } from 'lucide-react'
-import { t } from '../utils/i18n'
-import { useLanguage } from '../hooks/useLanguage'
 import SafeHtml from '../components/shared/SafeHtml'
 
 function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -30,8 +28,20 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 
 const SECTION_ICONS = [FileText, Users, Scale, Globe2, ClipboardCheck, Gavel, Ban, BookOpen, AlertCircle, Shield]
 
+const SECTIONS = [
+  { title: '1. Acceptance of Terms', paragraphs: ['By accessing or using the AEGIS Emergency Management Platform ("the Platform"), you agree to be bound by these Terms of Use. If you do not agree to these terms, please do not use the Platform.', 'AEGIS is developed as an honours project at Robert Gordon University (RGU) and is provided for educational, research, and demonstration purposes.'], listItems: [], icon: SECTION_ICONS[0] },
+  { title: '2. Platform Purpose & Disclaimer', paragraphs: ['AEGIS is designed to:', '<strong>Disclaimer:</strong> AEGIS is NOT an official emergency service. Do not rely on this platform for life-threatening situations. Always call 999 (UK) or your local emergency number for immediate help.'], listItems: ['Demonstrate AI-powered emergency management concepts', 'Aggregate publicly available hazard and weather data', 'Enable community incident reporting and awareness', 'Showcase multi-channel notification delivery'], icon: SECTION_ICONS[1] },
+  { title: '3. User Conduct', paragraphs: ['When using the Platform, you agree to:', 'Violations may result in account suspension or termination without notice.'], listItems: ['Provide accurate information when submitting reports', 'Not submit false or misleading emergency reports', 'Respect other users and community members', 'Not attempt to disrupt or manipulate platform services', 'Not use the platform for unlawful purposes', 'Not upload malicious content, malware, or harmful files', 'Comply with all applicable UK and Scottish laws'], icon: SECTION_ICONS[2] },
+  { title: '4. Account Registration', paragraphs: ['To access certain features, you may need to create an account. You agree to:'], listItems: ['Provide accurate and current registration information', 'Maintain the security of your password and account', 'Accept responsibility for all activity under your account', 'Notify us immediately of any unauthorised access'], icon: SECTION_ICONS[3] },
+  { title: '5. User-Generated Content', paragraphs: ['By submitting content (reports, images, messages) to AEGIS, you:', 'AEGIS reserves the right to review, moderate, or remove any content that violates these terms.'], listItems: ['Grant AEGIS a non-exclusive licence to use, display, and analyse the content for platform purposes', 'Confirm you have the right to share such content', 'Understand content may be processed by AI systems for classification and analysis'], icon: SECTION_ICONS[4] },
+  { title: '6. AI & Automated Analysis', paragraphs: ['AEGIS uses artificial intelligence to classify reports, assess risk, and provide recommendations. AI outputs are for informational purposes only and should not replace professional judgement or official emergency guidance.', 'AI models may produce inaccurate results. Users should verify important information through official channels.'], listItems: [], icon: SECTION_ICONS[5] },
+  { title: '7. Limitation of Liability', paragraphs: ['To the maximum extent permitted by law, AEGIS and its developers shall not be liable for:', 'The platform is provided "as is" without warranties of any kind, express or implied.'], listItems: ['Any direct, indirect, or consequential damages arising from use of the platform', 'Inaccurate or delayed information', 'Service interruptions or data loss', 'Actions taken based on AI-generated recommendations'], icon: SECTION_ICONS[6] },
+  { title: '8. Privacy & Data Protection', paragraphs: ['Your use of AEGIS is also governed by our Privacy Policy. We are committed to protecting your data in accordance with the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018.'], listItems: [], icon: SECTION_ICONS[7] },
+  { title: '9. Changes to Terms', paragraphs: ['We may update these Terms of Use from time to time. Continued use of the platform after changes constitutes acceptance of the revised terms.'], listItems: [], icon: SECTION_ICONS[8] },
+  { title: '10. Governing Law', paragraphs: ['These terms are governed by and construed in accordance with the laws of Scotland and the United Kingdom.'], listItems: [], icon: SECTION_ICONS[9] },
+]
+
 export default function TermsPage(): JSX.Element {
-  const lang = useLanguage()
   const [openSections, setOpenSections] = useState<Set<number>>(new Set([0]))
 
   const toggle = (i: number) => {
@@ -45,26 +55,7 @@ export default function TermsPage(): JSX.Element {
   const expandAll = () => setOpenSections(new Set(Array.from({ length: 10 }, (_, i) => i)))
   const collapseAll = () => setOpenSections(new Set())
 
-  const sections = Array.from({ length: 10 }, (_, i) => {
-    const key = `terms.s${i + 1}`
-    const title = t(`${key}.title`, lang)
-    const paragraphs: string[] = []
-    for (let p = 1; p <= 6; p++) {
-      const val = t(`${key}.p${p}`, lang) as string
-      if (val && !val.startsWith(`${key}.p`)) paragraphs.push(val)
-    }
-    //Pick up non-standard paragraph keys (intro, disclaimer, violations, verify, asIs)
-    for (const suffix of ['intro', 'disclaimer', 'violations', 'verify', 'asIs']) {
-      const val = t(`${key}.${suffix}`, lang) as string
-      if (val && !val.startsWith(`${key}.${suffix}`)) paragraphs.push(val)
-    }
-    const listItems: string[] = []
-    for (let li = 1; li <= 8; li++) {
-      const val = t(`${key}.li${li}`, lang) as string
-      if (val && !val.startsWith(`${key}.li`)) listItems.push(val)
-    }
-    return { title, paragraphs, listItems, icon: SECTION_ICONS[i] || Shield }
-  })
+  const sections = SECTIONS
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -83,9 +74,9 @@ export default function TermsPage(): JSX.Element {
             <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
               <Scale className="w-6 h-6" />
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{t('terms.pageTitle', lang)}</h1>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{'Terms of Service'}</h1>
           </div>
-          <p className="text-white/70 text-sm">{t('terms.lastUpdate', lang)}</p>
+          <p className="text-white/70 text-sm">{'Last updated: January 2026'}</p>
         </div>
       </div>
 
@@ -98,8 +89,8 @@ export default function TermsPage(): JSX.Element {
               <Info className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <p className="font-bold text-amber-800 dark:text-amber-300 text-sm mb-0.5">{t('terms.importantNotice', lang)}</p>
-              <p className="text-xs text-amber-700 dark:text-amber-400/80 leading-relaxed">{t('terms.importantNoticeDesc', lang)}</p>
+              <p className="font-bold text-amber-800 dark:text-amber-300 text-sm mb-0.5">{'Important Notice'}</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400/80 leading-relaxed">{'AEGIS is an academic honours project developed at Robert Gordon University. It is not a replacement for official emergency services. Always call 999 in a genuine emergency.'}</p>
             </div>
           </div>
         </FadeIn>
@@ -155,9 +146,9 @@ export default function TermsPage(): JSX.Element {
         {/* Footer nav */}
         <div className="flex flex-wrap gap-4 text-sm justify-center pt-8 border-t border-gray-200 dark:border-gray-800 mt-8">
           <Link to="/citizen" className="text-aegis-600 hover:underline">Dashboard</Link>
-          <Link to="/about" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{t('about.title', lang)}</Link>
-          <Link to="/privacy" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{t('about.privacyPolicy', lang)}</Link>
-          <Link to="/accessibility" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{t('about.accessibility', lang)}</Link>
+          <Link to="/about" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{'About AEGIS'}</Link>
+          <Link to="/privacy" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{'Privacy Policy'}</Link>
+          <Link to="/accessibility" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600">{'Accessibility'}</Link>
         </div>
       </div>
     </div>

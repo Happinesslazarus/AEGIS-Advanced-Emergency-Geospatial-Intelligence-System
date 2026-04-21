@@ -45,22 +45,22 @@ export default function SafetyTab({ submitSafetyCheckIn, recentSafety, onFamilyC
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-md">
               <ShieldAlert className="w-4 h-4 text-white" />
             </div>
-            {t('citizen.safety.title', lang)}
+            {'Safety Check-in'}
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('cdash.safety.subtitle', lang)}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{'Let your community know you are safe'}</p>
         </div>
       </div>
 
       {/* Check-in Card */}
       <div className="glass-card rounded-2xl p-6 space-y-5">
-        <p className="text-sm text-gray-600 dark:text-gray-400">{t('cdash.safety.selectInstruction', lang)}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{'Select your current safety status'}</p>
 
         {/* Status Buttons -- Large & Prominent */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { key: 'safe' as const, label: t('citizen.safety.safeButton', lang), icon: CheckCircle, desc: t('cdash.safety.iAmSafe', lang) },
-            { key: 'unsure' as const, label: t('citizen.safety.unsureButton', lang), icon: CircleDot, desc: t('cdash.safety.notSure', lang) },
-            { key: 'help' as const, label: t('citizen.safety.helpButton', lang), icon: AlertTriangle, desc: t('cdash.safety.needHelp', lang) },
+            { key: 'safe' as const, label: 'I\'m Safe', icon: CheckCircle, desc: 'I am safe' },
+            { key: 'unsure' as const, label: 'Unsure', icon: CircleDot, desc: 'I\'m not sure' },
+            { key: 'help' as const, label: 'Need Help', icon: AlertTriangle, desc: 'I need help' },
           ].map(s => {
             const cfg = statusConfig[s.key]
             const isActive = status === s.key
@@ -89,7 +89,7 @@ export default function SafetyTab({ submitSafetyCheckIn, recentSafety, onFamilyC
           <textarea
             value={message}
             onChange={e => setMessage(e.target.value)}
-            placeholder={t('cdash.safety.optionalMessage', lang)}
+            placeholder={'Optional message (e.g. at home, trapped, need medical help)'}
             className="w-full px-4 py-3 text-sm bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition resize-none"
             rows={2}
           />
@@ -102,13 +102,13 @@ export default function SafetyTab({ submitSafetyCheckIn, recentSafety, onFamilyC
             status === 'help' ? 'bg-gradient-to-r from-red-600 to-rose-600 shadow-red-200/50 dark:shadow-red-900/30' : status === 'unsure' ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-200/50 dark:shadow-amber-900/30' : 'bg-gradient-to-r from-emerald-500 to-green-600 shadow-emerald-200/50 dark:shadow-emerald-900/30'
           } disabled:opacity-50 disabled:scale-100`}>
           {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          {t('citizen.safety.submitCheckin', lang) || 'Submit Check-in'}
+          {'Submit Check-in'}
         </button>
 
         {/* Success Message */}
         {success && (
           <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 p-3.5 rounded-xl flex items-center gap-2 text-sm animate-scale-in">
-            <CheckCircle className="w-4 h-4 flex-shrink-0" /> {t('citizen.safety.checkinSuccess', lang) || 'Check-in submitted successfully!'}
+            <CheckCircle className="w-4 h-4 flex-shrink-0" /> {'Check-in submitted successfully!'}
           </div>
         )}
       </div>
@@ -134,7 +134,7 @@ export default function SafetyTab({ submitSafetyCheckIn, recentSafety, onFamilyC
       {recentSafety && recentSafety.length > 0 && (
         <div className="glass-card rounded-2xl overflow-hidden">
           <h3 className="px-5 py-3.5 border-b border-gray-100 dark:border-gray-800/80 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Clock className="w-4 h-4 text-gray-400 dark:text-gray-400" /> {t('citizen.safety.recentCheckins', lang)}
+            <Clock className="w-4 h-4 text-gray-400 dark:text-gray-400" /> {'Recent Check-ins'}
           </h3>
           <div className="divide-y divide-gray-100/80 dark:divide-gray-800/60">
             {recentSafety.map((c: any, idx: number) => (

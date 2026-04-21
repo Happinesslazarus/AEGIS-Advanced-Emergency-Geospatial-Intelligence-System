@@ -95,7 +95,7 @@ export default function OnboardingTutorial(): JSX.Element | null {
           <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-white/5" />
 
           {/* Close button */}
-          <button onClick={dismiss} className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/20 transition text-white/70 hover:text-white" aria-label={t('common.close', lang)}>
+          <button onClick={dismiss} className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/20 transition text-white/70 hover:text-white" aria-label={'Close'}>
             <X className="w-4 h-4" />
           </button>
 
@@ -155,19 +155,19 @@ export default function OnboardingTutorial(): JSX.Element | null {
           <div className="flex gap-2">
             {step > 0 && (
               <button onClick={goPrev} className="btn-ghost flex items-center gap-1 text-xs px-3">
-                <ChevronLeft className="w-3.5 h-3.5" /> {t('common.back', lang) || 'Back'}
+                <ChevronLeft className="w-3.5 h-3.5" /> {'Back'}
               </button>
             )}
             {step === 0 && (
-              <button onClick={dismiss} className="btn-ghost flex-1 text-xs">{t('common.skip', lang)}</button>
+              <button onClick={dismiss} className="btn-ghost flex-1 text-xs">{'Skip'}</button>
             )}
             {step < STEPS.length - 1 ? (
               <button onClick={goNext} className="btn-primary btn-ripple flex-1 flex items-center justify-center gap-1 text-xs">
-                {t('common.next', lang) || 'Next'} <ChevronRight className="w-3.5 h-3.5" />
+                {'Next'} <ChevronRight className="w-3.5 h-3.5" />
               </button>
             ) : (
               <button onClick={dismiss} className="btn-primary btn-ripple w-full flex items-center justify-center gap-1.5">
-                <Check className="w-4 h-4" /> {t('common.getStarted', lang)}
+                <Check className="w-4 h-4" /> {'Get Started'}
               </button>
             )}
           </div>

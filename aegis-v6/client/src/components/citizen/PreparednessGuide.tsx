@@ -213,16 +213,16 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
   const readinessLabel = readiness >= 75 ? 'Excellent' : readiness >= 50 ? 'Good' : readiness >= 25 ? 'Building' : 'Getting Started'
 
   const tabConfig = [
-    { id: 'tips' as const, label: t('prep.tab.tips', lang), Icon: Shield },
-    { id: 'scenarios' as const, label: t('prep.tab.scenarios', lang), Icon: Play },
-    { id: 'kit' as const, label: t('prep.tab.kit', lang), Icon: CheckCircle },
-    { id: 'quiz' as const, label: t('prep.tab.quiz', lang), Icon: BookOpen },
-    { id: 'plan' as const, label: t('prep.tab.plan', lang), Icon: Users },
-    { id: 'badges' as const, label: `${t('prep.tab.badges', lang)} ${unlockedBadges.length}/${BADGES.length}`, Icon: Trophy },
+    { id: 'tips' as const, label: 'Safety Tips', Icon: Shield },
+    { id: 'scenarios' as const, label: 'Scenarios', Icon: Play },
+    { id: 'kit' as const, label: 'Emergency Kit', Icon: CheckCircle },
+    { id: 'quiz' as const, label: 'Quiz', Icon: BookOpen },
+    { id: 'plan' as const, label: 'Family Plan', Icon: Users },
+    { id: 'badges' as const, label: `${'Badges'} ${unlockedBadges.length}/${BADGES.length}`, Icon: Trophy },
   ]
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 z-50" role="dialog" aria-modal="true" aria-label={t('prep.title', lang)}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 z-50" role="dialog" aria-modal="true" aria-label={'Disaster Preparedness Training'}>
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[94vh] flex flex-col overflow-hidden">
 
         {/* HERO HEADER */}
@@ -233,11 +233,11 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
             <div>
               <h2 className="text-lg font-extrabold tracking-tight flex items-center gap-2.5">
                 <div className="p-1.5 bg-white/10 rounded-lg backdrop-blur"><BookOpen className="w-5 h-5" /></div>
-                {t('prep.title', lang)}
+                {'Disaster Preparedness Training'}
               </h2>
               <p className="text-[11px] text-white/40 mt-1 ml-10">Disaster preparedness training &amp; readiness tracker</p>
             </div>
-            <button onClick={onClose} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors" aria-label={t('general.close', lang)}>
+            <button onClick={onClose} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors" aria-label={'Close'}>
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -279,7 +279,7 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
         {isEmergencyActive && (
           <div className="mx-4 mt-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl flex items-center gap-2 flex-shrink-0">
             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-            <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">{t('prep.emergencyActive', lang)}</p>
+            <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">{'Live emergency active -- check your alerts first before training.'}</p>
           </div>
         )}
 
@@ -323,9 +323,9 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
                       <div className="px-3.5 pb-3.5 animate-fade-in border-t border-gray-100 dark:border-gray-800">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3">
                           {([
-                            { phase: 'before' as const, label: t('prep.phase.before', lang), Icon: Zap, gradient: 'from-blue-500 to-blue-600', bg: 'bg-blue-50 dark:bg-blue-950/20', border: 'border-blue-100 dark:border-blue-900/50', text: 'text-blue-700 dark:text-blue-400' },
-                            { phase: 'during' as const, label: t('prep.phase.during', lang), Icon: AlertTriangle, gradient: 'from-red-500 to-red-600', bg: 'bg-red-50 dark:bg-red-950/20', border: 'border-red-100 dark:border-red-900/50', text: 'text-red-700 dark:text-red-400' },
-                            { phase: 'after' as const, label: t('prep.phase.after', lang), Icon: CheckCircle, gradient: 'from-green-500 to-green-600', bg: 'bg-green-50 dark:bg-green-950/20', border: 'border-green-100 dark:border-green-900/50', text: 'text-green-700 dark:text-green-400' },
+                            { phase: 'before' as const, label: 'Before', Icon: Zap, gradient: 'from-blue-500 to-blue-600', bg: 'bg-blue-50 dark:bg-blue-950/20', border: 'border-blue-100 dark:border-blue-900/50', text: 'text-blue-700 dark:text-blue-400' },
+                            { phase: 'during' as const, label: 'During', Icon: AlertTriangle, gradient: 'from-red-500 to-red-600', bg: 'bg-red-50 dark:bg-red-950/20', border: 'border-red-100 dark:border-red-900/50', text: 'text-red-700 dark:text-red-400' },
+                            { phase: 'after' as const, label: 'After', Icon: CheckCircle, gradient: 'from-green-500 to-green-600', bg: 'bg-green-50 dark:bg-green-950/20', border: 'border-green-100 dark:border-green-900/50', text: 'text-green-700 dark:text-green-400' },
                           ]).map(({ phase, label, Icon, gradient, bg, border }) => (
                             <div key={phase} className={`rounded-xl overflow-hidden border ${border}`}>
                               <div className={`bg-gradient-to-r ${gradient} px-3 py-1.5`}>
@@ -469,9 +469,9 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
                   const items = EMERGENCY_KIT_ITEMS.filter(i => i.priority === priority)
                   const checked = items.filter(i => kitChecked.has(i.item)).length
                   const pct = checked / items.length
-                  const cfg = priority === 'essential' ? { color: '#ef4444', label: t('prep.kit.essential', lang), bg: 'bg-red-50 dark:bg-red-950/20', border: 'border-red-100 dark:border-red-900/50' }
-                    : priority === 'important' ? { color: '#f59e0b', label: t('prep.kit.important', lang), bg: 'bg-amber-50 dark:bg-amber-950/20', border: 'border-amber-100 dark:border-amber-900/50' }
-                    : { color: '#22c55e', label: t('prep.kit.recommended', lang), bg: 'bg-green-50 dark:bg-green-950/20', border: 'border-green-100 dark:border-green-900/50' }
+                  const cfg = priority === 'essential' ? { color: '#ef4444', label: 'Essential', bg: 'bg-red-50 dark:bg-red-950/20', border: 'border-red-100 dark:border-red-900/50' }
+                    : priority === 'important' ? { color: '#f59e0b', label: 'Important', bg: 'bg-amber-50 dark:bg-amber-950/20', border: 'border-amber-100 dark:border-amber-900/50' }
+                    : { color: '#22c55e', label: 'Recommended', bg: 'bg-green-50 dark:bg-green-950/20', border: 'border-green-100 dark:border-green-900/50' }
                   return (
                     <div key={priority} className={`${cfg.bg} border ${cfg.border} rounded-xl p-3 text-center`}>
                       <div className="relative mx-auto w-fit">
@@ -503,7 +503,7 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
                     <div key={priority}>
                       <h4 className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 flex items-center gap-1.5 ${priority === 'essential' ? 'text-red-600' : priority === 'important' ? 'text-amber-600' : 'text-green-600'}`}>
                         <div className={`w-1.5 h-1.5 rounded-full ${priority === 'essential' ? 'bg-red-500' : priority === 'important' ? 'bg-amber-500' : 'bg-green-500'}`} />
-                        {priority === 'essential' ? t('prep.kit.essential', lang) : priority === 'important' ? t('prep.kit.important', lang) : t('prep.kit.recommended', lang)}
+                        {priority === 'essential' ? 'Essential' : priority === 'important' ? 'Important' : 'Recommended'}
                         <span className="text-gray-300 dark:text-gray-400 font-normal">({items.filter(i => kitChecked.has(i.item)).length}/{items.length})</span>
                       </h4>
                       <div className="space-y-0.5">

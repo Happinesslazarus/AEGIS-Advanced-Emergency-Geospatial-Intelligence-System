@@ -111,10 +111,10 @@ function scoreBarColor(score: number): string {
 }
 
 function scoreLabel(score: number, lang: string): string {
-  if (score >= 95) return t('admin.health.scoreExcellent', lang)
-  if (score >= 85) return t('admin.health.scoreGood', lang)
-  if (score >= 70) return t('admin.health.scoreFair', lang)
-  return t('admin.health.scorePoor', lang)
+  if (score >= 95) return 'Excellent'
+  if (score >= 85) return 'Good'
+  if (score >= 70) return 'Fair'
+  return 'Poor'
 }
 
 //Sub-components
@@ -129,7 +129,7 @@ function StatusBadge({ ok, label }: { ok: boolean; label?: string }) {
         : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
     }`}>
       {ok ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-      {label || (ok ? t('admin.health.healthy', lang) : t('admin.health.down', lang))}
+      {label || (ok ? 'Healthy' : 'Down')}
     </span>
   )
 }
@@ -183,7 +183,7 @@ export default function SystemHealthPanel() {
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
-        <span className="ml-2 text-gray-500 dark:text-gray-300">{t('admin.health.loading', lang)}</span>
+        <span className="ml-2 text-gray-500 dark:text-gray-300">{'Loading system health...'}</span>
       </div>
     )
   }
@@ -192,10 +192,10 @@ export default function SystemHealthPanel() {
     return (
       <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
         <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-        <p className="text-red-700 dark:text-red-400 font-semibold">{t('admin.health.failed', lang)}</p>
+        <p className="text-red-700 dark:text-red-400 font-semibold">{'Failed to load system health'}</p>
         <p className="text-sm text-red-500 mt-1">{error}</p>
         <button onClick={fetchHealth} className="mt-3 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700">
-          {t('admin.health.retry', lang)}
+          {'Retry'}
         </button>
       </div>
     )
@@ -232,8 +232,8 @@ export default function SystemHealthPanel() {
                 <Activity className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg font-black tracking-tight">{t('admin.health.title', lang)}</h2>
-                <p className="text-white/50 text-xs">{t('admin.health.updated', lang)}: {new Date(health.timestamp).toLocaleTimeString()}</p>
+                <h2 className="text-lg font-black tracking-tight">{'Architecture Status Board'}</h2>
+                <p className="text-white/50 text-xs">{'Updated'}: {new Date(health.timestamp).toLocaleTimeString()}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -241,10 +241,10 @@ export default function SystemHealthPanel() {
               {(() => {
                 const critical = !dbUp
                 const label = critical
-                  ? t('admin.health.critical', lang)
+                  ? 'Critical'
                   : allUp
-                    ? t('admin.health.allOperational', lang)
-                    : t('admin.health.degraded', lang)
+                    ? 'All Systems Operational'
+                    : 'Degraded'
                 const bg = critical ? 'bg-red-500/20 border-red-400/30' : allUp ? 'bg-emerald-500/20 border-emerald-400/30' : 'bg-amber-500/20 border-amber-400/30'
                 return (
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border backdrop-blur-sm ${bg}`}>
@@ -253,10 +253,10 @@ export default function SystemHealthPanel() {
                   </span>
                 )
               })()}
-              <button onClick={() => setShowKeyboard(p => !p)} className="p-2 rounded-lg hover:bg-white/10 transition" title={t('admin.health.shortcutsLabel', lang)}>
+              <button onClick={() => setShowKeyboard(p => !p)} className="p-2 rounded-lg hover:bg-white/10 transition" title={'Shortcuts'}>
                 <Keyboard className="w-4 h-4 text-white/60" />
               </button>
-              <button onClick={fetchHealth} className="p-2 rounded-lg hover:bg-white/10 transition" title={t('admin.health.refresh', lang)}>
+              <button onClick={fetchHealth} className="p-2 rounded-lg hover:bg-white/10 transition" title={'Refresh'}>
                 <RefreshCw className="w-4 h-4 text-white/60" />
               </button>
             </div>
@@ -268,7 +268,7 @@ export default function SystemHealthPanel() {
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-white/60" />
-                <span className="text-xs font-bold text-white/60 uppercase tracking-wider">{t('admin.health.healthScore', lang)}</span>
+                <span className="text-xs font-bold text-white/60 uppercase tracking-wider">{'Health Score'}</span>
               </div>
               <div className="flex items-end gap-3">
                 <span className={`text-3xl font-black tabular-nums ${scoreColor(healthScore)}`}>{healthScore}</span>
@@ -284,21 +284,21 @@ export default function SystemHealthPanel() {
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
               <div className="flex items-center gap-2 mb-2">
                 <Timer className="w-4 h-4 text-white/60" />
-                <span className="text-xs font-bold text-white/60 uppercase tracking-wider">{t('admin.health.serverUptime', lang)}</span>
+                <span className="text-xs font-bold text-white/60 uppercase tracking-wider">{'Server Uptime'}</span>
               </div>
               <div className="flex items-end gap-2">
                 <span className="text-3xl font-black tabular-nums text-white">
                   {health.server_uptime_s != null ? formatUptime(health.server_uptime_s) : '--'}
                 </span>
               </div>
-              <p className="text-xs text-white/30 mt-2">{t('admin.health.uptimeDesc', lang)}</p>
+              <p className="text-xs text-white/30 mt-2">{'Node.js process uptime'}</p>
             </div>
 
             {/* Memory Usage */}
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
               <div className="flex items-center gap-2 mb-2">
                 <Cpu className="w-4 h-4 text-white/60" />
-                <span className="text-xs font-bold text-white/60 uppercase tracking-wider">{t('admin.health.memoryUsage', lang)}</span>
+                <span className="text-xs font-bold text-white/60 uppercase tracking-wider">{'Memory Usage'}</span>
               </div>
               {health.memory ? (
                 <>
@@ -334,7 +334,7 @@ export default function SystemHealthPanel() {
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${dbUp ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
                 <Database className={`w-4 h-4 ${dbUp ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`} />
               </div>
-              <span className="font-bold text-gray-700 dark:text-gray-300 text-sm">{t('admin.health.database', lang)}</span>
+              <span className="font-bold text-gray-700 dark:text-gray-300 text-sm">{'Database'}</span>
             </div>
             {dbUp && <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />}
           </div>
@@ -349,7 +349,7 @@ export default function SystemHealthPanel() {
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${aiUp ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
                 <Brain className={`w-4 h-4 ${aiUp ? 'text-purple-600 dark:text-purple-400' : 'text-red-600 dark:text-red-400'}`} />
               </div>
-              <span className="font-bold text-gray-700 dark:text-gray-300 text-sm">{t('admin.health.aiEngine', lang)}</span>
+              <span className="font-bold text-gray-700 dark:text-gray-300 text-sm">{'AI Engine'}</span>
             </div>
             {aiUp && <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />}
           </div>
@@ -364,7 +364,7 @@ export default function SystemHealthPanel() {
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${schedulerUp ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
                 <Workflow className={`w-4 h-4 ${schedulerUp ? 'text-orange-600 dark:text-orange-400' : 'text-red-600 dark:text-red-400'}`} />
               </div>
-              <span className="font-bold text-gray-700 dark:text-gray-300 text-sm">{t('admin.health.jobScheduler', lang)}</span>
+              <span className="font-bold text-gray-700 dark:text-gray-300 text-sm">{'Job Scheduler'}</span>
             </div>
             {schedulerUp && <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />}
           </div>
@@ -373,27 +373,27 @@ export default function SystemHealthPanel() {
             const fallbackActive = health.n8n.fallback_active
             const notConfigured = health.n8n.status === 'not_configured'
             const label = n8nConnected
-              ? t('admin.health.n8nConnected', lang)
+              ? 'n8n Connected'
               : fallbackActive
-                ? t('admin.health.fallbackActive', lang)
+                ? 'Fallback Active'
                 : notConfigured
-                  ? t('admin.health.active', lang)
+                  ? 'Active'
                   : health.n8n.status === 'checking'
-                    ? t('admin.health.checking', lang)
-                    : t('admin.health.starting', lang)
+                    ? 'Checking...'
+                    : 'Starting...'
             return <StatusBadge ok={schedulerUp} label={label} />
           })()}
           <div className="text-xs text-gray-400 dark:text-gray-400 mt-2 space-y-0.5">
             {health.n8n.status === 'connected' && (
               <>
                 {health.n8n.version && <p>n8n v{health.n8n.version}</p>}
-                <p>{health.n8n.active_workflow_count || 0}/{health.n8n.workflow_count || 0} {t('admin.health.workflowsActive', lang)}</p>
+                <p>{health.n8n.active_workflow_count || 0}/{health.n8n.workflow_count || 0} {'workflows active'}</p>
               </>
             )}
             {(health.n8n.status === 'not_configured' || health.n8n.fallback_active) && (
               <p className="flex items-center gap-1">
                 <Zap className="w-3 h-3 text-green-500" />
-                {t('admin.health.internalCron', lang)}
+                {'Internal cron scheduler active'}
               </p>
             )}
           </div>
@@ -406,16 +406,16 @@ export default function SystemHealthPanel() {
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${totalErrors === 0 ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
                 <Shield className={`w-4 h-4 ${totalErrors === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`} />
               </div>
-              <span className="font-bold text-gray-700 dark:text-gray-300 text-sm">{t('admin.health.errors1h', lang)}</span>
+              <span className="font-bold text-gray-700 dark:text-gray-300 text-sm">{'Errors (1h)'}</span>
             </div>
             {totalErrors === 0 && <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />}
           </div>
-          <StatusBadge ok={totalErrors === 0} label={totalErrors === 0 ? t('admin.health.clean', lang) : `${totalErrors} ${t('admin.health.errors', lang)}`} />
+          <StatusBadge ok={totalErrors === 0} label={totalErrors === 0 ? 'Clean' : `${totalErrors} ${'errors'}`} />
           <div className="text-xs text-gray-400 dark:text-gray-400 mt-3 space-y-1">
             {[
-              { label: t('admin.health.frontend', lang), val: health.recent_errors.frontend },
-              { label: t('admin.health.backend', lang), val: health.recent_errors.system },
-              { label: t('admin.health.externalApi', lang), val: health.recent_errors.external },
+              { label: 'Frontend', val: health.recent_errors.frontend },
+              { label: 'Backend', val: health.recent_errors.system },
+              { label: 'External API', val: health.recent_errors.external },
             ].map(({ label, val }) => (
               <div key={label} className="flex items-center justify-between">
                 <span>{label}</span>
@@ -431,7 +431,7 @@ export default function SystemHealthPanel() {
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <Globe className="w-5 h-5 text-cyan-500" />
-            <h3 className="font-bold text-gray-700 dark:text-gray-300">{t('admin.health.circuitBreakers', lang)}</h3>
+            <h3 className="font-bold text-gray-700 dark:text-gray-300">{'External API Circuit Breakers'}</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {circuitBreakerEntries.map(([name, state]) => (
@@ -445,11 +445,11 @@ export default function SystemHealthPanel() {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-mono font-bold text-gray-700 dark:text-gray-300">{name}</span>
-                  <StatusBadge ok={!state.open} label={state.open ? t('admin.health.open', lang) : t('admin.health.closed', lang)} />
+                  <StatusBadge ok={!state.open} label={state.open ? 'OPEN' : 'Closed'} />
                 </div>
                 <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">
-                  {t('admin.health.failures', lang)}: {state.failures}
-                  {state.lastFailure && ` -- ${t('admin.health.lastFailure', lang)}: ${new Date(state.lastFailure).toLocaleTimeString()}`}
+                  {'Failures'}: {state.failures}
+                  {state.lastFailure && ` -- ${'Last'}: ${new Date(state.lastFailure).toLocaleTimeString()}`}
                 </p>
               </div>
             ))}
@@ -461,7 +461,7 @@ export default function SystemHealthPanel() {
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
         <div className="flex items-center gap-2 mb-5">
           <Server className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-          <h3 className="font-bold text-gray-700 dark:text-gray-300">{t('admin.health.architecture', lang)}</h3>
+          <h3 className="font-bold text-gray-700 dark:text-gray-300">{'Data Flow Architecture'}</h3>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
           {/* External Sources */}
@@ -469,7 +469,7 @@ export default function SystemHealthPanel() {
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse" />
             <Radio className="w-5 h-5 text-blue-500" />
             <span className="text-blue-700 dark:text-blue-400 font-bold">SEPA / EA</span>
-            <span className="text-blue-500/70 text-[10px]">{t('admin.health.dataSources', lang)}</span>
+            <span className="text-blue-500/70 text-[10px]">{'Gauges, Alerts'}</span>
           </div>
 
           <div className="flex items-center"><ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-400" /><div className="w-4 h-px bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600" /></div>
@@ -486,7 +486,7 @@ export default function SystemHealthPanel() {
               {health.n8n.status === 'connected' ? 'n8n' : 'Cron'}
             </span>
             <span className="text-orange-500/70 text-[10px]">
-              {health.n8n.status === 'connected' ? t('admin.health.orchestrator', lang) : t('admin.health.cronFallback', lang)}
+              {health.n8n.status === 'connected' ? 'Orchestrator' : 'Fallback'}
             </span>
           </div>
 
@@ -496,7 +496,7 @@ export default function SystemHealthPanel() {
           <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 min-w-[90px] relative">
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
             <Server className="w-5 h-5 text-green-500" />
-            <span className="text-green-700 dark:text-green-400 font-bold">{t('admin.health.backend', lang)}</span>
+            <span className="text-green-700 dark:text-green-400 font-bold">{'Backend'}</span>
             <span className="text-green-500/70 text-[10px]">Express + Socket.IO</span>
           </div>
 
@@ -520,8 +520,8 @@ export default function SystemHealthPanel() {
           }`}>
             {aiUp && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />}
             <Brain className="w-5 h-5 text-purple-500" />
-            <span className="text-purple-700 dark:text-purple-400 font-bold">{t('admin.health.aiEngine', lang)}</span>
-            <span className="text-purple-500/70 text-[10px]">FastAPI {aiUp ? `${health.ai_engine.latency_ms}ms` : t('admin.health.down', lang)}</span>
+            <span className="text-purple-700 dark:text-purple-400 font-bold">{'AI Engine'}</span>
+            <span className="text-purple-500/70 text-[10px]">FastAPI {aiUp ? `${health.ai_engine.latency_ms}ms` : 'Down'}</span>
           </div>
 
           <div className="flex items-center"><ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-400" /><div className="w-4 h-px bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600" /></div>
@@ -530,7 +530,7 @@ export default function SystemHealthPanel() {
           <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-800 min-w-[90px] relative">
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
             <Globe className="w-5 h-5 text-cyan-500" />
-            <span className="text-cyan-700 dark:text-cyan-400 font-bold">{t('admin.health.frontend', lang)}</span>
+            <span className="text-cyan-700 dark:text-cyan-400 font-bold">{'Frontend'}</span>
             <span className="text-cyan-500/70 text-[10px]">React + Leaflet</span>
           </div>
         </div>
@@ -540,20 +540,20 @@ export default function SystemHealthPanel() {
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Clock className="w-5 h-5 text-indigo-500" />
-          <h3 className="font-bold text-gray-700 dark:text-gray-300">{t('admin.health.recentJobs', lang)}</h3>
+          <h3 className="font-bold text-gray-700 dark:text-gray-300">{'Recent Cron Jobs'}</h3>
         </div>
         {health.recent_jobs.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-400 text-center py-4">{t('admin.health.noJobs', lang)}</p>
+          <p className="text-sm text-gray-400 dark:text-gray-400 text-center py-4">{'No recent jobs'}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600">
-                  <th className="text-left py-2 pr-4">{t('admin.health.jobName', lang)}</th>
-                  <th className="text-left py-2 pr-4">{t('common.status', lang)}</th>
-                  <th className="text-right py-2 pr-4">{t('admin.health.duration', lang)}</th>
-                  <th className="text-right py-2 pr-4">{t('admin.health.records', lang)}</th>
-                  <th className="text-right py-2">{t('admin.health.completedAt', lang)}</th>
+                  <th className="text-left py-2 pr-4">{'Job'}</th>
+                  <th className="text-left py-2 pr-4">{'Status'}</th>
+                  <th className="text-right py-2 pr-4">{'Duration'}</th>
+                  <th className="text-right py-2 pr-4">{'Records'}</th>
+                  <th className="text-right py-2">{'Completed'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -584,16 +584,16 @@ export default function SystemHealthPanel() {
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <Layers className="w-5 h-5 text-orange-500" />
-            <h3 className="font-bold text-gray-700 dark:text-gray-300">{t('admin.health.workflows', lang)}</h3>
+            <h3 className="font-bold text-gray-700 dark:text-gray-300">{'Workflow Definitions'}</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {health.workflow_definitions.map((wf, i) => (
               <div key={i} className="p-3 rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-700/50 hover:shadow-sm transition-shadow">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{wf.name}</span>
-                  <StatusBadge ok={wf.active} label={wf.active ? t('admin.health.active', lang) : t('common.inactive', lang)} />
+                  <StatusBadge ok={wf.active} label={wf.active ? 'Active' : 'Inactive'} />
                 </div>
-                <p className="text-xs text-gray-400 dark:text-gray-400">{wf.nodeCount} {t('admin.health.nodes', lang)}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-400">{wf.nodeCount} {'nodes'}</p>
               </div>
             ))}
           </div>
@@ -604,21 +604,21 @@ export default function SystemHealthPanel() {
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <MonitorCheck className="w-5 h-5 text-violet-500" />
-          <h3 className="font-bold text-gray-700 dark:text-gray-300">{t('admin.health.techStack', lang)}</h3>
+          <h3 className="font-bold text-gray-700 dark:text-gray-300">{'Technology Stack'}</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="p-3 rounded-lg bg-cyan-50/50 dark:bg-cyan-950/10 border border-cyan-200/60 dark:border-cyan-800/40">
-            <p className="text-[9px] uppercase font-bold tracking-wider text-cyan-600 dark:text-cyan-400 mb-1">{t('admin.health.frontend', lang)}</p>
+            <p className="text-[9px] uppercase font-bold tracking-wider text-cyan-600 dark:text-cyan-400 mb-1">{'Frontend'}</p>
             <p className="text-xs font-bold text-gray-700 dark:text-gray-300">React 18 + TypeScript</p>
             <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-0.5">Tailwind CSS + Leaflet + Vite</p>
           </div>
           <div className="p-3 rounded-lg bg-green-50/50 dark:bg-green-950/10 border border-green-200/60 dark:border-green-800/40">
-            <p className="text-[9px] uppercase font-bold tracking-wider text-green-600 dark:text-green-400 mb-1">{t('admin.health.backend', lang)}</p>
+            <p className="text-[9px] uppercase font-bold tracking-wider text-green-600 dark:text-green-400 mb-1">{'Backend'}</p>
             <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Express.js + Socket.IO</p>
             <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-0.5">PostgreSQL + PostGIS</p>
           </div>
           <div className="p-3 rounded-lg bg-purple-50/50 dark:bg-purple-950/10 border border-purple-200/60 dark:border-purple-800/40">
-            <p className="text-[9px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400 mb-1">{t('admin.health.aiEngine', lang)}</p>
+            <p className="text-[9px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400 mb-1">{'AI Engine'}</p>
             <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Python FastAPI</p>
             <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-0.5">XGBoost + LSTM + CatBoost</p>
           </div>
@@ -628,10 +628,10 @@ export default function SystemHealthPanel() {
       {/* Keyboard Shortcuts */}
       {showKeyboard && (
         <div className="bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('admin.health.shortcutsLabel', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {t('admin.health.shortcutRefresh', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('admin.health.shortcutToggle', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('admin.health.shortcutClose', lang)}</span>
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{'Shortcuts'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {'Refresh'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {'Toggle Shortcuts'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{'Esc'}</kbd> {'Close'}</span>
         </div>
       )}
     </div>

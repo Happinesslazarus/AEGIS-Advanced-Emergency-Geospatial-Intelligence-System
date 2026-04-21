@@ -253,7 +253,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
 
         <div className="flex-1 min-w-0 text-left">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-extrabold text-gray-900 dark:text-white tracking-tight">{t('incident.liveMap', lang)}</h2>
+            <h2 className="text-sm font-extrabold text-gray-900 dark:text-white tracking-tight">{'Live Incident Map'}</h2>
             <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-[9px] font-bold text-green-700 dark:text-green-300 uppercase tracking-wider">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               Live
@@ -390,7 +390,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
                   <div className="flex items-center justify-between px-2.5 py-2 border-b border-gray-100 dark:border-gray-800/50 flex-shrink-0">
                     <div className="flex items-center gap-1.5">
                       <Radio className="w-3 h-3 text-red-500 animate-pulse" />
-                      <span className="text-[10px] font-extrabold text-gray-700 dark:text-gray-200 uppercase tracking-wider">{t('incident.activity', lang)}</span>
+                      <span className="text-[10px] font-extrabold text-gray-700 dark:text-gray-200 uppercase tracking-wider">{'Activity'}</span>
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); setShowFeed(false) }}
@@ -445,7 +445,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
                   <div className="flex items-center justify-between px-2.5 py-2 border-b border-gray-100 dark:border-gray-800/50">
                     <div className="flex items-center gap-1.5">
                       <Radio className="w-3 h-3 text-gray-400" />
-                      <span className="text-[10px] font-extrabold text-gray-700 dark:text-gray-200 uppercase tracking-wider">{t('incident.activity', lang)}</span>
+                      <span className="text-[10px] font-extrabold text-gray-700 dark:text-gray-200 uppercase tracking-wider">{'Activity'}</span>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); setShowFeed(false) }} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                       <EyeOff className="w-3 h-3 text-gray-400 dark:text-gray-300" />
@@ -455,7 +455,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
                     <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2">
                       <Shield className="w-4 h-4 text-green-500" />
                     </div>
-                    <p className="text-[10px] font-bold text-gray-700 dark:text-gray-200">{t('alerts.allClear', lang)}</p>
+                    <p className="text-[10px] font-bold text-gray-700 dark:text-gray-200">{'All clear in your area'}</p>
                     <p className="text-[9px] text-gray-400 dark:text-gray-300 mt-0.5">No incidents reported in this area</p>
                   </div>
                 </div>

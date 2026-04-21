@@ -75,7 +75,7 @@ export default function OfflineEmergencyCard(): JSX.Element {
   const [showForm, setShowForm] = useState(false)
 
   const [countryCode, setCountryCode] = useState('DEFAULT')
-  const [locationLabel, setLocationLabel] = useState(t('offline.searchOrGPS', lang))
+  const [locationLabel, setLocationLabel] = useState('Search or use GPS')
   const [locationError, setLocationError] = useState('')
   const [locating, setLocating] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -113,8 +113,8 @@ export default function OfflineEmergencyCard(): JSX.Element {
       setCountryCode(code)
       setSearchQuery('')
     } catch {
-      setLocationError(t('offline.enableLocation', lang))
-      setLocationLabel(t('offline.locationUnavailable', lang))
+      setLocationError('Enable location to see local data')
+      setLocationLabel('Location unavailable')
       setCountryCode('DEFAULT')
     }
 
@@ -128,7 +128,7 @@ export default function OfflineEmergencyCard(): JSX.Element {
 
     if (!found) {
       setSearching(false)
-      setLocationError(t('offline.locationNotFound', lang))
+      setLocationError('Location not found. Try city, region, or postcode.')
       return
     }
 
@@ -375,21 +375,21 @@ ${personalNotes ? `<div class="section">
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">{t('offline.emergencySurvivalCard', lang)}</h2>
+              <h2 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">{'Emergency Survival Card'}</h2>
             </div>
             <p className="text-[10px] text-gray-500 dark:text-gray-300 font-medium mt-0.5">
-              {isDetected ? countryName : t('offline.searchSavePrintShare', lang)}
+              {isDetected ? countryName : 'Search or use GPS -- Save offline -- Print -- Share'}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {saved ? (
             <span className="flex items-center gap-1 text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 px-2.5 py-1.5 rounded-xl border border-emerald-200/50 dark:border-emerald-800/50">
-              <WifiOff className="w-3 h-3" /> {t('offline.offlineReady', lang)}
+              <WifiOff className="w-3 h-3" /> {'Offline Ready'}
             </span>
           ) : (
             <span className="flex items-center gap-1 text-[9px] font-bold bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 px-2.5 py-1.5 rounded-xl border border-blue-200/50 dark:border-blue-800/50">
-              <Wifi className="w-3 h-3" /> {t('common.online', lang)}
+              <Wifi className="w-3 h-3" /> {'Online'}
             </span>
           )}
           <button
@@ -413,12 +413,12 @@ ${personalNotes ? `<div class="section">
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder={t('offline.searchPlaceholder', lang)}
+              placeholder={'Search city, postcode, or region...'}
               className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500/30 focus:border-aegis-400 transition text-gray-900 dark:text-white placeholder-gray-400"
             />
           </div>
           <button onClick={handleSearch} disabled={searching || !searchQuery.trim()} className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 shadow-md shadow-blue-500/20">
-            {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : t('offline.locate', lang)}
+            {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Locate'}
           </button>
         </div>
         {locationError && <p className="text-[10px] text-red-500 font-medium ml-1">{locationError}</p>}
@@ -441,15 +441,15 @@ ${personalNotes ? `<div class="section">
       <div className="grid grid-cols-3 gap-2">
         <div className="glass-card rounded-xl p-3 text-center">
           <div className="text-2xl font-black text-red-600 dark:text-red-400 leading-none">{contacts.length}</div>
-          <div className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase mt-1">{t('offline.contacts', lang)}</div>
+          <div className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase mt-1">{'Contacts'}</div>
         </div>
         <div className="glass-card rounded-xl p-3 text-center">
           <div className="text-2xl font-black text-amber-600 dark:text-amber-400 leading-none">{tips.length}</div>
-          <div className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase mt-1">{t('offline.tips', lang)}</div>
+          <div className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase mt-1">{'Tips'}</div>
         </div>
         <div className="glass-card rounded-xl p-3 text-center">
           <div className="text-2xl font-black text-blue-600 dark:text-blue-400 leading-none">{TOTAL_COUNTRIES}</div>
-          <div className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase mt-1">{t('offline.countries', lang)}</div>
+          <div className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase mt-1">{'Countries'}</div>
         </div>
       </div>
 
@@ -459,7 +459,7 @@ ${personalNotes ? `<div class="section">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-red-600 dark:text-red-400" />
-              <span className="text-xs font-extrabold text-gray-900 dark:text-white uppercase tracking-wider">{t('offline.emergencyContacts', lang)}</span>
+              <span className="text-xs font-extrabold text-gray-900 dark:text-white uppercase tracking-wider">{'Emergency Contacts'}</span>
             </div>
             <span className="text-[9px] font-bold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/40 px-2 py-0.5 rounded-full">{countryName}</span>
           </div>
@@ -475,7 +475,7 @@ ${personalNotes ? `<div class="section">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-gray-900 dark:text-white truncate">{c.name}</span>
-                    {isPrimary && <span className="text-micro font-black px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 uppercase">{t('offline.primary', lang)}</span>}
+                    {isPrimary && <span className="text-micro font-black px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 uppercase">{'Primary'}</span>}
                   </div>
                   <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-0.5">{c.description}</p>
                 </div>
@@ -489,7 +489,7 @@ ${personalNotes ? `<div class="section">
                   <button
                     onClick={() => handleCopyNumber(c.number, i)}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300"
-                    title={t('offline.copyNumber', lang)}
+                    title={'Copy number'}
                   >
                     {copiedIdx === i ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <Clipboard className="w-3.5 h-3.5" />}
                   </button>
@@ -506,9 +506,9 @@ ${personalNotes ? `<div class="section">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-xs font-extrabold text-gray-900 dark:text-white uppercase tracking-wider">{t('offline.survivalTips', lang)}</span>
+              <span className="text-xs font-extrabold text-gray-900 dark:text-white uppercase tracking-wider">{'Survival Tips'}</span>
             </div>
-            <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/40 px-2 py-0.5 rounded-full">{tips.length} {t('offline.tips', lang)}</span>
+            <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/40 px-2 py-0.5 rounded-full">{tips.length} {'Tips'}</span>
           </div>
         </div>
         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -524,7 +524,7 @@ ${personalNotes ? `<div class="section">
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] text-gray-700 dark:text-gray-200 leading-relaxed font-medium">{tip}</p>
-                  {isRegional && <span className="text-[8px] font-bold text-blue-600 dark:text-blue-400 uppercase mt-1 inline-block">{t('offline.regionSpecific', lang)}</span>}
+                  {isRegional && <span className="text-[8px] font-bold text-blue-600 dark:text-blue-400 uppercase mt-1 inline-block">{'Region-specific'}</span>}
                 </div>
               </div>
             )
@@ -539,7 +539,7 @@ ${personalNotes ? `<div class="section">
       >
         <div className="flex items-center gap-2">
           <Heart className="w-4 h-4 text-pink-500" />
-          <span className="text-xs font-bold text-gray-900 dark:text-white">{t('offline.personalMedicalNotes', lang)}</span>
+          <span className="text-xs font-bold text-gray-900 dark:text-white">{'Personal Medical Info & Notes'}</span>
           {(medicalInfo || personalNotes) && <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse" />}
         </div>
         <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-300 transition-transform ${showForm ? 'rotate-180' : ''}`} />
@@ -548,22 +548,22 @@ ${personalNotes ? `<div class="section">
       {showForm && (
         <div className="glass-card rounded-xl p-4 space-y-3">
           <div>
-            <label className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('offline.medicalLabel', lang)}</label>
+            <label className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">{'Medical Conditions / Allergies'}</label>
             <textarea
               value={medicalInfo}
               onChange={(e) => setMedicalInfo(e.target.value)}
               rows={2}
-              placeholder={t('offline.medicalPlaceholder', lang)}
+              placeholder={'e.g. diabetic, severe allergy, inhaler required'}
               className="w-full mt-1.5 px-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-pink-500/30 focus:border-pink-400 transition resize-none text-gray-900 dark:text-white placeholder-gray-400"
             />
           </div>
           <div>
-            <label className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('offline.personalNotesLabel', lang)}</label>
+            <label className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">{'Personal Notes'}</label>
             <textarea
               value={personalNotes}
               onChange={(e) => setPersonalNotes(e.target.value)}
               rows={2}
-              placeholder={t('offline.personalNotesPlaceholder', lang)}
+              placeholder={'e.g. family meet point, support contacts'}
               className="w-full mt-1.5 px-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-pink-500/30 focus:border-pink-400 transition resize-none text-gray-900 dark:text-white placeholder-gray-400"
             />
           </div>
@@ -576,19 +576,19 @@ ${personalNotes ? `<div class="section">
           onClick={handleSave}
           className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold transition-all shadow-md ${saved ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 shadow-emerald-500/10' : 'bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-red-500/20 hover:from-red-400 hover:to-rose-500'}`}
         >
-          {saved ? <><CheckCircle className="w-4 h-4" /> {t('offline.savedOffline', lang)}</> : <><Download className="w-4 h-4" /> {t('offline.saveOffline', lang)}</>}
+          {saved ? <><CheckCircle className="w-4 h-4" /> {'Saved Offline'}</> : <><Download className="w-4 h-4" /> {'Save Offline'}</>}
         </button>
         <button
           onClick={handlePrint}
           className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all shadow-sm"
         >
-          <Printer className="w-4 h-4" /> {t('offline.print', lang)}
+          <Printer className="w-4 h-4" /> {'Print'}
         </button>
         <button
           onClick={handleShare}
           className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all shadow-sm"
         >
-          <Share2 className="w-4 h-4" /> {t('offline.share', lang)}
+          <Share2 className="w-4 h-4" /> {'Share'}
         </button>
       </div>
 
@@ -596,9 +596,9 @@ ${personalNotes ? `<div class="section">
       <div className="flex items-center justify-between px-1 text-[9px] font-medium text-gray-400 dark:text-gray-300">
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {t('offline.aegisEmergencyData', lang)}
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {'AEGIS Emergency Data'}
           </span>
-          <span>{TOTAL_COUNTRIES} {t('offline.countriesSupported', lang)}</span>
+          <span>{TOTAL_COUNTRIES} {'countries supported'}</span>
         </div>
         <span className="px-2 py-0.5 rounded bg-gray-200/60 dark:bg-gray-700/40 font-bold">{contacts.length} contacts | {tips.length} tips</span>
       </div>

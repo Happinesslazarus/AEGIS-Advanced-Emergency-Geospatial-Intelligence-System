@@ -65,17 +65,17 @@ interface AllReportsManagerProps {
 }
 
 const severityLabel = (v: string, lang: string) =>
-  v === 'High' ? t('admin.filters.severity.high', lang) : v === 'Medium' ? t('admin.filters.severity.medium', lang) : t('admin.filters.severity.low', lang)
+  v === 'High' ? 'High' : v === 'Medium' ? 'Medium' : 'Low'
 
 const statusLabel = (v: string, lang: string) => {
   const map: Record<string, string> = {
-    Urgent: t('admin.filters.status.urgent', lang),
-    Unverified: t('admin.filters.status.unverified', lang),
-    Verified: t('admin.filters.status.verified', lang),
-    Flagged: t('admin.filters.status.flagged', lang),
-    Resolved: t('admin.filters.status.resolved', lang),
-    Archived: t('admin.filters.status.archived', lang),
-    False_Report: t('admin.filters.status.falseReport', lang),
+    Urgent: 'Urgent',
+    Unverified: 'Unverified',
+    Verified: 'Verified',
+    Flagged: 'Flagged',
+    Resolved: 'Resolved',
+    Archived: 'Archived',
+    False_Report: 'False Report',
   }
   return map[v] || v
 }
@@ -222,41 +222,41 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
           </div>
           <div>
             <h1 className="text-lg font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-              {t('allReports.incidentReports', lang)}
+              {'Incident Reports'}
               <span className="text-sm font-bold text-gray-500 dark:text-gray-300 tabular-nums">({reports.length})</span>
             </h1>
             <p className="text-[10px] text-gray-500 dark:text-gray-300 flex items-center gap-2">
-              <span className="tabular-nums font-semibold text-aegis-600">{filtered.length}</span> {t('allReports.matchingFilters', lang)}
-              {selectedReportIds.size > 0 && <span className="text-aegis-600 font-bold">- {selectedReportIds.size} {t('common.selected', lang)}</span>}
+              <span className="tabular-nums font-semibold text-aegis-600">{filtered.length}</span> {'matching current filters'}
+              {selectedReportIds.size > 0 && <span className="text-aegis-600 font-bold">- {selectedReportIds.size} {'selected'}</span>}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {/* View mode toggle */}
           <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 ring-1 ring-gray-200 dark:ring-gray-700">
-            <button onClick={() => setViewMode('card')} className={`min-w-[36px] min-h-[36px] flex items-center justify-center rounded-md transition-all ${viewMode === 'card' ? 'bg-white dark:bg-gray-700 shadow-sm text-aegis-600' : 'text-gray-400 dark:text-gray-300 hover:text-gray-600'}`} title={t('allReports.cardView', lang)}>
+            <button onClick={() => setViewMode('card')} className={`min-w-[36px] min-h-[36px] flex items-center justify-center rounded-md transition-all ${viewMode === 'card' ? 'bg-white dark:bg-gray-700 shadow-sm text-aegis-600' : 'text-gray-400 dark:text-gray-300 hover:text-gray-600'}`} title={'Card view'}>
               <Grid3X3 className="w-4 h-4" />
             </button>
-            <button onClick={() => setViewMode('table')} className={`min-w-[36px] min-h-[36px] flex items-center justify-center rounded-md transition-all ${viewMode === 'table' ? 'bg-white dark:bg-gray-700 shadow-sm text-aegis-600' : 'text-gray-400 dark:text-gray-300 hover:text-gray-600'}`} title={t('allReports.tableView', lang)}>
+            <button onClick={() => setViewMode('table')} className={`min-w-[36px] min-h-[36px] flex items-center justify-center rounded-md transition-all ${viewMode === 'table' ? 'bg-white dark:bg-gray-700 shadow-sm text-aegis-600' : 'text-gray-400 dark:text-gray-300 hover:text-gray-600'}`} title={'Table view'}>
               <List className="w-4 h-4" />
             </button>
           </div>
-          <button onClick={onExportCSV} className="hidden sm:flex text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-lg items-center gap-1.5 hover:shadow-md transition-all"><Download className="w-3.5 h-3.5" /> {t('common.csv', lang)}</button>
-          <button onClick={onExportJSON} className="hidden sm:flex text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-lg items-center gap-1.5 hover:shadow-md transition-all"><Download className="w-3.5 h-3.5" /> {t('common.json', lang)}</button>
-          <button onClick={onPrintAll} className="hidden md:flex text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-lg items-center gap-1.5 hover:shadow-md transition-all"><Printer className="w-3.5 h-3.5" /> {t('admin.print', lang)}</button>
-          <button onClick={onRefresh} className="text-xs bg-aegis-600 hover:bg-aegis-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm min-h-[36px]"><RefreshCw className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('common.refresh', lang)}</span></button>
-          <button onClick={() => setShowKeyboard(p => !p)} className="hidden sm:flex text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 min-w-[36px] min-h-[36px] items-center justify-center rounded-lg hover:shadow-md transition-all" title={t('common.shortcuts', lang)}><Keyboard className="w-3.5 h-3.5 text-gray-500 dark:text-gray-300" /></button>
+          <button onClick={onExportCSV} className="hidden sm:flex text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-lg items-center gap-1.5 hover:shadow-md transition-all"><Download className="w-3.5 h-3.5" /> {'CSV'}</button>
+          <button onClick={onExportJSON} className="hidden sm:flex text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-lg items-center gap-1.5 hover:shadow-md transition-all"><Download className="w-3.5 h-3.5" /> {'JSON'}</button>
+          <button onClick={onPrintAll} className="hidden md:flex text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-lg items-center gap-1.5 hover:shadow-md transition-all"><Printer className="w-3.5 h-3.5" /> {'Print'}</button>
+          <button onClick={onRefresh} className="text-xs bg-aegis-600 hover:bg-aegis-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm min-h-[36px]"><RefreshCw className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{'Refresh'}</span></button>
+          <button onClick={() => setShowKeyboard(p => !p)} className="hidden sm:flex text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 min-w-[36px] min-h-[36px] items-center justify-center rounded-lg hover:shadow-md transition-all" title={'Shortcuts'}><Keyboard className="w-3.5 h-3.5 text-gray-500 dark:text-gray-300" /></button>
         </div>
       </div>
 
       {/*  Keyboard Shortcuts Reference  */}
       {showKeyboard && (
         <div className="bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider text-[9px]">{t('common.shortcuts', lang)}:</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">Ctrl+K</kbd> {t('common.search', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">Ctrl+A</kbd> {t('common.selectAll', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">{t('common.esc', lang)}</kbd> {t('common.clear', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">T</kbd> {t('allReports.tableView', lang)} / {t('allReports.cardView', lang)}</span>
+          <span className="text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider text-[9px]">{'Shortcuts'}:</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">Ctrl+K</kbd> {'Search'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">Ctrl+A</kbd> {'Select All'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">{'Esc'}</kbd> {'Clear'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">T</kbd> {'Table view'} / {'Card view'}</span>
           <button onClick={() => setShowKeyboard(false)} className="ml-auto text-gray-400 dark:text-gray-300 hover:text-white"><X className="w-3 h-3" /></button>
         </div>
       )}
@@ -271,8 +271,8 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
         >
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
-            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{t('allReports.reportPipeline', lang)}</span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-300 tabular-nums">-- {stats.total} {t('common.total', lang).toLowerCase()}</span>
+            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{'Report Pipeline'}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-300 tabular-nums">-- {stats.total} {'Total'.toLowerCase()}</span>
           </div>
           {pipelineExpanded ? <ChevronUp className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />}
         </button>
@@ -305,7 +305,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
             {/* 24h Activity Sparkline */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-widest">{t('allReports.activityTimeline', lang)}</span>
+                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-widest">{'24h Activity Timeline'}</span>
  <span className="text-[9px] text-gray-400 dark:text-gray-300">{'->'}</span>
               </div>
               <div className="flex items-end gap-px h-8">
@@ -314,7 +314,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
                     key={i}
                     className={`flex-1 rounded-t-sm transition-all duration-300 ${v > 0.7 ? 'bg-red-400 dark:bg-red-500' : v > 0.4 ? 'bg-amber-400 dark:bg-amber-500' : v > 0 ? 'bg-aegis-400 dark:bg-aegis-500' : 'bg-gray-100 dark:bg-gray-800'}`}
                     style={{ height: `${Math.max(v * 100, v > 0 ? 10 : 3)}%` }}
-                    title={`${24 - i}${t('time.hAgo', lang)}: ${sparklineData.buckets[i]} ${t('common.reports', lang)}`}
+                    title={`${24 - i}${'h ago'}: ${sparklineData.buckets[i]} ${'reports'}`}
                   />
                 ))}
               </div>
@@ -324,23 +324,23 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
             <div className="flex items-center gap-4 pt-2 border-t border-gray-100 dark:border-gray-800">
               <div className="flex items-center gap-1.5">
                 <Brain className="w-3.5 h-3.5 text-violet-500" />
-                <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('analytics.avgAiConfidence', lang)} <span className="font-bold text-violet-600 dark:text-violet-400 tabular-nums">{stats.avgConf}%</span></span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-300">{'Avg AI Confidence'} <span className="font-bold text-violet-600 dark:text-violet-400 tabular-nums">{stats.avgConf}%</span></span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Camera className="w-3.5 h-3.5 text-blue-500" />
-                <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('admin.mediaAttached', lang)} <span className="font-bold text-blue-600 dark:text-blue-400 tabular-nums">{stats.withMedia}</span>/{stats.total}</span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-300">{'Media attached'} <span className="font-bold text-blue-600 dark:text-blue-400 tabular-nums">{stats.withMedia}</span>/{stats.total}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-red-500" />
-                <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('admin.filters.severity.high', lang)} <span className="font-bold tabular-nums">{stats.high}</span></span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-300">{'High'} <span className="font-bold tabular-nums">{stats.high}</span></span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-amber-500" />
-                <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('admin.filters.severity.medium', lang)} <span className="font-bold tabular-nums">{stats.medium}</span></span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-300">{'Medium'} <span className="font-bold tabular-nums">{stats.medium}</span></span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('admin.filters.severity.low', lang)} <span className="font-bold tabular-nums">{stats.low}</span></span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-300">{'Low'} <span className="font-bold tabular-nums">{stats.low}</span></span>
               </div>
             </div>
           </div>
@@ -353,13 +353,13 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
       <div className="bg-gradient-to-r from-violet-500/5 via-purple-500/5 to-fuchsia-500/5 dark:from-violet-500/10 dark:via-purple-500/10 dark:to-fuchsia-500/10 rounded-2xl ring-1 ring-violet-200 dark:ring-violet-800/50 p-4 backdrop-blur">
         <div className="flex items-center gap-2 mb-2.5">
           <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center"><Brain className="w-3.5 h-3.5 text-white" /></div>
-          <span className="text-xs font-bold text-violet-800 dark:text-violet-300">{t('allReports.aiSmartFilter', lang)}</span>
+          <span className="text-xs font-bold text-violet-800 dark:text-violet-300">{'AI Smart Filter'}</span>
         </div>
         <div className="relative">
           <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-violet-400" />
           <input
             className="w-full pl-10 pr-10 py-2.5 text-sm bg-white/80 dark:bg-gray-900/80 backdrop-blur rounded-xl ring-1 ring-violet-200 dark:ring-violet-800 focus:ring-2 focus:ring-violet-500 focus:outline-none placeholder-gray-400 transition-all"
-            placeholder={t('common.search', lang)}
+            placeholder={'Search'}
             value={smartFilter}
             onChange={e => setSmartFilter(e.target.value)}
           />
@@ -382,29 +382,29 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
-            <input ref={searchRef} className="w-full pl-10 pr-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl ring-1 ring-gray-200 dark:ring-gray-700 focus:ring-2 focus:ring-aegis-500 focus:outline-none transition-all" placeholder={t('reports.search', lang)} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            <input ref={searchRef} className="w-full pl-10 pr-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl ring-1 ring-gray-200 dark:ring-gray-700 focus:ring-2 focus:ring-aegis-500 focus:outline-none transition-all" placeholder={'Search...'} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
           <div className="flex items-center gap-1.5">
             <Filter className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
             <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)} className="text-xs bg-gray-50 dark:bg-gray-800 px-2.5 py-2 rounded-xl ring-1 ring-gray-200 dark:ring-gray-700 focus:ring-2 focus:ring-aegis-500 focus:outline-none cursor-pointer">
-              <option value="all">{t('admin.filters.severity.all', lang)}</option>
-              <option value="High">{t('admin.filters.severity.high', lang)}</option>
-              <option value="Medium">{t('admin.filters.severity.medium', lang)}</option>
-              <option value="Low">{t('admin.filters.severity.low', lang)}</option>
+              <option value="all">{'All Severity'}</option>
+              <option value="High">{'High'}</option>
+              <option value="Medium">{'Medium'}</option>
+              <option value="Low">{'Low'}</option>
             </select>
             <select value={filterType} onChange={e => setFilterType(e.target.value)} className="text-xs bg-gray-50 dark:bg-gray-800 px-2.5 py-2 rounded-xl ring-1 ring-gray-200 dark:ring-gray-700 focus:ring-2 focus:ring-aegis-500 focus:outline-none cursor-pointer">
-              <option value="all">{t('admin.filters.type.all', lang)}</option>
-              <option value="natural_disaster">{t('admin.filters.type.natural_disaster', lang)}</option>
-              <option value="infrastructure">{t('admin.filters.type.infrastructure', lang)}</option>
-              <option value="public_safety">{t('admin.filters.type.public_safety', lang)}</option>
-              <option value="community_safety">{t('admin.filters.type.community_safety', lang)}</option>
-              <option value="environmental">{t('admin.filters.type.environmental', lang)}</option>
-              <option value="medical">{t('admin.filters.type.medical', lang)}</option>
+              <option value="all">{'All Types'}</option>
+              <option value="natural_disaster">{'Natural Disaster'}</option>
+              <option value="infrastructure">{'Infrastructure Accident'}</option>
+              <option value="public_safety">{'Public Safety'}</option>
+              <option value="community_safety">{'Community Safety'}</option>
+              <option value="environmental">{'Environmental Hazard'}</option>
+              <option value="medical">{'Medical Emergency'}</option>
             </select>
           </div>
           {hasFilters && (
             <button onClick={clearFilters} className="text-[10px] font-semibold text-red-600 hover:text-red-700 bg-red-50 dark:bg-red-950/20 px-2.5 py-1.5 rounded-lg ring-1 ring-red-200 dark:ring-red-800 flex items-center gap-1 transition-all hover:shadow-sm">
-              <X className="w-3 h-3" /> {t('common.clearAll', lang)}
+              <X className="w-3 h-3" /> {'Clear All'}
             </button>
           )}
         </div>
@@ -415,7 +415,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
            */}
       <div className="flex items-center gap-2 flex-wrap">
         {([
-          { label: t('common.all', lang), value: 'all', count: reports.length, bg: 'bg-gray-100 dark:bg-gray-800', tc: 'text-gray-700 dark:text-gray-300', ring: 'ring-gray-200 dark:ring-gray-700' },
+          { label: 'All', value: 'all', count: reports.length, bg: 'bg-gray-100 dark:bg-gray-800', tc: 'text-gray-700 dark:text-gray-300', ring: 'ring-gray-200 dark:ring-gray-700' },
           { label: statusLabel('Urgent', lang), value: 'Urgent', count: stats.urgent, bg: 'bg-red-50 dark:bg-red-950/20', tc: 'text-red-700 dark:text-red-300', ring: 'ring-red-200 dark:ring-red-800', dot: 'bg-red-500' },
           { label: statusLabel('Unverified', lang), value: 'Unverified', count: stats.unverified, bg: 'bg-aegis-50 dark:bg-aegis-950/20', tc: 'text-aegis-700 dark:text-aegis-300', ring: 'ring-aegis-200 dark:ring-aegis-800', dot: 'bg-aegis-500' },
           { label: statusLabel('Verified', lang), value: 'Verified', count: stats.verified, bg: 'bg-emerald-50 dark:bg-emerald-950/20', tc: 'text-emerald-700 dark:text-emerald-300', ring: 'ring-emerald-200 dark:ring-emerald-800', dot: 'bg-emerald-500' },
@@ -436,20 +436,20 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-3">
           <p className="text-xs text-gray-500 dark:text-gray-300 tabular-nums">
-            <span className="font-bold text-primary">{filtered.length}</span> {t('admin.reportsFound', lang)}
-            {selectedReportIds.size > 0 && <span className="text-aegis-600 font-bold ml-2">({selectedReportIds.size} {t('common.selected', lang)})</span>}
+            <span className="font-bold text-primary">{filtered.length}</span> {'reports found'}
+            {selectedReportIds.size > 0 && <span className="text-aegis-600 font-bold ml-2">({selectedReportIds.size} {'selected'})</span>}
           </p>
         </div>
         <div className="flex items-center gap-3">
           {viewMode === 'table' && (
             <span className="text-[10px] text-gray-400 dark:text-gray-300 flex items-center gap-1">
-              <ArrowUpDown className="w-3 h-3" /> {t('common.sortBy', lang)}
+              <ArrowUpDown className="w-3 h-3" /> {'Sort by'}
             </span>
           )}
           {filtered.length > 0 && (
             <label className="flex items-center gap-2 text-xs cursor-pointer group">
               <input type="checkbox" checked={selectedReportIds.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll} className="w-4 h-4 text-aegis-600 border-gray-300 rounded focus:ring-aegis-500" />
-              <span className="font-semibold text-gray-600 dark:text-gray-300 group-hover:text-aegis-600 transition-colors">{t('common.selectAll', lang)}</span>
+              <span className="font-semibold text-gray-600 dark:text-gray-300 group-hover:text-aegis-600 transition-colors">{'Select All'}</span>
             </label>
           )}
         </div>
@@ -463,9 +463,9 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
           <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
             <Search className="w-8 h-8 text-gray-300 dark:text-gray-400" />
           </div>
-          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{t('common.noReportsFound', lang)}</h3>
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{'No reports found'}</h3>
           <button onClick={clearFilters} className="text-xs font-semibold text-aegis-600 hover:text-aegis-700 bg-aegis-50 dark:bg-aegis-950/30 px-4 py-2 rounded-lg ring-1 ring-aegis-200 dark:ring-aegis-800 transition-all hover:shadow-md">
-            {t('common.clearAll', lang)}
+            {'Clear All'}
           </button>
         </div>
       ) : viewMode === 'table' ? (
@@ -474,13 +474,13 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
           <DataTable<Report>
             columns={[
               { key: 'sel', header: <input type="checkbox" checked={selectedReportIds.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll} className="w-3.5 h-3.5 text-aegis-600 border-gray-300 rounded focus:ring-aegis-500" />, headerClassName: 'w-10', render: r => <span onClick={e => e.stopPropagation()}><input type="checkbox" checked={selectedReportIds.has(r.id)} onChange={() => toggleSelection(r.id)} className="w-3.5 h-3.5 text-aegis-600 border-gray-300 rounded focus:ring-aegis-500" /></span> },
-              { key: 'status', header: t('common.status', lang), sortable: true, render: r => <><span className={`inline-block text-[10px] px-2 py-0.5 rounded-md font-bold ${{ Urgent: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', Verified: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300', Flagged: 'bg-aegis-100 text-aegis-700 dark:bg-aegis-900/30 dark:text-aegis-300', Resolved: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300', Archived: 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400', False_Report: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400', Unverified: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }[r.status] || 'bg-gray-100 text-gray-600'}`}>{statusLabel(r.status, lang)}</span>{r.status === 'Urgent' && <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full animate-ping ml-1" />}</> },
-              { key: 'severity', header: t('common.severity', lang), sortable: true, render: r => <span className={`inline-block text-[10px] px-2 py-0.5 rounded-md font-bold ${{ High: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', Medium: 'bg-aegis-100 text-aegis-700 dark:bg-aegis-900/30 dark:text-aegis-300', Low: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }[r.severity] || ''}`}>{severityLabel(r.severity, lang)}</span> },
-              { key: 'type', header: t('common.type', lang), sortable: true, render: r => <div className="flex items-center gap-1.5"><span className="text-xs font-semibold truncate max-w-[160px]">{r.type || r.incidentCategory}</span>{r.trappedPersons === 'yes' && <AlertTriangle className="w-3 h-3 text-purple-600 flex-shrink-0" />}{r.hasMedia && <Camera className="w-3 h-3 text-blue-500 flex-shrink-0" />}</div> },
-              { key: 'location', header: t('common.location', lang), sortable: true, render: r => <span className="text-[10px] text-gray-600 dark:text-gray-300 truncate max-w-[140px] block">{r.location}</span> },
+              { key: 'status', header: 'Status', sortable: true, render: r => <><span className={`inline-block text-[10px] px-2 py-0.5 rounded-md font-bold ${{ Urgent: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', Verified: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300', Flagged: 'bg-aegis-100 text-aegis-700 dark:bg-aegis-900/30 dark:text-aegis-300', Resolved: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300', Archived: 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400', False_Report: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400', Unverified: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }[r.status] || 'bg-gray-100 text-gray-600'}`}>{statusLabel(r.status, lang)}</span>{r.status === 'Urgent' && <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full animate-ping ml-1" />}</> },
+              { key: 'severity', header: 'Severity', sortable: true, render: r => <span className={`inline-block text-[10px] px-2 py-0.5 rounded-md font-bold ${{ High: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', Medium: 'bg-aegis-100 text-aegis-700 dark:bg-aegis-900/30 dark:text-aegis-300', Low: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }[r.severity] || ''}`}>{severityLabel(r.severity, lang)}</span> },
+              { key: 'type', header: 'Type', sortable: true, render: r => <div className="flex items-center gap-1.5"><span className="text-xs font-semibold truncate max-w-[160px]">{r.type || r.incidentCategory}</span>{r.trappedPersons === 'yes' && <AlertTriangle className="w-3 h-3 text-purple-600 flex-shrink-0" />}{r.hasMedia && <Camera className="w-3 h-3 text-blue-500 flex-shrink-0" />}</div> },
+              { key: 'location', header: 'Location', sortable: true, render: r => <span className="text-[10px] text-gray-600 dark:text-gray-300 truncate max-w-[140px] block">{r.location}</span> },
               { key: 'confidence', header: 'AI', sortable: true, align: 'center', render: r => (r.confidence || 0) > 0 ? <div className="flex items-center justify-center gap-1"><div className="w-8 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all ${(r.confidence || 0) >= 80 ? 'bg-emerald-500' : (r.confidence || 0) >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${r.confidence}%` }} /></div><span className="text-[10px] font-bold tabular-nums text-gray-600 dark:text-gray-300">{r.confidence}%</span></div> : <span className="text-[10px] text-gray-300">--</span> },
-              { key: 'time', header: t('common.time', lang), sortable: true, align: 'right', render: r => <span className="text-[10px] text-gray-600 dark:text-gray-300 tabular-nums">{formatRelativeTime(r.timestamp, lang)}</span> },
-              { key: 'actions', header: t('common.actions', lang), align: 'center', render: r => <div className="flex items-center gap-1 justify-center"><button onClick={e => { e.stopPropagation(); onSelectReport(r) }} className="w-6 h-6 rounded bg-aegis-50 dark:bg-aegis-950/30 hover:bg-aegis-100 text-aegis-600 flex items-center justify-center transition-all" title={t('common.view', lang)}><Eye className="w-3 h-3" /></button>{r.hasMedia && <button onClick={e => { e.stopPropagation(); onOpenGallery(r) }} className="w-6 h-6 rounded bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 text-purple-600 flex items-center justify-center transition-all" title={t('admin.actions.openMedia', lang)}><Camera className="w-3 h-3" /></button>}<button onClick={e => { e.stopPropagation(); onPrintReport(r) }} className="w-6 h-6 rounded bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 text-gray-500 dark:text-gray-300 flex items-center justify-center transition-all" title={t('common.print', lang)}><Printer className="w-3 h-3" /></button></div> },
+              { key: 'time', header: 'Time', sortable: true, align: 'right', render: r => <span className="text-[10px] text-gray-600 dark:text-gray-300 tabular-nums">{formatRelativeTime(r.timestamp, lang)}</span> },
+              { key: 'actions', header: 'Actions', align: 'center', render: r => <div className="flex items-center gap-1 justify-center"><button onClick={e => { e.stopPropagation(); onSelectReport(r) }} className="w-6 h-6 rounded bg-aegis-50 dark:bg-aegis-950/30 hover:bg-aegis-100 text-aegis-600 flex items-center justify-center transition-all" title={'View'}><Eye className="w-3 h-3" /></button>{r.hasMedia && <button onClick={e => { e.stopPropagation(); onOpenGallery(r) }} className="w-6 h-6 rounded bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 text-purple-600 flex items-center justify-center transition-all" title={'Open media'}><Camera className="w-3 h-3" /></button>}<button onClick={e => { e.stopPropagation(); onPrintReport(r) }} className="w-6 h-6 rounded bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 text-gray-500 dark:text-gray-300 flex items-center justify-center transition-all" title={'Print'}><Printer className="w-3 h-3" /></button></div> },
             ] as DataTableColumn<Report>[]}
             rows={paginatedReports}
             rowKey={r => r.id}
@@ -489,7 +489,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
             onSort={field => toggleSort(field as SortKey)}
             onRowClick={r => onSelectReport(r)}
             rowClassName={r => selectedReportIds.has(r.id) ? 'bg-aegis-50/30 dark:bg-aegis-950/10' : ''}
-            emptyMessage={t('common.noReportsFound', lang)}
+            emptyMessage={'No reports found'}
             className="max-h-[70vh] overflow-y-auto"
           />
         </div>
@@ -532,8 +532,8 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
                           </div>
                         </span>
                       )}
-                      {r.hasMedia && <span className="text-[10px] text-blue-500 flex items-center gap-0.5"><Camera className="w-3 h-3" /> {t('admin.mediaAttached', lang)}</span>}
-                      {r.trappedPersons === 'yes' && <span className="text-[10px] px-2 py-0.5 rounded-md bg-purple-600 text-white font-bold flex items-center gap-0.5"><AlertTriangle className="w-3 h-3" /> {t('admin.badge.vulnerablePerson', lang)}</span>}
+                      {r.hasMedia && <span className="text-[10px] text-blue-500 flex items-center gap-0.5"><Camera className="w-3 h-3" /> {'Media attached'}</span>}
+                      {r.trappedPersons === 'yes' && <span className="text-[10px] px-2 py-0.5 rounded-md bg-purple-600 text-white font-bold flex items-center gap-0.5"><AlertTriangle className="w-3 h-3" /> {'Vulnerable Person'}</span>}
                     </div>
                     <div className="flex items-center gap-2">
                       <CatIcon className="w-4 h-4 text-gray-400 dark:text-gray-300 flex-shrink-0" />
@@ -547,10 +547,10 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
                   </div>
                   {/* Actions */}
                   <div className="flex gap-1.5 flex-shrink-0 items-center transition-opacity">
-                    <button onClick={() => onSelectReport(r)} className="w-8 h-8 rounded-lg bg-aegis-50 dark:bg-aegis-950/30 hover:bg-aegis-100 dark:hover:bg-aegis-950/50 text-aegis-600 flex items-center justify-center transition-all hover:shadow-sm ring-1 ring-aegis-200 dark:ring-aegis-800/40" title={t('admin.actions.viewReportDetail', lang)}><Eye className="w-4 h-4" /></button>
-                    {r.hasMedia && <button onClick={() => onOpenGallery(r)} className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 dark:hover:bg-purple-950/50 text-purple-600 flex items-center justify-center transition-all hover:shadow-sm ring-1 ring-purple-200 dark:ring-purple-800/40 relative" title={t('admin.actions.openMedia', lang)}><Camera className="w-4 h-4" />{(r.media?.length || 0) > 1 && <span className="absolute -top-1 -right-1 bg-purple-600 text-white text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">{r.media!.length}</span>}</button>}
-                    <button onClick={() => onShareReport(r)} className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50 text-blue-600 flex items-center justify-center transition-all hover:shadow-sm ring-1 ring-blue-200 dark:ring-blue-800/40" title={t('admin.actions.shareReport', lang)}><Send className="w-4 h-4" /></button>
-                    <button onClick={() => onPrintReport(r)} className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-300 flex items-center justify-center transition-all hover:shadow-sm ring-1 ring-gray-200 dark:ring-gray-700" title={t('admin.actions.printReport', lang)}><Printer className="w-4 h-4" /></button>
+                    <button onClick={() => onSelectReport(r)} className="w-8 h-8 rounded-lg bg-aegis-50 dark:bg-aegis-950/30 hover:bg-aegis-100 dark:hover:bg-aegis-950/50 text-aegis-600 flex items-center justify-center transition-all hover:shadow-sm ring-1 ring-aegis-200 dark:ring-aegis-800/40" title={'View report detail'}><Eye className="w-4 h-4" /></button>
+                    {r.hasMedia && <button onClick={() => onOpenGallery(r)} className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 dark:hover:bg-purple-950/50 text-purple-600 flex items-center justify-center transition-all hover:shadow-sm ring-1 ring-purple-200 dark:ring-purple-800/40 relative" title={'Open media'}><Camera className="w-4 h-4" />{(r.media?.length || 0) > 1 && <span className="absolute -top-1 -right-1 bg-purple-600 text-white text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">{r.media!.length}</span>}</button>}
+                    <button onClick={() => onShareReport(r)} className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50 text-blue-600 flex items-center justify-center transition-all hover:shadow-sm ring-1 ring-blue-200 dark:ring-blue-800/40" title={'Share report'}><Send className="w-4 h-4" /></button>
+                    <button onClick={() => onPrintReport(r)} className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-300 flex items-center justify-center transition-all hover:shadow-sm ring-1 ring-gray-200 dark:ring-gray-700" title={'Print report'}><Printer className="w-4 h-4" /></button>
                   </div>
                 </div>
               </div>
@@ -567,7 +567,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
             disabled={page === 0}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
- {'<-'} {t('common.previous', lang)}
+ {'<-'} {'Previous'}
           </button>
           <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums font-semibold">
             {page + 1} / {totalPages}
@@ -577,7 +577,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
             disabled={page >= totalPages - 1}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
- {t('common.next', lang)} {'->'}
+ {'Next'} {'->'}
           </button>
         </div>
       )}
@@ -590,32 +590,32 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="w-8 h-8 rounded-lg bg-aegis-600 flex items-center justify-center"><FileText className="w-4 h-4" /></div>
             <div>
-              <p className="text-sm font-bold tabular-nums whitespace-nowrap">{selectedReportIds.size} {t('common.selected', lang)}</p>
+              <p className="text-sm font-bold tabular-nums whitespace-nowrap">{selectedReportIds.size} {'selected'}</p>
               <p className="text-[9px] text-gray-400 dark:text-gray-300 whitespace-nowrap">
-                {bulkProgress ? `${t('common.processing', lang)} ${bulkProgress.current}/${bulkProgress.total}...` : t('common.actions', lang)}
+                {bulkProgress ? `${'Processing'} ${bulkProgress.current}/${bulkProgress.total}...` : 'Actions'}
               </p>
             </div>
           </div>
           <div className="w-px h-8 bg-gray-700 flex-shrink-0" />
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-            <button onClick={onBulkVerify} className="min-h-[36px] px-2.5 sm:px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all" title={t('admin.action.verify', lang)}>
-              <CheckCircle className="w-4 h-4" /> <span className="hidden sm:inline">{t('admin.action.verify', lang)}</span>
+            <button onClick={onBulkVerify} className="min-h-[36px] px-2.5 sm:px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all" title={'Verify'}>
+              <CheckCircle className="w-4 h-4" /> <span className="hidden sm:inline">{'Verify'}</span>
             </button>
-            <button onClick={onBulkFlag} className="min-h-[36px] px-2.5 sm:px-3.5 py-2 bg-aegis-600 hover:bg-aegis-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all" title={t('admin.action.flag', lang)}>
-              <Flag className="w-4 h-4" /> <span className="hidden sm:inline">{t('admin.action.flag', lang)}</span>
+            <button onClick={onBulkFlag} className="min-h-[36px] px-2.5 sm:px-3.5 py-2 bg-aegis-600 hover:bg-aegis-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all" title={'Flag'}>
+              <Flag className="w-4 h-4" /> <span className="hidden sm:inline">{'Flag'}</span>
             </button>
-            <button onClick={onBulkUrgent} className="min-h-[36px] px-2.5 sm:px-3.5 py-2 bg-red-600 hover:bg-red-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all" title={t('admin.action.urgent', lang)}>
-              <Siren className="w-4 h-4" /> <span className="hidden sm:inline">{t('admin.action.urgent', lang)}</span>
+            <button onClick={onBulkUrgent} className="min-h-[36px] px-2.5 sm:px-3.5 py-2 bg-red-600 hover:bg-red-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all" title={'Urgent'}>
+              <Siren className="w-4 h-4" /> <span className="hidden sm:inline">{'Urgent'}</span>
             </button>
-            <button onClick={onBulkResolve} className="min-h-[36px] px-2.5 sm:px-3.5 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all" title={t('admin.action.resolve', lang)}>
-              <CheckCircle2 className="w-4 h-4" /> <span className="hidden sm:inline">{t('admin.action.resolve', lang)}</span>
+            <button onClick={onBulkResolve} className="min-h-[36px] px-2.5 sm:px-3.5 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all" title={'Resolve'}>
+              <CheckCircle2 className="w-4 h-4" /> <span className="hidden sm:inline">{'Resolve'}</span>
             </button>
-            <button onClick={onBulkArchive} className="min-h-[36px] px-2.5 sm:px-3.5 py-2 bg-slate-600 hover:bg-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all" title={t('admin.action.archive', lang)}>
-              <Archive className="w-4 h-4" /> <span className="hidden sm:inline">{t('admin.action.archive', lang)}</span>
+            <button onClick={onBulkArchive} className="min-h-[36px] px-2.5 sm:px-3.5 py-2 bg-slate-600 hover:bg-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all" title={'Archive'}>
+              <Archive className="w-4 h-4" /> <span className="hidden sm:inline">{'Archive'}</span>
             </button>
           </div>
           <div className="w-px h-8 bg-gray-700 flex-shrink-0" />
-          <button onClick={() => setSelectedReportIds(new Set())} className="min-w-[36px] min-h-[36px] hover:bg-gray-800 rounded-lg transition-all flex items-center justify-center flex-shrink-0" title={t('common.clear', lang)}>
+          <button onClick={() => setSelectedReportIds(new Set())} className="min-w-[36px] min-h-[36px] hover:bg-gray-800 rounded-lg transition-all flex items-center justify-center flex-shrink-0" title={'Clear'}>
             <X className="w-4 h-4" />
           </button>
         </div>

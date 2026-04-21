@@ -62,7 +62,7 @@ export const Navbar = memo<NavbarProps>(({
   return (
     <header className={`bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 ${className}`}>
       <nav
-        aria-label={t('nav.main', 'Main navigation')}
+        aria-label={'Main'}
         className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
       >
         <div className="flex h-16 items-center justify-between">
@@ -97,7 +97,7 @@ export const Navbar = memo<NavbarProps>(({
                 className="inline-flex items-center justify-center p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-aegis-500"
                 aria-expanded={isMobileMenuOpen}
                 aria-controls="mobile-menu"
-                aria-label={isMobileMenuOpen ? t('nav.closeMenu', 'Close menu') : t('nav.openMenu', 'Open menu')}
+                aria-label={isMobileMenuOpen ? 'Close Menu' : 'Open Menu'}
               >
                 {isMobileMenuOpen ? (
                   <CloseIcon className="h-6 w-6" />
@@ -263,7 +263,7 @@ export const Breadcrumbs = memo<BreadcrumbsProps>(({
     : items
   
   return (
-    <nav aria-label={t('nav.breadcrumb', 'Breadcrumb')} className={className}>
+    <nav aria-label={'Breadcrumb'} className={className}>
       <ol className="flex items-center space-x-2">
         {displayItems.map((item, index) => {
           const isLast = index === displayItems.length - 1
@@ -328,7 +328,7 @@ export const SidebarNav = memo<SidebarNavProps>(({
   
   return (
     <nav
-      aria-label={t('nav.sidebar', 'Sidebar navigation')}
+      aria-label={'Sidebar'}
       className={`space-y-1 ${className}`}
     >
       {items.map(item => (
@@ -409,7 +409,7 @@ export const MobileDrawer = memo<MobileDrawerProps>(({
         ref={drawerRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title || t('nav.drawer', 'Navigation drawer')}
+        aria-label={title || 'Drawer'}
         className={`
           fixed top-0 bottom-0 ${width}
           bg-white dark:bg-gray-900
@@ -431,7 +431,7 @@ export const MobileDrawer = memo<MobileDrawerProps>(({
             type="button"
             onClick={onClose}
             className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-aegis-500"
-            aria-label={t('common.close', 'Close')}
+            aria-label={'Close'}
           >
             <CloseIcon className="h-5 w-5" />
           </button>

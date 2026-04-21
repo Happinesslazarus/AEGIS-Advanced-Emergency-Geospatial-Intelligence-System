@@ -22,8 +22,8 @@ export default function ConfirmDialog({ title, message, confirmLabel, cancelLabe
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-300 mb-5">{message}</p>
         <div className="flex flex-col-reverse sm:flex-row gap-2">
-          <button onClick={onConfirm} className={`btn flex-1 min-h-[44px] text-white ${colors[variant]}`}>{confirmLabel || t('confirm.confirm', lang)}</button>
-          <button onClick={onCancel} className="btn-outline flex-1 min-h-[44px]">{cancelLabel || t('confirm.cancel', lang)}</button>
+          <button onClick={onConfirm} className={`btn flex-1 min-h-[44px] text-white ${colors[variant]}`}>{confirmLabel || 'Confirm'}</button>
+          <button onClick={onCancel} className="btn-outline flex-1 min-h-[44px]">{cancelLabel || 'Cancel'}</button>
         </div>
       </div>
     </div>

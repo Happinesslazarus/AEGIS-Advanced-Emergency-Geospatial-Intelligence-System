@@ -104,7 +104,7 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(null)
   const [gpsRequesting, setGpsRequesting] = useState(false)
-  const [locationLabel, setLocationLabel] = useState(t('weather.enableLocation', lang))
+  const [locationLabel, setLocationLabel] = useState('Enable location to see local weather')
   const [showHourly, setShowHourly] = useState(false)
   const fetchAbortRef = useRef<AbortController | null>(null)
 
@@ -182,7 +182,7 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
   useEffect(() => () => { fetchAbortRef.current?.abort() }, [])
 
   const requestUserLocation = () => {
-    if (!('geolocation' in navigator)) { setError(t('weather.gpsNotAvailable', lang)); return }
+    if (!('geolocation' in navigator)) { setError('GPS not available'); return }
     setGpsRequesting(true)
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
@@ -194,9 +194,9 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
         setGpsRequesting(false)
       },
       (err) => {
-        if (err.code === 1) setError(t('weather.enableLocationToSee', lang))
-        else setError(t('weather.couldNotDetermineLocation', lang))
-        setLocationLabel(t('weather.enableLocation', lang))
+        if (err.code === 1) setError('Enable location to see local weather')
+        else setError('Could not determine your location')
+        setLocationLabel('Enable location to see local weather')
         setGpsRequesting(false)
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
@@ -232,26 +232,26 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Activity className="w-3.5 h-3.5 text-white/80" />
-              <span className="text-[10px] font-bold text-white/80 uppercase tracking-wider">{t('weather.localConditions', lang)}</span>
+              <span className="text-[10px] font-bold text-white/80 uppercase tracking-wider">{'Local Conditions'}</span>
               <span className="text-[8px] bg-white/20 text-white px-1.5 py-0.5 rounded-full font-bold">LIVE</span>
             </div>
             <button onClick={requestUserLocation} disabled={gpsRequesting} className="text-left group" title={userCoords ? 'Update location' : 'Use GPS location'}>
               <span className="text-xs flex items-center gap-1 text-white/70 hover:text-white transition-colors">
                 {gpsRequesting ? (
-                  <><Loader2 className="w-3 h-3 animate-spin" /> {t('weather.detecting', lang)}</>
+                  <><Loader2 className="w-3 h-3 animate-spin" /> {'Detecting...'}</>
                 ) : userCoords ? (
                   <><MapPin className="w-3 h-3 text-green-200" /> {locationLabel}</>
                 ) : (
-                  <><MapPin className="w-3 h-3" /> {t('weather.enableLocationToSee', lang)}</>
+                  <><MapPin className="w-3 h-3" /> {'Enable location to see local weather'}</>
                 )}
               </span>
             </button>
           </div>
           <div className="flex items-center gap-1">
             {userCoords && (
-              <button onClick={() => { setUserCoords(null); setWeather(null); setLocationLabel(t('weather.enableLocation', lang)) }} className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-[9px] font-medium transition-all" title={t('weather.resetLocation', lang)}>{t('common.reset', lang)}</button>
+              <button onClick={() => { setUserCoords(null); setWeather(null); setLocationLabel('Enable location to see local weather') }} className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-[9px] font-medium transition-all" title={'Reset location'}>{'Reset'}</button>
             )}
-            <button onClick={() => userCoords ? fetchWeather(userCoords.lat, userCoords.lon) : requestUserLocation()} disabled={loading || gpsRequesting} className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25 transition-all" title={t('common.refresh', lang)}>
+            <button onClick={() => userCoords ? fetchWeather(userCoords.lat, userCoords.lon) : requestUserLocation()} disabled={loading || gpsRequesting} className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25 transition-all" title={'Refresh'}>
               {loading ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 text-white/80" />}
             </button>
           </div>
@@ -288,10 +288,10 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
           {/* Primary metrics grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {[
-              { icon: Droplets, label: t('weather.rainfall', lang), value: `${w.rainfall.toFixed(1)} mm`, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30' },
-              { icon: Wind, label: t('weather.wind', lang), value: `${Math.round(w.windSpeed)} km/h`, color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-950/30' },
-              { icon: Eye, label: t('weather.visibility', lang), value: `${w.visibility.toFixed(0)} km`, color: 'text-gray-500 dark:text-gray-300', bg: 'bg-gray-50 dark:bg-gray-800/50' },
-              { icon: Gauge, label: t('weather.humidity', lang), value: `${w.humidity}%`, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-950/30' },
+              { icon: Droplets, label: 'Rainfall', value: `${w.rainfall.toFixed(1)} mm`, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30' },
+              { icon: Wind, label: 'Wind', value: `${Math.round(w.windSpeed)} km/h`, color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-950/30' },
+              { icon: Eye, label: 'Visibility', value: `${w.visibility.toFixed(0)} km`, color: 'text-gray-500 dark:text-gray-300', bg: 'bg-gray-50 dark:bg-gray-800/50' },
+              { icon: Gauge, label: 'Humidity', value: `${w.humidity}%`, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-950/30' },
               { icon: Thermometer, label: 'Dew Point', value: `${Math.round(w.dewPoint)}°C`, color: 'text-cyan-500', bg: 'bg-cyan-50 dark:bg-cyan-950/30' },
               { icon: Compass, label: 'Pressure', value: `${Math.round(w.pressure)} hPa`, color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-950/30' },
             ].map(({ icon: Ico, label, value, color, bg }) => (
@@ -386,7 +386,7 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
             <div key={i} className={`p-3 rounded-xl border flex items-start gap-2.5 ${warn.severity >= 4 ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50' : warn.severity >= 3 ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50' : 'bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800/50'}`}>
               <ShieldAlert className={`w-4 h-4 mt-0.5 flex-shrink-0 ${warn.severity >= 4 ? 'text-red-500' : warn.severity >= 3 ? 'text-amber-500' : 'text-yellow-500'}`} />
               <div>
-                <p className={`text-[10px] font-extrabold uppercase tracking-wider mb-0.5 ${warn.severity >= 4 ? 'text-red-700 dark:text-red-300' : warn.severity >= 3 ? 'text-amber-700 dark:text-amber-300' : 'text-yellow-700 dark:text-yellow-300'}`}>{warn.type} {t('weather.warning', lang)}</p>
+                <p className={`text-[10px] font-extrabold uppercase tracking-wider mb-0.5 ${warn.severity >= 4 ? 'text-red-700 dark:text-red-300' : warn.severity >= 3 ? 'text-amber-700 dark:text-amber-300' : 'text-yellow-700 dark:text-yellow-300'}`}>{warn.type} {'warning'}</p>
                 <p className={`text-[11px] leading-relaxed ${warn.severity >= 4 ? 'text-red-600 dark:text-red-400' : warn.severity >= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-yellow-600 dark:text-yellow-400'}`}>{warn.message}</p>
               </div>
             </div>
@@ -394,20 +394,20 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
 
           {lastUpdated && (
             <p className="text-[9px] text-gray-400 dark:text-gray-300 text-right font-medium">
-              {t('weather.updated', lang)}: {lastUpdated.toLocaleTimeString()} {userCoords && <span className="text-gray-300 dark:text-gray-500">({userCoords.lat.toFixed(2)}, {userCoords.lon.toFixed(2)})</span>}
+              {'Updated'}: {lastUpdated.toLocaleTimeString()} {userCoords && <span className="text-gray-300 dark:text-gray-500">({userCoords.lat.toFixed(2)}, {userCoords.lon.toFixed(2)})</span>}
             </p>
           )}
         </div>
       ) : loading ? (
         <div className="flex items-center justify-center py-10">
           <Loader2 className="w-5 h-5 text-aegis-500 animate-spin" />
-          <span className="text-xs text-gray-400 dark:text-gray-300 ml-2">{t('weather.loadingWeather', lang)}</span>
+          <span className="text-xs text-gray-400 dark:text-gray-300 ml-2">{'Loading weather...'}</span>
         </div>
       ) : (
         <div className="p-4 text-center">
           <button onClick={requestUserLocation} className="inline-flex items-center gap-1.5 text-xs font-semibold text-aegis-600 dark:text-aegis-400 hover:text-aegis-500 transition-colors">
             <MapPin className="w-3.5 h-3.5" />
-            {t('weather.enableLocationToSee', lang)}
+            {'Enable location to see local weather'}
           </button>
         </div>
       )}

@@ -91,12 +91,12 @@ function formatTimestamp(ts: string): string {
 function relativeTime(ts: string, lang: string): string {
   const diff = Date.now() - new Date(ts).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return t('common.justNow', lang)
-  if (mins < 60) return `${mins}${t('common.minutesShort', lang)} ${t('common.ago', lang)}`
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}${'m'} ${'ago'}`
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}${t('common.hoursShort', lang)} ${t('common.ago', lang)}`
+  if (hours < 24) return `${hours}${'h'} ${'ago'}`
   const days = Math.floor(hours / 24)
-  return `${days}${t('common.daysShort', lang)} ${t('common.ago', lang)}`
+  return `${days}${'d'} ${'ago'}`
 }
 
 function parseUA(ua?: string): string {
@@ -249,7 +249,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
     setFetchError(null)
     apiGetAuditLog({ limit: '500' })
       .then(d => setAuditLog(d || []))
-      .catch(() => setFetchError(t('audit.fetchError', lang) || 'Failed to refresh audit log'))
+      .catch(() => setFetchError('Failed to refresh audit log'))
       .finally(() => setRefreshing(false))
   }, [setAuditLog, lang])
 
@@ -328,8 +328,8 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                 <Shield className="w-6 h-6 text-purple-300" />
               </div>
               <div>
-                <h2 className="text-white font-bold text-xl tracking-tight">{t('audit.complianceTitle', lang)}</h2>
-                <p className="text-purple-300 text-sm">{t('audit.subtitle', lang)} &middot; {t('audit.tamperEvident', lang)} &middot; {auditLog.length} {t('common.total', lang)} {t('common.entries', lang)}</p>
+                <h2 className="text-white font-bold text-xl tracking-tight">{'Compliance Audit Trail'}</h2>
+                <p className="text-purple-300 text-sm">{'Immutable operator action log'} &middot; {'Tamper-evident'} &middot; {auditLog.length} {'Total'} {'entries'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -337,14 +337,14 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                 onClick={() => exportAuditCSV(filteredAudit)}
                 className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-gray-300 dark:text-gray-300 hover:text-white transition-all"
               >
-                <Download className="w-3.5 h-3.5" /> {t('common.exportCsv', lang)}
+                <Download className="w-3.5 h-3.5" /> {'Export CSV'}
               </button>
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
                 className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-xs text-white transition-all disabled:opacity-50"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} /> {t('common.refresh', lang)}
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} /> {'Refresh'}
               </button>
             </div>
           </div>
@@ -352,12 +352,12 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
           {/* Stat cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { label: t('audit.totalEntries', lang), value: auditLog.length, icon: FileText, color: 'text-cyan-300', accent: 'from-cyan-500/10 to-cyan-600/5' },
-              { label: t('audit.today', lang), value: stats.todayCount, icon: Calendar, color: 'text-green-300', accent: 'from-green-500/10 to-green-600/5' },
-              { label: t('audit.thisWeek', lang), value: stats.thisWeek, icon: TrendingUp, color: 'text-blue-300', accent: 'from-blue-500/10 to-blue-600/5' },
-              { label: t('audit.criticalActions', lang), value: stats.criticalActions, icon: AlertTriangle, color: 'text-red-300', accent: 'from-red-500/10 to-red-600/5' },
-              { label: t('audit.operators', lang), value: stats.operatorCount, icon: User, color: 'text-amber-300', accent: 'from-amber-500/10 to-amber-600/5' },
-              { label: t('audit.actionTypes', lang), value: stats.typeCount, icon: BarChart3, color: 'text-purple-300', accent: 'from-purple-500/10 to-purple-600/5' },
+              { label: 'Total Entries', value: auditLog.length, icon: FileText, color: 'text-cyan-300', accent: 'from-cyan-500/10 to-cyan-600/5' },
+              { label: 'Today', value: stats.todayCount, icon: Calendar, color: 'text-green-300', accent: 'from-green-500/10 to-green-600/5' },
+              { label: 'This Week', value: stats.thisWeek, icon: TrendingUp, color: 'text-blue-300', accent: 'from-blue-500/10 to-blue-600/5' },
+              { label: 'Critical Actions', value: stats.criticalActions, icon: AlertTriangle, color: 'text-red-300', accent: 'from-red-500/10 to-red-600/5' },
+              { label: 'Operators', value: stats.operatorCount, icon: User, color: 'text-amber-300', accent: 'from-amber-500/10 to-amber-600/5' },
+              { label: 'Action Types', value: stats.typeCount, icon: BarChart3, color: 'text-purple-300', accent: 'from-purple-500/10 to-purple-600/5' },
             ].map((s, i) => (
               <div key={i} className={`bg-gradient-to-br ${s.accent} rounded-xl p-3 border border-white/5 hover:border-white/10 transition-colors`}>
                 <div className="flex items-center gap-2 mb-1">
@@ -378,9 +378,9 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-purple-600" />
-              <h3 className="font-bold text-sm text-gray-900 dark:text-white">{t('audit.sevenDayActivity', lang)}</h3>
+              <h3 className="font-bold text-sm text-gray-900 dark:text-white">{'7-Day Activity'}</h3>
             </div>
-            <span className="text-[10px] text-gray-500 dark:text-gray-300">{stats.thisWeek} {t('audit.entriesThisWeek', lang)}</span>
+            <span className="text-[10px] text-gray-500 dark:text-gray-300">{stats.thisWeek} {'entries this week'}</span>
           </div>
           <div className="flex items-end gap-2 h-28">
             {timeline.map((day, i) => {
@@ -408,7 +408,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 shadow-lg">
           <div className="flex items-center gap-2 mb-4">
             <User className="w-4 h-4 text-purple-600" />
-            <h3 className="font-bold text-sm text-gray-900 dark:text-white">{t('audit.topOperators', lang)}</h3>
+            <h3 className="font-bold text-sm text-gray-900 dark:text-white">{'Top Operators'}</h3>
           </div>
           <div className="space-y-2.5">
             {operatorBreakdown.map(([name, count]) => {
@@ -426,7 +426,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
               )
             })}
             {operatorBreakdown.length === 0 && (
-              <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-4">{t('audit.noOperatorData', lang)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-4">{'No operator data'}</p>
             )}
           </div>
 
@@ -434,7 +434,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
           <div className="mt-5 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2 mb-3">
               <Activity className="w-3.5 h-3.5 text-purple-500" />
-              <span className="text-[10px] text-gray-500 dark:text-gray-300 uppercase tracking-wider font-semibold">{t('audit.actionTypes', lang)}</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-300 uppercase tracking-wider font-semibold">{'Action Types'}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {typeBreakdown.slice(0, 8).map(([type, count]) => {
@@ -458,7 +458,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
             <input
               value={search}
               onChange={e => { setSearch(e.target.value); resetPage() }}
-              placeholder={t('audit.searchPlaceholder', lang)}
+              placeholder={'Search actions, operators, targets, IP...'}
               className="w-full pl-9 pr-8 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
             />
             {search && (
@@ -472,7 +472,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
             onChange={e => { setTypeFilter(e.target.value); resetPage() }}
             className="text-xs px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
           >
-            <option value="all">{t('audit.allTypes', lang)}</option>
+            <option value="all">{'All Types'}</option>
             {actionTypes.map(t => {
               const cfg = getConfig(t)
               return <option key={t} value={t}>{cfg.label} ({t})</option>
@@ -483,7 +483,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
             onChange={e => { setOperatorFilter(e.target.value); resetPage() }}
             className="text-xs px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
           >
-            <option value="all">{t('audit.allOperators', lang)}</option>
+            <option value="all">{'All Operators'}</option>
             {operators.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
           <select
@@ -491,15 +491,15 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
             onChange={e => { setSortOrder(e.target.value as any); resetPage() }}
             className="text-xs px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
           >
-            <option value="newest">{t('audit.newestFirst', lang)}</option>
-            <option value="oldest">{t('audit.oldestFirst', lang)}</option>
+            <option value="newest">{'Newest First'}</option>
+            <option value="oldest">{'Oldest First'}</option>
           </select>
           {hasFilters && (
             <button
               onClick={clearFilters}
               className="flex items-center gap-1 px-2.5 py-2 text-[10px] font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
             >
-              <X className="w-3 h-3" /> {t('common.clearAll', lang)}
+              <X className="w-3 h-3" /> {'Clear All'}
             </button>
           )}
           {/* Date range filter */}
@@ -510,7 +510,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
               value={dateFrom}
               onChange={e => { setDateFrom(e.target.value); resetPage() }}
               className="text-xs px-2 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
-              title={t('audit.dateFrom', lang)}
+              title={'From date'}
             />
             <span className="text-[10px] text-gray-400">-</span>
             <input
@@ -519,10 +519,10 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
               min={dateFrom || undefined}
               onChange={e => { setDateTo(e.target.value); resetPage() }}
               className="text-xs px-2 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
-              title={t('audit.dateTo', lang)}
+              title={'To date'}
             />
           </div>
-          <span className="text-[10px] text-gray-500 dark:text-gray-300 ml-auto">{filteredAudit.length}/{auditLog.length} {t('common.entries', lang)}</span>
+          <span className="text-[10px] text-gray-500 dark:text-gray-300 ml-auto">{filteredAudit.length}/{auditLog.length} {'entries'}</span>
         </div>
       </div>
 
@@ -530,12 +530,12 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden">
         {/* Table header */}
         <div className="hidden sm:grid grid-cols-12 gap-3 px-5 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-300">
-          <div className="col-span-1">{t('common.type', lang)}</div>
-          <div className="col-span-4">{t('audit.action', lang)}</div>
-          <div className="col-span-2">{t('audit.operator', lang)}</div>
-          <div className="col-span-2">{t('audit.target', lang)}</div>
-          <div className="col-span-2">{t('audit.timestamp', lang)}</div>
-          <div className="col-span-1 text-center">{t('common.details', lang)}</div>
+          <div className="col-span-1">{'Type'}</div>
+          <div className="col-span-4">{'Action'}</div>
+          <div className="col-span-2">{'Operator'}</div>
+          <div className="col-span-2">{'Target'}</div>
+          <div className="col-span-2">{'Timestamp'}</div>
+          <div className="col-span-1 text-center">{'Details'}</div>
         </div>
 
         {/* Rows */}
@@ -543,9 +543,9 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
           {paginatedItems.length === 0 ? (
             <div className="text-center py-14">
               <Shield className="w-12 h-12 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600 dark:text-gray-300 font-semibold">{t('audit.noEntriesFound', lang)}</p>
+              <p className="text-gray-600 dark:text-gray-300 font-semibold">{'No audit entries found'}</p>
               <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
-                {hasFilters ? t('audit.tryAdjustingFilters', lang) : t('audit.actionsWillBeRecorded', lang)}
+                {hasFilters ? 'Try adjusting your filters' : 'Actions will be recorded here as operators take actions'}
               </p>
             </div>
           ) : paginatedItems.map((entry) => {
@@ -581,7 +581,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                       <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                         <User className="w-3 h-3 text-gray-500 dark:text-gray-300" />
                       </div>
-                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{entry.operator_name || t('common.system', lang)}</p>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{entry.operator_name || 'System'}</p>
                     </div>
                   </div>
 
@@ -603,7 +603,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                           <button
                             className="opacity-0 group-hover/tgt:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                             onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.target_id!) }}
-                            title={t('audit.copyTargetId', lang)}
+                            title={'Copy full ID'}
                           >
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
                           </button>
@@ -639,18 +639,18 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                       {(entry.before_state || entry.after_state) && (
                         <div>
                           <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold mb-2 flex items-center gap-1">
-                            <Eye className="w-3 h-3" /> {t('audit.stateChange', lang)}
+                            <Eye className="w-3 h-3" /> {'State Change'}
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {entry.before_state && (
                               <div className="rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 p-3">
-                                <p className="text-[9px] uppercase font-bold text-red-500 mb-2">{t('audit.before', lang)}</p>
+                                <p className="text-[9px] uppercase font-bold text-red-500 mb-2">{'Before'}</p>
                                 {renderStateBlock(entry.before_state)}
                               </div>
                             )}
                             {entry.after_state && (
                               <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/30 p-3">
-                                <p className="text-[9px] uppercase font-bold text-emerald-500 mb-2">{t('audit.after', lang)}</p>
+                                <p className="text-[9px] uppercase font-bold text-emerald-500 mb-2">{'After'}</p>
                                 {renderStateBlock(entry.after_state)}
                               </div>
                             )}
@@ -664,7 +664,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                           <div className="flex items-start gap-2">
                             <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300 mt-0.5" />
                             <div>
-                              <p className="text-[9px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{t('audit.ipAddress', lang)}</p>
+                              <p className="text-[9px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{'IP Address'}</p>
                               <p className="text-xs font-mono text-gray-700 dark:text-gray-300">{entry.ip_address}</p>
                             </div>
                           </div>
@@ -673,7 +673,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                           <div className="flex items-start gap-2">
                             <Monitor className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300 mt-0.5" />
                             <div>
-                              <p className="text-[9px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{t('audit.browser', lang)}</p>
+                              <p className="text-[9px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{'Browser'}</p>
                               <p className="text-xs text-gray-700 dark:text-gray-300">{parseUA(entry.user_agent)}</p>
                             </div>
                           </div>
@@ -682,7 +682,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                           <div className="flex items-start gap-2">
                             <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300 mt-0.5" />
                             <div>
-                              <p className="text-[9px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{t('audit.operatorId', lang)}</p>
+                              <p className="text-[9px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{'Operator ID'}</p>
                               <div className="flex items-center gap-1.5 group">
                                 <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">
                                   OPR-{entry.operator_id.slice(0, 6).toUpperCase()}
@@ -691,7 +691,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                                   onClick={() => { navigator.clipboard.writeText(entry.operator_id || ''); }}
                                   className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                                   title={entry.operator_id}
-                                  aria-label={t('audit.copyOperatorId', lang)}
+                                  aria-label={'Copy full ID'}
                                 >
                                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
                                 </button>
@@ -716,7 +716,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
               disabled={page === 0}
               className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              {t('common.previous', lang)}
+              {'Previous'}
             </button>
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
@@ -750,7 +750,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
               disabled={page >= totalPages - 1}
               className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              {t('common.next', lang)}
+              {'Next'}
             </button>
           </div>
         )}
@@ -768,14 +768,14 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
 
       {showKeyboard && (
         <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('common.shortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {t('common.refresh', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> {t('common.exportCsv', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">N</kbd> {t('common.newest', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">O</kbd> {t('common.oldest', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">X</kbd> {t('common.clearFilters', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('common.toggleShortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('common.close', lang)}</span>
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{'Shortcuts'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {'Refresh'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> {'Export CSV'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">N</kbd> {'Newest'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">O</kbd> {'Oldest'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">X</kbd> {'Clear Filters'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {'Toggle Shortcuts'}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{'Esc'}</kbd> {'Close'}</span>
         </div>
       )}
     </div>

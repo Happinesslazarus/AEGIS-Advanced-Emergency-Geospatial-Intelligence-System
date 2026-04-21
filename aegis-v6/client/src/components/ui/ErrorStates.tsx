@@ -129,7 +129,7 @@ export const ErrorDisplay = memo<ErrorDisplayProps>(({
             onClick={onRetry}
             className="text-sm font-medium text-red-700 dark:text-red-300 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 rounded"
           >
-            {retryText || t('common.retry', 'Retry')}
+            {retryText || 'Retry'}
           </button>
         )}
       </div>
@@ -151,7 +151,7 @@ export const ErrorDisplay = memo<ErrorDisplayProps>(({
       </div>
       
       <h3 className="text-lg font-semibold text-red-900 dark:text-red-100 mb-2">
-        {title || t('error.title', 'Something went wrong')}
+        {title || 'Title'}
       </h3>
       
       <p className="text-red-700 dark:text-red-300 mb-4">
@@ -165,7 +165,7 @@ export const ErrorDisplay = memo<ErrorDisplayProps>(({
             onClick={() => setShowStack(!showStack)}
             className="text-sm text-red-600 dark:text-red-400 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
           >
-            {showStack ? t('error.hideDetails', 'Hide details') : t('error.showDetails', 'Show details')}
+            {showStack ? 'Hide Details' : 'Show Details'}
           </button>
           {showStack && (
             <pre className="mt-2 p-3 bg-red-100 dark:bg-red-950 rounded text-left text-xs overflow-auto max-h-40 text-red-800 dark:text-red-200">
@@ -182,7 +182,7 @@ export const ErrorDisplay = memo<ErrorDisplayProps>(({
           className="inline-flex items-center px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
         >
           <RefreshIcon className="h-4 w-4 mr-2" />
-          {retryText || t('common.tryAgain', 'Try again')}
+          {retryText || 'Try Again'}
         </button>
       )}
     </div>
@@ -336,7 +336,7 @@ export const OfflineIndicator = memo<OfflineIndicatorProps>(({
       `}
     >
       <OfflineIcon className="inline h-4 w-4 mr-2" />
-      {message || t('network.offline', 'You are offline. Some features may be unavailable.')}
+      {message || 'Offline'}
     </div>
   )
 })
@@ -436,11 +436,11 @@ export const NotFound = memo<NotFoundProps>(({
       </div>
       
       <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-        {title || t('notFound.title', resourceType ? `${resourceType} not found` : 'Page not found')}
+        {title || 'Page not found'}
       </h2>
       
       <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-6">
-        {description || t('notFound.description', 'The page you\'re looking for doesn\'t exist or has been moved.')}
+        {description || 'Description'}
       </p>
       
       {backButton && (
@@ -490,11 +490,11 @@ export const AccessDenied = memo<AccessDeniedProps>(({
       </div>
       
       <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-        {title || t('accessDenied.title', 'Access Denied')}
+        {title || 'Title'}
       </h2>
       
       <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-6">
-        {description || t('accessDenied.description', 'You don\'t have permission to access this resource.')}
+        {description || 'Description'}
       </p>
       
       <div className="flex items-center justify-center gap-3">
@@ -505,7 +505,7 @@ export const AccessDenied = memo<AccessDeniedProps>(({
             className="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-aegis-500 focus:ring-offset-2 transition-colors"
           >
             <BackIcon className="h-4 w-4 mr-2" />
-            {t('common.goBack', 'Go back')}
+            {'Go Back'}
           </button>
         )}
         {onContactSupport && (
@@ -514,7 +514,7 @@ export const AccessDenied = memo<AccessDeniedProps>(({
             onClick={onContactSupport}
             className="inline-flex items-center px-4 py-2 rounded-lg bg-aegis-600 text-white font-medium hover:bg-aegis-700 focus:outline-none focus:ring-2 focus:ring-aegis-500 focus:ring-offset-2 transition-colors"
           >
-            {t('common.contactSupport', 'Contact Support')}
+            {'Contact Support'}
           </button>
         )}
       </div>

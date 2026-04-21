@@ -428,19 +428,19 @@ export default function AdminPage(): JSX.Element {
   }
 
   const severityLabel = (value: 'High' | 'Medium' | 'Low') => {
-    if (value === 'High') return t('admin.filters.severity.high', lang)
-    if (value === 'Medium') return t('admin.filters.severity.medium', lang)
-    return t('admin.filters.severity.low', lang)
+    if (value === 'High') return 'High'
+    if (value === 'Medium') return 'Medium'
+    return 'Low'
   }
 
   const statusLabel = (value: string) => {
-    if (value === 'Urgent') return t('admin.filters.status.urgent', lang)
-    if (value === 'Unverified') return t('admin.filters.status.unverified', lang)
-    if (value === 'Verified') return t('admin.filters.status.verified', lang)
-    if (value === 'Flagged') return t('admin.filters.status.flagged', lang)
-    if (value === 'Resolved') return t('admin.filters.status.resolved', lang)
-    if (value === 'Archived') return t('admin.filters.status.archived', lang)
-    if (value === 'False_Report') return t('admin.filters.status.falseReport', lang)
+    if (value === 'Urgent') return 'Urgent'
+    if (value === 'Unverified') return 'Unverified'
+    if (value === 'Verified') return 'Verified'
+    if (value === 'Flagged') return 'Flagged'
+    if (value === 'Resolved') return 'Resolved'
+    if (value === 'Archived') return 'Archived'
+    if (value === 'False_Report') return 'False Report'
     return value
   }
 
@@ -454,12 +454,12 @@ export default function AdminPage(): JSX.Element {
     setAuditLog(prev=>[{id:Date.now(),operator_name:user?.displayName,action:actionName,action_type:actionType,target_id:id,created_at:new Date().toISOString()},...prev])
   }
 
-  const doVerify=(id:string)=>askConfirm(t('admin.confirm.verifyTitle',lang),t('admin.confirm.verifyMsg',lang),'success',async()=>{await doAction('Verified report','verify',id,verifyReport);pushNotification(t('admin.stats.verified',lang),'success');setSelReport(null)})
-  const doFlag=(id:string)=>askConfirm(t('admin.confirm.flagTitle',lang),t('admin.confirm.flagMsg',lang),'warning',async()=>{await doAction('Flagged report','flag',id,flagReport);pushNotification(t('admin.stats.flagged',lang),'warning');setSelReport(null)})
-  const doUrgent=(id:string)=>askConfirm(t('admin.confirm.urgentTitle',lang),t('admin.confirm.urgentMsg',lang),'danger',async()=>{await doAction('Escalated to URGENT','urgent',id,markUrgent);pushNotification(t('admin.stats.urgent',lang),'error');setSelReport(null)})
-  const doResolve=(id:string)=>askConfirm(t('admin.confirm.resolveTitle',lang),t('admin.confirm.resolveMsg',lang),'info',async()=>{await doAction('Resolved report','resolve',id,resolveReport);pushNotification(t('admin.stats.resolved',lang),'success');setSelReport(null)})
-  const doArchive=(id:string)=>askConfirm(t('admin.confirm.archiveTitle',lang),t('admin.confirm.archiveMsg',lang),'warning',async()=>{await doAction('Archived report','archive',id,archiveReport);pushNotification(t('admin.confirm.archiveSuccess',lang),'success');setSelReport(null)})
-  const doFalseReport=(id:string)=>askConfirm(t('admin.confirm.falseTitle',lang),t('admin.confirm.falseMsg',lang),'danger',async()=>{await doAction('Marked as false report','false_report',id,markFalseReport);pushNotification(t('admin.confirm.falseSuccess',lang),'warning');setSelReport(null)})
+  const doVerify=(id:string)=>askConfirm('Verify Report','Confirm this report as legitimate? This marks it as verified.','success',async()=>{await doAction('Verified report','verify',id,verifyReport);pushNotification('Verified','success');setSelReport(null)})
+  const doFlag=(id:string)=>askConfirm('Flag Report','Flag this report for investigation?','warning',async()=>{await doAction('Flagged report','flag',id,flagReport);pushNotification('Flagged','warning');setSelReport(null)})
+  const doUrgent=(id:string)=>askConfirm('Escalate to URGENT','Escalate this report to URGENT priority? All operators will be notified.','danger',async()=>{await doAction('Escalated to URGENT','urgent',id,markUrgent);pushNotification('Urgent','error');setSelReport(null)})
+  const doResolve=(id:string)=>askConfirm('Resolve Report','Mark this report as resolved?','info',async()=>{await doAction('Resolved report','resolve',id,resolveReport);pushNotification('Resolved','success');setSelReport(null)})
+  const doArchive=(id:string)=>askConfirm('Archive Report','Archive this report? It will be removed from active view.','warning',async()=>{await doAction('Archived report','archive',id,archiveReport);pushNotification('Report archived successfully','success');setSelReport(null)})
+  const doFalseReport=(id:string)=>askConfirm('Mark as False Report','Mark this report as a false report? This flags the submission as not a genuine emergency.','danger',async()=>{await doAction('Marked as false report','false_report',id,markFalseReport);pushNotification('Report marked as false','warning');setSelReport(null)})
 
   //Bulk actions
   const runBulkAction = async (ids: string[], status: string, successMsg: string, notifType: 'success'|'warning'|'error') => {
@@ -472,24 +472,24 @@ export default function AdminPage(): JSX.Element {
       setSelectedReportIds(new Set())
       loadCommandCenter()
     } catch(err:any) {
-      pushNotification(err?.message || t('admin.bulkFailed', lang), 'error')
+      pushNotification(err?.message || 'Bulk action failed', 'error')
     } finally {
       setBulkProgress(null)
     }
   }
-  const doBulkVerify=()=>askConfirm(t('admin.bulk.verifyTitle',lang),t('admin.bulk.verifyMsg',lang).replace('{n}',String(selectedReportIds.size)),'success',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'Verified',t('admin.bulk.verifySuccess',lang).replace('{n}',String(ids.length)),'success')})
-  const doBulkFlag=()=>askConfirm(t('admin.bulk.flagTitle',lang),t('admin.bulk.flagMsg',lang).replace('{n}',String(selectedReportIds.size)),'warning',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'Flagged',t('admin.bulk.flagSuccess',lang).replace('{n}',String(ids.length)),'warning')})
-  const doBulkUrgent=()=>askConfirm(t('admin.bulk.urgentTitle',lang),t('admin.bulk.urgentMsg',lang).replace('{n}',String(selectedReportIds.size)),'danger',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'Urgent',t('admin.bulk.urgentSuccess',lang).replace('{n}',String(ids.length)),'error')})
-  const doBulkResolve=()=>askConfirm(t('admin.bulk.resolveTitle',lang),t('admin.bulk.resolveMsg',lang).replace('{n}',String(selectedReportIds.size)),'info',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'Resolved',t('admin.bulk.resolveSuccess',lang).replace('{n}',String(ids.length)),'success')})
-  const doBulkArchive=()=>askConfirm(t('admin.bulk.archiveTitle',lang),t('admin.bulk.archiveMsg',lang).replace('{n}',String(selectedReportIds.size)),'warning',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'Archived',t('admin.bulk.archiveSuccess',lang).replace('{n}',String(ids.length)),'success')})
-  const doBulkFalseReport=()=>askConfirm(t('admin.bulk.falseTitle',lang),t('admin.bulk.falseMsg',lang).replace('{n}',String(selectedReportIds.size)),'danger',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'False_Report',t('admin.bulk.falseSuccess',lang).replace('{n}',String(ids.length)),'warning')})
+  const doBulkVerify=()=>askConfirm('Verify Reports','Verify selected reports as legitimate?'.replace('{n}',String(selectedReportIds.size)),'success',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'Verified','Reports verified successfully'.replace('{n}',String(ids.length)),'success')})
+  const doBulkFlag=()=>askConfirm('Flag Reports','Flag selected reports for investigation?'.replace('{n}',String(selectedReportIds.size)),'warning',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'Flagged','Reports flagged successfully'.replace('{n}',String(ids.length)),'warning')})
+  const doBulkUrgent=()=>askConfirm('Escalate to URGENT','Escalate selected reports to URGENT priority?'.replace('{n}',String(selectedReportIds.size)),'danger',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'Urgent','Reports escalated to URGENT'.replace('{n}',String(ids.length)),'error')})
+  const doBulkResolve=()=>askConfirm('Resolve Reports','Resolve selected reports?'.replace('{n}',String(selectedReportIds.size)),'info',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'Resolved','Reports resolved successfully'.replace('{n}',String(ids.length)),'success')})
+  const doBulkArchive=()=>askConfirm('Archive Reports','Archive these reports? They will be removed from active view.'.replace('{n}',String(selectedReportIds.size)),'warning',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'Archived','Reports archived successfully'.replace('{n}',String(ids.length)),'success')})
+  const doBulkFalseReport=()=>askConfirm('Mark as False Report','Mark selected reports as false reports?'.replace('{n}',String(selectedReportIds.size)),'danger',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'False_Report','Reports marked as false'.replace('{n}',String(ids.length)),'warning')})
 
   const toggleSelection=(id:string)=>{setSelectedReportIds(prev=>{const next=new Set(prev);if(next.has(id)){next.delete(id)}else{next.add(id)}return next})}
   const toggleSelectAll=()=>{if(selectedReportIds.size===filtered.length){setSelectedReportIds(new Set())}else{setSelectedReportIds(new Set(filtered.map(r=>r.id)))}}
 
-  const handlePrint=()=>{const w=window.open('','','width=800,height=600');if(!w){pushNotification(t('admin.print.allowPopups',lang),'warning');return}w.document.write('<html><head><title>AEGIS Report</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px}th{background:#1e40af;color:white}.header{text-align:center;margin-bottom:20px}</style></head><body>');w.document.write(`<div class="header"><h1>AEGIS Emergency Report</h1><p>Generated: ${new Date().toLocaleString()} by ${escapeHtml(user?.displayName||'')}</p><p>${filtered.length} reports</p></div>`);w.document.write('<table><tr><th>ID</th><th>Type</th><th>Severity</th><th>Status</th><th>Location</th><th>AI%</th><th>Time</th></tr>');filtered.forEach(r=>{w.document.write(`<tr><td>${escapeHtml(r.reportNumber||'')}</td><td>${escapeHtml(r.type||'')}</td><td>${escapeHtml(r.severity)}</td><td>${escapeHtml(r.status)}</td><td>${escapeHtml(r.location||'')}</td><td>${r.confidence||0}%</td><td>${new Date(r.timestamp).toLocaleString()}</td></tr>`)});w.document.write('</table><p style="margin-top:20px;font-size:10px;color:#666">AEGIS Emergency Response System - OFFICIAL USE ONLY</p></body></html>');w.document.close();w.focus();w.print()}
+  const handlePrint=()=>{const w=window.open('','','width=800,height=600');if(!w){pushNotification('Please allow popups to print reports','warning');return}w.document.write('<html><head><title>AEGIS Report</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px}th{background:#1e40af;color:white}.header{text-align:center;margin-bottom:20px}</style></head><body>');w.document.write(`<div class="header"><h1>AEGIS Emergency Report</h1><p>Generated: ${new Date().toLocaleString()} by ${escapeHtml(user?.displayName||'')}</p><p>${filtered.length} reports</p></div>`);w.document.write('<table><tr><th>ID</th><th>Type</th><th>Severity</th><th>Status</th><th>Location</th><th>AI%</th><th>Time</th></tr>');filtered.forEach(r=>{w.document.write(`<tr><td>${escapeHtml(r.reportNumber||'')}</td><td>${escapeHtml(r.type||'')}</td><td>${escapeHtml(r.severity)}</td><td>${escapeHtml(r.status)}</td><td>${escapeHtml(r.location||'')}</td><td>${r.confidence||0}%</td><td>${new Date(r.timestamp).toLocaleString()}</td></tr>`)});w.document.write('</table><p style="margin-top:20px;font-size:10px;color:#666">AEGIS Emergency Response System - OFFICIAL USE ONLY</p></body></html>');w.document.close();w.focus();w.print()}
 
-  const printSingleReport=(r:Report)=>{const w=window.open('','',`width=800,height=600`);if(!w){pushNotification(t('admin.print.allowPopupSingle',lang),'warning');return}const ai:any=r.aiAnalysis||{};const panicLvl=escapeHtml(String(ai.panicLevel||ai.panic_level||'Moderate'));const fakePrb=ai.fakeProbability??ai.fake_probability??0;const photoV=ai.photoVerified||ai.photo_verified;const wDepth=escapeHtml(String(ai.estimatedWaterDepth||ai.water_depth||'N/A'));const sources=escapeHtml((ai.crossReferenced||[]).join(', ')||ai.sources||'N/A');w.document.write(`<html><head><title>AEGIS Report ${escapeHtml(r.reportNumber||'')}</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:750px;margin:0 auto}h1{color:#1e40af;border-bottom:3px solid #1e40af;padding-bottom:8px}table{width:100%;border-collapse:collapse;margin:15px 0}th,td{border:1px solid #ddd;padding:10px;text-align:left;font-size:13px}th{background:#f5f5f5;font-weight:600;width:35%}.header{display:flex;justify-content:space-between;align-items:flex-start}.meta{text-align:right;font-size:12px;color:#666}.severity-critical{color:#dc2626;font-weight:bold}.severity-high{color:#ea580c;font-weight:bold}.severity-medium{color:#d97706}.severity-low{color:#2563eb}.section{margin-top:20px}.section h2{font-size:16px;color:#333;border-bottom:1px solid #eee;padding-bottom:5px}.footer{margin-top:30px;text-align:center;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:10px}</style></head><body>`);w.document.write(`<div style="font-size:11px;color:#666">${new Date().toLocaleString()}<span style="float:right">AEGIS Report ${escapeHtml(r.reportNumber||'')}</span></div>`);w.document.write(`<div class="header"><h1>AEGIS Emergency Report</h1><div class="meta">Report ID: ${escapeHtml(r.reportNumber||'')}<br>Generated: ${new Date().toLocaleString()}</div></div>`);w.document.write(`<table><tr><th>Type</th><td>${escapeHtml(r.type||r.incidentCategory||'Emergency Incident')}</td></tr><tr><th>Location</th><td>${escapeHtml(r.location||'')}</td></tr><tr><th>Severity</th><td class="severity-${escapeHtml((r.severity||'').toLowerCase())}">${escapeHtml(r.severity||'')}</td></tr><tr><th>Status</th><td>${escapeHtml(r.status||'')}</td></tr><tr><th>Time</th><td>${escapeHtml(r.displayTime||new Date(r.timestamp).toLocaleString())}</td></tr><tr><th>Reporter</th><td>${escapeHtml(r.reporter||'Anonymous Citizen')}</td></tr><tr><th>Trapped Persons</th><td>${escapeHtml(String(r.trappedPersons||'no'))}</td></tr><tr><th>Media</th><td>${r.hasMedia?'Yes'+(r.mediaType?' ('+escapeHtml(r.mediaType)+')':' (undefined)'):'No'}</td></tr><tr><th>AI Confidence</th><td>${r.confidence?r.confidence+'%':'Pending'}</td></tr></table>`);w.document.write(`<div class="section"><h2>Description</h2><p style="font-size:13px;line-height:1.6">${escapeHtml(r.description||'No description provided.')}</p></div>`);w.document.write(`<div class="section"><h2>AI Analysis</h2><table><tr><th>Panic Level</th><td>${panicLvl}</td></tr><tr><th>Fake Probability</th><td>${fakePrb}%</td></tr><tr><th>Photo Verified</th><td>${photoV?'Yes':'Pending'}</td></tr><tr><th>Water Depth</th><td>${wDepth}</td></tr><tr><th>Sources</th><td>${sources}</td></tr></table></div>`);w.document.write(`<div class="section"><h2>AI Reasoning</h2><p style="font-size:13px;line-height:1.6">${escapeHtml(ai.reasoning||'Report analysed using NLP sentiment analysis (score: '+(ai.sentimentScore||0.7).toFixed(2)+') and cross-referenced with regional emergency authority data. Location matches active risk area. Multiple corroborating reports within 500m radius. Confidence level: '+(r.confidence||75)+'%.')}</p></div>`);w.document.write(`<div class="section"><h2>Recommended Actions</h2><ul style="font-size:13px;line-height:1.8">${r.severity==='High'?'<li>Immediate deployment of emergency services</li><li>Evacuate affected area within 500m radius</li><li>Activate incident mitigation measures</li><li>Issue public alert via all channels</li>':r.severity==='Medium'?'<li>Monitor area closely for escalation</li><li>Pre-position resources nearby</li><li>Issue advisory to local residents</li>':'<li>Continue monitoring</li><li>Log for historical analysis</li>'}</ul></div>`);w.document.write(`<div class="section"><h2>Metadata</h2><table><tr><th>GPS Coordinates</th><td>${r.coordinates?r.coordinates.join(', '):'N/A'}</td></tr><tr><th>Reporter Type</th><td>Anonymous Citizen</td></tr><tr><th>Submission</th><td>AEGIS Citizen Portal</td></tr><tr><th>Generated</th><td>${new Date().toISOString()}</td></tr></table></div>`);w.document.write(`<div class="footer">AEGIS Emergency Response System - Printed by ${escapeHtml(user?.displayName||'System Administrator')} - OFFICIAL USE ONLY<br>This document may contain sensitive emergency data. Handle accordingly.</div>`);w.document.write(`</body></html>`);w.document.close();w.focus();w.print()}
+  const printSingleReport=(r:Report)=>{const w=window.open('','',`width=800,height=600`);if(!w){pushNotification('Please allow popups to print this report','warning');return}const ai:any=r.aiAnalysis||{};const panicLvl=escapeHtml(String(ai.panicLevel||ai.panic_level||'Moderate'));const fakePrb=ai.fakeProbability??ai.fake_probability??0;const photoV=ai.photoVerified||ai.photo_verified;const wDepth=escapeHtml(String(ai.estimatedWaterDepth||ai.water_depth||'N/A'));const sources=escapeHtml((ai.crossReferenced||[]).join(', ')||ai.sources||'N/A');w.document.write(`<html><head><title>AEGIS Report ${escapeHtml(r.reportNumber||'')}</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:750px;margin:0 auto}h1{color:#1e40af;border-bottom:3px solid #1e40af;padding-bottom:8px}table{width:100%;border-collapse:collapse;margin:15px 0}th,td{border:1px solid #ddd;padding:10px;text-align:left;font-size:13px}th{background:#f5f5f5;font-weight:600;width:35%}.header{display:flex;justify-content:space-between;align-items:flex-start}.meta{text-align:right;font-size:12px;color:#666}.severity-critical{color:#dc2626;font-weight:bold}.severity-high{color:#ea580c;font-weight:bold}.severity-medium{color:#d97706}.severity-low{color:#2563eb}.section{margin-top:20px}.section h2{font-size:16px;color:#333;border-bottom:1px solid #eee;padding-bottom:5px}.footer{margin-top:30px;text-align:center;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:10px}</style></head><body>`);w.document.write(`<div style="font-size:11px;color:#666">${new Date().toLocaleString()}<span style="float:right">AEGIS Report ${escapeHtml(r.reportNumber||'')}</span></div>`);w.document.write(`<div class="header"><h1>AEGIS Emergency Report</h1><div class="meta">Report ID: ${escapeHtml(r.reportNumber||'')}<br>Generated: ${new Date().toLocaleString()}</div></div>`);w.document.write(`<table><tr><th>Type</th><td>${escapeHtml(r.type||r.incidentCategory||'Emergency Incident')}</td></tr><tr><th>Location</th><td>${escapeHtml(r.location||'')}</td></tr><tr><th>Severity</th><td class="severity-${escapeHtml((r.severity||'').toLowerCase())}">${escapeHtml(r.severity||'')}</td></tr><tr><th>Status</th><td>${escapeHtml(r.status||'')}</td></tr><tr><th>Time</th><td>${escapeHtml(r.displayTime||new Date(r.timestamp).toLocaleString())}</td></tr><tr><th>Reporter</th><td>${escapeHtml(r.reporter||'Anonymous Citizen')}</td></tr><tr><th>Trapped Persons</th><td>${escapeHtml(String(r.trappedPersons||'no'))}</td></tr><tr><th>Media</th><td>${r.hasMedia?'Yes'+(r.mediaType?' ('+escapeHtml(r.mediaType)+')':' (undefined)'):'No'}</td></tr><tr><th>AI Confidence</th><td>${r.confidence?r.confidence+'%':'Pending'}</td></tr></table>`);w.document.write(`<div class="section"><h2>Description</h2><p style="font-size:13px;line-height:1.6">${escapeHtml(r.description||'No description provided.')}</p></div>`);w.document.write(`<div class="section"><h2>AI Analysis</h2><table><tr><th>Panic Level</th><td>${panicLvl}</td></tr><tr><th>Fake Probability</th><td>${fakePrb}%</td></tr><tr><th>Photo Verified</th><td>${photoV?'Yes':'Pending'}</td></tr><tr><th>Water Depth</th><td>${wDepth}</td></tr><tr><th>Sources</th><td>${sources}</td></tr></table></div>`);w.document.write(`<div class="section"><h2>AI Reasoning</h2><p style="font-size:13px;line-height:1.6">${escapeHtml(ai.reasoning||'Report analysed using NLP sentiment analysis (score: '+(ai.sentimentScore||0.7).toFixed(2)+') and cross-referenced with regional emergency authority data. Location matches active risk area. Multiple corroborating reports within 500m radius. Confidence level: '+(r.confidence||75)+'%.')}</p></div>`);w.document.write(`<div class="section"><h2>Recommended Actions</h2><ul style="font-size:13px;line-height:1.8">${r.severity==='High'?'<li>Immediate deployment of emergency services</li><li>Evacuate affected area within 500m radius</li><li>Activate incident mitigation measures</li><li>Issue public alert via all channels</li>':r.severity==='Medium'?'<li>Monitor area closely for escalation</li><li>Pre-position resources nearby</li><li>Issue advisory to local residents</li>':'<li>Continue monitoring</li><li>Log for historical analysis</li>'}</ul></div>`);w.document.write(`<div class="section"><h2>Metadata</h2><table><tr><th>GPS Coordinates</th><td>${r.coordinates?r.coordinates.join(', '):'N/A'}</td></tr><tr><th>Reporter Type</th><td>Anonymous Citizen</td></tr><tr><th>Submission</th><td>AEGIS Citizen Portal</td></tr><tr><th>Generated</th><td>${new Date().toISOString()}</td></tr></table></div>`);w.document.write(`<div class="footer">AEGIS Emergency Response System - Printed by ${escapeHtml(user?.displayName||'System Administrator')} - OFFICIAL USE ONLY<br>This document may contain sensitive emergency data. Handle accordingly.</div>`);w.document.write(`</body></html>`);w.document.close();w.focus();w.print()}
 
   const handleShareReport = async (r: Report): Promise<void> => {
     const url = `${window.location.origin}/report/${r.id}`
@@ -499,20 +499,20 @@ export default function AdminPage(): JSX.Element {
     try {
       if (navigator.share) {
         await navigator.share({ title, text, url })
-        pushNotification(t('admin.share.dialogOpened',lang),'success')
+        pushNotification('Share dialog opened','success')
         return
       }
 
       await navigator.clipboard.writeText(url)
       const mailto = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`${text}\n\n${url}`)}`
       window.open(mailto, '_blank')
-      pushNotification(t('admin.share.draftOpened',lang),'success')
+      pushNotification('Email draft opened','success')
     } catch {
       try {
         await navigator.clipboard.writeText(url)
-        pushNotification(t('admin.share.linkCopied',lang),'success')
+        pushNotification('Link copied to clipboard','success')
       } catch {
-        pushNotification(t('admin.share.unableToShare',lang),'error')
+        pushNotification('Unable to share','error')
       }
     }
   }
@@ -590,15 +590,16 @@ export default function AdminPage(): JSX.Element {
 
   const NAV: {id:View;label:string;icon:any}[] = [
     {id:'home',label:'Welcome',icon:Home},
-    {id:'dashboard',label:t('admin.dashboard', lang),icon:BarChart3},{id:'reports',label:t('admin.allReports', lang),icon:FileText},{id:'map',label:t('admin.liveMap', lang),icon:Map},
-    {id:'analytics',label:t('admin.analytics', lang),icon:Activity},{id:'ai_models',label:t('admin.models', lang),icon:Brain},{id:'resources',label:t('admin.resources', lang),icon:Navigation},
-    ...(user.role === 'admin' ? [{id:'users' as View,label:t('admin.users', lang),icon:Users}] : []),
-    {id:'community' as View,label:t('admin.community', lang),icon:Users},
-    {id:'history',label:t('admin.history', lang),icon:History},{id:'audit',label:t('admin.audit', lang),icon:Clock},{id:'alert_send',label:t('admin.sendAlert', lang),icon:Bell},
-    {id:'system_health' as View,label:t('admin.systemHealth', lang),icon:Activity},
-    {id:'crowd' as View,label:t('admin.crowdDensity',lang),icon:Users},
-    {id:'delivery' as View,label:t('admin.delivery',lang),icon:Archive},
+    {id:'dashboard',label:'Dashboard',icon:BarChart3},{id:'reports',label:'All Reports',icon:FileText},{id:'map',label:'Live Map',icon:Map},
+    {id:'analytics',label:'Analytics',icon:Activity},{id:'ai_models',label:'AI Models',icon:Brain},{id:'resources',label:'Resources',icon:Navigation},
+    ...(user.role === 'admin' ? [{id:'users' as View,label:'User Management',icon:Users}] : []),
+    {id:'community' as View,label:'Community',icon:Users},
+    {id:'history',label:'History',icon:History},{id:'audit',label:'Audit Trail',icon:Clock},{id:'alert_send',label:'Send Alert',icon:Bell},
+    {id:'system_health' as View,label:'System Health',icon:Activity},
+    {id:'crowd' as View,label:'Crowd Density',icon:Users},
+    {id:'delivery' as View,label:'Delivery',icon:Archive},
     {id:'incident_console' as View,label:'Incident Console',icon:Siren},
+    {id:'messaging' as View,label:'Citizen Messages',icon:MessageSquare},
   ]
 
   const urgentCount   = reports.filter(r => r.status === 'Urgent').length
@@ -652,18 +653,18 @@ export default function AdminPage(): JSX.Element {
           <div className="p-4 -mt-2">
             {profileEditing ? (
               <div className="space-y-2">
-                <input className="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-aegis-500/30" placeholder={t('citizen.auth.displayName', lang)} value={profileForm.displayName} onChange={e => setProfileForm(f => ({...f, displayName: e.target.value}))}/>
-                <input className="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-aegis-500/30" placeholder={t('admin.profile.email',lang)} value={profileForm.email} onChange={e => setProfileForm(f => ({...f, email: e.target.value}))}/>
-                <input className="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-aegis-500/30" placeholder={t('admin.profile.phone',lang)} value={profileForm.phone} onChange={e => setProfileForm(f => ({...f, phone: e.target.value}))}/>
+                <input className="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-aegis-500/30" placeholder={'Display Name'} value={profileForm.displayName} onChange={e => setProfileForm(f => ({...f, displayName: e.target.value}))}/>
+                <input className="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-aegis-500/30" placeholder={'Email'} value={profileForm.email} onChange={e => setProfileForm(f => ({...f, email: e.target.value}))}/>
+                <input className="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-aegis-500/30" placeholder={'Phone'} value={profileForm.phone} onChange={e => setProfileForm(f => ({...f, phone: e.target.value}))}/>
                 <div className="flex gap-2 pt-1">
-                  <button onClick={() => setProfileEditing(false)} className="flex-1 text-xs text-gray-500 dark:text-gray-300 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{t('general.cancel', lang)}</button>
-                  <button onClick={() => { apiUpdateProfile(user!.id, profileForm).then(() => { pushNotification(t('admin.profileUpdated', lang), 'success'); setProfileEditing(false); apiAuditLog({operator_name: user?.displayName, action: 'Updated profile', action_type: 'profile_edit', target_type: 'operator', target_id: user?.id}).catch(() => {}) }).catch(() => pushNotification(t('admin.profile.updateFailed',lang), 'error')) }} className="flex-1 text-xs text-white py-2 rounded-xl bg-aegis-600 hover:bg-aegis-700 transition-colors font-semibold">{t('admin.save', lang)}</button>
+                  <button onClick={() => setProfileEditing(false)} className="flex-1 text-xs text-gray-500 dark:text-gray-300 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{'Cancel'}</button>
+                  <button onClick={() => { apiUpdateProfile(user!.id, profileForm).then(() => { pushNotification('Profile updated', 'success'); setProfileEditing(false); apiAuditLog({operator_name: user?.displayName, action: 'Updated profile', action_type: 'profile_edit', target_type: 'operator', target_id: user?.id}).catch(() => {}) }).catch(() => pushNotification('Failed to update profile', 'error')) }} className="flex-1 text-xs text-white py-2 rounded-xl bg-aegis-600 hover:bg-aegis-700 transition-colors font-semibold">{'Save'}</button>
                 </div>
               </div>
             ) : (
               <div className="flex gap-2">
-                <button onClick={() => { setProfileForm({displayName: user.displayName || '', email: user.email || '', phone: user.phone || '', department: user.department || ''}); setProfileEditing(true) }} className="flex-1 text-xs font-semibold text-aegis-600 dark:text-aegis-400 py-2 rounded-xl bg-aegis-50 dark:bg-aegis-950/20 hover:bg-aegis-100 dark:hover:bg-aegis-950/40 transition-colors">{t('admin.editProfile', lang)}</button>
-                <button onClick={() => setShowProfile(false)} className="flex-1 text-xs text-gray-500 dark:text-gray-300 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{t('general.close', lang)}</button>
+                <button onClick={() => { setProfileForm({displayName: user.displayName || '', email: user.email || '', phone: user.phone || '', department: user.department || ''}); setProfileEditing(true) }} className="flex-1 text-xs font-semibold text-aegis-600 dark:text-aegis-400 py-2 rounded-xl bg-aegis-50 dark:bg-aegis-950/20 hover:bg-aegis-100 dark:hover:bg-aegis-950/40 transition-colors">{'Edit Profile'}</button>
+                <button onClick={() => setShowProfile(false)} className="flex-1 text-xs text-gray-500 dark:text-gray-300 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{'Close'}</button>
               </div>
             )}
             {/* Two-Factor Authentication*/}
@@ -771,8 +772,8 @@ export default function AdminPage(): JSX.Element {
             onShareReport={handleShareReport}
             onPrintReport={printSingleReport}
             onPrintAll={handlePrint}
-            onExportCSV={() => { exportReportsCSV(reports); pushNotification(t('admin.csvExported', lang), 'success') }}
-            onExportJSON={() => { exportReportsJSON(reports); pushNotification(t('admin.jsonExported', lang), 'success') }}
+            onExportCSV={() => { exportReportsCSV(reports); pushNotification('CSV exported', 'success') }}
+            onExportJSON={() => { exportReportsJSON(reports); pushNotification('JSON exported', 'success') }}
             onRefresh={() => refreshReports?.()}
             onBulkVerify={doBulkVerify}
             onBulkFlag={doBulkFlag}
@@ -824,8 +825,8 @@ export default function AdminPage(): JSX.Element {
             auditLog={auditLog}
             lang={lang}
             onRefresh={() => refreshReports?.()}
-            onExportCSV={()=>{exportReportsCSV(reports);pushNotification(t('admin.csvExported',lang),'success')}}
-            onExportJSON={()=>{exportReportsJSON(reports);pushNotification(t('admin.jsonExported',lang),'success')}}
+            onExportCSV={()=>{exportReportsCSV(reports);pushNotification('CSV exported','success')}}
+            onExportJSON={()=>{exportReportsJSON(reports);pushNotification('JSON exported','success')}}
             onSelectReport={r=>setSelReport(r)}
             pushNotification={(msg, type) => pushNotification(msg, (type as any) ?? 'info')}
           />
@@ -882,7 +883,7 @@ export default function AdminPage(): JSX.Element {
         {/* CITIZEN MESSAGING */}
         {view==='messaging'&&(
           <div className="space-y-4 animate-fade-in">
-            <h2 className="font-bold text-xl flex items-center gap-2"><MessageSquare className="w-6 h-6 text-aegis-600"/> {t('admin.citizenMessages',lang)}</h2>
+            <h2 className="font-bold text-xl flex items-center gap-2"><MessageSquare className="w-6 h-6 text-aegis-600"/> {'Citizen Messages'}</h2>
             <AdminMessaging />
           </div>
         )}
@@ -914,8 +915,8 @@ export default function AdminPage(): JSX.Element {
                 <Users className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-extrabold text-gray-900 dark:text-white">{t('admin.crowdDensityAnalysis',lang)}</h2>
-                <p className="text-xs text-gray-500 dark:text-gray-300">{t('admin.sensitiveData',lang)}</p>
+                <h2 className="text-lg font-extrabold text-gray-900 dark:text-white">{'Crowd Density Analysis'}</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-300">{'Sensitive operational data -- authorised access only'}</p>
               </div>
             </div>
             <Suspense fallback={<div className="h-64 animate-pulse bg-gray-200 dark:bg-gray-800 rounded" />}>
@@ -1036,16 +1037,16 @@ export default function AdminPage(): JSX.Element {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <button onClick={()=>handleShareReport(selReport)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all" title={t('admin.detail.shareReport',lang)}><Share2 className="w-4 h-4"/></button>
-                  <button onClick={()=>printSingleReport(selReport)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all" title={t('admin.detail.printReport',lang)}><Printer className="w-4 h-4"/></button>
+                  <button onClick={()=>handleShareReport(selReport)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all" title={'Share Report'}><Share2 className="w-4 h-4"/></button>
+                  <button onClick={()=>printSingleReport(selReport)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all" title={'Print Report'}><Printer className="w-4 h-4"/></button>
                   <button onClick={()=>{setSelReport(null);setGalleryOpen(false);setNotesEditing(false)}} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all"><X className="w-4 h-4"/></button>
                 </div>
               </div>
               {/* Status & Severity pills */}
               <div className="relative flex gap-2 mt-3 flex-wrap">
-                <span className={`text-[10px] px-2.5 py-1 rounded-full font-extrabold uppercase tracking-wider ${selReport.severity==='High'?'bg-red-200/80 text-red-900':selReport.severity==='Medium'?'bg-aegis-200/80 text-aegis-900':'bg-blue-200/80 text-blue-900'}`}>{selReport.severity} {t('admin.detail.severity',lang)}</span>
-                <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center gap-1 ${sc.bg} ${sc.text}`}><span className={`w-1.5 h-1.5 rounded-full ${sc.dot} animate-pulse`}/>{selReport.status === 'False_Report' ? t('admin.filters.status.falseReport',lang) : selReport.status}</span>
-                {selReport.trappedPersons==='yes'&&<span className="text-[10px] px-2.5 py-1 rounded-full bg-red-500 text-white font-extrabold animate-pulse flex items-center gap-1"><AlertTriangle className="w-3 h-3"/>{t('admin.detail.trappedPersons',lang)}</span>}
+                <span className={`text-[10px] px-2.5 py-1 rounded-full font-extrabold uppercase tracking-wider ${selReport.severity==='High'?'bg-red-200/80 text-red-900':selReport.severity==='Medium'?'bg-aegis-200/80 text-aegis-900':'bg-blue-200/80 text-blue-900'}`}>{selReport.severity} {'Severity'}</span>
+                <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center gap-1 ${sc.bg} ${sc.text}`}><span className={`w-1.5 h-1.5 rounded-full ${sc.dot} animate-pulse`}/>{selReport.status === 'False_Report' ? 'False Report' : selReport.status}</span>
+                {selReport.trappedPersons==='yes'&&<span className="text-[10px] px-2.5 py-1 rounded-full bg-red-500 text-white font-extrabold animate-pulse flex items-center gap-1"><AlertTriangle className="w-3 h-3"/>{'Trapped Persons'}</span>}
                 {selReport.confidence!=null&&<span className={`text-[10px] px-2.5 py-1 rounded-full font-bold ${(selReport.confidence||0)>=80?'bg-green-200/80 text-green-900':(selReport.confidence||0)>=50?'bg-aegis-200/80 text-aegis-900':'bg-red-200/80 text-red-900'}`}><Brain className="w-3 h-3 inline mr-0.5"/>{selReport.confidence}% AI</span>}
               </div>
             </div>
@@ -1055,10 +1056,10 @@ export default function AdminPage(): JSX.Element {
               {/* Key Information Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  {icon:Hash,label:t('admin.detail.reportId',lang),value:selReport.reportNumber||'N/A'},
-                  {icon:Clock,label:t('admin.detail.submitted',lang),value:selReport.displayTime||new Date(selReport.timestamp).toLocaleString()},
-                  {icon:User,label:t('admin.detail.reporter',lang),value:selReport.reporter||t('admin.detail.anonymousCitizen',lang)},
-                  {icon:Globe,label:t('admin.detail.gps',lang),value:selReport.coordinates?`${selReport.coordinates[0].toFixed(4)}, ${selReport.coordinates[1].toFixed(4)}`:'N/A'},
+                  {icon:Hash,label:'Report ID',value:selReport.reportNumber||'N/A'},
+                  {icon:Clock,label:'Submitted',value:selReport.displayTime||new Date(selReport.timestamp).toLocaleString()},
+                  {icon:User,label:'Reporter',value:selReport.reporter||'Anonymous Citizen'},
+                  {icon:Globe,label:'GPS',value:selReport.coordinates?`${selReport.coordinates[0].toFixed(4)}, ${selReport.coordinates[1].toFixed(4)}`:'N/A'},
                 ].map((item,i)=>(
                   <div key={i} className="bg-gray-50/80 dark:bg-gray-800/50 rounded-xl p-2.5 border border-gray-100 dark:border-gray-800">
                     <div className="flex items-center gap-1.5 mb-1"><item.icon className="w-3 h-3 text-gray-400 dark:text-gray-300"/><span className="text-[9px] text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider">{item.label}</span></div>
@@ -1070,26 +1071,26 @@ export default function AdminPage(): JSX.Element {
               {/* Location & Description */}
               <div className="space-y-3">
                 <div className="bg-gray-50/80 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-800">
-                  <p className="text-[9px] text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><MapPin className="w-3 h-3"/>{t('admin.detail.location',lang)}</p>
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{selReport.location||t('admin.detail.notSpecified',lang)}</p>
+                  <p className="text-[9px] text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><MapPin className="w-3 h-3"/>{'Location'}</p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{selReport.location||'Not specified'}</p>
                 </div>
                 <div className="bg-gray-50/80 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-800">
-                  <p className="text-[9px] text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><FileText className="w-3 h-3"/>{t('admin.detail.description',lang)}</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{selReport.description||t('admin.detail.noDescription',lang)}</p>
+                  <p className="text-[9px] text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><FileText className="w-3 h-3"/>{'Description'}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{selReport.description||'No description provided'}</p>
                 </div>
               </div>
 
               {/* AI Analysis ? Professional Card */}
               <div className="bg-gradient-to-br from-indigo-50/80 via-blue-50/40 to-purple-50/80 dark:from-indigo-950/30 dark:via-blue-950/20 dark:to-purple-950/30 rounded-xl p-4 border border-indigo-100/60 dark:border-indigo-800/30">
-                <h4 className="text-xs font-extrabold flex items-center gap-2 text-indigo-800 dark:text-indigo-200 mb-3"><Brain className="w-4 h-4 text-indigo-500"/>{t('admin.detail.aiAnalysis',lang)}</h4>
+                <h4 className="text-xs font-extrabold flex items-center gap-2 text-indigo-800 dark:text-indigo-200 mb-3"><Brain className="w-4 h-4 text-indigo-500"/>{'AI Analysis'}</h4>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {[
-                    {label:t('admin.detail.aiConfidence',lang),value:`${selReport.confidence||0}%`,color:(selReport.confidence||0)>=80?'text-green-600':(selReport.confidence||0)>=50?'text-aegis-600':'text-red-600'},
-                    {label:t('admin.detail.aiPanic',lang),value:selReport.aiAnalysis?.panicLevel||selReport.aiAnalysis?.panic_level||'N/A',color:'text-gray-800 dark:text-gray-200'},
-                    {label:t('admin.detail.aiFakeRisk',lang),value:`${((selReport.aiAnalysis?.fakeProbability??selReport.aiAnalysis?.fake_probability??0)*100).toFixed(1)}%`,color:((selReport.aiAnalysis?.fakeProbability??selReport.aiAnalysis?.fake_probability??0)*100)>50?'text-red-600':'text-green-600'},
-                    {label:t('admin.detail.aiSentiment',lang),value:selReport.aiAnalysis?.sentimentScore?`${(selReport.aiAnalysis.sentimentScore*100).toFixed(0)}%`:'N/A',color:'text-gray-800 dark:text-gray-200'},
-                    {label:t('admin.detail.aiPhoto',lang),value:selReport.aiAnalysis?.photoVerified||selReport.aiAnalysis?.photo_verified?t('admin.detail.aiVerified',lang):t('admin.detail.aiPending',lang),color:selReport.aiAnalysis?.photoVerified||selReport.aiAnalysis?.photo_verified?'text-green-600':'text-aegis-500'},
-                    {label:t('admin.detail.aiDepth',lang),value:selReport.aiAnalysis?.estimatedWaterDepth||selReport.aiAnalysis?.water_depth||'N/A',color:'text-gray-800 dark:text-gray-200'},
+                    {label:'AI Confidence',value:`${selReport.confidence||0}%`,color:(selReport.confidence||0)>=80?'text-green-600':(selReport.confidence||0)>=50?'text-aegis-600':'text-red-600'},
+                    {label:'Panic Level',value:selReport.aiAnalysis?.panicLevel||selReport.aiAnalysis?.panic_level||'N/A',color:'text-gray-800 dark:text-gray-200'},
+                    {label:'Fake Risk',value:`${((selReport.aiAnalysis?.fakeProbability??selReport.aiAnalysis?.fake_probability??0)*100).toFixed(1)}%`,color:((selReport.aiAnalysis?.fakeProbability??selReport.aiAnalysis?.fake_probability??0)*100)>50?'text-red-600':'text-green-600'},
+                    {label:'Sentiment',value:selReport.aiAnalysis?.sentimentScore?`${(selReport.aiAnalysis.sentimentScore*100).toFixed(0)}%`:'N/A',color:'text-gray-800 dark:text-gray-200'},
+                    {label:'Photo Analysis',value:selReport.aiAnalysis?.photoVerified||selReport.aiAnalysis?.photo_verified?'Verified':'Pending',color:selReport.aiAnalysis?.photoVerified||selReport.aiAnalysis?.photo_verified?'text-green-600':'text-aegis-500'},
+                    {label:'Water Depth',value:selReport.aiAnalysis?.estimatedWaterDepth||selReport.aiAnalysis?.water_depth||'N/A',color:'text-gray-800 dark:text-gray-200'},
                   ].map((m,i)=>(
                     <div key={i} className="text-center bg-white/60 dark:bg-gray-900/40 rounded-lg p-2 border border-white/50 dark:border-gray-700/30">
                       <p className="text-[8px] text-gray-400 dark:text-gray-300 font-bold uppercase">{m.label}</p>
@@ -1098,17 +1099,17 @@ export default function AdminPage(): JSX.Element {
                   ))}
                 </div>
                 {(selReport.aiAnalysis?.crossReferenced||selReport.aiAnalysis?.sources)&&(
-                  <div className="mt-2 text-[10px] text-indigo-600 dark:text-indigo-300"><span className="font-bold">{t('admin.detail.aiSources',lang)}:</span> {(selReport.aiAnalysis?.crossReferenced||[]).join(', ')||selReport.aiAnalysis?.sources}</div>
+                  <div className="mt-2 text-[10px] text-indigo-600 dark:text-indigo-300"><span className="font-bold">{'Sources'}:</span> {(selReport.aiAnalysis?.crossReferenced||[]).join(', ')||selReport.aiAnalysis?.sources}</div>
                 )}
                 {/* AI provider badge */}
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   {selReport.aiAnalysis?.mlPowered === true ? (
                     <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block"/> {t('admin.detail.mlPowered',lang)}
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block"/> {'ML Powered'}
                     </span>
                   ) : selReport.aiAnalysis?.mlPowered === false ? (
                     <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-aegis-100 text-aegis-700 dark:bg-aegis-900/30 dark:text-aegis-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-aegis-500 inline-block"/> {t('admin.detail.heuristicOnly',lang)}
+                      <span className="w-1.5 h-1.5 rounded-full bg-aegis-500 inline-block"/> {'Heuristic Only'}
                     </span>
                   ) : null}
                   {(selReport.aiAnalysis?.modelsUsed||[]).map((m:string,i:number)=>(
@@ -1118,13 +1119,13 @@ export default function AdminPage(): JSX.Element {
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-semibold">Cat: {selReport.aiAnalysis.predictedCategory}</span>
                   )}
                 </div>
-                {selReport.aiAnalysis?.reasoning&&<div className="mt-2 bg-white/40 dark:bg-gray-900/30 rounded-lg p-2 border border-indigo-100/40 dark:border-indigo-800/20"><p className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 mb-0.5">{t('admin.detail.aiReasoning',lang)}</p><p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed">{selReport.aiAnalysis.reasoning}</p></div>}
-                {selReport.aiAnalysis?.photoValidation&&<div className="mt-2 bg-blue-50/60 dark:bg-blue-950/20 rounded-lg p-2 border border-blue-200/40 dark:border-blue-800/20"><p className="text-[10px] font-bold text-blue-700 dark:text-blue-300">{t('admin.detail.detected',lang)}: {selReport.aiAnalysis.photoValidation.objectsDetected?.join(', ')||'N/A'}</p></div>}
+                {selReport.aiAnalysis?.reasoning&&<div className="mt-2 bg-white/40 dark:bg-gray-900/30 rounded-lg p-2 border border-indigo-100/40 dark:border-indigo-800/20"><p className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 mb-0.5">{'AI Reasoning'}</p><p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed">{selReport.aiAnalysis.reasoning}</p></div>}
+                {selReport.aiAnalysis?.photoValidation&&<div className="mt-2 bg-blue-50/60 dark:bg-blue-950/20 rounded-lg p-2 border border-blue-200/40 dark:border-blue-800/20"><p className="text-[10px] font-bold text-blue-700 dark:text-blue-300">{'Detected'}: {selReport.aiAnalysis.photoValidation.objectsDetected?.join(', ')||'N/A'}</p></div>}
               </div>
 
               {/* Recommended Actions ? Category-Specific */}
               <div className="bg-gradient-to-br from-emerald-50/80 to-green-50/80 dark:from-emerald-950/30 dark:to-green-950/30 rounded-xl p-3 border border-emerald-100/60 dark:border-emerald-800/30">
-                <h4 className="text-xs font-extrabold flex items-center gap-2 text-emerald-800 dark:text-emerald-200 mb-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500"/>{t('admin.detail.recommendedActions',lang)}</h4>
+                <h4 className="text-xs font-extrabold flex items-center gap-2 text-emerald-800 dark:text-emerald-200 mb-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500"/>{'Recommended Actions'}</h4>
                 <ul className="space-y-1">
                   {getRecommendedActions().map((action,i)=>(
                     <li key={i} className="text-[11px] text-gray-700 dark:text-gray-300 flex items-start gap-2"><CircleDot className="w-3 h-3 text-emerald-400 mt-0.5 flex-shrink-0"/><span>{action}</span></li>
@@ -1134,30 +1135,30 @@ export default function AdminPage(): JSX.Element {
 
               {/* Status Timeline */}
               <div className="bg-gray-50/80 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-800">
-                <h4 className="text-xs font-extrabold flex items-center gap-2 text-gray-700 dark:text-gray-200 mb-2"><Clock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300"/>{t('admin.detail.statusTimeline',lang)}</h4>
+                <h4 className="text-xs font-extrabold flex items-center gap-2 text-gray-700 dark:text-gray-200 mb-2"><Clock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300"/>{'Status Timeline'}</h4>
                 <div className="space-y-2 border-l-2 border-gray-200 dark:border-gray-700 pl-4 ml-1">
-                  <div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(selReport.timestamp).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t('admin.detail.timelineSubmitted',lang)}</p></div>
-                  <div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-purple-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(new Date(selReport.timestamp).getTime()+30000).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t('admin.detail.timelineAi',lang).replace('{pct}',String(selReport.confidence||0))}</p></div>
-                  {selReport.verifiedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(selReport.verifiedAt).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t('admin.detail.timelineVerified',lang)}</p></div>}
-                  {selReport.status!=='Unverified'&&!selReport.verifiedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(new Date(selReport.timestamp).getTime()+120000).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t('admin.detail.timelineChanged',lang)} {selReport.status === 'False_Report' ? t('admin.filters.status.falseReport',lang) : selReport.status}</p></div>}
-                  {selReport.resolvedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-slate-400 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(selReport.resolvedAt).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t('admin.detail.timelineResolved',lang)}</p></div>}
+                  <div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(selReport.timestamp).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{'Report Submitted'}</p></div>
+                  <div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-purple-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(new Date(selReport.timestamp).getTime()+30000).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{'AI Analysis Complete'.replace('{pct}',String(selReport.confidence||0))}</p></div>
+                  {selReport.verifiedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(selReport.verifiedAt).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{'Report Verified'}</p></div>}
+                  {selReport.status!=='Unverified'&&!selReport.verifiedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(new Date(selReport.timestamp).getTime()+120000).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{'Status Changed'} {selReport.status === 'False_Report' ? 'False Report' : selReport.status}</p></div>}
+                  {selReport.resolvedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-slate-400 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(selReport.resolvedAt).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{'Report Resolved'}</p></div>}
                 </div>
               </div>
 
               {/* Evidence Gallery ? Enhanced with Animations */}
               {mediaItems.length > 0 && (
                 <div className="bg-gradient-to-br from-purple-50/80 to-pink-50/80 dark:from-purple-950/30 dark:to-pink-950/30 rounded-xl p-3 border border-purple-100/60 dark:border-purple-800/30">
-                  <h4 className="text-xs font-extrabold flex items-center gap-2 text-purple-800 dark:text-purple-200 mb-2"><Camera className="w-3.5 h-3.5 text-purple-500"/>{t('admin.detail.evidenceGallery',lang)} <span className="text-purple-400 font-normal">({mediaItems.length} photo{mediaItems.length!==1?'s':''})</span></h4>
+                  <h4 className="text-xs font-extrabold flex items-center gap-2 text-purple-800 dark:text-purple-200 mb-2"><Camera className="w-3.5 h-3.5 text-purple-500"/>{'Evidence Gallery'} <span className="text-purple-400 font-normal">({mediaItems.length} photo{mediaItems.length!==1?'s':''})</span></h4>
                   <div className={`grid gap-2 ${mediaItems.length===1?'grid-cols-1':mediaItems.length===2?'grid-cols-2':'grid-cols-2 sm:grid-cols-3'}`}>
                     {mediaItems.map((m:any,i:number)=>(
                       <div key={m.id||i} className="relative group cursor-pointer rounded-xl overflow-hidden border-2 border-purple-200/40 dark:border-purple-700/30 hover:border-purple-400 dark:hover:border-purple-500 transition-all hover:shadow-lg hover:shadow-purple-500/10 hover:scale-[1.02]" onClick={()=>{setGalleryIndex(i);setGalleryOpen(true)}}>
                         <img src={m.url||m.file_url} alt={`Evidence ${i+1}`} className={`w-full object-cover transition-transform group-hover:scale-110 duration-300 ${mediaItems.length===1?'max-h-52':'h-32'}`}/>
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2">
-                          <span className="text-slate-900 dark:text-white text-[10px] font-bold flex items-center gap-1"><ZoomIn className="w-3 h-3"/>{t('admin.detail.viewFull',lang)}</span>
+                          <span className="text-slate-900 dark:text-white text-[10px] font-bold flex items-center gap-1"><ZoomIn className="w-3 h-3"/>{'View Full'}</span>
                         </div>
                         <div className="absolute top-1.5 right-1.5 bg-black/60 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-full">{i+1}/{mediaItems.length}</div>
                         {m.aiAnalysis&&(
-                          <div className="absolute top-1.5 left-1.5 bg-indigo-600/80 backdrop-blur-sm text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5"><Brain className="w-2.5 h-2.5"/>{t('admin.detail.analyzed',lang)}</div>
+                          <div className="absolute top-1.5 left-1.5 bg-indigo-600/80 backdrop-blur-sm text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5"><Brain className="w-2.5 h-2.5"/>{'Analyzed'}</div>
                         )}
                       </div>
                     ))}
@@ -1166,7 +1167,7 @@ export default function AdminPage(): JSX.Element {
                     <div className="mt-2 space-y-1">
                       {mediaItems.filter((m:any)=>m.aiAnalysis).map((m:any,i:number)=>(
                         <div key={i} className="flex items-center gap-2 bg-white/40 dark:bg-gray-900/30 rounded-lg px-2 py-1 text-[9px]">
-                          <span className="text-purple-500 font-bold">{t('admin.detail.photo',lang)} {i+1}:</span>
+                          <span className="text-purple-500 font-bold">{'Photo'} {i+1}:</span>
                           {m.aiAnalysis.classification&&<span className="text-gray-600 dark:text-gray-300">Class: <strong>{m.aiAnalysis.classification}</strong></span>}
                           {m.aiAnalysis.waterDepth&&<span className="text-gray-600 dark:text-gray-300">Depth: <strong>{m.aiAnalysis.waterDepth}</strong></span>}
                           {m.aiAnalysis.authenticityScore!==undefined&&<span className="text-gray-600 dark:text-gray-300">Auth: <strong>{m.aiAnalysis.authenticityScore}%</strong></span>}
@@ -1177,13 +1178,13 @@ export default function AdminPage(): JSX.Element {
                 </div>
               )}
               {mediaItems.length===0&&selReport.hasMedia&&(
-                <div className="text-center py-4 text-gray-400 dark:text-gray-300 text-xs italic">{t('admin.detail.mediaNotAvailable',lang)}</div>
+                <div className="text-center py-4 text-gray-400 dark:text-gray-300 text-xs italic">{'Media not available'}</div>
               )}
 
               {/* Operator Notes -- Inline Edit */}
               <div className="bg-gray-50/80 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-800">
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-xs font-extrabold flex items-center gap-2 text-gray-700 dark:text-gray-200"><Edit2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300"/>{t('admin.detail.operatorNotes',lang)}</h4>
+                  <h4 className="text-xs font-extrabold flex items-center gap-2 text-gray-700 dark:text-gray-200"><Edit2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300"/>{'Operator Notes'}</h4>
                   {!notesEditing && (
                     <button onClick={()=>{setNotesDraft(selReport.operatorNotes||'');setNotesEditing(true)}} className="text-[10px] px-2 py-0.5 rounded-lg bg-aegis-100 dark:bg-aegis-900/30 text-aegis-700 dark:text-aegis-300 border border-aegis-200 dark:border-aegis-800/40 hover:bg-aegis-200 dark:hover:bg-aegis-800/40 transition-all font-semibold flex items-center gap-1">
                       <Edit2 className="w-2.5 h-2.5"/>{selReport.operatorNotes ? 'Edit' : 'Add note'}
@@ -1220,7 +1221,7 @@ export default function AdminPage(): JSX.Element {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-500 dark:text-gray-300 italic">{selReport.operatorNotes || t('admin.detail.noOperatorNotes',lang)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-300 italic">{selReport.operatorNotes || 'No operator notes'}</p>
                 )}
               </div>
 
@@ -1234,24 +1235,24 @@ export default function AdminPage(): JSX.Element {
                     {decided && !isSuperAdmin && (
                       <div className="flex items-center gap-2 px-3 py-2 bg-aegis-50 dark:bg-aegis-950/30 border border-aegis-200 dark:border-aegis-800/40 rounded-xl text-xs text-aegis-700 dark:text-aegis-300">
                         <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/></svg>
-                        {t('admin.detail.statusLocked',lang)}
+                        {'Status locked -- super admin override required'}
                       </div>
                     )}
                     {decided && isSuperAdmin && (
                       <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40 rounded-xl text-xs text-blue-700 dark:text-blue-300">
                         <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/></svg>
-                        {t('admin.detail.superAdminOverride',lang)}
+                        {'Super Admin Override'}
                       </div>
                     )}
                     <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 ${!canAct ? 'opacity-40 pointer-events-none' : ''}`}>
-                      <button onClick={()=>canAct&&doVerify(selReport.id)} disabled={!canAct} className="group text-[11px] bg-emerald-50 dark:bg-emerald-950/20 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:shadow-emerald-500/10 disabled:cursor-not-allowed"><CheckCircle className="w-4 h-4 group-hover:scale-110 transition-transform"/> {t('admin.action.verify',lang)}</button>
-                      <button onClick={()=>canAct&&doFlag(selReport.id)} disabled={!canAct} className="group text-[11px] bg-aegis-50 dark:bg-aegis-950/20 hover:bg-aegis-100 dark:hover:bg-aegis-950/40 text-aegis-700 dark:text-aegis-300 border border-aegis-200 dark:border-aegis-800/40 py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:shadow-aegis-500/10 disabled:cursor-not-allowed"><Flag className="w-4 h-4 group-hover:scale-110 transition-transform"/> {t('admin.action.flag',lang)}</button>
-                      <button onClick={()=>canAct&&doUrgent(selReport.id)} disabled={!canAct} className="group text-[11px] bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/40 py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:shadow-red-500/10 disabled:cursor-not-allowed"><Siren className="w-4 h-4 group-hover:scale-110 transition-transform"/> {t('admin.action.urgent',lang)}</button>
-                      <button onClick={()=>canAct&&doResolve(selReport.id)} disabled={!canAct} className="group text-[11px] bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-700/40 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/40 py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:shadow-slate-500/10 disabled:cursor-not-allowed"><CheckCircle2 className="w-4 h-4 group-hover:scale-110 transition-transform"/> {t('admin.action.resolve',lang)}</button>
+                      <button onClick={()=>canAct&&doVerify(selReport.id)} disabled={!canAct} className="group text-[11px] bg-emerald-50 dark:bg-emerald-950/20 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:shadow-emerald-500/10 disabled:cursor-not-allowed"><CheckCircle className="w-4 h-4 group-hover:scale-110 transition-transform"/> {'Verify'}</button>
+                      <button onClick={()=>canAct&&doFlag(selReport.id)} disabled={!canAct} className="group text-[11px] bg-aegis-50 dark:bg-aegis-950/20 hover:bg-aegis-100 dark:hover:bg-aegis-950/40 text-aegis-700 dark:text-aegis-300 border border-aegis-200 dark:border-aegis-800/40 py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:shadow-aegis-500/10 disabled:cursor-not-allowed"><Flag className="w-4 h-4 group-hover:scale-110 transition-transform"/> {'Flag'}</button>
+                      <button onClick={()=>canAct&&doUrgent(selReport.id)} disabled={!canAct} className="group text-[11px] bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/40 py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:shadow-red-500/10 disabled:cursor-not-allowed"><Siren className="w-4 h-4 group-hover:scale-110 transition-transform"/> {'Urgent'}</button>
+                      <button onClick={()=>canAct&&doResolve(selReport.id)} disabled={!canAct} className="group text-[11px] bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-700/40 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/40 py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:shadow-slate-500/10 disabled:cursor-not-allowed"><CheckCircle2 className="w-4 h-4 group-hover:scale-110 transition-transform"/> {'Resolve'}</button>
                     </div>
                     <div className={`grid grid-cols-2 gap-2 ${!canAct ? 'opacity-40 pointer-events-none' : ''}`}>
-                      <button onClick={()=>canAct&&doArchive(selReport.id)} disabled={!canAct} className="group text-[11px] bg-gray-50 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700/40 py-2 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition-all hover:shadow-md disabled:cursor-not-allowed"><Archive className="w-3.5 h-3.5 group-hover:scale-110 transition-transform"/> {t('admin.action.archive',lang)}</button>
-                      <button onClick={()=>canAct&&doFalseReport(selReport.id)} disabled={!canAct} className="group text-[11px] bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40 py-2 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition-all hover:shadow-md disabled:cursor-not-allowed"><XCircle className="w-3.5 h-3.5 group-hover:scale-110 transition-transform"/> {t('admin.action.falseReport',lang)}</button>
+                      <button onClick={()=>canAct&&doArchive(selReport.id)} disabled={!canAct} className="group text-[11px] bg-gray-50 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700/40 py-2 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition-all hover:shadow-md disabled:cursor-not-allowed"><Archive className="w-3.5 h-3.5 group-hover:scale-110 transition-transform"/> {'Archive'}</button>
+                      <button onClick={()=>canAct&&doFalseReport(selReport.id)} disabled={!canAct} className="group text-[11px] bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40 py-2 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition-all hover:shadow-md disabled:cursor-not-allowed"><XCircle className="w-3.5 h-3.5 group-hover:scale-110 transition-transform"/> {'False Report'}</button>
                     </div>
                   </div>
                 )
@@ -1268,13 +1269,13 @@ export default function AdminPage(): JSX.Element {
               <div className="flex items-center gap-3">
                 <Camera className="w-5 h-5 text-purple-400"/>
                 <div>
-                  <p className="text-slate-900 dark:text-white text-sm font-bold">{t('admin.gallery.evidencePhoto',lang)} {galleryIndex+1} {t('admin.gallery.of',lang)} {mediaItems.length}</p>
+                  <p className="text-slate-900 dark:text-white text-sm font-bold">{'Evidence Photo'} {galleryIndex+1} {'of'} {mediaItems.length}</p>
                   <p className="text-white/50 text-[10px]">{selReport.reportNumber} ? {selReport.type}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={()=>window.open(mediaItems[galleryIndex]?.url||mediaItems[galleryIndex]?.file_url,'_blank')} className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all" title={t('admin.gallery.openOriginal',lang)}><ExternalLink className="w-4 h-4"/></button>
-                <button onClick={()=>setGalleryOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/10 hover:bg-red-500/80 text-white transition-all" title={t('admin.gallery.closeGallery',lang)}><X className="w-5 h-5"/></button>
+                <button onClick={()=>window.open(mediaItems[galleryIndex]?.url||mediaItems[galleryIndex]?.file_url,'_blank')} className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all" title={'Open Original'}><ExternalLink className="w-4 h-4"/></button>
+                <button onClick={()=>setGalleryOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/10 hover:bg-red-500/80 text-white transition-all" title={'Close Gallery'}><X className="w-5 h-5"/></button>
               </div>
             </div>
             {/* Gallery Main Image */}
@@ -1303,7 +1304,7 @@ export default function AdminPage(): JSX.Element {
             {mediaItems[galleryIndex]?.aiAnalysis&&(
               <div className="flex-shrink-0 flex items-center justify-center gap-4 py-2 px-4" onClick={e=>e.stopPropagation()}>
                 <div className="bg-white/5 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center gap-4 text-[10px]">
-                  <span className="text-purple-400 font-bold"><Brain className="w-3 h-3 inline mr-1"/>{t('admin.gallery.aiPhotoAnalysis',lang)}</span>
+                  <span className="text-purple-400 font-bold"><Brain className="w-3 h-3 inline mr-1"/>{'AI Photo Analysis'}</span>
                   {mediaItems[galleryIndex].aiAnalysis.classification&&<span className="text-white/70">Class: <strong className="text-white">{mediaItems[galleryIndex].aiAnalysis.classification}</strong></span>}
                   {mediaItems[galleryIndex].aiAnalysis.waterDepth&&<span className="text-white/70">Depth: <strong className="text-white">{mediaItems[galleryIndex].aiAnalysis.waterDepth}</strong></span>}
                   {mediaItems[galleryIndex].aiAnalysis.authenticityScore!==undefined&&<span className="text-white/70">Authenticity: <strong className="text-white">{mediaItems[galleryIndex].aiAnalysis.authenticityScore}%</strong></span>}
@@ -1321,30 +1322,30 @@ export default function AdminPage(): JSX.Element {
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
             <h3 className="font-bold text-sm">{confirmModal.title}</h3>
             <p className="text-xs text-gray-600 dark:text-gray-300">{confirmModal.message}</p>
-            {(confirmModal.type==='warning'||confirmModal.type==='danger')&&!confirmModal.title.includes('Suspend')&&<textarea className="w-full px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg min-h-[60px] border-none" placeholder={t('admin.confirm.justification',lang)} value={justification} onChange={e=>setJustification(e.target.value)}/>}
+            {(confirmModal.type==='warning'||confirmModal.type==='danger')&&!confirmModal.title.includes('Suspend')&&<textarea className="w-full px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg min-h-[60px] border-none" placeholder={'Justification'} value={justification} onChange={e=>setJustification(e.target.value)}/>}
             {confirmModal.title.includes('Suspend')&&(
               <div className="space-y-2">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">{t('admin.suspend.reasonLabel',lang)}</label>
-                  <textarea className="w-full px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg min-h-[60px] border border-gray-200 dark:border-gray-700" placeholder={t('admin.suspend.reasonPlaceholder',lang)} value={suspendForm.reason} onChange={e=>setSuspendForm(f=>({...f,reason:e.target.value}))} required/>
+                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">{'Reason for Suspension'}</label>
+                  <textarea className="w-full px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg min-h-[60px] border border-gray-200 dark:border-gray-700" placeholder={'Describe the reason for this suspension...'} value={suspendForm.reason} onChange={e=>setSuspendForm(f=>({...f,reason:e.target.value}))} required/>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">{t('admin.suspend.durationLabel',lang)}</label>
+                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">{'Suspension Duration'}</label>
                   <div className="flex flex-wrap gap-1.5 mb-2">
-                    {[{label:t('admin.suspend.1day',lang),days:1},{label:t('admin.suspend.3days',lang),days:3},{label:t('admin.suspend.1week',lang),days:7},{label:t('admin.suspend.1month',lang),days:30},{label:t('admin.suspend.indefiniteBtn',lang),days:0}].map(({label,days})=>(
+                    {[{label:'1 Day',days:1},{label:'3 Days',days:3},{label:'1 Week',days:7},{label:'1 Month',days:30},{label:'Suspend Indefinitely',days:0}].map(({label,days})=>(
                       <button key={label} type="button" onClick={()=>{if(days===0){setSuspendForm(f=>({...f,until:''}))}else{const d=new Date();d.setDate(d.getDate()+days);setSuspendForm(f=>({...f,until:d.toISOString().slice(0,10)}))}}} className="text-[10px] px-2 py-1 rounded-md bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors">{label}</button>
                     ))}
                   </div>
                   <input type="date" min={new Date().toISOString().slice(0,10)} className="w-full px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" value={suspendForm.until} onChange={e=>setSuspendForm(f=>({...f,until:e.target.value}))}/>
-                  {suspendForm.until&&<p className="text-[10px] text-aegis-600 dark:text-aegis-400 mt-1">{t('admin.suspend.suspendedUntil',lang)}: {new Date(suspendForm.until).toLocaleDateString('en-GB',{dateStyle:'long'})}</p>}
-                  {!suspendForm.until&&<p className="text-[10px] text-gray-500 dark:text-gray-300 mt-1">{t('admin.suspend.indefinite',lang)}</p>}
+                  {suspendForm.until&&<p className="text-[10px] text-aegis-600 dark:text-aegis-400 mt-1">{'Suspended until'}: {new Date(suspendForm.until).toLocaleDateString('en-GB',{dateStyle:'long'})}</p>}
+                  {!suspendForm.until&&<p className="text-[10px] text-gray-500 dark:text-gray-300 mt-1">{'Indefinite'}</p>}
                 </div>
               </div>
             )}
-            {(confirmModal.title.includes('Deploy')||confirmModal.title.includes('Recall'))&&<div><label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{t('admin.deploy.reasonLabel',lang)}</label><textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg min-h-[60px] border border-gray-200 dark:border-gray-700" placeholder={t('admin.deploy.reasonPlaceholder',lang)} value={deployReason} onChange={e=>setDeployReason(e.target.value)} required/></div>}
+            {(confirmModal.title.includes('Deploy')||confirmModal.title.includes('Recall'))&&<div><label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{'Reason for Deployment'}</label><textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg min-h-[60px] border border-gray-200 dark:border-gray-700" placeholder={'Describe the reason for this deployment...'} value={deployReason} onChange={e=>setDeployReason(e.target.value)} required/></div>}
             <div className="flex gap-3">
-              <button onClick={()=>{setConfirmModal(null);setJustification('');setDeployReason('');setSuspendForm({until:'',reason:''})}} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 rounded-xl py-2.5 text-sm font-semibold">{t('general.cancel',lang)}</button>
-              <button onClick={()=>{if((confirmModal.title.includes('Deploy')||confirmModal.title.includes('Recall'))&&!deployReason.trim()){return}if(confirmModal.title.includes('Suspend')&&!suspendForm.reason.trim()){return}confirmModal.action();setConfirmModal(null);setJustification('');setDeployReason('');setSuspendForm({until:'',reason:''})}} disabled={((confirmModal.title.includes('Deploy')||confirmModal.title.includes('Recall'))&&!deployReason.trim())||(confirmModal.title.includes('Suspend')&&!suspendForm.reason.trim())} className={`flex-1 text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed ${confirmModal.type==='danger'?'bg-red-600 hover:bg-red-700':confirmModal.type==='warning'?'bg-aegis-600 hover:bg-aegis-700':'bg-aegis-600 hover:bg-aegis-700'}`}>{t('general.confirm',lang)}</button>
+              <button onClick={()=>{setConfirmModal(null);setJustification('');setDeployReason('');setSuspendForm({until:'',reason:''})}} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 rounded-xl py-2.5 text-sm font-semibold">{'Cancel'}</button>
+              <button onClick={()=>{if((confirmModal.title.includes('Deploy')||confirmModal.title.includes('Recall'))&&!deployReason.trim()){return}if(confirmModal.title.includes('Suspend')&&!suspendForm.reason.trim()){return}confirmModal.action();setConfirmModal(null);setJustification('');setDeployReason('');setSuspendForm({until:'',reason:''})}} disabled={((confirmModal.title.includes('Deploy')||confirmModal.title.includes('Recall'))&&!deployReason.trim())||(confirmModal.title.includes('Suspend')&&!suspendForm.reason.trim())} className={`flex-1 text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed ${confirmModal.type==='danger'?'bg-red-600 hover:bg-red-700':confirmModal.type==='warning'?'bg-aegis-600 hover:bg-aegis-700':'bg-aegis-600 hover:bg-aegis-700'}`}>{'Confirm'}</button>
             </div>
           </div>
         </div>
@@ -1449,8 +1450,8 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
               <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
             </div>
             <div>
-              <h2 className="font-bold text-sm leading-tight text-gray-900 dark:text-white">{t('admin.mapView.title',lang)}</h2>
-              <p className="text-[9px] text-gray-500 dark:text-gray-300 font-medium">{t('admin.mapView.subtitle',lang)}</p>
+              <h2 className="font-bold text-sm leading-tight text-gray-900 dark:text-white">{'Live Operations Map'}</h2>
+              <p className="text-[9px] text-gray-500 dark:text-gray-300 font-medium">{'Real-time tactical intelligence overlay'}</p>
             </div>
           </div>
         </div>
@@ -1458,10 +1459,10 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
           {/* Panel Toggles ? glassmorphism pill */}
           <div className="flex bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg p-0.5 ring-1 ring-gray-200/60 dark:ring-gray-700/40 shadow-sm">
             <button onClick={()=>setShowLeftPanel(!showLeftPanel)} className={`px-2.5 py-1.5 text-[10px] font-bold rounded-md transition-all ${showLeftPanel?'bg-blue-600 text-white shadow-md':'text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white'}`} title="Toggle Intelligence Panel">
-              <span className="flex items-center gap-1"><Brain className="w-3 h-3"/> {t('admin.mapView.intel',lang)}</span>
+              <span className="flex items-center gap-1"><Brain className="w-3 h-3"/> {'Intel'}</span>
             </button>
             <button onClick={()=>setShowRightPanel(!showRightPanel)} className={`px-2.5 py-1.5 text-[10px] font-bold rounded-md transition-all ${showRightPanel?'bg-blue-600 text-white shadow-md':'text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white'}`} title="Toggle Layer Controls">
-              <span className="flex items-center gap-1"><Layers className="w-3 h-3"/> {t('admin.mapView.layers',lang)}</span>
+              <span className="flex items-center gap-1"><Layers className="w-3 h-3"/> {'Layers'}</span>
             </button>
           </div>
           {/* Region Selector -- Advanced LocationDropdown */}

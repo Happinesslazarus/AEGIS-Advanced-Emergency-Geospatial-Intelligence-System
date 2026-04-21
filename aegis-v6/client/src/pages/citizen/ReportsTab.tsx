@@ -59,11 +59,11 @@ export default function ReportsTab({ reports, loading, searchTerm, setSearchTerm
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">{t('cdash.reports.recentReports', lang)}</h2>
+              <h2 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">{'Recent Reports'}</h2>
               <span className="px-2.5 py-0.5 rounded-full bg-aegis-100 dark:bg-aegis-900/40 text-aegis-700 dark:text-aegis-300 text-xs font-bold">{stats.total}</span>
             </div>
             <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">
-              {stats.high} {t('cdash.reports.critical', lang)} - {stats.verified} {t('cdash.reports.verified', lang)} - {stats.aiPowered} {t('cdash.reports.aiAnalysed', lang)}
+              {stats.high} {'Critical'} - {stats.verified} {'Verified'} - {stats.aiPowered} {'AI analysed'}
             </p>
           </div>
         </div>
@@ -83,7 +83,7 @@ export default function ReportsTab({ reports, loading, searchTerm, setSearchTerm
         >
           <div className="flex items-center justify-between mb-1">
             <AlertTriangle className={`w-4 h-4 ${stats.high > 0 ? 'text-red-500 animate-pulse' : 'text-gray-400 dark:text-gray-400'}`} />
-            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 uppercase">{t('cdash.reports.critical', lang)}</span>
+            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 uppercase">{'Critical'}</span>
           </div>
           <div className={`text-2xl font-black leading-none ${stats.high > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>{stats.high}</div>
           <div className="mt-1.5 w-full h-1 rounded-full bg-gray-200/60 dark:bg-gray-700/40 overflow-hidden">
@@ -96,7 +96,7 @@ export default function ReportsTab({ reports, loading, searchTerm, setSearchTerm
         >
           <div className="flex items-center justify-between mb-1">
             <Zap className="w-4 h-4 text-amber-500" />
-            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 uppercase">{t('cdash.reports.moderate', lang)}</span>
+            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 uppercase">{'Moderate'}</span>
           </div>
           <div className="text-2xl font-black text-gray-900 dark:text-white leading-none">{stats.medium}</div>
           <div className="mt-1.5 w-full h-1 rounded-full bg-gray-200/60 dark:bg-gray-700/40 overflow-hidden">
@@ -109,7 +109,7 @@ export default function ReportsTab({ reports, loading, searchTerm, setSearchTerm
         >
           <div className="flex items-center justify-between mb-1">
             <Shield className="w-4 h-4 text-blue-500" />
-            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 uppercase">{t('cdash.reports.low', lang)}</span>
+            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 uppercase">{'Low'}</span>
           </div>
           <div className="text-2xl font-black text-gray-900 dark:text-white leading-none">{stats.low}</div>
           <div className="mt-1.5 w-full h-1 rounded-full bg-gray-200/60 dark:bg-gray-700/40 overflow-hidden">
@@ -122,7 +122,7 @@ export default function ReportsTab({ reports, loading, searchTerm, setSearchTerm
         >
           <div className="flex items-center justify-between mb-1">
             <CheckCircle className="w-4 h-4 text-emerald-500" />
-            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 uppercase">{t('cdash.reports.verified', lang)}</span>
+            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 uppercase">{'Verified'}</span>
           </div>
           <div className="text-2xl font-black text-gray-900 dark:text-white leading-none">{stats.verified}</div>
           <div className="mt-1.5 w-full h-1 rounded-full bg-gray-200/60 dark:bg-gray-700/40 overflow-hidden">
@@ -134,11 +134,11 @@ export default function ReportsTab({ reports, loading, searchTerm, setSearchTerm
       {/* STATUS FILTER PILLS */}
       <div className="flex items-center gap-1.5 flex-wrap">
         {([
-          { key: 'all' as const, label: t('cdash.reports.all', lang), count: stats.total, color: 'text-gray-600 dark:text-gray-400', activeBg: 'bg-gray-100 dark:bg-gray-700' },
-          { key: 'Unverified' as const, label: t('cdash.reports.unverified', lang), count: stats.unverified, color: 'text-yellow-600', activeBg: 'bg-yellow-50 dark:bg-yellow-950/30' },
-          { key: 'Verified' as const, label: t('cdash.reports.verifiedStatus', lang), count: stats.verified, color: 'text-emerald-600', activeBg: 'bg-emerald-50 dark:bg-emerald-950/30' },
-          { key: 'Urgent' as const, label: t('cdash.reports.urgent', lang), count: stats.urgent, color: 'text-red-600', activeBg: 'bg-red-50 dark:bg-red-950/30' },
-          { key: 'Resolved' as const, label: t('cdash.reports.resolved', lang), count: stats.resolved, color: 'text-blue-600', activeBg: 'bg-blue-50 dark:bg-blue-950/30' },
+          { key: 'all' as const, label: 'All', count: stats.total, color: 'text-gray-600 dark:text-gray-400', activeBg: 'bg-gray-100 dark:bg-gray-700' },
+          { key: 'Unverified' as const, label: 'Unverified', count: stats.unverified, color: 'text-yellow-600', activeBg: 'bg-yellow-50 dark:bg-yellow-950/30' },
+          { key: 'Verified' as const, label: 'Verified', count: stats.verified, color: 'text-emerald-600', activeBg: 'bg-emerald-50 dark:bg-emerald-950/30' },
+          { key: 'Urgent' as const, label: 'Urgent', count: stats.urgent, color: 'text-red-600', activeBg: 'bg-red-50 dark:bg-red-950/30' },
+          { key: 'Resolved' as const, label: 'Resolved', count: stats.resolved, color: 'text-blue-600', activeBg: 'bg-blue-50 dark:bg-blue-950/30' },
         ]).map(st => (
           <button
             key={st.key}
@@ -160,14 +160,14 @@ export default function ReportsTab({ reports, loading, searchTerm, setSearchTerm
         <div className="p-3 border-b border-gray-200/80 dark:border-gray-700/50 flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-400" />
-            <input className="w-full pl-10 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition text-gray-900 dark:text-white placeholder-gray-400" placeholder={t('reports.search', lang) || 'Search reports...'} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            <input className="w-full pl-10 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition text-gray-900 dark:text-white placeholder-gray-400" placeholder={'Search...'} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
           <select value={sortField} onChange={e => setSortField(e.target.value)} className="text-xs bg-gray-50 dark:bg-gray-800/60 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 appearance-none text-gray-700 dark:text-gray-200">
-            <option value="timestamp">{t('citizen.reports.newest', lang)}</option>
-            <option value="severity">{t('severity', lang)}</option>
-            <option value="confidence">{t('citizen.reports.aiConfidence', lang)}</option>
+            <option value="timestamp">{'Newest'}</option>
+            <option value="severity">{'Severity'}</option>
+            <option value="confidence">{'AI Confidence'}</option>
           </select>
-          <button onClick={() => setSortOrder((o: string) => o === 'desc' ? 'asc' : 'desc')} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={sortOrder === 'desc' ? t('cdash.reports.newestFirst', lang) : t('cdash.reports.oldestFirst', lang)}>
+          <button onClick={() => setSortOrder((o: string) => o === 'desc' ? 'asc' : 'desc')} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={sortOrder === 'desc' ? 'Newest first' : 'Oldest first'}>
             <ArrowUpDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
           </button>
           <div className="text-[9px] font-medium text-gray-400 dark:text-gray-400 ml-auto">
@@ -183,8 +183,8 @@ export default function ReportsTab({ reports, loading, searchTerm, setSearchTerm
             reports.length > 0 ? (
               <div className="py-12 text-center">
                 <Filter className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
-                <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{t('cdash.reports.noMatching', lang)}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">{t('cdash.reports.tryAdjusting', lang)} <button onClick={() => { setSeverityFilter('all'); setStatusFilter('all') }} className="text-aegis-600 dark:text-aegis-400 font-bold hover:underline">{t('cdash.reports.clearingFilters', lang)}</button></p>
+                <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{'No matching reports found'}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">{'Try adjusting your filters or'} <button onClick={() => { setSeverityFilter('all'); setStatusFilter('all') }} className="text-aegis-600 dark:text-aegis-400 font-bold hover:underline">{'clearing all filters'}</button></p>
               </div>
             ) : (
               <EmptyReports />
@@ -199,15 +199,15 @@ export default function ReportsTab({ reports, loading, searchTerm, setSearchTerm
                   {/* NEW badge for recent reports */}
                   {isRecent && (
                     <div className="absolute top-2.5 right-14 z-10">
-                      <span className="px-1.5 py-0.5 rounded text-[7px] font-black bg-green-500 text-white uppercase tracking-wider animate-pulse">{t('cdash.reports.new', lang)}</span>
+                      <span className="px-1.5 py-0.5 rounded text-[7px] font-black bg-green-500 text-white uppercase tracking-wider animate-pulse">{'New'}</span>
                     </div>
                   )}
                   <ReportCard report={r} onClick={onViewReport} />
                   <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                    <button onClick={(e) => { e.stopPropagation(); onShareReport(r) }} className="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all shadow-sm" title={t('cdash.reports.shareReport', lang)}>
+                    <button onClick={(e) => { e.stopPropagation(); onShareReport(r) }} className="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all shadow-sm" title={'Share report'}>
                       <Share2 className="w-4 h-4 text-blue-600" />
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); onPrintReport(r) }} className="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm" title={t('cdash.reports.printReport', lang)}>
+                    <button onClick={(e) => { e.stopPropagation(); onPrintReport(r) }} className="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm" title={'Print report'}>
                       <Printer className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                     </button>
                   </div>
@@ -223,13 +223,13 @@ export default function ReportsTab({ reports, loading, searchTerm, setSearchTerm
             <div className="flex items-center gap-3 text-[9px] font-medium">
               <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                {t('cdash.reports.realTime', lang)}
+                {'Real-time'}
               </span>
               <span className="text-gray-400 dark:text-gray-400">
-                {stats.withMedia} {t('cdash.reports.withMedia', lang)} - {stats.aiPowered} {t('cdash.reports.aiAnalysed', lang)}
+                {stats.withMedia} {'With media'} - {stats.aiPowered} {'AI analysed'}
               </span>
             </div>
-            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-400 px-2 py-0.5 rounded bg-gray-200/60 dark:bg-gray-700/40">{filtered.length} {t('cdash.reports.reports', lang)}</span>
+            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-400 px-2 py-0.5 rounded bg-gray-200/60 dark:bg-gray-700/40">{filtered.length} {'reports'}</span>
           </div>
         )}
       </div>
