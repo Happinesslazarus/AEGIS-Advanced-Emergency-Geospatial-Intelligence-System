@@ -339,13 +339,15 @@ export default function CitizenPage(): JSX.Element {
     if (sosTimerRef.current) clearInterval(sosTimerRef.current)
   }, [])
 
-  //Redirect authenticated citizens to their dashboard when they land on /citizen
-  // (e.g. coming from the LandingPage "Access Citizen Portal" button while signed in)
+  //Redirect authenticated citizens to their dashboard only when they land on bare /citizen
+  // (e.g. from the LandingPage "Access Citizen Portal" button while signed in).
+  // Do NOT redirect when the URL has tab/alert params so sidebar links like
+  // /citizen?tab=reports or /citizen?tab=shelters still work for logged-in users.
   useEffect(() => {
-    if (isCitizenLoggedIn) {
+    if (isCitizenLoggedIn && !searchParams.toString()) {
       navigate('/citizen/dashboard', { replace: true })
     }
-  }, [isCitizenLoggedIn, navigate])
+  }, [isCitizenLoggedIn, navigate, searchParams])
 
   //Offline detection
   useEffect(() => {

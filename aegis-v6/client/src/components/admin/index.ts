@@ -11,7 +11,7 @@ export { default as AdminCrowdDensity } from './AdminCrowdDensity'
 export { default as AdminHistoricalIntelligence } from './AdminHistoricalIntelligence'
 export { default as AdminMessaging } from './AdminMessaging'
 export { default as AITransparencyConsole } from './AITransparencyConsole'
-export { default as AITransparencyDashboard } from './AITransparencyDashboard'
+// export { default as AITransparencyDashboard } from './AITransparencyDashboard' // (deleted)
 export { default as AllReportsManager } from './AllReportsManager'
 export { default as AnalyticsCenter } from './AnalyticsCenter'
 export { default as AnalyticsDashboard } from './AnalyticsDashboard'
