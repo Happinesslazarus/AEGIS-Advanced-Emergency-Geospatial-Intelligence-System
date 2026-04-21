@@ -100,3 +100,8 @@ export {
 } from './Navigation'
 
 export type { NavItem } from './Navigation'
+
+//DATA TABLE
+
+export { DataTable } from './DataTable'
+export type { DataTableColumn } from './DataTable'

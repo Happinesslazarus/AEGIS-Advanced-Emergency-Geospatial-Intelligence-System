@@ -12,6 +12,7 @@ export const AegisChannels = {
   RISK_UPDATED: 'risk:updated',
   ALERT_NEW: 'alert:new',
   INCIDENT_ESCALATED: 'incident:escalated',
+  REPORT_CREATED: 'report:created',
 } as const
 
 export type AegisChannel = typeof AegisChannels[keyof typeof AegisChannels]
@@ -52,11 +53,20 @@ export interface IncidentEscalatedEvent {
   correlationId?: string
 }
 
+export interface ReportCreatedEvent {
+  reportId: string
+  hazardType: string
+  severity: string
+  regionId?: string
+  correlationId?: string
+}
+
 export interface AegisChannelMap {
   [AegisChannels.HAZARD_PREDICTED]: HazardPredictedEvent
   [AegisChannels.RISK_UPDATED]: RiskUpdatedEvent
   [AegisChannels.ALERT_NEW]: AlertNewEvent
   [AegisChannels.INCIDENT_ESCALATED]: IncidentEscalatedEvent
+  [AegisChannels.REPORT_CREATED]: ReportCreatedEvent
 }
 
 /** Strongly-typed subscribe helper. Returns an unsubscribe function. */

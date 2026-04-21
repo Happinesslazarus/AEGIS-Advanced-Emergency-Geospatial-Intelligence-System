@@ -32,6 +32,48 @@ const RULES: CascadeRule[] = [
     cascadedHazard: 'landslide',
     reason: 'Saturated soil downstream of high-probability flood zone elevates landslide risk',
   },
+  {
+    triggerHazard: 'wildfire',
+    minScore: 0.65,
+    cascadedHazard: 'environmental_hazard',
+    reason: 'Active wildfire produces smoke, particulates and toxic gases elevating air quality hazard',
+  },
+  {
+    triggerHazard: 'heatwave',
+    minScore: 0.6,
+    cascadedHazard: 'drought',
+    reason: 'Sustained extreme heat accelerates evapotranspiration and depletes soil moisture reserves',
+  },
+  {
+    triggerHazard: 'severe_storm',
+    minScore: 0.65,
+    cascadedHazard: 'flood',
+    reason: 'Storm surge and intense rainfall from severe cyclonic activity drive flash and coastal flooding',
+  },
+  {
+    triggerHazard: 'infrastructure_damage',
+    minScore: 0.6,
+    cascadedHazard: 'power_outage',
+    reason: 'Structural damage to transmission lines and substations disrupts electricity supply',
+  },
+  {
+    triggerHazard: 'landslide',
+    minScore: 0.7,
+    cascadedHazard: 'infrastructure_damage',
+    reason: 'Debris flows and slope failures damage roads, bridges and buried utility infrastructure',
+  },
+  {
+    triggerHazard: 'drought',
+    minScore: 0.75,
+    cascadedHazard: 'wildfire',
+    reason: 'Prolonged drought desiccates vegetation, dramatically increasing ignition probability',
+  },
+  {
+    triggerHazard: 'flood',
+    minScore: 0.75,
+    cascadedHazard: 'water_supply_disruption',
+    reason: 'Floodwaters contaminate intake points and overwhelm treatment capacity',
+  },
 ]
 
 export function registerCascadeRules(): () => void {

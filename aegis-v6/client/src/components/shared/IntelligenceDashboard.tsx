@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useEventBuffer } from '../../hooks/useEventStream'
 import {
   Shield, AlertTriangle, Droplets, Users,
   Activity, TrendingUp, TrendingDown, RefreshCw,
@@ -322,7 +323,14 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
     return () => clearInterval(t)
   }, [fetchAll])
 
-  //Socket.IO live updates
+  // Typed hazard prediction events from the AI tick -- refresh counts whenever
+  // a new prediction arrives. Replaces the legacy 'incident:predictions_updated' socket.on.
+  const hazardEvents = useEventBuffer('hazard:predicted', 10)
+  useEffect(() => {
+    if (hazardEvents.length > 0) fetchAll()
+  }, [hazardEvents, fetchAll])
+
+  //Socket.IO live updates (distress / incident alerts -- not yet on typed spine)
   useEffect(() => {
     if (!socket) return
 
@@ -344,11 +352,6 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
       }
     }
 
-    const onPredictionsUpdated = () => {
-      //Batch prediction refresh -- just reload counts
-      fetchAll()
-    }
-
     const onStatusChanged = (data: any) => { if (data.status === 'resolved') onDistressDone() }
 
     socket.on('distress:new_alert',      onDistressNew)
@@ -356,7 +359,6 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
     socket.on('distress:status_changed', onStatusChanged)
     socket.on('incident:alert',          onIncidentAlert)
     socket.on('incident:alert:priority', onIncidentAlert)
-    socket.on('incident:predictions_updated', onPredictionsUpdated)
 
     return () => {
       socket.off('distress:new_alert',      onDistressNew)
@@ -364,7 +366,6 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
       socket.off('distress:status_changed', onStatusChanged)
       socket.off('incident:alert',          onIncidentAlert)
       socket.off('incident:alert:priority', onIncidentAlert)
-      socket.off('incident:predictions_updated', onPredictionsUpdated)
     }
   }, [socket, fetchAll])
 

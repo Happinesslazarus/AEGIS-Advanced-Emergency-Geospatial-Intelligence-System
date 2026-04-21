@@ -27,6 +27,7 @@ import { apiGetReportAnalytics } from '../../utils/api'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { useSharedSocket } from '../../contexts/SocketContext'
+import { useEventStream } from '../../hooks/useEventStream'
 
 type RangeValue = '24h' | '7d' | '30d' | 'all' | 'custom'
 
@@ -152,7 +153,8 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<AnalyticsPayload | null>(null)
-  const { socket: sharedSocket, connected: socketConnected } = useSharedSocket()
+  const { connected: socketConnected } = useSharedSocket()
+  const latestReport = useEventStream('report:created')
   //inFlightRef: prevents duplicate concurrent API calls when range changes or
   //WebSocket events fire rapidly.  A ref avoids stale closure issues in the
   //useCallback.
@@ -190,29 +192,14 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
     rangeRef.current = range
   }, [range])
 
+  // Reload when a new report arrives via the typed event spine (report:created).
+  // Debounced to 1200ms so bulk batch updates only fire one refresh.
   useEffect(() => {
-    const socket = sharedSocket
-    if (!socket) return
-
-    //refreshFromEvent: deduplicated socket handler.  Only fires one refresh
-    //per 1200ms window so a bulk update that emits 50 events doesn't flood
-    //the API.
-    const refreshFromEvent = () => {
-      const now = Date.now()
-      if (now - lastRefreshRef.current < 1200) return
-      void load(rangeRef.current)
-    }
-
-    socket.on('report:new', refreshFromEvent)
-    socket.on('report:updated', refreshFromEvent)
-    socket.on('report:bulk-updated', refreshFromEvent)
-
-    return () => {
-      socket.off('report:new', refreshFromEvent)
-      socket.off('report:updated', refreshFromEvent)
-      socket.off('report:bulk-updated', refreshFromEvent)
-    }
-  }, [sharedSocket, load])
+    if (!latestReport) return
+    const now = Date.now()
+    if (now - lastRefreshRef.current < 1200) return
+    void load(rangeRef.current)
+  }, [latestReport, load])
 
   useEffect(() => {
     const id = window.setInterval(() => {
