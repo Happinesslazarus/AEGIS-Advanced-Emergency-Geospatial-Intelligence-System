@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { getAnyToken } from '../../utils/api'
+import { apiFetch } from '../../utils/api'
 import { Map as MapLibreMap, NavigationControl, AttributionControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { Deck } from '@deck.gl/core'
@@ -265,34 +265,25 @@ export default function Map3DView({
   //Fetch live data
   const fetchRivers = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/rivers/levels`)
-      if (!res.ok) return
-      const data = await res.json()
+      const data: any = await apiFetch('/api/rivers/levels')
       setRiverData(data.levels || [])
     } catch {}
   }, [])
 
   const fetchDistress = useCallback(async () => {
     try {
-      const token = getAnyToken()
       const rawUser = localStorage.getItem('aegis-user') || localStorage.getItem('aegis-citizen-user')
       let role = ''
       try { role = String(rawUser ? JSON.parse(rawUser)?.role || '' : '').toLowerCase() } catch {}
-      if (!token || !['admin', 'operator', 'manager'].includes(role)) return
-      const res = await fetch(`${API}/api/distress/active`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      if (!res.ok) return
-      const data = await res.json()
+      if (!['admin', 'operator', 'manager'].includes(role)) return
+      const data: any = await apiFetch('/api/distress/active')
       setDistressData(data.beacons || data.active || [])
     } catch {}
   }, [])
 
   const fetchEvacuation = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/incidents/flood/evacuation/routes`)
-      if (!res.ok) return
-      const data = await res.json()
+      const data: any = await apiFetch('/api/incidents/flood/evacuation/routes')
       setEvacuationData(data.routes || [])
     } catch {}
   }, [])
@@ -300,9 +291,7 @@ export default function Map3DView({
   //Fetch PostGIS risk layer (flood polygons) -- replaces static GLOBAL_FLOOD_ZONES
   const fetchRiskLayer = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/map/risk-layer`)
-      if (!res.ok) return
-      const data = await res.json()
+      const data: any = await apiFetch('/api/map/risk-layer')
       if (data?.features) {
         setRiskLayerData(data.features.map((f: any) => {
           const p = f.properties || {}
@@ -333,13 +322,12 @@ export default function Map3DView({
         lng: String(targetLng),
         dist: '120',
       })
-
-      let res = await fetch(`${API}/api/flood-data/stations?${params.toString()}`)
-      if (!res.ok) {
-        res = await fetch(`${API}/api/flood-data/stations?region=global&${params.toString()}`)
+      let data: any
+      try {
+        data = await apiFetch(`/api/flood-data/stations?${params.toString()}`)
+      } catch {
+        data = await apiFetch(`/api/flood-data/stations?region=global&${params.toString()}`)
       }
-      if (!res.ok) return
-      const data = await res.json()
       const features: any[] = data.features || []
       setStationsData(features.map((f: any) => {
         const p = f.properties || {}
@@ -366,9 +354,7 @@ export default function Map3DView({
   //Fetch AI predictions -- replaces hardcoded prediction columns
   const fetchPredictions = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/predictions`)
-      if (!res.ok) return
-      const data: any[] = await res.json()
+      const data: any[] = await apiFetch('/api/predictions')
       setPredictionsData(
         data
           .map((p, idx) => ({

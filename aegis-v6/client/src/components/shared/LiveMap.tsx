@@ -5,7 +5,7 @@
  */
 
 import { useRef, useEffect, useState, useCallback } from 'react'
-import { getAnyToken } from '../../utils/api'
+import { apiFetch } from '../../utils/api'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Navigation, ZoomIn, ZoomOut, Satellite, Map as MapIcon, Mountain, RefreshCw, Layers, Eye, EyeOff } from 'lucide-react'
@@ -336,9 +336,7 @@ export default function LiveMap({
   //Fetch & render river gauge stations
   const fetchRivers = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/rivers/levels`)
-      if (!res.ok) return
-      const data = await res.json()
+      const data: any = await apiFetch('/api/rivers/levels')
       const levels = data.levels || []
 
       const layer = riverLayerRef.current
@@ -399,16 +397,11 @@ export default function LiveMap({
   //Fetch & render distress beacons
   const fetchDistress = useCallback(async () => {
     try {
-      const token = getAnyToken()
       const rawUser = localStorage.getItem('aegis-user') || localStorage.getItem('aegis-citizen-user')
       let role = ''
       try { role = String(rawUser ? JSON.parse(rawUser)?.role || '' : '').toLowerCase() } catch {}
-      if (!token || !['admin', 'operator', 'manager'].includes(role)) return
-      const res = await fetch(`${API}/api/distress/active`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      if (!res.ok) return
-      const data = await res.json()
+      if (!['admin', 'operator', 'manager'].includes(role)) return
+      const data: any = await apiFetch('/api/distress/active')
       const beacons = data.beacons || data.distressCalls || data.active || []
 
       const layer = distressLayerRef.current
@@ -441,9 +434,7 @@ export default function LiveMap({
   //Fetch evacuation routes
   const fetchEvacuation = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/incidents/flood/evacuation/routes`)
-      if (!res.ok) return
-      const data = await res.json()
+      const data: any = await apiFetch('/api/incidents/flood/evacuation/routes')
       setEvacuationData(data.routes || [])
     } catch {}
   }, [])
@@ -487,14 +478,13 @@ export default function LiveMap({
         lng: String(center[1]),
         dist: '120',
       })
-
-      let res = await fetch(`${API}/api/flood-data/stations?${params.toString()}`)
-      if (!res.ok) {
+      let data: any
+      try {
+        data = await apiFetch(`/api/flood-data/stations?${params.toString()}`)
+      } catch {
         //Fallback keeps backward compatibility with older backends.
-        res = await fetch(`${API}/api/flood-data/stations?region=global&${params.toString()}`)
+        data = await apiFetch(`/api/flood-data/stations?region=global&${params.toString()}`)
       }
-      if (!res.ok) return
-      const data = await res.json()
       const features: any[] = data.features || []
 
       const layer = stationLayerRef.current
@@ -570,9 +560,7 @@ export default function LiveMap({
   const fetchPredictions = useCallback(async () => {
     if (!showFloodPredictions) return
     try {
-      const res = await fetch(`${API}/api/predictions`)
-      if (!res.ok) return
-      const data: any[] = await res.json()
+      const data: any[] = await apiFetch('/api/predictions')
 
       const layer = predictionLayerRef.current
       layer.clearLayers()
@@ -632,9 +620,7 @@ export default function LiveMap({
   //Fetch & render PostGIS risk layer (flood polygons)
   const fetchRiskLayer = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/map/risk-layer`)
-      if (!res.ok) return
-      const data = await res.json()
+      const data: any = await apiFetch('/api/map/risk-layer')
       if (!data?.features?.length) return
 
       const layer = riskLayerRef.current
@@ -675,9 +661,7 @@ export default function LiveMap({
   const fetchHeatmap = useCallback(async () => {
     try {
       if (!mapRef.current) return
-      const res = await fetch(`${API}/api/map/heatmap-data`)
-      if (!res.ok) return
-      const data = await res.json()
+      const data: any = await apiFetch('/api/map/heatmap-data')
       if (!data?.points?.length) return
 
       //Remove old heatmap

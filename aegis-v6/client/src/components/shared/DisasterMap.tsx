@@ -24,6 +24,7 @@ import IncidentMapLayers from './IncidentMapLayers'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { getAnyToken } from '../../utils/api'
+import { useApiResource } from '../../hooks/useAsync'
 import { TILE_LAYERS } from '../../utils/mapTileProviders'
 
 //Types & Config
@@ -273,21 +274,11 @@ export default function DisasterMap({
   const mapCenter = centerProp || location.center
   const mapZoom = zoomProp || location.zoom
   const floodData = useFloodData()
-  const [wmsLayers, setWmsLayers] = useState<WMSLayer[]>([])
-  const [shelters, setShelters] = useState<Shelter[]>([])
   const [layerPanelOpen, setLayerPanelOpen] = useState(false)
   const [activeWMS, setActiveWMS] = useState<Set<string>>(new Set())
   const [legendOpen, setLegendOpen] = useState(false)
-
-  //Real API data state
+  //Distress beacons: polled from API + patched in real-time by socket events
   const [distressBeacons, setDistressBeacons] = useState<any[]>([])
-  const [evacuationRoutes, setEvacuationRoutes] = useState<EvacuationRouteMapItem[]>([])
-  const [predictions, setPredictions] = useState<any[]>([])
-  const [riskLayerData, setRiskLayerData] = useState<any>(null)
-  const [realHeatmapData, setRealHeatmapData] = useState<[number, number, number][]>([])
-  const [incidentClusters, setIncidentClusters] = useState<IncidentCluster[]>([])
-  const [cascadingInsights, setCascadingInsights] = useState<CascadingInsight[]>([])
-  const [incidentObjects, setIncidentObjects] = useState<IncidentObject[]>([])
   const sharedSocket = useSharedSocket()
 
   const [mapReady, setMapReady] = useState(false)
@@ -308,6 +299,46 @@ export default function DisasterMap({
     const { role } = getAuthContext()
     return ['admin', 'operator', 'manager'].includes(String(role || ''))
   }, [getAuthContext])
+
+  //API resource hooks — replaces manual fetch+useState+useEffect boilerplate
+  const { data: regionConfig } = useApiResource<{ wmsLayers: WMSLayer[] }>(
+    showWMSLayers ? '/api/config/region' : null, { auth: false })
+  const wmsLayers = regionConfig?.wmsLayers ?? []
+
+  const { data: sheltersResp } = useApiResource<{ shelters: Shelter[] }>(
+    showShelters ? `/api/config/shelters?lat=${mapCenter[0]}&lng=${mapCenter[1]}&radius=100` : null,
+    { auth: false, pollMs: 5 * 60 * 1000 })
+  const shelters = sheltersResp?.shelters ?? []
+
+  const { data: distressApiResp } = useApiResource<any>(
+    showDistress && canReadDistress ? '/api/distress/active' : null, { pollMs: 30000 })
+
+  const { data: evacuationResp } = useApiResource<{ routes: EvacuationRouteMapItem[] }>(
+    showEvacuation ? '/api/incidents/flood/evacuation/routes' : null)
+  const evacuationRoutes = evacuationResp?.routes ?? []
+
+  const { data: predictionsData } = useApiResource<any[]>(showPredictions ? '/api/predictions' : null)
+  const predictions = Array.isArray(predictionsData) ? predictionsData : []
+
+  const { data: riskLayerData } = useApiResource<any>(showRiskLayer ? '/api/map/risk-layer' : null)
+
+  const { data: heatmapResp } = useApiResource<{ points: Array<{ lat: number; lng: number; intensity?: number }> }>(
+    showHeatmap ? '/api/map/heatmap-data' : null)
+  const realHeatmapData = useMemo<[number, number, number][]>(
+    () => heatmapResp?.points?.map(p => [p.lat, p.lng, p.intensity ?? 0.5]) ?? [],
+    [heatmapResp])
+
+  const { data: clustersResp } = useApiResource<{ clusters: IncidentCluster[] }>(
+    '/api/reports/clusters?minutes=180&radiusMeters=1000&minReports=3', { pollMs: 60000 })
+  const incidentClusters = clustersResp?.clusters ?? []
+
+  const { data: cascadingResp } = useApiResource<{ inferred_cascades: CascadingInsight[] }>(
+    '/api/reports/cascading-insights?windowMinutes=180', { pollMs: 90000 })
+  const cascadingInsights = cascadingResp?.inferred_cascades ?? []
+
+  const { data: incidentObjectsResp } = useApiResource<{ incidents: IncidentObject[] }>(
+    '/api/reports/incident-objects?minutes=180&radiusMeters=1000&minReports=3', { pollMs: 60000 })
+  const incidentObjects = incidentObjectsResp?.incidents ?? []
 
   //Interactive layer toggle state (user can enable/disable layers on the map)
   const [layerToggles, setLayerToggles] = useState({
@@ -345,6 +376,22 @@ export default function DisasterMap({
     document.addEventListener('fullscreenchange', onFSChange)
     return () => document.removeEventListener('fullscreenchange', onFSChange)
   }, [])
+
+  //Initialise activeWMS checkboxes when region config first loads
+  const wmsInitRef = useRef(false)
+  useEffect(() => {
+    if (wmsLayers.length > 0 && !wmsInitRef.current) {
+      wmsInitRef.current = true
+      setActiveWMS(new Set(wmsLayers.map((_, i) => String(i))))
+    }
+  }, [wmsLayers])
+
+  //Sync polled distress API response into state; socket events patch in real-time additions
+  useEffect(() => {
+    if (distressApiResp) {
+      setDistressBeacons(distressApiResp.beacons ?? distressApiResp.distressCalls ?? distressApiResp.active ?? [])
+    }
+  }, [distressApiResp])
 
   //Socket.io – listen for distress:new / distress:updated in real-time via typed hook
   const distressEnabled = showDistress && canReadDistress
@@ -390,37 +437,6 @@ export default function DisasterMap({
     URL.revokeObjectURL(url)
   }, [reports])
 
-  //Fetch region config for WMS layers
-  useEffect(() => {
-    if (!showWMSLayers) return
-    fetch('/api/config/region')
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (data?.wmsLayers) {
-          setWmsLayers(data.wmsLayers)
-          //Enable all WMS layers by default
-          setActiveWMS(new Set(data.wmsLayers.map((_: WMSLayer, i: number) => String(i))))
-        }
-      })
-      .catch(() => {})
-  }, [showWMSLayers])
-
-  //Fetch shelters with 5-minute refresh interval
-  useEffect(() => {
-    if (!showShelters) return
-    const [lat, lng] = mapCenter
-    const load = () => fetch(`/api/config/shelters?lat=${lat}&lng=${lng}&radius=100`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data?.shelters) setShelters(data.shelters) })
-      .catch(() => {})
-    load()
-    const interval = setInterval(load, 5 * 60 * 1000)
-    return () => clearInterval(interval)
-  //Use primitive lat/lng values instead of the array reference to prevent
-  //re-firing every time `location` context re-renders with a new array object
-  //eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showShelters, mapCenter[0], mapCenter[1]])
-
   //Inject pulse keyframes for distress markers
   useEffect(() => {
     if (!document.getElementById('disastermap-pulse-css')) {
@@ -429,121 +445,6 @@ export default function DisasterMap({
       style.textContent = '@keyframes dm-pulse{0%{transform:scale(1);opacity:1}100%{transform:scale(2.2);opacity:0}}'
       document.head.appendChild(style)
     }
-  }, [])
-
-  //Fetch distress beacons (real-time SOS signals)
-  useEffect(() => {
-    if (!showDistress || !canReadDistress) return
-    const load = () => {
-      const { token } = getAuthContext()
-      return fetch('/api/distress/active', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-        .then(r => r.ok ? r.json() : null)
-        .then(data => { if (data) setDistressBeacons(data.beacons || data.distressCalls || data.active || []) })
-        .catch(() => {})
-    }
-    load()
-    const interval = setInterval(load, 30000)
-    return () => clearInterval(interval)
-  }, [canReadDistress, getAuthContext, showDistress])
-
-  //Fetch evacuation routes
-  useEffect(() => {
-    if (!showEvacuation) return
-    const token = getAnyToken()
-    fetch('/api/incidents/flood/evacuation/routes', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.routes) setEvacuationRoutes(data.routes as EvacuationRouteMapItem[]) })
-      .catch(() => {})
-  }, [showEvacuation])
-
-  //Fetch AI flood predictions
-  useEffect(() => {
-    if (!showPredictions) return
-    const token = getAnyToken()
-    fetch('/api/predictions', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (Array.isArray(data)) setPredictions(data) })
-      .catch(() => {})
-  }, [showPredictions])
-
-  //Fetch PostGIS risk layer (flood polygons)
-  useEffect(() => {
-    if (!showRiskLayer) return
-    const token = getAnyToken()
-    fetch('/api/map/risk-layer', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setRiskLayerData(data) })
-      .catch(() => {})
-  }, [showRiskLayer])
-
-  //Fetch real heatmap data from API
-  useEffect(() => {
-    if (!showHeatmap) return
-    const token = getAnyToken()
-    fetch('/api/map/heatmap-data', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.points) {
-          setRealHeatmapData(data.points.map((p: any) => [p.lat, p.lng, p.intensity || 0.5] as [number, number, number]))
-        }
-      })
-      .catch(() => {})
-  }, [showHeatmap])
-
-  //Fetch spatiotemporal incident clusters
-  useEffect(() => {
-    const token = getAnyToken()
-    const load = () => fetch('/api/reports/clusters?minutes=180&radiusMeters=1000&minReports=3', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (Array.isArray(data?.clusters)) setIncidentClusters(data.clusters)
-      })
-      .catch(() => {})
-    load()
-    const interval = setInterval(load, 60000)
-    return () => clearInterval(interval)
-  }, [])
-
-  //Fetch cascading disaster insights
-  useEffect(() => {
-    const token = getAnyToken()
-    const load = () => fetch('/api/reports/cascading-insights?windowMinutes=180', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (Array.isArray(data?.inferred_cascades)) {
-          setCascadingInsights(data.inferred_cascades)
-        }
-      })
-      .catch(() => {})
-    load()
-    const interval = setInterval(load, 90000)
-    return () => clearInterval(interval)
-  }, [])
-
-  //Fetch promoted incident objects from unified Incident Intelligence Core
-  useEffect(() => {
-    const token = getAnyToken()
-    const load = () => fetch('/api/reports/incident-objects?minutes=180&radiusMeters=1000&minReports=3', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (Array.isArray(data?.incidents)) {
-          setIncidentObjects(data.incidents)
-        }
-      })
-      .catch(() => {})
-    load()
-    const interval = setInterval(load, 60000)
-    return () => clearInterval(interval)
   }, [])
 
   //Toggle WMS layer visibility

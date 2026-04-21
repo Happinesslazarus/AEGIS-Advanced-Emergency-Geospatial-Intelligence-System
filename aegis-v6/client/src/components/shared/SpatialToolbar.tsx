@@ -12,6 +12,7 @@ import {
   MapPin, Compass, Download, X, ChevronRight, RotateCcw, Database, Flame,
 } from 'lucide-react'
 import type { Report } from '../../types'
+import { apiFetch } from '../../utils/api'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { sanitizeHtml } from './SafeHtml'
@@ -271,31 +272,25 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
   const findNearestShelter = useCallback(async (lat: number, lng: number): Promise<ShelterResult | null> => {
     //Try PostGIS nearest-neighbour first (uses KNN <-> operator)
     try {
-      const pgr = await fetch('/api/spatial/nearest', {
+      const pgData: any = await apiFetch('/api/spatial/nearest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lat, lng, type: 'shelter' }),
       })
-      if (pgr.ok) {
-        const pgData = await pgr.json()
-        if (pgData.result) {
-          return {
-            name: pgData.result.name,
-            lat: parseFloat(pgData.result.lat),
-            lng: parseFloat(pgData.result.lng),
-            capacity: pgData.result.capacity || 0,
-            current_occupancy: pgData.result.current_occupancy || 0,
-            distance: parseFloat(pgData.result.distance_km) || 0,
-          }
+      if (pgData.result) {
+        return {
+          name: pgData.result.name,
+          lat: parseFloat(pgData.result.lat),
+          lng: parseFloat(pgData.result.lng),
+          capacity: pgData.result.capacity || 0,
+          current_occupancy: pgData.result.current_occupancy || 0,
+          distance: parseFloat(pgData.result.distance_km) || 0,
         }
       }
     } catch { /* PostGIS unavailable, fall through to client-side */ }
 
     //Fallback: client-side Haversine distance sort
     try {
-      const r = await fetch(`/api/config/shelters?lat=${lat}&lng=${lng}&radius=100`)
-      if (!r.ok) return null
-      const data = await r.json()
+      const data: any = await apiFetch(`/api/config/shelters?lat=${lat}&lng=${lng}&radius=100`)
       const shelters = data.shelters || []
       if (!shelters.length) return null
 
@@ -319,40 +314,34 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
   const queryFloodRisk = useCallback(async (lat: number, lng: number): Promise<string> => {
     //Try PostGIS ST_Contains / ST_DWithin flood zone check first
     try {
-      const pgr = await fetch('/api/spatial/flood-risk', {
+      const pgData: any = await apiFetch('/api/spatial/flood-risk', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lat, lng }),
       })
-      if (pgr.ok) {
-        const pgData = await pgr.json()
-        const lines: string[] = []
-        lines.push(`**Flood Risk: ${pgData.risk_level}**`)
-        if (pgData.in_flood_zone && pgData.zones.length > 0) {
-          pgData.zones.forEach((z: any) => {
-            lines.push(`Zone: ${z.zone_name || 'Unknown'} -- ${z.flood_type || ''} (${Math.round((z.probability || 0) * 100)}%)`)
-          })
-        } else if (pgData.nearby_zones.length > 0) {
-          lines.push('Nearby flood zones:')
-          pgData.nearby_zones.forEach((z: any) => {
-            lines.push(`  ${z.zone_name} -- ${formatDist(parseFloat(z.distance_km) || 0)} away`)
-          })
-        }
-        if (pgData.predictions.length > 0) {
-          lines.push('\nRecent AI Predictions:')
-          pgData.predictions.forEach((p: any) => {
-            lines.push(`  ${p.hazard_type}: ${Math.round((p.probability || 0) * 100)}% (${p.region_name || ''})`)
-          })
-        }
-        if (lines.length > 1) return lines.join('\n')
+      const lines: string[] = []
+      lines.push(`**Flood Risk: ${pgData.risk_level}**`)
+      if (pgData.in_flood_zone && pgData.zones.length > 0) {
+        pgData.zones.forEach((z: any) => {
+          lines.push(`Zone: ${z.zone_name || 'Unknown'} -- ${z.flood_type || ''} (${Math.round((z.probability || 0) * 100)}%)`)
+        })
+      } else if (pgData.nearby_zones.length > 0) {
+        lines.push('Nearby flood zones:')
+        pgData.nearby_zones.forEach((z: any) => {
+          lines.push(`  ${z.zone_name} -- ${formatDist(parseFloat(z.distance_km) || 0)} away`)
+        })
       }
+      if (pgData.predictions.length > 0) {
+        lines.push('\nRecent AI Predictions:')
+        pgData.predictions.forEach((p: any) => {
+          lines.push(`  ${p.hazard_type}: ${Math.round((p.probability || 0) * 100)}% (${p.region_name || ''})`)
+        })
+      }
+      if (lines.length > 1) return lines.join('\n')
     } catch { /* PostGIS unavailable, fall through */ }
 
     //Fallback: client-side point-in-polygon check
     try {
-      const r = await fetch(`/api/map/risk-layer`)
-      if (!r.ok) return 'No flood risk data available'
-      const data = await r.json()
+      const data: any = await apiFetch('/api/map/risk-layer')
       if (!data?.features?.length) return 'No flood risk zones found in database'
 
       //Check if point is inside any risk polygon
@@ -380,24 +369,20 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
   const doRadiusSearch = useCallback(async (lat: number, lng: number, radiusKm: number) => {
     //Try PostGIS ST_DWithin buffer analysis first
     try {
-      const pgr = await fetch('/api/spatial/buffer-analysis', {
+      const pgData: any = await apiFetch('/api/spatial/buffer-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lat, lng, radius_km: radiusKm }),
       })
-      if (pgr.ok) {
-        const pgData = await pgr.json()
-        return {
-          reports: pgData.reports?.count || 0,
-          shelters: (pgData.shelters?.items || []).map((s: any) => ({
-            name: s.name,
-            lat: parseFloat(s.lat),
-            lng: parseFloat(s.lng),
-            capacity: s.capacity || 0,
-            current_occupancy: s.current_occupancy || 0,
-            distance: parseFloat(s.distance_km) || 0,
-          })),
-        }
+      return {
+        reports: pgData.reports?.count || 0,
+        shelters: (pgData.shelters?.items || []).map((s: any) => ({
+          name: s.name,
+          lat: parseFloat(s.lat),
+          lng: parseFloat(s.lng),
+          capacity: s.capacity || 0,
+          current_occupancy: s.current_occupancy || 0,
+          distance: parseFloat(s.distance_km) || 0,
+        })),
       }
     } catch { /* PostGIS unavailable, fall through */ }
 
@@ -410,18 +395,15 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     //Fetch shelters within radius
     let shelters: ShelterResult[] = []
     try {
-      const sr = await fetch(`/api/config/shelters?lat=${lat}&lng=${lng}&radius=${radiusKm}`)
-      if (sr.ok) {
-        const data = await sr.json()
-        shelters = (data.shelters || []).map((s: any) => ({
-          name: s.name,
-          lat: s.lat,
-          lng: s.lng,
-          capacity: s.capacity,
-          current_occupancy: s.current_occupancy,
-          distance: haversine(lat, lng, s.lat, s.lng),
-        }))
-      }
+      const data: any = await apiFetch(`/api/config/shelters?lat=${lat}&lng=${lng}&radius=${radiusKm}`)
+      shelters = (data.shelters || []).map((s: any) => ({
+        name: s.name,
+        lat: s.lat,
+        lng: s.lng,
+        capacity: s.capacity,
+        current_occupancy: s.current_occupancy,
+        distance: haversine(lat, lng, s.lat, s.lng),
+      }))
     } catch { /* ignore */ }
 
     return { reports: nearbyReports.length, shelters }
@@ -431,13 +413,10 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
 
   const runBufferAnalysis = useCallback(async (lat: number, lng: number, radiusKm: number): Promise<BufferAnalysisResult | null> => {
     try {
-      const r = await fetch('/api/spatial/buffer-analysis', {
+      return await apiFetch<BufferAnalysisResult>('/api/spatial/buffer-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lat, lng, radius_km: radiusKm }),
       })
-      if (!r.ok) return null
-      return await r.json()
     } catch {
       return null
     }
@@ -448,9 +427,8 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
   const fetchDensity = useCallback(async (): Promise<DensityPoint[]> => {
     try {
       const bounds = map.getBounds()
-      const r = await fetch('/api/spatial/density', {
+      const data: any = await apiFetch('/api/spatial/density', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bounds: {
             north: bounds.getNorth(),
@@ -460,8 +438,6 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
           },
         }),
       })
-      if (!r.ok) return []
-      const data = await r.json()
       return data.points || []
     } catch {
       return []
