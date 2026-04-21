@@ -1,76 +1,32 @@
-/**
- * Electrical grid failures incident module (handles power outage specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 import type { AlertRuleContext, AlertRuleResult } from '../types.js'
+import { evaluateRules, type AlertRule } from '../alertRulesDsl.js'
+
+const RULES: AlertRule[] = [
+  {
+    kind: 'volume',
+    tiers: [
+      { gte: 30, alert: { severity: 'critical', title: 'Widespread Power Outages',    description: (n) => `${n} power outage reports. Critical infrastructure failure.` } },
+      { gte: 15, alert: { severity: 'warning',  title: 'Significant Power Disruptions', description: (n) => `${n} power outage reports. Warning threshold reached.` } },
+      { gte: 5,  alert: { severity: 'advisory', title: 'Power Outage Advisory',          description: (n) => `${n} localized power outage reports.` } },
+    ],
+  },
+  {
+    kind: 'flag', field: 'criticalFacility',
+    tiers: [
+      { gte: 1, alert: { severity: 'critical', title: 'Critical Facility Power Outage', description: 'Power outage affecting critical infrastructure (hospital, emergency services, etc.). Emergency response required.' } },
+    ],
+  },
+  {
+    kind: 'sumField', field: 'affectedHouseholds', defaultPer: 5,
+    tiers: [
+      { gte: 1000, alert: { severity: 'critical', title: 'Large-Scale Power Outage',    description: (n) => `Estimated ${n}+ households without power.` } },
+      { gte: 500,  alert: { severity: 'warning',  title: 'Significant Outage Impact', description: (n) => `Estimated ${n}+ households affected.` } },
+    ],
+  },
+]
 
 export class PowerOutageAlertRules {
-   /**
-   * Evaluate power outage alert rules based on context
-   */
   static evaluate(context: AlertRuleContext): AlertRuleResult[] {
-    const results: AlertRuleResult[] = []
-    const { recentReports, predictions } = context
-
-    //Rule 1: Report density threshold
-    if (recentReports.length >= 30) {
-      results.push({
-        shouldAlert: true,
-        severity: 'critical',
-        title: 'Widespread Power Outages',
-        description: `${recentReports.length} power outage reports. Critical infrastructure failure.`
-      })
-    } else if (recentReports.length >= 15) {
-      results.push({
-        shouldAlert: true,
-        severity: 'warning',
-        title: 'Significant Power Disruptions',
-        description: `${recentReports.length} power outage reports. Warning threshold reached.`
-      })
-    } else if (recentReports.length >= 5) {
-      results.push({
-        shouldAlert: true,
-        severity: 'advisory',
-        title: 'Power Outage Advisory',
-        description: `${recentReports.length} localized power outage reports.`
-      })
-    }
-
-    //Rule 2: Critical facilities affected
-    const criticalFacilityReports = recentReports.filter(r => r.customFields?.criticalFacility === true)
-    if (criticalFacilityReports.length >= 1) {
-      results.push({
-        shouldAlert: true,
-        severity: 'critical',
-        title: 'Critical Facility Power Outage',
-        description: `Power outage affecting critical infrastructure (hospital, emergency services, etc.). Emergency response required.`
-      })
-    }
-
-    //Rule 3: Large affected population
-    const totalAffectedHouseholds = recentReports.reduce((sum, r) => {
-      const households = Number(r.customFields?.affectedHouseholds || 5)
-      return sum + households
-    }, 0)
-    
-    if (totalAffectedHouseholds >= 1000) {
-      results.push({
-        shouldAlert: true,
-        severity: 'critical',
-        title: 'Large-Scale Power Outage',
-        description: `Estimated ${totalAffectedHouseholds}+ households without power.`
-      })
-    } else if (totalAffectedHouseholds >= 500) {
-      results.push({
-        shouldAlert: true,
-        severity: 'warning',
-        title: 'Significant Outage Impact',
-        description: `Estimated ${totalAffectedHouseholds}+ households affected.`
-      })
-    }
-
-    return results
+    return evaluateRules(RULES, context)
   }
 }
