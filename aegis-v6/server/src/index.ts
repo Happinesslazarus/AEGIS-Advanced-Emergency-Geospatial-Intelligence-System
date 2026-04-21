@@ -265,6 +265,7 @@ import helplinesRoutes from './routes/helplinesRoutes.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { requestIdMiddleware } from './middleware/requestId.js'
 import { responseHelpersMiddleware } from './middleware/responseHelpers.js'
+import { correlationMiddleware } from './middleware/correlation.js'
 import pool from './models/db.js'
 import { initSocketServer } from './services/socket.js'
 import { requestLogger } from './services/logger.js'
@@ -526,6 +527,11 @@ const loginLimiter = rateLimit({
 //Must be registered BEFORE the request logger so log lines include the ID.
 //Must also be before route handlers so they can read req.id for tracing.
 app.use(requestIdMiddleware)
+
+//Bind a correlation context (AsyncLocalStorage) to the request so every
+//service call, AI call, and event subscriber spawned during the request
+//inherits the same correlationId without explicit threading.
+app.use(correlationMiddleware)
 
 //Attach res.success() / res.fail() convenience helpers to every response object.
 app.use(responseHelpersMiddleware)
