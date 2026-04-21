@@ -45,7 +45,7 @@ import {
   executeImageAnalysis,
   sessionImageMemory,
   buildImageMemoryContext,
-  executeCompositeToolCalls } from './chatTools.js'
+  executeCompositeToolCalls } from './chatTools/index.js'
 import { retrieveRAGContext } from './chatRag.js'
 import { hashQuery, getCachedResponse, cacheResponse, getQueryEmbedding } from './chatCache.js'
 import {
