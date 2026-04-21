@@ -8,7 +8,7 @@
   * - Run via: npm test -- auth.e2e
  */
 
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals'
+import { describe, it, expect, beforeAll} from '@jest/globals'
 import request from 'supertest'
 import express from 'express'
 import cookieParser from 'cookie-parser'
@@ -29,8 +29,7 @@ import {
   verifyToken,
   verifyRefreshToken,
   hashRefreshToken,
-  AuthRequest,
-} from '../middleware/auth'
+  AuthRequest } from '../middleware/auth'
 
 //Test fixtures
 

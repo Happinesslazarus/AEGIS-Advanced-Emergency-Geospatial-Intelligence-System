@@ -8,7 +8,6 @@ import crypto from 'crypto'
 import pool from '../models/db.js'
 import { logger } from './logger.js'
 import { generateEmbeddings } from './embeddingRouter.js'
-import { devLog } from '../utils/logger.js'
 
 export function hashQuery(text: string): string {
   return crypto.createHash('sha256').update(text.toLowerCase().trim()).digest('hex')

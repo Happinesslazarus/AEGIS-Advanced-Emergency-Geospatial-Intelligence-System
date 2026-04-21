@@ -11,7 +11,6 @@
 import fs from 'fs'
 import path from 'path'
 import pool from '../models/db.js'
-import bcrypt from 'bcryptjs'
 
 async function setup(): Promise<void> {
   console.log('[Setup] Starting database initialisation...')

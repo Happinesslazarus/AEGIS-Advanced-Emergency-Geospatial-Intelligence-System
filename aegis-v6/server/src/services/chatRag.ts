@@ -7,7 +7,7 @@
 import pool from '../models/db.js'
 import { logger } from './logger.js'
 import { devLog } from '../utils/logger.js'
-import { generateEmbeddings, embedText } from './embeddingRouter.js'
+import { embedText } from './embeddingRouter.js'
 
 /**
  * Cross-encoder re-ranking: score each (query, document) pair with a

@@ -7,7 +7,7 @@
 import { getActiveRegion } from '../config/regions.js'
 import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
 import { buildBaseSystemPrompt, buildAdminSystemAddendum } from './chatPromptBuilder.js'
-import type { LLMTool } from '../types/index.js'
+import type {} from '../types/index.js'
 
 export const region = getActiveRegion()
 export const regionAdapter = regionRegistry.getActiveRegion()

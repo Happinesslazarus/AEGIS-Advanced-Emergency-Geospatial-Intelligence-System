@@ -8,7 +8,7 @@
   * - Run via: npm test -- auth.integration
  */
 
-import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals'
+import { describe, it, expect} from '@jest/globals'
 import request from 'supertest'
 import express from 'express'
 import cookieParser from 'cookie-parser'

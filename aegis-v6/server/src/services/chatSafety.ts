@@ -6,7 +6,6 @@
  * and local keyword fallback responses when LLMs are unavailable.
  */
 import pool from '../models/db.js'
-import { logger } from './logger.js'
 import { MAX_TOKENS_PER_SESSION, llmCtx, regionMeta, region } from './chatConstants.js'
 
 //NOTE: Suicide, self-harm, overdose are NOT blocked -- they route to trauma_support agent.

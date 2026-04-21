@@ -10,7 +10,6 @@
 
 import { Request, Response, NextFunction } from 'express'
 import client from 'prom-client'
-import { logger } from './logger.js'
 import pool from '../models/db.js'
 
 //Prometheus metrics

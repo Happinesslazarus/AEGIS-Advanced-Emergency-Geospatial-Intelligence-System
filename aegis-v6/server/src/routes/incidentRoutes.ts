@@ -15,12 +15,9 @@ import { authMiddleware } from '../middleware/auth.js'
 import {
   getAllIncidentModules,
   getAllIncidentRegistries,
-  getIncidentModule,
   getOperationalModules,
   getDashboardSummary,
-  listIncidentIds,
-} from '../incidents/index.js'
-import { AppError } from '../utils/AppError.js'
+  listIncidentIds } from '../incidents/index.js'
 import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
 
 const router = Router()

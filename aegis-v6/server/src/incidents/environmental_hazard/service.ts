@@ -1,6 +1,6 @@
 import pool from '../../models/db.js'
 import type { IncidentPrediction } from '../types.js'
-import { environmentalHazardConfig, AIR_QUALITY_THRESHOLDS } from './config.js'
+import { AIR_QUALITY_THRESHOLDS } from './config.js'
 
 export class EnvironmentalHazardService {
    /**

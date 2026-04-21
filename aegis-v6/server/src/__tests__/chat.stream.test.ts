@@ -39,7 +39,7 @@ jest.mock('../services/llmRouter', () => ({
 import { describe, it, expect, beforeEach, beforeAll, afterAll, jest } from '@jest/globals'
 import request from 'supertest'
 import http from 'http'
-import type { AddressInfo } from 'net'
+import type {} from 'net'
 import express, { type Request, type Response, type NextFunction } from 'express'
 
 import { citizenToken, authHeader } from './helpers/testAuth'

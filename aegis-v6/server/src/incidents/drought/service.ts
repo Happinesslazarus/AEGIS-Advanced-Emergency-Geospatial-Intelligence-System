@@ -1,5 +1,4 @@
 import { ingestDroughtData, classifyDroughtSeverity, type DroughtIngestionResult } from './dataIngestion.js'
-import { DroughtAIClient } from './aiClient.js'
 import { logger } from '../../services/logger.js'
 
 //In-memory cache (cleared on restart; Redis would be used in production)

@@ -28,12 +28,11 @@ import { authMiddleware, adminOnly, generateToken, generateRefreshToken, verifyR
 import { uploadAvatar, validateMagicBytes } from '../middleware/upload.js'
 import * as notificationService from '../services/notificationService.js'
 import {
-  validatePasswordStrength, hashToken, generateSecureToken, timingSafeCompare,
+  validatePasswordStrength, hashToken, generateSecureToken,
   checkLockout, recordFailedLogin, resetFailedLogins, recordPasswordHistory,
-  isPasswordReused, getClientIp, LOCKOUT_DURATION_MINUTES,
-} from '../utils/securityUtils.js'
+  isPasswordReused, getClientIp, LOCKOUT_DURATION_MINUTES } from '../utils/securityUtils.js'
 import { generateTempToken, hashTempToken } from '../utils/twoFactorCrypto.js'
-import { sendVerificationEmail, sendLockoutNotification, sendPasswordResetEmail } from '../services/emailService.js'
+import { sendVerificationEmail, sendLockoutNotification} from '../services/emailService.js'
 import { logSecurityEvent, checkSuspiciousActivity } from '../services/securityLogger.js'
 import { isDeviceTrusted } from '../services/deviceTrustService.js'
 import { assessLoginRisk } from '../services/riskAuthService.js'

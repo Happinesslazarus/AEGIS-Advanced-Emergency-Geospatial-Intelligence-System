@@ -59,8 +59,7 @@ import {
   adminToken, citizenToken, operatorToken, authHeader,
 } from './helpers/testAuth'
 import {
-  insertCitizen, insertOperator, insertAlert,
-} from './helpers/testFixtures'
+  insertCitizen, insertOperator } from './helpers/testFixtures'
 import dataRoutes from '../routes/dataRoutes'
 import extendedRoutes from '../routes/extendedRoutes'
 

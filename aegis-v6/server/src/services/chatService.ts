@@ -25,7 +25,6 @@ import {
 } from './llmRouter.js'
 import { classify } from './classifierRouter.js'
 import type { ChatCompletionRequest, ChatCompletionResponse } from '../types/index.js'
-import crypto from 'crypto'
 import { devLog } from '../utils/logger.js'
 import { logger } from './logger.js'
 import { logSecurityEvent } from './securityLogger.js'
@@ -46,9 +45,7 @@ import {
   executeImageAnalysis,
   sessionImageMemory,
   buildImageMemoryContext,
-  storeImageAnalysis,
-  executeCompositeToolCalls,
-} from './chatTools.js'
+  executeCompositeToolCalls } from './chatTools.js'
 import { retrieveRAGContext } from './chatRag.js'
 import { hashQuery, getCachedResponse, cacheResponse, getQueryEmbedding } from './chatCache.js'
 import {
@@ -60,11 +57,9 @@ import {
   getSessionTokenState,
   checkSafety,
   verifyResponseConsistency,
-  generateLocalFallback,
-  type PiiReplacement,
-} from './chatSafety.js'
+  type PiiReplacement } from './chatSafety.js'
 export { getChatSessionBudget } from './chatSafety.js'
-import { AGENTS, AGENT_CONFIDENCE_THRESHOLD, routeToAgent } from './chatAgentRouter.js'
+import { AGENTS, routeToAgent } from './chatAgentRouter.js'
 import type { AgentType, EmotionLabel } from './chatAgentRouter.js'
 import { detectEmergency, buildEmergencyPreamble } from './chatEmergency.js'
 import {
@@ -74,15 +69,11 @@ import {
   updateUserProfile,
   buildUserProfileContext,
   manageConversationMemory,
-  detectTopicShift,
-  type UserProfile,
-  type ConversationMemory,
-} from './chatDialogue.js'
+  detectTopicShift} from './chatDialogue.js'
 import {
   generateFollowUpQuestions,
   scoreResponseQuality,
-  recordAnalytics,
-} from './chatQuality.js'
+  recordAnalytics } from './chatQuality.js'
 export { getSessionAnalytics } from './chatQuality.js'
 
  /*

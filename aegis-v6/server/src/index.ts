@@ -276,7 +276,7 @@ import { setIOInstance as setRiverIO } from './services/riverLevelService.js'
 import { setThreatIO } from './services/threatLevelService.js'
 import { startModelWarmup } from './services/llmRouter.js'
 import { metricsMiddleware, metricsHandler, collectDBPoolMetrics, activeWebsocketConnections, trustedDevicesGauge } from './services/metrics.js'
-import { authMiddleware, requireRole, AuthRequest } from './middleware/auth.js'
+import { authMiddleware, requireRole} from './middleware/auth.js'
 import { idempotencyMiddleware, getIdempotencyStats } from './middleware/idempotency.js'
 import { requestTimeoutMiddleware } from './middleware/requestTimeout.js'
 import { updatePoolMetrics } from './services/queryLogger.js'
@@ -284,14 +284,14 @@ import { updatePoolMetrics } from './services/queryLogger.js'
 //Infrastructure services
 import { adaptiveRateLimitMiddleware, getRateLimitStats } from './services/adaptiveRateLimiting.js'
 import { startSelfHealing, getHealthStatus } from './services/selfHealing.js'
-import { qosMiddleware, getQosStats, Priority } from './services/requestPrioritization.js'
-import { initCircuits, Circuits, getAllStatus as getCircuitStatus } from './services/circuitBreaker.js'
+import { qosMiddleware, getQosStats} from './services/requestPrioritization.js'
+import { initCircuits, getAllStatus as getCircuitStatus } from './services/circuitBreaker.js'
 import { initZeroDowntime, livenessHandler, readinessHandler, startupHandler, healthHandler, registerShutdownHook, trackConnectionStart, trackConnectionEnd } from './services/zeroDowntime.js'
 
 //Resilience and operations services
-import { initBulkheads, getAllStatus as getBulkheadStatus, Bulkheads } from './services/bulkhead.js'
-import { getGatewayStats, apiKeyMiddleware, versioningMiddleware } from './services/apiGateway.js'
-import { coalesce, getCoalescingStats, createUserLoader, createReportLoader } from './services/requestCoalescing.js'
+import { initBulkheads, getAllStatus as getBulkheadStatus} from './services/bulkhead.js'
+import { getGatewayStats} from './services/apiGateway.js'
+import { getCoalescingStats} from './services/requestCoalescing.js'
 
 //Data layer and API services
 import eventStreaming from './services/eventStreaming.js'

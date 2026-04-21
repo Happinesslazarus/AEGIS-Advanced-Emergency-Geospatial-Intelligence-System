@@ -23,7 +23,7 @@ import pool from '../models/db.js'
 import { authMiddleware, generateToken, generateRefreshToken, verifyRefreshToken, AuthRequest, createSession, validateSession, rotateRefreshToken, revokeAllSessions } from '../middleware/auth.js'
 import { uploadAvatar, validateMagicBytes } from '../middleware/upload.js'
 import {
-  validatePasswordStrength, hashToken, generateSecureToken, timingSafeCompare,
+  validatePasswordStrength, hashToken, generateSecureToken,
   checkLockout, recordFailedLogin, resetFailedLogins, recordPasswordHistory,
   isPasswordReused, getClientIp, LOCKOUT_DURATION_MINUTES } from '../utils/securityUtils.js'
 import { sendVerificationEmail, sendLockoutNotification, sendPasswordResetEmail } from '../services/emailService.js'

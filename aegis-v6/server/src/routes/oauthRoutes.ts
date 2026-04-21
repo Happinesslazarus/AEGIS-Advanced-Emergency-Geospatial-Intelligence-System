@@ -17,11 +17,9 @@ import { Router, Request, Response, NextFunction } from 'express'
 import passport from 'passport'
 import { Strategy as GoogleStrategy, Profile } from 'passport-google-oauth20'
 import crypto from 'crypto'
-import bcrypt from 'bcryptjs'
 import pool from '../models/db.js'
 import { generateToken, generateRefreshToken, createSession } from '../middleware/auth.js'
 import { getClientIp } from '../utils/securityUtils.js'
-import { AppError } from '../utils/AppError.js'
 import { logger } from '../services/logger.js'
 
 const router = Router()

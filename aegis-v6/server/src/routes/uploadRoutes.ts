@@ -8,7 +8,7 @@
  * - Uploaded files served by the static handler in index.ts
  * */
 
-import express, { Request, Response, NextFunction } from 'express'
+import express, { Response, NextFunction } from 'express'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'

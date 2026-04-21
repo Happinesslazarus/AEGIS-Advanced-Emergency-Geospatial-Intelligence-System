@@ -9,7 +9,7 @@
  * */
 
 import pool from '../models/db.js'
-import { runFusion, gatherFusionData, type FusionResult } from './fusionEngine.js'
+import { runFusion, gatherFusionData} from './fusionEngine.js'
 import { devLog } from '../utils/logger.js'
 import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
 import { logger } from './logger.js'

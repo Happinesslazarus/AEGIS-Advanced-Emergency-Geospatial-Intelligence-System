@@ -6,7 +6,6 @@
  * needing to call tools first.
  */
 import pool from '../models/db.js'
-import { logger } from './logger.js'
 
  /*
  * Build a live situational snapshot from the database.

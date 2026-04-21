@@ -19,8 +19,6 @@
 
 import { getActiveCityRegion } from '../config/regions/index.js'
 import pool from '../models/db.js'
-import fs from 'fs'
-import path from 'path'
 import { IncidentIntelligenceCore } from './incidentIntelligenceCore.js'
 import { logger } from './logger.js'
 

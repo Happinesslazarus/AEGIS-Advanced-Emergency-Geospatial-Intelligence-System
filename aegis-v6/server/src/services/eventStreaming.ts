@@ -7,7 +7,7 @@
  */
 
 import { EventEmitter } from 'events'
-import { createHash, randomUUID } from 'crypto'
+import { randomUUID } from 'crypto'
 import pool from '../models/db.js'
 import { logger } from './logger.js'
 

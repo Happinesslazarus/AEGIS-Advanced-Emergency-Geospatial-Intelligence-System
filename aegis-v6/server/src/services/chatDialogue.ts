@@ -6,10 +6,9 @@
  * into rolling summaries to preserve context window budget.
  */
 import pool from '../models/db.js'
-import { logger } from './logger.js'
 import { chatCompletion } from './llmRouter.js'
 import type { EmergencyDetection } from '../types/index.js'
-import type { AgentType } from './chatAgentRouter.js'
+import type {} from './chatAgentRouter.js'
 
 export interface DialogueSlot {
   name: string

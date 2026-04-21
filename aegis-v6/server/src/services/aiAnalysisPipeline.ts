@@ -25,7 +25,7 @@ import { classify } from './classifierRouter.js'
 import { chatCompletion } from './llmRouter.js'
 import { analyseImage } from './imageAnalysisService.js'
 import { enforceGovernance } from './governanceEngine.js'
-import type { ClassifierResponse } from '../types/index.js'
+import type {} from '../types/index.js'
 import { devLog } from '../utils/logger.js'
 import { logger } from './logger.js'
 

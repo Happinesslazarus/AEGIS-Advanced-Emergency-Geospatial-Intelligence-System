@@ -9,7 +9,7 @@
  */
 
 import { getTestPool } from './testDb'
-import { TEST_CITIZEN, TEST_OPERATOR, TEST_ADMIN, type TestUser } from './testAuth'
+import { TEST_CITIZEN, TEST_OPERATOR} from './testAuth'
 
 //User fixtures
 

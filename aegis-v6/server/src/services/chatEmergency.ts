@@ -5,7 +5,7 @@
  * buildEmergencyPreamble() shapes the system prompt prefix when an emergency is detected.
  */
 import type { EmergencyDetection } from '../types/index.js'
-import { regionMeta, llmCtx } from './chatConstants.js'
+import { regionMeta} from './chatConstants.js'
 
  /*
  * Detect if a message describes an active emergency.

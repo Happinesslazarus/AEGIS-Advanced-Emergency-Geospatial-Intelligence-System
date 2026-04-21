@@ -7,7 +7,7 @@
 import { Router, Request, Response } from 'express'
 import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
-import { authMiddleware, type AuthRequest } from '../middleware/auth.js'
+import { authMiddleware} from '../middleware/auth.js'
 import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
 import type {
   IncidentModule,
@@ -17,8 +17,7 @@ import type {
   IncidentMapData,
   IncidentMapMarker,
   AlertRuleContext,
-  AlertRuleResult,
-} from './types.js'
+  AlertRuleResult } from './types.js'
 
 /* 30 reports per hour per IP -- prevents bulk automated submissions */
 const reportLimiter = rateLimit({

@@ -1,6 +1,5 @@
 import pool from '../../models/db.js'
 import type { IncidentPrediction } from '../types.js'
-import { floodConfig } from './config.js'
 import { logger } from '../../services/logger.js'
 
 export class FloodService {

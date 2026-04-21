@@ -18,7 +18,7 @@ import { Router, Request, Response } from 'express'
 import { getCurrentLevels, getStationWithHistory, getStationHistory } from '../services/riverLevelService.js'
 import { getActiveCityRegion } from '../config/regions/index.js'
 import { AppError } from '../utils/AppError.js'
-import { remember, buildCacheKey, CACHE_TTL, type CacheResponseMeta } from '../services/cacheService.js'
+import { remember, buildCacheKey, CACHE_TTL} from '../services/cacheService.js'
 
 const router = Router()
 

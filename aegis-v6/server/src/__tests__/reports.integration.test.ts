@@ -21,13 +21,11 @@ import {
   getTestPool, ensureTestSchema, truncateAll, closeTestPool,
 } from './helpers/testDb'
 import {
-  citizenToken, operatorToken, adminToken, expiredToken, authHeader,
-  TEST_CITIZEN, TEST_OPERATOR,
-} from './helpers/testAuth'
+  citizenToken, operatorToken, authHeader,
+  TEST_CITIZEN } from './helpers/testAuth'
 import {
   insertCitizen, insertOperator, insertReport,
-  FLOOD_REPORT, FIRE_REPORT, MINOR_REPORT,
-} from './helpers/testFixtures'
+  FLOOD_REPORT } from './helpers/testFixtures'
 import { AppError } from '../utils/AppError'
 
 //Build test app

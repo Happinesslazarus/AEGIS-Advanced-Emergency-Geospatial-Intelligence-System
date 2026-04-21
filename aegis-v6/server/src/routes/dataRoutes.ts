@@ -19,7 +19,7 @@ import { getActiveCityRegion } from '../config/regions/index.js'
 import { alertBroadcastsTotal, alertDeliveryTotal, alertDeliveryLatency } from '../services/metrics.js'
 import { AppError } from '../utils/AppError.js'
 import { validate, paginationSchema } from '../middleware/validate.js'
-import { remember, buildCacheKey, cacheInvalidatePattern, cacheDel, CACHE_TTL, type CacheResponseMeta } from '../services/cacheService.js'
+import { remember, buildCacheKey, cacheInvalidatePattern, cacheDel, CACHE_TTL} from '../services/cacheService.js'
 import { logger } from '../services/logger.js'
 
 const router = Router()
