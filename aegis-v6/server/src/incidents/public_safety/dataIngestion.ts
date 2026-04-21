@@ -1,9 +1,3 @@
-/**
- * Public safety incidents incident module (handles public safety specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 import pool from '../../models/db.js'
 import { logger } from '../../services/logger.js'
 

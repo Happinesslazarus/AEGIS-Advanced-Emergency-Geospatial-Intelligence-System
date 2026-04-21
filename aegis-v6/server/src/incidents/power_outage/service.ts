@@ -1,9 +1,3 @@
-/**
- * Electrical grid failures incident module (handles power outage specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 import pool from '../../models/db.js'
 import type { IncidentPrediction } from '../types.js'
 import { powerOutageConfig, POWER_OUTAGE_CRITICAL_FACILITIES } from './config.js'

@@ -1,9 +1,3 @@
-/**
- * River and surface water flooding incident module (handles flood specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 import { Request, Response } from 'express'
 import { BaseIncidentModule } from '../baseModule.js'
 import { getFloodPredictions } from '../../services/floodPredictionService.js'

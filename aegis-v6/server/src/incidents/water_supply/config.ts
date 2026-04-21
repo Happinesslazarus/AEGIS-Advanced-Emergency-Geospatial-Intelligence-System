@@ -1,9 +1,3 @@
-/**
- * Water supply disruptions incident module (handles water supply specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 import type { IncidentRegistryEntry } from '../types.js'
 
 export const waterSupplyConfig: IncidentRegistryEntry = {

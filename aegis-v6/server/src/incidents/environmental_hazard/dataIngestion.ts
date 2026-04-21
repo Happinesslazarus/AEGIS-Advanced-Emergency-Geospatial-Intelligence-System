@@ -1,9 +1,3 @@
-/**
- * Environmental contamination events incident module (handles environmental hazard specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 import { OPENAQ_CONFIG } from './config.js'
 import { logger } from '../../services/logger.js'
 

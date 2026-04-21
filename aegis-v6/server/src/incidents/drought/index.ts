@@ -1,9 +1,3 @@
-/**
- * Extended drought conditions incident module (handles drought specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 import { BaseIncidentModule } from '../baseModule.js'
 import type { IncidentRegistryEntry, IncidentPrediction, AlertRuleContext, AlertRuleResult } from '../types.js'
 import { droughtConfig } from './config.js'

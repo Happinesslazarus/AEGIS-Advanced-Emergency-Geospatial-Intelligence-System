@@ -1,9 +1,3 @@
-/**
- * Extreme heat events incident module (handles heatwave specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 export interface HeatwaveCustomFields {
   temperature?: number
   humidity?: number

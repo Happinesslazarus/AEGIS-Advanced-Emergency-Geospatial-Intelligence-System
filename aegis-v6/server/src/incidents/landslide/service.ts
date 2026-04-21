@@ -1,9 +1,3 @@
-/**
- * Ground movement and landslides incident module (handles landslide specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 import pool from '../../models/db.js'
 import type { IncidentPrediction } from '../types.js'
 import { landslideConfig, LANDSLIDE_RISK_THRESHOLDS } from './config.js'

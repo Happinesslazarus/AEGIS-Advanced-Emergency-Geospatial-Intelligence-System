@@ -24,7 +24,6 @@ import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 export function setupFloodRoutes(router: Router): void {
   //GET /gauges -- river gauge readings from active region adapter
   router.get('/gauges', async (req: Request, res: Response) => {
-    try {
       const regionId = String(req.query.region || process.env.REGION_ID || '')
       const adapter = regionId && regionRegistry.hasRegion(regionId)
         ? regionRegistry.getRegion(regionId)!
@@ -32,14 +31,10 @@ export function setupFloodRoutes(router: Router): void {
       const region = adapter.getMetadata().regionId
       const levels = await adapter.getRiverLevels()
       res.json({ incidentType: 'flood', region, gauges: levels, count: levels.length })
-    } catch (err: unknown) {
-      res.status(500).json({ error: 'Could not load river gauge data. The gauge service may be temporarily unavailable.' })
-    }
   })
 
   //GET /flood-warnings -- active flood warnings from EA/SEPA via region adapter
   router.get('/flood-warnings', async (req: Request, res: Response) => {
-    try {
       const regionId = String(req.query.region || process.env.REGION_ID || '')
       const adapter = regionId && regionRegistry.hasRegion(regionId)
         ? regionRegistry.getRegion(regionId)!
@@ -47,14 +42,10 @@ export function setupFloodRoutes(router: Router): void {
       const region = adapter.getMetadata().regionId
       const warnings = await adapter.getFloodWarnings()
       res.json({ incidentType: 'flood', region, warnings, count: warnings.length })
-    } catch (err: unknown) {
-      res.status(500).json({ error: 'Could not load flood warnings. Please try again shortly.' })
-    }
   })
 
   //GET /river-levels -- current river level readings from region adapter
   router.get('/river-levels', async (req: Request, res: Response) => {
-    try {
       const regionId = String(req.query.region || process.env.REGION_ID || '')
       const adapter = regionId && regionRegistry.hasRegion(regionId)
         ? regionRegistry.getRegion(regionId)!
@@ -62,9 +53,6 @@ export function setupFloodRoutes(router: Router): void {
       const region = adapter.getMetadata().regionId
       const riverLevels = await adapter.getRiverLevels()
       res.json({ incidentType: 'flood', region, riverLevels, count: riverLevels.length })
-    } catch (err: unknown) {
-      res.status(500).json({ error: 'Could not load river level data. Please try again shortly.' })
-    }
   })
 }
 

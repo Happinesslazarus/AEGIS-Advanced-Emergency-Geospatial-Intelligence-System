@@ -1,9 +1,3 @@
-/**
- * Electrical grid failures incident module (handles power outage specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 import type { IncidentRegistryEntry } from '../types.js'
 
 export const powerOutageConfig: IncidentRegistryEntry = {

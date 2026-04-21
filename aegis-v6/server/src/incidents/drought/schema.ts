@@ -1,9 +1,3 @@
-/**
- * Extended drought conditions incident module (handles drought specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 export interface DroughtCustomFields {
   cropDamageReported?: boolean
   waterRestrictions?: boolean

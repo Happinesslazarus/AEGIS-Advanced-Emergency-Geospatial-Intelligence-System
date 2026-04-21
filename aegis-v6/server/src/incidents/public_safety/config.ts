@@ -1,9 +1,3 @@
-/**
- * Public safety incidents incident module (handles public safety specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 import type { IncidentRegistryEntry } from '../types.js'
 
 export const publicSafetyConfig: IncidentRegistryEntry = {

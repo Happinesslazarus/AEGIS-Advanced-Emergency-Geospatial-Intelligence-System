@@ -1,9 +1,3 @@
-/**
- * Severe weather and storm systems incident module (handles severe storm specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 import { BaseIncidentModule } from '../baseModule.js'
 import type { IncidentRegistryEntry, IncidentPrediction } from '../types.js'
 import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'

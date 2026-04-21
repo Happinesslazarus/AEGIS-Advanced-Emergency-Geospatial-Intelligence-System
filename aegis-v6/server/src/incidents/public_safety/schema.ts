@@ -1,9 +1,3 @@
-/**
- * Public safety incidents incident module (handles public safety specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 export interface PublicSafetyCustomFields {
   incidentType?: 'Suspicious Activity' | 'Hazmat' | 'Civil Disturbance' | 'Missing Person' | 'Other'
   policeNotified?: boolean

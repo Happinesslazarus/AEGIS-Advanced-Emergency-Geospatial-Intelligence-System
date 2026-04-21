@@ -1,9 +1,3 @@
-/**
- * Ground movement and landslides incident module (handles landslide specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 import { logger } from '../../services/logger.js'
 
 const OPEN_METEO_API = 'https://api.open-meteo.com/v1/forecast'

@@ -1,9 +1,3 @@
-/**
- * Wildfire and bushfire events incident module (handles wildfire specific logic).
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
-
 import { NASA_FIRMS_CONFIG } from './config.js'
 import { logger } from '../../services/logger.js'
 
