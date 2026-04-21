@@ -4,7 +4,8 @@
  * highlights the current hour with a pulsing marker.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useAsync } from '../../hooks/useAsync'
 import {
   Play, Pause, SkipForward, SkipBack, Clock,
   AlertTriangle, Droplets, Home, Users, TrendingUp, ChevronDown
@@ -43,35 +44,27 @@ const STATUS_COLOURS: Record<string, string> = STATUS_HEX
 
 export default function FloodPredictionTimeline({ onTimeChange, className = '' }: Props): JSX.Element {
   const lang = useLanguage()
-  const [predictions, setPredictions] = useState<RiverPrediction[]>([])
-  const [loading, setLoading] = useState(true)
   const [collapsed, setCollapsed] = useState(false)
   const [selectedHour, setSelectedHour] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const timePoints = [0, 1, 2, 4, 6]
-  const abortRef = useRef<AbortController | null>(null)
 
-  const fetchPredictions = useCallback(async (retries = 2) => {
-    //Cancel any in-flight request before starting a new one
-    abortRef.current?.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
-
-    setLoading(true)
-    try {
-      const res = await fetch(`${API}/api/incidents/flood/prediction`, { signal: controller.signal })
-      if (res.status === 429 && retries > 0) {
-        await new Promise<void>((resolve, reject) => {
-          const id = setTimeout(resolve, 2000)
-          controller.signal.addEventListener('abort', () => { clearTimeout(id); reject(new DOMException('Aborted', 'AbortError')) })
-        })
-        return fetchPredictions(retries - 1)
-      }
-      if (res.ok) {
+  const { data: _predictions, loading } = useAsync<RiverPrediction[]>(
+    async ({ signal }) => {
+      const attempt = async (retries: number): Promise<RiverPrediction[]> => {
+        const res = await fetch(`${API}/api/incidents/flood/prediction`, { signal })
+        if (res.status === 429 && retries > 0) {
+          await new Promise<void>((resolve, reject) => {
+            const id = setTimeout(resolve, 2000)
+            signal.addEventListener('abort', () => { clearTimeout(id); reject(new DOMException('Aborted', 'AbortError')) })
+          })
+          return attempt(retries - 1)
+        }
+        if (!res.ok) return []
         const data = await res.json()
-        const mapped = (data.predictions || []).map((river: any) => ({
+        return (data.predictions || []).map((river: any) => ({
           stationId: river.stationId || '',
           riverName: river.riverName || '',
           stationName: river.riverName || river.stationId || '',
@@ -87,21 +80,12 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
             extent: p.extent || null,
           })),
         }))
-        setPredictions(mapped)
       }
-    } catch (err: any) {
-      if (err?.name !== 'AbortError') {
-        console.error('[FloodPredictionTimeline] Failed to fetch predictions:', err?.message)
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchPredictions()
-    return () => { abortRef.current?.abort() }
-  }, [fetchPredictions])
+      return attempt(2)
+    },
+    [],
+  )
+  const predictions = _predictions ?? []
 
   //Auto-play animation
   useEffect(() => {

@@ -9,7 +9,8 @@
  * - Uses apiFetch() from client/src/utils/api.ts (attaches auth token automatically)
  * */
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useAsync } from '../../hooks/useAsync'
 import {
   Activity, Database, Brain, Workflow, Globe, AlertTriangle,
   CheckCircle, XCircle, Clock, RefreshCw, Zap, Shield,
@@ -152,29 +153,13 @@ function LatencyBar({ ms, ok }: { ms: number; ok: boolean }) {
 
 //Main component
 export default function SystemHealthPanel() {
-  const [health, setHealth] = useState<SystemHealth | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const lang = useLanguage()
-
-  const fetchHealth = useCallback(async () => {
-    try {
-      const data = await apiFetch<any>('/api/internal/health/system')
-      setHealth(data)
-      setError(null)
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  //Initial fetch + 30-second auto-refresh. Cleans up the interval on unmount.
-  useEffect(() => {
-    fetchHealth()
-    const interval = setInterval(fetchHealth, 30000)
-    return () => clearInterval(interval)
-  }, [fetchHealth])
+  const { data: health, loading, error: asyncError, refresh: fetchHealth } = useAsync<SystemHealth>(
+    ({ signal }) => apiFetch<SystemHealth>('/api/internal/health/system', { signal }),
+    [],
+    { pollMs: 30000 },
+  )
+  const error = asyncError?.message ?? null
 
   //Keyboard shortcuts: R = refresh, ? = toggle shortcut help, Esc = close help
   //Guard against firing while typing in form fields.

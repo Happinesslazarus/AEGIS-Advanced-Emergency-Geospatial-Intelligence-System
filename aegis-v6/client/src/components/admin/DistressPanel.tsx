@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { formatRelativeTime } from '../../utils/i18nUtils'
 
 const API = ''
 
@@ -182,14 +183,6 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
     })
   }
 
-  const timeAgo = (dateStr: string): string => {
-    if (!dateStr) return t('common.na', lang)
-    const diff = Date.now() - new Date(dateStr).getTime()
-    const mins = Math.floor(diff / 60000)
-    if (mins < 1) return t('time.justNow', lang)
-    if (mins < 60) return `${mins}${t('time.mAgo', lang)}`
-    return `${Math.floor(mins / 60)}${t('time.hAgo', lang)} ${mins % 60}${t('time.mAgo', lang)}`
-  }
 
   return (
     <div className={`bg-white dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-2xl overflow-hidden ${className}`}>
@@ -270,7 +263,7 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-600 text-white">{t('distress.vulnerable', lang)}</span>
                           )}
                         </div>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-300">{timeAgo(dc.created_at)} -- {dc.latitude.toFixed(4)}, {dc.longitude.toFixed(4)}</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-300">{formatRelativeTime(dc.created_at, lang)} -- {dc.latitude.toFixed(4)}, {dc.longitude.toFixed(4)}</p>
                       </div>
 
                       {/* Triage badge */}
@@ -299,7 +292,7 @@ const DistressPanel = memo(function DistressPanel({ operatorId, operatorName, cl
                         )}
                         <div className="flex items-center gap-1 text-gray-400 dark:text-gray-300">
                           <Clock className="w-3 h-3" />
-                          <span>{t('distress.lastSeen', lang)}: {dc.last_gps_at ? timeAgo(dc.last_gps_at) : t('common.na', lang)}</span>
+                          <span>{t('distress.lastSeen', lang)}: {dc.last_gps_at ? formatRelativeTime(dc.last_gps_at, lang) : t('common.na', lang)}</span>
                         </div>
                         {dc.speed != null && dc.speed > 0 && (
                           <div className="flex items-center gap-1 text-gray-400 dark:text-gray-300">

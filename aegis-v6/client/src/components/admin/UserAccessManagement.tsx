@@ -25,6 +25,7 @@ import { useLanguage } from '../../hooks/useLanguage'
 import { apiInviteOperator } from '../../utils/api'
 import { DataTable } from '../ui/DataTable'
 import type { DataTableColumn } from '../ui/DataTable'
+import { formatRelativeTime } from '../../utils/i18nUtils'
 
 /*  types  */
 interface Props {
@@ -144,17 +145,6 @@ function getAuditTypes(lang: string): Record<string, { label: string; color: str
   }
 }
 
-function timeAgo(date: string | Date, lang: string): string {
-  const ms = Date.now() - new Date(date).getTime()
-  const mins = Math.floor(ms / 60000)
-  if (mins < 1) return t('common.justNow', lang)
-  if (mins < 60) return `${mins}${t('common.minutesShort', lang)} ${t('common.ago', lang)}`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}${t('common.hoursShort', lang)} ${t('common.ago', lang)}`
-  const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}${t('common.daysShort', lang)} ${t('common.ago', lang)}`
-  return new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
 function getSecurityChecks(lang: string) {
   return [
@@ -598,7 +588,7 @@ export default function UserAccessManagement({
                 },
                 {
                   key: 'lastLogin', header: t('users.lastLogin', lang), sortable: true,
-                  render: (u) => u.last_login ? timeAgo(u.last_login, lang) : <span className="text-gray-400 dark:text-gray-300 italic">{t('common.never', lang)}</span>,
+                  render: (u) => u.last_login ? formatRelativeTime(u.last_login, lang) : <span className="text-gray-400 dark:text-gray-300 italic">{t('common.never', lang)}</span>,
                   className: 'text-gray-500 dark:text-gray-300 whitespace-nowrap',
                 },
                 {
@@ -657,7 +647,7 @@ export default function UserAccessManagement({
                                   <div key={li} className="flex items-center gap-2 text-[11px] py-1">
                                     <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${log.action_type?.includes('delete') ? 'bg-red-500' : log.action_type?.includes('suspend') ? 'bg-amber-500' : 'bg-blue-500'}`} />
                                     <span className="text-gray-700 dark:text-gray-300">{log.action}</span>
-                                    <span className="ml-auto text-gray-400 dark:text-gray-300 text-[10px] whitespace-nowrap">{timeAgo(log.created_at, lang)}</span>
+                                    <span className="ml-auto text-gray-400 dark:text-gray-300 text-[10px] whitespace-nowrap">{formatRelativeTime(log.created_at, lang)}</span>
                                   </div>
                                 ))}
                                 {auditLog.filter(a => a.target_id === u.id).length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('users.noAccountActivity', lang)}</p>}
@@ -881,7 +871,7 @@ export default function UserAccessManagement({
                             <span>{new Date(log.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
                         </div>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-300 font-mono tabular-nums whitespace-nowrap">{timeAgo(log.created_at, lang)}</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-300 font-mono tabular-nums whitespace-nowrap">{formatRelativeTime(log.created_at, lang)}</span>
                       </div>
                     </div>
                   )

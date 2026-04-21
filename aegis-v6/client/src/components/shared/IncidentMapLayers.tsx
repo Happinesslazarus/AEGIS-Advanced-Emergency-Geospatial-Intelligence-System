@@ -4,7 +4,8 @@
  * Attaches click handlers that open the incident detail popup.
  */
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+import { useAsync } from '../../hooks/useAsync'
 import { useTranslation } from 'react-i18next'
 import { Marker, Popup, Circle, GeoJSON, useMap } from 'react-leaflet'
 import L from 'leaflet'
@@ -84,37 +85,22 @@ export default function IncidentMapLayers({
 
   const { t } = useTranslation(['map', 'incidents'])
   const { operationalTypes } = useIncidents()
-  const [mapDataByType, setMapDataByType] = useState<Record<string, IncidentMapData>>({})
   const [enabledLayers, setEnabledLayers] = useState<Set<string>>(new Set(operationalTypes))
-  const [loading, setLoading] = useState(false)
 
   const typesToFetch = visibleTypes.length > 0 ? visibleTypes : operationalTypes
 
-  const fetchMapData = useCallback(async () => {
-    if (typesToFetch.length === 0) return
-    setLoading(true)
-    try {
+  const { data: rawMapData, loading } = useAsync(
+    async () => {
+      if (typesToFetch.length === 0) return {}
       const data = await apiGetAllIncidentMapData(region)
-      //Server returns { layers: IncidentMapData[] } -- index by incidentType
       const byType: Record<string, IncidentMapData> = {}
-      for (const layer of (data.layers || [])) {
-        byType[layer.incidentType] = layer
-      }
-      setMapDataByType(byType)
-    } catch (err) {
-      console.error('[IncidentMapLayers] Failed to fetch map data:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [typesToFetch.length, region])
-
-  useEffect(() => {
-    fetchMapData()
-    if (refreshInterval > 0) {
-      const interval = setInterval(fetchMapData, refreshInterval)
-      return () => clearInterval(interval)
-    }
-  }, [fetchMapData, refreshInterval])
+      for (const layer of (data.layers || [])) byType[layer.incidentType] = layer
+      return byType
+    },
+    [typesToFetch.length, region],
+    { pollMs: refreshInterval > 0 ? refreshInterval : 0 },
+  )
+  const mapDataByType = rawMapData ?? {}
 
   const toggleLayer = useCallback((type: string) => {
     setEnabledLayers(prev => {

@@ -75,6 +75,7 @@ from app.hazards.water_supply_disruption import WaterSupplyPredictor
 from app.hazards.infrastructure_damage import InfrastructureDamagePredictor
 from app.hazards.public_safety_incident import PublicSafetyPredictor
 from app.hazards.environmental_hazard import EnvironmentalHazardPredictor
+from app.hazards.wildfire import WildfirePredictor
 from app.models.ml_wrappers import ReportClassifierML, SeverityPredictorML, TrainedModelLoader
 from app.models.report_classifier_ml import ReportClassifierTrainable
 from app.models.fake_detector_ml import FakeDetectorTrainable
@@ -113,6 +114,25 @@ class DetectFakeBody(BaseModel):
     source_type: str = "user_report"
     submission_frequency: int = 1
     similar_reports_count: int = 0
+
+# Predictor registry — maps each HazardType to its predictor class.
+# Adding a new hazard type only requires one entry here + a predictor module.
+HAZARD_PREDICTOR_REGISTRY: dict = {}  # populated after HazardType is imported below
+
+def _build_predictor_registry() -> dict:
+    return {
+        HazardType.FLOOD: FloodPredictor,
+        HazardType.DROUGHT: DroughtPredictor,
+        HazardType.HEATWAVE: HeatwavePredictor,
+        HazardType.SEVERE_STORM: SevereStormPredictor,
+        HazardType.LANDSLIDE: LandslidePredictor,
+        HazardType.POWER_OUTAGE: PowerOutagePredictor,
+        HazardType.WATER_SUPPLY: WaterSupplyPredictor,
+        HazardType.INFRASTRUCTURE: InfrastructureDamagePredictor,
+        HazardType.PUBLIC_SAFETY: PublicSafetyPredictor,
+        HazardType.ENVIRONMENTAL: EnvironmentalHazardPredictor,
+        HazardType.WILDFIRE: WildfirePredictor,
+    }
 
 # Create router
 router = APIRouter()
@@ -193,37 +213,12 @@ async def predict_hazard(
             f"for region {payload.region_id}"
         )
         
-        # Route to appropriate hazard predictor
-        # Hazard predictor dispatch: each hazard type encapsulates its own
-        # feature engineering, model artifact path, and risk thresholds.
-        # Adding a new hazard only requires a new elif branch here and a
-        # corresponding predictor class under app/hazards/.
-        if payload.hazard_type == HazardType.FLOOD:
-            predictor = FloodPredictor(model_registry, feature_store)
-        elif payload.hazard_type == HazardType.HEATWAVE:
-            predictor = HeatwavePredictor(model_registry, feature_store)
-        elif payload.hazard_type == HazardType.WILDFIRE:
-            from app.hazards.wildfire import WildfirePredictor
-            predictor = WildfirePredictor(model_registry, feature_store)
-        elif payload.hazard_type == HazardType.DROUGHT:
-            predictor = DroughtPredictor(model_registry, feature_store)
-        elif payload.hazard_type == HazardType.SEVERE_STORM:
-            predictor = SevereStormPredictor(model_registry, feature_store)
-        elif payload.hazard_type == HazardType.LANDSLIDE:
-            predictor = LandslidePredictor(model_registry, feature_store)
-        elif payload.hazard_type == HazardType.POWER_OUTAGE:
-            predictor = PowerOutagePredictor(model_registry, feature_store)
-        elif payload.hazard_type == HazardType.WATER_SUPPLY:
-            predictor = WaterSupplyPredictor(model_registry, feature_store)
-        elif payload.hazard_type == HazardType.INFRASTRUCTURE:
-            predictor = InfrastructureDamagePredictor(model_registry, feature_store)
-        elif payload.hazard_type == HazardType.PUBLIC_SAFETY:
-            predictor = PublicSafetyPredictor(model_registry, feature_store)
-        elif payload.hazard_type == HazardType.ENVIRONMENTAL:
-            predictor = EnvironmentalHazardPredictor(model_registry, feature_store)
-        # No predictor registered: return a safe LOW baseline rather than 404/500.
-        # This lets front-end calls succeed even for hazard types still in development.
-        else:
+        # Route to the registered predictor for this hazard type.
+        # HAZARD_PREDICTOR_REGISTRY maps every HazardType to its class; unknown
+        # types return a safe LOW baseline so callers always get a valid response.
+        registry = _build_predictor_registry()
+        predictor_cls = registry.get(payload.hazard_type)
+        if predictor_cls is None:
             logger.warning(f"No predictor for {payload.hazard_type.value} -- returning safe LOW")
             from app.schemas.predictions import ContributingFactor
             return PredictionResponse(
@@ -243,6 +238,7 @@ async def predict_hazard(
                 data_sources=["rule_based"],
                 warnings=[]
             )
+        predictor = predictor_cls(model_registry, feature_store)
         
         # Generate prediction
         prediction = await predictor.predict(payload)

@@ -12,6 +12,7 @@ import { useSharedSocket } from './SocketContext'
 import { useEventCallbacks } from '../hooks/useEventStream'
 import { getCitizenToken } from './CitizenAuthContext'
 import type { Report, NewReportInput, ServerReport, NewReportResponse } from '../types'
+import { formatRelativeTime } from '../utils/i18nUtils'
 
 interface ReportStats {
   total: number
@@ -49,17 +50,6 @@ interface ReportsContextType {
 
 const ReportsContext = createContext<ReportsContextType | null>(null)
 
-function formatTimeAgo(dateStr?: string): string {
-  if (!dateStr) return 'Unknown'
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  return `${days}d ago`
-}
 
 function normalizeServerReport(report: ServerReport | Record<string, unknown>): Report {
   const r = report as Record<string, unknown>
@@ -84,7 +74,7 @@ function normalizeServerReport(report: ServerReport | Record<string, unknown>): 
     aiAnalysis: (r.ai_analysis || r.aiAnalysis || null) as Report['aiAnalysis'],
     locationMetadata: (r.location_metadata || r.locationMetadata || null) as Report['locationMetadata'],
     timestamp: String(r.timestamp || r.created_at || r.createdAt || new Date().toISOString()),
-    displayTime: formatTimeAgo(String(r.timestamp || r.created_at || r.createdAt || '')),
+    displayTime: formatRelativeTime(String(r.timestamp || r.created_at || r.createdAt || ''), 'en'),
     operatorNotes: (r.operator_notes || r.operatorNotes || null) as string | null,
   }
 }

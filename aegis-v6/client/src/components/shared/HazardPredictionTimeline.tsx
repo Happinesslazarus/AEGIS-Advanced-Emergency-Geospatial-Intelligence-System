@@ -4,7 +4,8 @@
  * per-hazard colour coding and a shared time axis.
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useAsync } from '../../hooks/useAsync'
 import {
   Play, Pause, SkipForward, SkipBack, Clock,
   AlertTriangle, Home, Users, TrendingUp, ChevronDown,
@@ -129,64 +130,38 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
   const config = useMemo(() => getHazardConfig(hazardType), [hazardType])
   const Icon = config.icon
 
-  const [predictions, setPredictions] = useState<RegionPrediction[]>([])
-  const [rawRecords, setRawRecords] = useState<PredictionRecord[]>([])
-  const [loading, setLoading] = useState(true)
   const [collapsed, setCollapsed] = useState(false)
   const [selectedIdx, setSelectedIdx] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
 
   const timePoints = config.timePointsHours
 
-  /* Fetch predictions */
-  const fetchPredictions = useCallback(async (retries = 2) => {
-    abortRef.current?.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
-
-    setLoading(true)
-    try {
-      const token = getToken() || getCitizenToken()
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
-
-      const res = await fetch(`${API}/api/ai/predictions?hazard_type=${encodeURIComponent(hazardType)}&limit=100`, {
-        signal: controller.signal,
-        headers,
-      })
-
-      if (res.status === 429 && retries > 0) {
-        await new Promise<void>((resolve, reject) => {
-          const id = setTimeout(resolve, 2000)
-          controller.signal.addEventListener('abort', () => { clearTimeout(id); reject(new DOMException('Aborted', 'AbortError')) })
-        })
-        return fetchPredictions(retries - 1)
-      }
-
-      if (res.ok) {
+  const { data: fetchResult, loading, refresh: fetchPredictions } = useAsync(
+    async ({ signal }) => {
+      const attempt = async (retries: number) => {
+        const token = getToken() || getCitizenToken()
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
+        const res = await fetch(`${API}/api/ai/predictions?hazard_type=${encodeURIComponent(hazardType)}&limit=100`, { signal, headers })
+        if (res.status === 429 && retries > 0) {
+          await new Promise<void>((resolve, reject) => {
+            const id = setTimeout(resolve, 2000)
+            signal.addEventListener('abort', () => { clearTimeout(id); reject(new DOMException('Aborted', 'AbortError')) })
+          })
+          return attempt(retries - 1)
+        }
+        if (!res.ok) return { predictions: [], rawRecords: [], lastRefresh: null }
         const data: PredictionRecord[] = await res.json()
-        setRawRecords(data)
-
-        //Group by region_id
         const byRegion = new Map<string, PredictionRecord[]>()
         for (const rec of data) {
-          const group = byRegion.get(rec.region_id) || []
-          group.push(rec)
-          byRegion.set(rec.region_id, group)
+          const group = byRegion.get(rec.region_id) || []; group.push(rec); byRegion.set(rec.region_id, group)
         }
-
         const mapped: RegionPrediction[] = Array.from(byRegion.entries()).map(([regionId, recs]) => {
           const sorted = [...recs].sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())
           const latest = sorted[0]
           const topFactors = Array.isArray(latest.top_shap_contributors)
-            ? latest.top_shap_contributors.slice(0, 3).map((f: any) => ({
-                factor: f.factor || f.name || 'Unknown',
-                importance: Math.abs(f.importance || 0),
-              }))
+            ? latest.top_shap_contributors.slice(0, 3).map((f: any) => ({ factor: f.factor || f.name || 'Unknown', importance: Math.abs(f.importance || 0) }))
             : []
-
           return {
             regionId,
             regionName: regionId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
@@ -198,30 +173,17 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
             topFactors,
           }
         })
-
-        //Sort by risk level (highest first)
         mapped.sort((a, b) => (RISK_ORDER[b.currentRisk?.toUpperCase()] || 0) - (RISK_ORDER[a.currentRisk?.toUpperCase()] || 0))
-        setPredictions(mapped)
-        setLastRefresh(new Date())
+        return { predictions: mapped, rawRecords: data, lastRefresh: new Date() }
       }
-    } catch (err: any) {
-      if (err?.name !== 'AbortError') {
-        console.error(`[HazardPredictionTimeline:${hazardType}] Fetch error:`, err?.message)
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [hazardType])
-
-  useEffect(() => {
-    fetchPredictions()
-    //Auto-refresh every 60s
-    const refreshInterval = setInterval(() => fetchPredictions(), 60000)
-    return () => {
-      abortRef.current?.abort()
-      clearInterval(refreshInterval)
-    }
-  }, [fetchPredictions])
+      return attempt(2)
+    },
+    [hazardType],
+    { pollMs: 60000 },
+  )
+  const predictions = fetchResult?.predictions ?? []
+  const rawRecords = fetchResult?.rawRecords ?? []
+  const lastRefresh = fetchResult?.lastRefresh ?? null
 
   /* Auto-play */
   useEffect(() => {

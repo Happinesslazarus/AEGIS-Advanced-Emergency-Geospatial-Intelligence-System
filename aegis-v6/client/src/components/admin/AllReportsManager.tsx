@@ -18,6 +18,7 @@ import type { Report } from '../../types'
 import { useLanguage } from '../../hooks/useLanguage'
 import { DataTable } from '../ui/DataTable'
 import type { DataTableColumn } from '../ui/DataTable'
+import { formatRelativeTime } from '../../utils/i18nUtils'
 
 const CATEGORY_ICONS: Record<string, any> = {
   natural_disaster: Droplets, infrastructure: Building2,
@@ -79,13 +80,6 @@ const statusLabel = (v: string, lang: string) => {
   return map[v] || v
 }
 
-const timeAgo = (ts: string, lang: string) => {
-  const mins = Math.floor((Date.now() - new Date(ts).getTime()) / 60000)
-  if (mins < 1) return t('time.justNow', lang)
-  if (mins < 60) return `${mins}${t('time.mAgo', lang)}`
-  if (mins < 1440) return `${Math.floor(mins / 60)}${t('time.hAgo', lang)}`
-  return `${Math.floor(mins / 1440)}${t('time.dAgo', lang)}`
-}
 
 type SortKey = 'time' | 'severity' | 'status' | 'type' | 'location' | 'confidence'
 type SortDir = 'asc' | 'desc'
@@ -485,7 +479,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
               { key: 'type', header: t('common.type', lang), sortable: true, render: r => <div className="flex items-center gap-1.5"><span className="text-xs font-semibold truncate max-w-[160px]">{r.type || r.incidentCategory}</span>{r.trappedPersons === 'yes' && <AlertTriangle className="w-3 h-3 text-purple-600 flex-shrink-0" />}{r.hasMedia && <Camera className="w-3 h-3 text-blue-500 flex-shrink-0" />}</div> },
               { key: 'location', header: t('common.location', lang), sortable: true, render: r => <span className="text-[10px] text-gray-600 dark:text-gray-300 truncate max-w-[140px] block">{r.location}</span> },
               { key: 'confidence', header: 'AI', sortable: true, align: 'center', render: r => (r.confidence || 0) > 0 ? <div className="flex items-center justify-center gap-1"><div className="w-8 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all ${(r.confidence || 0) >= 80 ? 'bg-emerald-500' : (r.confidence || 0) >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${r.confidence}%` }} /></div><span className="text-[10px] font-bold tabular-nums text-gray-600 dark:text-gray-300">{r.confidence}%</span></div> : <span className="text-[10px] text-gray-300">--</span> },
-              { key: 'time', header: t('common.time', lang), sortable: true, align: 'right', render: r => <span className="text-[10px] text-gray-600 dark:text-gray-300 tabular-nums">{timeAgo(r.timestamp, lang)}</span> },
+              { key: 'time', header: t('common.time', lang), sortable: true, align: 'right', render: r => <span className="text-[10px] text-gray-600 dark:text-gray-300 tabular-nums">{formatRelativeTime(r.timestamp, lang)}</span> },
               { key: 'actions', header: t('common.actions', lang), align: 'center', render: r => <div className="flex items-center gap-1 justify-center"><button onClick={e => { e.stopPropagation(); onSelectReport(r) }} className="w-6 h-6 rounded bg-aegis-50 dark:bg-aegis-950/30 hover:bg-aegis-100 text-aegis-600 flex items-center justify-center transition-all" title={t('common.view', lang)}><Eye className="w-3 h-3" /></button>{r.hasMedia && <button onClick={e => { e.stopPropagation(); onOpenGallery(r) }} className="w-6 h-6 rounded bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 text-purple-600 flex items-center justify-center transition-all" title={t('admin.actions.openMedia', lang)}><Camera className="w-3 h-3" /></button>}<button onClick={e => { e.stopPropagation(); onPrintReport(r) }} className="w-6 h-6 rounded bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 text-gray-500 dark:text-gray-300 flex items-center justify-center transition-all" title={t('common.print', lang)}><Printer className="w-3 h-3" /></button></div> },
             ] as DataTableColumn<Report>[]}
             rows={paginatedReports}
@@ -547,7 +541,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
                     </div>
                     <div className="flex items-center gap-3 mt-1.5 text-[10px] text-gray-600 dark:text-gray-300">
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3 flex-shrink-0" /><span className="truncate max-w-[200px]">{r.location}</span></span>
-                      <span className="flex items-center gap-1 tabular-nums"><Clock className="w-3 h-3" />{timeAgo(r.timestamp, lang)}</span>
+                      <span className="flex items-center gap-1 tabular-nums"><Clock className="w-3 h-3" />{formatRelativeTime(r.timestamp, lang)}</span>
                       <span className="font-mono text-gray-500 dark:text-gray-300">{r.reportNumber}</span>
                     </div>
                   </div>

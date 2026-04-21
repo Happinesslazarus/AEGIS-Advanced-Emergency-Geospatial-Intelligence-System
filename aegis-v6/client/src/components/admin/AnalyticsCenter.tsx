@@ -15,6 +15,7 @@ import AnalyticsDashboard from './AnalyticsDashboard'
 import { t } from '../../utils/i18n'
 import type { Report } from '../../types'
 import { useLanguage } from '../../hooks/useLanguage'
+import { formatRelativeTime } from '../../utils/i18nUtils'
 
 interface AnalyticsCenterProps {
   reports: Report[]
@@ -33,13 +34,6 @@ interface AnalyticsCenterProps {
   pushNotification: (msg: string, type?: 'success' | 'warning' | 'error' | 'info' | string, duration?: number) => void | number
 }
 
-const timeAgo = (ts: string, lang: string) => {
-  const mins = Math.floor((Date.now() - new Date(ts).getTime()) / 60000)
-  if (mins < 1) return t('time.justNow', lang)
-  if (mins < 60) return `${mins}${t('time.mAgo', lang)}`
-  if (mins < 1440) return `${Math.floor(mins / 60)}h ago`
-  return `${Math.floor(mins / 1440)}d ago`
-}
 
 const AUDIT_ICON_MAP: Record<string, { bg: string; icon: React.FC<any> }> = {
   verify: { bg: 'bg-emerald-500', icon: CheckCircle },
@@ -440,7 +434,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
                           <Users className="w-3 h-3" /> {e.operator_name || 'System'}
                         </span>
                         <span className="text-[10px] text-gray-400 dark:text-gray-300 tabular-nums flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> {timeAgo(e.created_at, lang)}
+                          <Clock className="w-3 h-3" /> {formatRelativeTime(e.created_at, lang)}
                         </span>
                         {e.action_type && (
                           <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-300 font-mono">{e.action_type}</span>

@@ -17,6 +17,7 @@ import { useAlerts } from '../../contexts/AlertsContext'
 import { useLocation } from '../../contexts/LocationContext'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { formatRelativeTime } from '../../utils/i18nUtils'
 
 const SEVERITY_CONFIG: Record<string, {
   gradient: string; border: string; bg: string; text: string;
@@ -90,19 +91,6 @@ function getDisasterIcon(type: string): React.ElementType {
   return DISASTER_ICONS[type?.toLowerCase()] || DISASTER_ICONS.default
 }
 
-function formatTimeAgo(timestamp: string, lang: string): string {
-  const now = new Date()
-  const then = new Date(timestamp)
-  const diffMs = now.getTime() - then.getTime()
-  const mins = Math.floor(diffMs / 60000)
-  const hours = Math.floor(diffMs / 3600000)
-  const days = Math.floor(diffMs / 86400000)
-  if (mins < 1) return t('alerts.justNow', lang)
-  if (mins < 60) return `${mins}${t('alerts.minsAgo', lang)}`
-  if (hours < 24) return `${hours}${t('alerts.hoursAgo', lang)}`
-  if (days < 7) return `${days}${t('alerts.daysAgo', lang)}`
-  return then.toLocaleDateString()
-}
 
 export default function AlertsPanel() {
   const lang = useLanguage()
@@ -297,7 +285,7 @@ export default function AlertsPanel() {
           const SevIcon = cfg.icon
           const DisasterIcon = getDisasterIcon(alert.disasterType)
           const isExpanded = expandedId === alert.id
-          const timeAgo = formatTimeAgo(alert.timestamp, lang)
+          const timeAgo = formatRelativeTime(alert.timestamp, lang)
 
           return (
             <div

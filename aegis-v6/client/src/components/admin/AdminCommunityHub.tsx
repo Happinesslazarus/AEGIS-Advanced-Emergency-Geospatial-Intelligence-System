@@ -17,6 +17,7 @@ import AdminMessaging from './AdminMessaging'
 import { API_BASE } from '../../utils/helpers'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { formatRelativeTime } from '../../utils/i18nUtils'
 
 interface CommunityStats {
   totalMessages: number
@@ -47,13 +48,6 @@ function getAuthHeaders() {
   }
 }
 
-function timeAgo(dateStr: string, lang = 'en'): string {
-  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
-  if (seconds < 60) return t('time.justNow', lang)
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}${t('time.mAgo', lang)}`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}${t('time.hAgo', lang)}`
-  return `${Math.floor(seconds / 86400)}${t('time.dAgo', lang)}`
-}
 
 /*  Stats Card  */
 function StatCard({ icon: Icon, label, value, trend, color, pulse }: {
@@ -205,7 +199,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] text-gray-400 dark:text-gray-300">{timeAgo(post.created_at)}</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-300">{formatRelativeTime(post.created_at, lang)}</span>
               </div>
 
               {/* Post Content */}
