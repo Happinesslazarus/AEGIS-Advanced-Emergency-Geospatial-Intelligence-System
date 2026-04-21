@@ -33,16 +33,11 @@ function emit(channel: string, payload: unknown, room?: string): void {
 export function registerSocketBroadcastSubscriber(): () => void {
   const unsubs: Array<() => void> = []
 
-  // NOTE: report.created does NOT emit a 'report:new' broadcast here yet --
-  // the report POST route still emits the rich frontend-compatible shape
-  // directly. Once the frontend migrates to the typed payload, the route
-  // emit can be deleted and a 'report:new' subscriber added here.
-
-  unsubs.push(
-    eventBus.subscribe(AegisEventNames.SOS_ACTIVATED, async (evt) => {
-      emit('distress:new', { ...evt.payload, correlationId: evt.correlationId }, 'admins')
-    }),
-  )
+  // NOTE: report.created and sos.activated do NOT broadcast here yet --
+  // their routes/handlers still emit the rich frontend-compatible shape
+  // ('report:new', 'distress:new_alert') directly. Once the frontend
+  // migrates to the typed payload, those manual emits can be deleted
+  // and corresponding subscribers added here.
 
   unsubs.push(
     eventBus.subscribe(AegisEventNames.ALERT_CREATED, async (evt) => {

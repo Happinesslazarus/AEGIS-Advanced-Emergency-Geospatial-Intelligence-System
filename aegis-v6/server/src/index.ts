@@ -269,6 +269,7 @@ import { correlationMiddleware } from './middleware/correlation.js'
 import pool from './models/db.js'
 import { initSocketServer } from './services/socket.js'
 import { registerAllSubscribers } from './subscribers/index.js'
+import { startContinuousAiTick } from './intelligence/continuousAiTick.js'
 import { requestLogger } from './services/logger.js'
 import { startCronJobs } from './services/cronJobs.js'
 import { setIOInstance as setRiverIO } from './services/riverLevelService.js'
@@ -351,6 +352,13 @@ setThreatIO(io)       // threat level service broadcasts amber/red escalations
 //Register typed event subscribers (audit + socket broadcast).
 //Must come AFTER initSocketServer so the broadcast subscriber can resolve getIO().
 registerAllSubscribers()
+
+//Start the continuous AI prediction loop -- emits hazard.predicted /
+//risk.updated events on a fixed cadence so the operator map stays alive.
+//Disabled in test environments to avoid spurious side effects.
+if (process.env.NODE_ENV !== 'test' && process.env.AI_TICK_DISABLED !== '1') {
+  startContinuousAiTick()
+}
 
 /* --- Middleware stack --------------------------------------------------------
  * ORDER MATTERS here. Each layer sees the request before ones below it.

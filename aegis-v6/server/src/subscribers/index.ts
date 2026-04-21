@@ -11,11 +11,13 @@
 import { logger } from '../services/logger.js'
 import { registerAuditSubscriber } from './auditSubscriber.js'
 import { registerSocketBroadcastSubscriber } from './socketBroadcastSubscriber.js'
+import { registerCascadeRules } from '../intelligence/cascadeRules.js'
 
 export function registerAllSubscribers(): () => void {
   const unsubs = [
     registerAuditSubscriber(),
     registerSocketBroadcastSubscriber(),
+    registerCascadeRules(),
   ]
   logger.info(`[subscribers] registered ${unsubs.length} subscriber group(s)`)
   return () => unsubs.forEach((u) => u())

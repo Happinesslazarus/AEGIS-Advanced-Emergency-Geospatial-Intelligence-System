@@ -35,6 +35,10 @@ import { devLog, auditLog } from '../utils/logger.js'
 import { logger } from './logger.js'
 import { verifyToken } from '../middleware/auth.js'
 import { distressEventsTotal, distressActiveGauge, distressResponseLatency } from './metrics.js'
+import { eventBus } from '../events/eventBus.js'
+import { AegisEventNames } from '../events/eventTypes.js'
+import { runWithCorrelation } from '../events/correlationContext.js'
+import { randomUUID } from 'crypto'
 import { redis, redisReady } from './cacheService.js'
 const CITIZEN_ROLES = new Set(['citizen', 'verified_citizen', 'community_leader'])
 
@@ -1576,6 +1580,24 @@ export function initSocketServer(httpServer: HttpServer): Server {
         auditLog('Distress', `SOS ACTIVATED by ${user.displayName}`, { latitude, longitude, isVulnerable })
         distressEventsTotal.inc({ event: 'activate' })
         distressActiveGauge.inc()
+
+        //Publish typed event onto the Aegis spine. The auditSubscriber records
+        //it; future subscribers (notifications, n8n, AI cascade) react without
+        //touching this handler. Wrapped in a fresh correlation context because
+        //socket events do not have an Express requestId.
+        runWithCorrelation({ correlationId: randomUUID(), actor: String(user.id) }, () => {
+          void eventBus.publish(
+            AegisEventNames.SOS_ACTIVATED,
+            {
+              sosId: String(distressCall.id),
+              userId: String(user.id),
+              latitude,
+              longitude,
+              message: typeof message === 'string' ? message.slice(0, 500) : undefined,
+            },
+            { source: 'citizen', severity: isVulnerable ? 'critical' : 'high' },
+          )
+        })
 
         if (ack) ack({ success: true, distress: distressCall })
       } catch (err: any) {
