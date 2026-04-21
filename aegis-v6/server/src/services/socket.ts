@@ -168,6 +168,13 @@ async function clearSocketRateLimit(userId: string): Promise<void> {
 
 let _io: Server | null = null
 
+/** Accessor for the singleton Socket.IO instance. Returns null until
+ *  initSocketServer() has been called. Used by event subscribers that
+ *  need to broadcast without going through `req.app.get('io')`. */
+export function getIO(): Server | null {
+  return _io
+}
+
 export interface IncidentAlertPayload {
   incidentType: string
   regionId: string

@@ -268,6 +268,7 @@ import { responseHelpersMiddleware } from './middleware/responseHelpers.js'
 import { correlationMiddleware } from './middleware/correlation.js'
 import pool from './models/db.js'
 import { initSocketServer } from './services/socket.js'
+import { registerAllSubscribers } from './subscribers/index.js'
 import { requestLogger } from './services/logger.js'
 import { startCronJobs } from './services/cronJobs.js'
 import { setIOInstance as setRiverIO } from './services/riverLevelService.js'
@@ -346,6 +347,10 @@ app.set('io', io)
 //Each service keeps its own reference so it can emit without going through a route.
 setRiverIO(io)        // river level service broadcasts flood alerts
 setThreatIO(io)       // threat level service broadcasts amber/red escalations
+
+//Register typed event subscribers (audit + socket broadcast).
+//Must come AFTER initSocketServer so the broadcast subscriber can resolve getIO().
+registerAllSubscribers()
 
 /* --- Middleware stack --------------------------------------------------------
  * ORDER MATTERS here. Each layer sees the request before ones below it.

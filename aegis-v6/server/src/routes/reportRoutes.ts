@@ -42,6 +42,8 @@ import { AppError } from '../utils/AppError.js'
 import { validate, paginationSchema } from '../middleware/validate.js'
 import { logger } from '../services/logger.js'
 import { asyncRoute } from '../utils/asyncRoute.js'
+import { eventBus } from '../events/eventBus.js'
+import { AegisEventNames } from '../events/eventTypes.js'
 
 /* Attempt to extract auth user from request without rejecting unauthenticated callers. */
 function tryExtractUser(req: Request): AuthRequest['user'] | null {
@@ -1539,7 +1541,10 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, asyncR
       }
     }
 
-    //Broadcast the new report via WebSocket so admin dashboard updates in real time
+    //Broadcast the rich report shape via WebSocket so the existing admin
+    //dashboard updates in real time. The frontend currently depends on the
+    //full formatReport() shape; once it migrates to the typed event channel
+    //below, this manual broadcast can be removed.
     try {
       const io = req.app.get('io')
       if (io) {
@@ -1583,6 +1588,27 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, asyncR
     } catch (wsErr: any) {
       logger.warn({ err: wsErr }, '[Reports] WebSocket broadcast failed')
     }
+
+    //Publish typed event onto the Aegis event spine. The auditSubscriber
+    //records it automatically and any future subscriber (notifications,
+    //n8n workflows, AI cascade engine) reacts without requiring changes
+    //to this route. The slim payload is the stable contract; the rich
+    //broadcast above will be retired once the frontend migrates.
+    const dbSeverityEvt = dbSeverity === 'high' ? 'high' : dbSeverity === 'medium' ? 'medium' : 'low'
+    await eventBus.publish(
+      AegisEventNames.REPORT_CREATED,
+      {
+        reportId: String(report.id),
+        reporterId: submitter?.id ? String(submitter.id) : undefined,
+        hazardType: incidentSubtype || incidentCategory,
+        latitude: parsedLat,
+        longitude: parsedLng,
+        description: typeof description === 'string' ? description.slice(0, 500) : undefined,
+        mediaCount: hasFiles ? files!.length : 0,
+        severity: dbSeverityEvt,
+      },
+      { source: 'citizen', severity: dbSeverityEvt },
+    )
 
     //Run the full AI analysis pipeline in the background (non-blocking).
     //This calls real HuggingFace classifiers for sentiment, fake detection,
