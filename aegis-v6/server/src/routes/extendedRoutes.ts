@@ -28,8 +28,7 @@ import * as notificationService from '../services/notificationService.js'
 import { devLog } from '../utils/logger.js'
 import { aiClient } from '../services/aiClient.js'
 import { isValidE164} from '../utils/phoneValidation.js'
-import { computeConfidenceDistribution, getExecutionAuditLog, addTrainingLabel, computeRiskHeatmap, estimateDamageCost, getModelMetrics, checkModelDrift, generateBiasReport, checkGovernanceHealth } from '../services/governanceEngine.js'
-import { getClassifierHealth } from '../services/classifierRouter.js'
+import { addTrainingLabel, computeRiskHeatmap, estimateDamageCost } from '../services/governanceEngine.js'
 import { runFingerprinting} from '../services/floodFingerprinting.js'
 import { gatherFusionData, runFusion } from '../services/fusionEngine.js'
 import { ensureIngestionSchema, runFullIngestion, ingestEAFloodData, ingestNASAPowerData, ingestOpenMeteoData, ingestUKFloodHistory, ingestWikipediaFloodKnowledge } from '../services/dataIngestionService.js'
@@ -1592,53 +1591,7 @@ router.get('/ai/status', asyncRoute(async (_req: Request, res: Response) => {
   }
 }))
 
-//AI GOVERNANCE ENDPOINTS
-
-//GET /api/ai/governance/models - used by AITransparencyDashboard for accuracy, F1, etc.
-router.get('/ai/governance/models', authMiddleware, requireOperator, asyncRoute(async (_req: AuthRequest, res: Response) => {
-    const metrics = await getModelMetrics()
-    res.json(metrics)
-}))
-
-//GET /api/ai/governance/drift - model drift detection
-router.get('/ai/governance/drift', authMiddleware, requireOperator, asyncRoute(async (_req: AuthRequest, res: Response) => {
-    const drift = await checkModelDrift()
-    res.json(drift)
-}))
-
-//GET /api/ai/governance/bias - bias report (location, severity, temporal, language)
-router.get('/ai/governance/bias', authMiddleware, requireOperator, asyncRoute(async (_req: AuthRequest, res: Response) => {
-    const report = await generateBiasReport()
-    res.json(report)
-}))
-
-//GET /api/ai/governance/health - auto-verifications, flagging rates, backlog
-router.get('/ai/governance/health', authMiddleware, requireOperator, asyncRoute(async (_req: AuthRequest, res: Response) => {
-    const health = await checkGovernanceHealth()
-    res.json(health)
-}))
-
-//GET /api/ai/classifier/health - circuit breaker status for HF classifiers
-router.get('/ai/classifier/health', authMiddleware, requireOperator, asyncRoute(async (_req: AuthRequest, res: Response) => {
-    const health = getClassifierHealth()
-    res.json({ models: health, timestamp: new Date().toISOString() })
-}))
-
-//GET /api/ai/confidence-distribution - computed from real predictions
-router.get('/ai/confidence-distribution', authMiddleware, requireOperator, asyncRoute(async (req: AuthRequest, res: Response) => {
-    const { model } = req.query
-    const distribution = await computeConfidenceDistribution(model as string | undefined)
-    res.json(distribution)
-}))
-
-//GET /api/ai/audit - AI execution audit log
-router.get('/ai/audit', authMiddleware, requireOperator, asyncRoute(async (req: AuthRequest, res: Response) => {
-    const limit = parseInt(req.query.limit as string) || 50
-    const offset = parseInt(req.query.offset as string) || 0
-    const model = req.query.model as string | undefined
-    const result = await getExecutionAuditLog(limit, offset, model)
-    res.json(result)
-}))
+//AI GOVERNANCE ENDPOINTS extracted to aiGovernanceRoutes.ts (C3)
 
 //Safe Zone / Shelter Capacity Alerts
 
