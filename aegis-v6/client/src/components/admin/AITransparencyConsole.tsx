@@ -12,7 +12,6 @@ import {
   Crown, ShieldCheck, RotateCcw, Loader2,
   Download, Calendar, RefreshCw
 } from 'lucide-react'
-import AITransparencyDashboard from './AITransparencyDashboard'
 import {
   apiRunPrediction,
   apiGetPredictions,
@@ -1432,8 +1431,6 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
         </div>
       )}
 
-      {/* AI Transparency Dashboard (5-tab analytics deep-dive) */}
-      <AITransparencyDashboard />
     </div>
   )
 }
