@@ -17,11 +17,9 @@ import {
   apiCreateAlert,
   apiDeployResources,
   apiRecallResources,
-  type NewsItem,
   type Prediction,
   type Deployment,
-  type AuditEntry,
-} from '../utils/api'
+  type AuditEntry } from '../utils/api'
 import type { Report, Alert } from '../types'
 
 //Query Keys: stable references used by React Query to identify cache entries.

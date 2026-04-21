@@ -47,8 +47,8 @@
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
+import { describe, test, expect, vi, beforeEach} from 'vitest'
+import { render, screen, fireEvent, waitFor} from '@testing-library/react'
 import '@testing-library/jest-dom'
 
 //Module-level mocks -- declared before imports so vi.mock() hoisting works

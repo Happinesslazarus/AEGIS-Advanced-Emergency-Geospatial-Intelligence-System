@@ -9,8 +9,8 @@ import { useSharedSocket } from '../../contexts/SocketContext'
 import { getToken } from '../../utils/api'
 import {
   Radio, Shield, MapPin, Phone, Clock, AlertTriangle,
-  Check, X, Users, RefreshCw, ChevronDown, ChevronUp,
-  Navigation, Heart, Loader2, Volume2, VolumeX
+  Check, RefreshCw, ChevronDown, ChevronUp,
+  Navigation, Loader2, Volume2, VolumeX
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'

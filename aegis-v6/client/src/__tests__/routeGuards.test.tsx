@@ -49,7 +49,7 @@
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach} from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom' // in-memory router for testing
 import {
@@ -57,14 +57,12 @@ import {
   RoleProtectedRoute,
   AdminRoute,
   StaffRoute,
-  CitizenRoute,
   GuestOnlyRoute,
   getCurrentRole,
   getRoleFromToken,
   isTokenExpired,
   useRoleCheck,
-  useHasRole,
-} from '../components/shared/RouteGuards'
+  useHasRole } from '../components/shared/RouteGuards'
 import { setCitizenToken } from '../contexts/CitizenAuthContext'
 
 //Module-level mocks

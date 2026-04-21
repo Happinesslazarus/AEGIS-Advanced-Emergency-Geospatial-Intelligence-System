@@ -10,9 +10,8 @@
 import { useState, useMemo } from 'react'
 import {
   Waves, RefreshCw, TrendingUp, TrendingDown, Minus, AlertTriangle,
-  Droplets, Clock, MapPin, Info, Activity, ChevronDown, ChevronUp,
-  ShieldAlert, Gauge, BarChart2, Navigation, ExternalLink,
-} from 'lucide-react'
+  Droplets, Clock, MapPin, Activity, ChevronDown, ChevronUp,
+  ShieldAlert, Gauge, BarChart2, Navigation } from 'lucide-react'
 import { fetchRiverLevels, getGaugeColor, getGaugeBg } from '../../utils/sepaApi'
 import { useLocation } from '../../contexts/LocationContext'
 import { useAsync } from '../../hooks/useAsync'

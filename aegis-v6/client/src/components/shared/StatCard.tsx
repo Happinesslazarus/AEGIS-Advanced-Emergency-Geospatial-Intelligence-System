@@ -5,7 +5,6 @@
  */
 
 import type { LucideIcon } from 'lucide-react'
-import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
 interface Props { label: string; value: string | number; icon?: LucideIcon; color?: string; trend?: string }

@@ -8,11 +8,10 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useAsync } from '../../hooks/useAsync'
 import {
   Play, Pause, SkipForward, SkipBack, Clock,
-  AlertTriangle, Home, Users, TrendingUp, ChevronDown,
-  Droplets, Flame, Thermometer, CloudLightning, Wind,
+  AlertTriangle, ChevronDown,
+  Droplets, Flame, Thermometer, CloudLightning,
   Mountain, Zap, ShieldAlert, Building, Leaf, AlertOctagon,
-  RefreshCw, BarChart3, Target,
-} from 'lucide-react'
+  RefreshCw, BarChart3, Target } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { STATUS_HEX } from '../../utils/colorTokens'

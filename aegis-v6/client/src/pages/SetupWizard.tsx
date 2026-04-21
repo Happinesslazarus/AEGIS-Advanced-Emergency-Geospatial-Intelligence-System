@@ -16,8 +16,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import {
   Shield, ChevronRight, ChevronLeft, Check, MapPin, Bell,
   Globe, Loader2, AlertTriangle, CheckCircle2, Settings,
-  Mail, MessageSquare, Smartphone, Radio, Wifi, Lock,
-  Server, Zap, Eye, RefreshCw, Search
+  Mail, Smartphone, Radio, Wifi, Lock, Zap, Eye, Search
 } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import { apiSetupRegion, apiSetupNotifications, apiSetupComplete } from '../utils/api'

@@ -11,9 +11,9 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Users, Activity, TrendingUp, TrendingDown, MapPin, RefreshCw, Loader2,
-  AlertTriangle, Clock, ChevronDown, ChevronUp, Search, BarChart3,
+  AlertTriangle, Clock, Search, BarChart3,
   LayoutGrid, List, ArrowUpDown, Filter, Zap, Radio, Shield, Minus,
-  Download, Eye, Brain, Target, AlertCircle, Cpu, Crosshair, Signal
+  Download, Target, AlertCircle, Cpu, Crosshair, Signal
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'

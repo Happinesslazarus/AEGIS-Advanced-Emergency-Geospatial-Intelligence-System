@@ -14,9 +14,8 @@ import { useAsync } from '../../hooks/useAsync'
 import {
   Activity, Database, Brain, Workflow, Globe, AlertTriangle,
   CheckCircle, XCircle, Clock, RefreshCw, Zap, Shield,
-  Server, Radio, ArrowRight, Layers, Keyboard, Cpu, HardDrive,
-  Timer, MemoryStick, MonitorCheck, TrendingUp,
-} from 'lucide-react'
+  Server, Radio, ArrowRight, Layers, Keyboard, Cpu,
+  Timer, MonitorCheck, TrendingUp } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { apiFetch } from '../../utils/api'

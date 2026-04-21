@@ -8,8 +8,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   AlertTriangle, Shield, MapPin, Phone, Droplets,
   Wind, Thermometer, Clock, RefreshCw, X, Radio,
-  Home, ExternalLink, ChevronRight,
-} from 'lucide-react'
+  Home, ExternalLink } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 

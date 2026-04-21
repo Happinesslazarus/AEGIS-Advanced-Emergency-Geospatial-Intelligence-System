@@ -7,10 +7,8 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import {
-  Maximize2, Minimize2, Map, Satellite, Box, Square, Navigation,
-  RotateCcw, ZoomIn, ZoomOut, Layers, AlertTriangle, Droplets
-} from 'lucide-react'
+import { Map, Satellite, Box, Square,
+  RotateCcw} from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 

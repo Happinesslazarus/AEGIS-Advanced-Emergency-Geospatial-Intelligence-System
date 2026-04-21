@@ -25,13 +25,10 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import {
-  Shield, AlertTriangle, MapPin, FileText, Bell, Heart,
-  Users, BookOpen, Activity, Phone, MessageSquare, ShieldAlert,
-  CheckCircle, ArrowRight, Sparkles, Zap, Globe, Star,
-  Clock, TrendingUp, ChevronRight, Info, Eye, HelpCircle,
+  Shield, AlertTriangle, MapPin, FileText, Bell, Heart, BookOpen, Activity, Phone, MessageSquare, ShieldAlert,
+  CheckCircle, ArrowRight, Sparkles, Zap, Globe, Star, TrendingUp, ChevronRight, HelpCircle,
   Sunrise, Sun, Moon
 } from 'lucide-react'
-import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
 //STYLE_ID guards against injecting duplicate <style> tags on React hot

@@ -12,10 +12,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import {
-  QrCode, Loader2, CheckCircle, XCircle, Shield, RefreshCw,
-  Smartphone, ArrowLeft, KeyRound,
-} from 'lucide-react'
+import { Loader2, CheckCircle, XCircle, Shield, RefreshCw,
+  Smartphone, ArrowLeft, KeyRound } from 'lucide-react'
 import { useCitizenAuth, getCitizenToken } from '../contexts/CitizenAuthContext'
 import { API_BASE } from '../utils/helpers'
 

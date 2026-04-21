@@ -40,7 +40,7 @@
  * - The sanitization functions are inlined in this file AND exported for app use
  */
 
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect} from 'vitest'
 
 //SANITIZATION UTILITIES (the functions under test are defined here and exported)
 

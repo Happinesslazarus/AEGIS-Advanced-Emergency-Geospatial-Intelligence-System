@@ -25,13 +25,12 @@
  * - Reads auth state from CitizenAuthContext to show/hide items
  * - Calls onNavigate with a SidebarItem when the user picks a section */
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { Link, useLocation as useRouterLocation } from 'react-router-dom'
 import {
   MapPin, FileText, Home, Bell, Users, Activity, Shield,
   BookOpen, Newspaper, ChevronLeft, ChevronRight, Lock,
-  AlertTriangle, MessageSquare, ShieldAlert, Settings, User,
-  Globe, Heart, X, Sparkles
+  AlertTriangle, MessageSquare, ShieldAlert, Settings, User, X, Sparkles
 } from 'lucide-react'
 import { useCitizenAuth } from '../../contexts/CitizenAuthContext'
 import { t } from '../../utils/i18n'

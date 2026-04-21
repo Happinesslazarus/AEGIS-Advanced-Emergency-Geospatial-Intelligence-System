@@ -3,8 +3,8 @@
  *
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { Radio, X, MapPin, Shield, Phone, Loader2, AlertTriangle } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Radio, X, MapPin, Shield, Loader2, AlertTriangle } from 'lucide-react'
 import { useDistress } from '../../hooks/useDistress'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'

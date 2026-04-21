@@ -30,19 +30,18 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { createPortal } from 'react-dom'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useNavigate, useSearchParams} from 'react-router-dom'
 import {
-  Shield, User, MessageSquare, Heart, Settings, Lock, LogOut,
+  Shield, User, MessageSquare, Heart, Settings, Lock,
   Bell, ChevronRight, Clock, MapPin, Phone, Mail, Camera,
-  Send, Plus, AlertTriangle, CheckCircle, Circle, CircleDot,
-  Loader2, Check, CheckCheck, ArrowLeft, Globe, Building2,
-  Calendar, Edit3, Save, X, Mic, Volume2, Eye, EyeOff,
-  Home, ShieldAlert, Zap, FileText, Activity, Ban, Pencil, Users,
+  Send, Plus, AlertTriangle, CheckCircle, CircleDot,
+  Loader2, ArrowLeft, Globe, Building2,
+  Calendar, Edit3, Save, X, Volume2, Eye, EyeOff,
+  Home, ShieldAlert, Zap, FileText, Activity, Pencil, Users,
   RefreshCw, ChevronDown, Trash2, AlertCircle as AlertCircleIcon,
   Search, ArrowUpDown, Crosshair, BookOpen, Newspaper, ExternalLink,
-  Play, BookMarked, Printer, Share2, Bot, HelpCircle, Info, Filter,
-  Smartphone, Wifi, Flame, Video, Droplets, Waves,
-  CloudLightning, ShieldCheck, Languages
+  Play, BookMarked, Printer, Share2, Bot, HelpCircle, Info, Filter, Wifi, Flame, Droplets, Waves,
+  CloudLightning, Languages
 } from 'lucide-react'
 import { useCitizenAuth, getCitizenToken } from '../contexts/CitizenAuthContext'
 import { type ChatThread, type ChatMessage } from '../hooks/useSocket'
@@ -52,7 +51,7 @@ import { useReports } from '../contexts/ReportsContext'
 import { useAlerts } from '../contexts/AlertsContext'
 import { useLocation } from '../contexts/LocationContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { t, setLanguage, getLanguage, isRtl } from '../utils/i18n'
+import { t, setLanguage, getLanguage} from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 import { TRANSLATION_LANGUAGES, buildTranslationMap, clearTranslationCache } from '../utils/translateService'
 import { useWebPush } from '../hooks/useWebPush'
@@ -64,7 +63,6 @@ import { getFlagUrl } from '../data/worldRegions'
 import CommunityChat from '../components/citizen/CommunityChat'
 import CommunityChatRoom from '../components/citizen/CommunityChatRoom'
 import SOSButton from '../components/citizen/SOSButton'
-import DisasterMap from '../components/shared/DisasterMap'
 import ReportCard from '../components/shared/ReportCard'
 import CitizenTwoFactorSettings from '../components/citizen/CitizenTwoFactorSettings'
 import ErrorBoundary from '../components/shared/ErrorBoundary'
@@ -94,8 +92,7 @@ import { useAnnounce } from '../hooks/useAnnounce'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { useSwipeGesture } from '../hooks/useSwipeGesture'
 import SubscribeModal from '../components/shared/SubscribeModal'
-import ThemeSelector from '../components/ui/ThemeSelector'
-import { EmptyMessages, EmptyReports, EmptySafety } from '../components/ui/EmptyState'
+import { EmptyReports} from '../components/ui/EmptyState'
 import { SkeletonCard, SkeletonStat, SkeletonList, Skeleton } from '../components/ui/Skeleton'
 import AppLayout from '../components/layout/AppLayout'
 import type { SidebarItem } from '../components/layout/Sidebar'

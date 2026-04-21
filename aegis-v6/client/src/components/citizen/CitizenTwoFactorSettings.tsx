@@ -17,7 +17,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Shield, ShieldCheck, ShieldOff, Key, QrCode, Copy, Download,
-  Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Lock, RefreshCw
+  Loader2, AlertCircle, CheckCircle, Eye, EyeOff, RefreshCw
 } from 'lucide-react'
 import {
   apiCitizen2FAGetStatus, apiCitizen2FASetup, apiCitizen2FAVerify, apiCitizen2FADisable,

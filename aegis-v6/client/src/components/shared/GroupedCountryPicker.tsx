@@ -4,8 +4,8 @@
  * search within the grouped list.
  */
 
-import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { CONTINENT_GROUPS, ALL_COUNTRIES, REGION_MAP, type CountryEntry } from '../../data/allCountries'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { CONTINENT_GROUPS, ALL_COUNTRIES, REGION_MAP} from '../../data/allCountries'
 
 interface GroupedCountryPickerProps {
   value: string

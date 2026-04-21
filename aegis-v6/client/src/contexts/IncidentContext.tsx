@@ -9,11 +9,8 @@ import { useEventCallbacks } from '../hooks/useEventStream'
 import {
   apiGetIncidentRegistry,
   apiGetIncidentDashboard,
-  apiGetAllIncidentPredictions,
-  apiGetAllIncidentAlerts,
   type IncidentRegistryEntry,
-  type IncidentDashboardSummary,
-} from '../utils/incidentApi'
+  type IncidentDashboardSummary } from '../utils/incidentApi'
 
 //Types
 export type IncidentTypeId =

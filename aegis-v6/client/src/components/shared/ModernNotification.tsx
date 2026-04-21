@@ -5,8 +5,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { AlertCircle, CheckCircle, Info, AlertTriangle, Bell, X } from 'lucide-react'
-import { t } from '../../utils/i18n'
+import { AlertCircle, CheckCircle, Info, AlertTriangle, X } from 'lucide-react'
 import { useLanguage } from '../../hooks/useLanguage'
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info'

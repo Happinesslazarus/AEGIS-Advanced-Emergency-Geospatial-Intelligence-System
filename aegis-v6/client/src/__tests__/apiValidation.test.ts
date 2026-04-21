@@ -53,16 +53,13 @@ import {
   schemas,
   reportSchema,
   alertSchema,
-  userProfileSchema,
-  weatherDataSchema,
   validatedFetch,
   validatedArrayFetch,
   validateData,
   matchesSchema,
   inputSanitizers,
   apiResponseSchema,
-  paginatedSchema,
-} from '../lib/apiValidation'
+  paginatedSchema } from '../lib/apiValidation'
 
 //Common reusable sub-schemas
 describe('Common Schemas', () => {

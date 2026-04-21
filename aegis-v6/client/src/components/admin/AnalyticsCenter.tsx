@@ -5,11 +5,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import {
-  Activity, Download, Clock, BarChart3, TrendingUp, TrendingDown,
+  Activity, Download, Clock, BarChart3,
   CheckCircle, AlertTriangle, Flag, Bell, MapPin, RefreshCw,
-  Brain, Shield, FileText, Search, Filter, ChevronDown, ChevronUp,
-  Zap, Radio, Signal, Eye, Target, Gauge, Timer, Users,
-  ArrowUpRight, ArrowDownRight, Minus, Printer, X, Keyboard
+  Brain, Shield, FileText, ChevronDown, ChevronUp,
+  Zap, Signal, Eye, Target, Gauge, Users, X, Keyboard
 } from 'lucide-react'
 import AnalyticsDashboard from './AnalyticsDashboard'
 import { t } from '../../utils/i18n'

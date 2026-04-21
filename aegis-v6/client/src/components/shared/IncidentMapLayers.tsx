@@ -7,7 +7,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useAsync } from '../../hooks/useAsync'
 import { useTranslation } from 'react-i18next'
-import { Marker, Popup, Circle, GeoJSON, useMap } from 'react-leaflet'
+import { Marker, Popup, GeoJSON} from 'react-leaflet'
 import L from 'leaflet'
 import { useIncidents, type IncidentTypeId } from '../../contexts/IncidentContext'
 import { apiGetAllIncidentMapData, type IncidentMapData, type IncidentMapMarker } from '../../utils/incidentApi'

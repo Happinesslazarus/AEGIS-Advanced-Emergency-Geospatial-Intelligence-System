@@ -10,7 +10,6 @@ import { useMemo, useState } from 'react'
 import {
   Shield,
   AlertTriangle,
-  MapPin,
   Loader2,
   ChevronRight,
   Droplets,
@@ -33,10 +32,8 @@ import {
   Eye,
   TrendingDown,
   Minus,
-  ArrowRight,
-} from 'lucide-react'
+  ArrowRight } from 'lucide-react'
 import { forwardGeocode, getDeviceLocation, reverseGeocode, type Coordinates } from '../../utils/locationUtils'
-import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
 interface RiskFactor {

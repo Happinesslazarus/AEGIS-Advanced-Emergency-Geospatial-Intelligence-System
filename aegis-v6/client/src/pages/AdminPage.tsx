@@ -34,14 +34,10 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { lazy, Suspense } from 'react'
-import { Link } from 'react-router-dom'
-import {
-  Shield, AlertTriangle, CheckCircle, Clock, Users, Activity, TrendingUp,
-  FileText, Bell, BarChart3, Map, X, Search, LogOut, Send,
-  Eye, Flag, Siren, Brain, History, Printer, Download, Filter, ChevronDown,
-  Calendar, MapPin, Layers, RefreshCw, User, Settings, ThumbsUp, ThumbsDown,
-  Flame, Droplets, Building2, ShieldAlert, HeartPulse, Radiation, ChevronRight,
-  Camera, Truck, Anchor, Navigation, Zap, Package, Edit2, Ban, CheckCircle2, Trash2, Key, MessageSquare, Waves, Maximize2, Minimize2,
+import { AlertTriangle, CheckCircle, Clock, Users, Activity,
+  FileText, Bell, BarChart3, Map, X, Flag, Siren, Brain, History, Printer, MapPin, Layers, User,
+  Flame, Droplets, Building2, ShieldAlert, HeartPulse, ChevronRight,
+  Camera, Navigation, Edit2, CheckCircle2, MessageSquare, Maximize2, Minimize2,
   Archive, XCircle, ChevronLeft, ZoomIn, Share2, ExternalLink, Globe, Hash, CircleDot, Home, Info
 } from 'lucide-react'
 import { io, Socket } from 'socket.io-client'
@@ -52,14 +48,12 @@ import { useLocation } from '../contexts/LocationContext'
 import { LOCATIONS } from '../contexts/LocationContext'
 import { getSession, logout, validateTokenOrRedirectAsync } from '../utils/auth'
 import { exportReportsCSV, exportReportJSON as exportReportsJSON } from '../utils/exportData'
-import { apiLogActivity, apiCreateAlert, apiGetAuditLog, apiAuditLog, apiGetPredictions, apiSendPreAlert, apiGetDeployments, apiDeployResources, apiRecallResources, apiRunPrediction, apiGetHeatmapData, apiGetUsers, apiUpdateUser, apiSuspendUser, apiActivateUser, apiResetUserPassword, apiDeleteUser, apiGetCommandCenterAnalytics, apiBulkUpdateReportStatus, apiUpdateProfile, apiUpdateReportNotes, getToken } from '../utils/api'
-import ReportCard from '../components/shared/ReportCard'
+import { apiLogActivity, apiGetAuditLog, apiAuditLog, apiGetPredictions, apiGetDeployments, apiGetHeatmapData, apiGetUsers, apiUpdateUser, apiSuspendUser, apiActivateUser, apiResetUserPassword, apiDeleteUser, apiGetCommandCenterAnalytics, apiBulkUpdateReportStatus, apiUpdateProfile, apiUpdateReportNotes, getToken } from '../utils/api'
 import LoginPage from '../components/admin/LoginPage'
 import FirstAdminSetup from '../components/admin/FirstAdminSetup'
 import TwoFactorSettings from '../components/admin/TwoFactorSettings'
 import SetupWizard from './SetupWizard'
 import { useSetupStatus } from '../hooks/useSetupStatus'
-import IncidentFilterPanel from '../components/shared/IncidentFilterPanel'
 
 //Lazy load heavy components for bundle optimization
 const DisasterMap = lazy(() => import('../components/shared/DisasterMap'))
@@ -93,9 +87,7 @@ const AITransparencyConsole = lazy(() => import('../components/admin/AITranspare
 const ResourceDeploymentConsole = lazy(() => import('../components/admin/ResourceDeploymentConsole'))
 const UserAccessManagement = lazy(() => import('../components/admin/UserAccessManagement'))
 import type { Report, Operator } from '../types'
-import ThemeSelector from '../components/ui/ThemeSelector'
 import AdminLayout from '../components/layout/AdminLayout'
-import IncidentQueue from '../components/admin/IncidentQueue'
 import LocationDropdown from '../components/shared/LocationDropdown'
 import { t } from '../utils/i18n'
 import { escapeHtml } from '../utils/helpers'
@@ -103,7 +95,6 @@ import { useLanguage } from '../hooks/useLanguage'
 import { useIncidents } from '../contexts/IncidentContext'
 import { useToast } from '../contexts/ToastContext'
 import { SkeletonTable, SkeletonChart, SkeletonCard, SkeletonList } from '../components/ui/Skeleton'
-import { EmptyAdminTable } from '../components/ui/EmptyState'
 import KeyboardShortcutsOverlay from '../components/admin/KeyboardShortcutsOverlay'
 
 import { SEVERITY_BG_PILL, STATUS_BG_PILL } from '../utils/colorTokens'

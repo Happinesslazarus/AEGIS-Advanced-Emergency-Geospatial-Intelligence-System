@@ -19,7 +19,7 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act} from '@testing-library/react'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 
 //Override navigator.onLine with a getter we control.

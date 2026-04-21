@@ -8,7 +8,6 @@
  * - Session token from client/src/utils/auth.ts getSession()
  */
 
-import { useCallback } from 'react'
 import { useSharedSocket } from '../contexts/SocketContext'
 import { useCitizenAuth } from '../contexts/CitizenAuthContext'
 import { getSession } from '../utils/auth'

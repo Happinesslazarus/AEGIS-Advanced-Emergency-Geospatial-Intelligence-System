@@ -22,10 +22,8 @@
 
 import { useState } from 'react'
 import {
-  Camera, CheckCircle, XCircle, AlertTriangle, Eye,
-  MapPin, Clock, Shield, ChevronDown, Droplets,
-  Flame, Search, Image as ImageIcon, Zap,
-} from 'lucide-react'
+  Camera, CheckCircle, XCircle, Eye,
+  MapPin, Clock, Shield, ChevronDown, Droplets, Search, Image as ImageIcon } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 

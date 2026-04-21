@@ -14,7 +14,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Shield, Lock, Mail, LogIn, CheckCircle, Eye, EyeOff, X as XIcon, Check, ArrowLeft, Home, Loader2, AlertCircle, Fingerprint, Radio, Zap, ChevronDown, ChevronRight, Users, ArrowRight, Globe, Info, Menu, X, QrCode } from 'lucide-react'
+import { Shield, Lock, Mail, LogIn, CheckCircle, Eye, EyeOff, Loader2, AlertCircle, Fingerprint, Radio, Zap, ChevronDown, ChevronRight, Users, ArrowRight, Globe, Menu, QrCode } from 'lucide-react'
 import { apiLogin, apiForgotPassword, setToken, setUser } from '../../utils/api'
 import type { Operator } from '../../types'
 import LanguageSelector from '../shared/LanguageSelector'
@@ -24,7 +24,6 @@ import { useLanguage } from '../../hooks/useLanguage'
 import { useTheme } from '../../contexts/ThemeContext'
 
 import { t } from '../../utils/i18n'
-import { API_BASE } from '../../utils/helpers'
 
 interface Props { onLogin: (user: Operator) => void }
 

@@ -20,16 +20,15 @@ import {
   Bell, AlertTriangle, Info, ShieldAlert, ArrowLeft, RefreshCw,
   MapPin, Clock, Filter, ChevronDown, ChevronUp, Radio,
   Flame, Zap, Droplets, Wind, Thermometer, Shield,
-  Search, X, Volume2, Eye, ExternalLink,
+  Search, X, Volume2, Eye,
   Mountain, Power, Droplet, Building2, Biohazard,
-  Waves, HeartPulse, FlaskConical, Radiation, CloudRain, Timer,
-} from 'lucide-react'
+  Waves, HeartPulse, FlaskConical, Radiation, CloudRain } from 'lucide-react'
 import { useAlerts } from '../contexts/AlertsContext'
 import { useLocation } from '../contexts/LocationContext'
 import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 import { formatRelativeTime } from '../utils/i18nUtils'
-import type { Alert } from '../types'
+import type {} from '../types'
 
 /* Severity config maps severity strings to Tailwind classes and icon components.
  * Used by every alert card to consistently colour-code and icon-code severity levels.

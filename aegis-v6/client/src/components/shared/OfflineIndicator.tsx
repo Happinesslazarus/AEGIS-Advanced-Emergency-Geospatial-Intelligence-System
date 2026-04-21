@@ -4,7 +4,7 @@
  * is restored.
  */
 
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { WifiOff, RefreshCw, Check } from 'lucide-react'
 import { useOnlineStatus } from '../../hooks/useOnlineStatus'
 import { t } from '../../utils/i18n'

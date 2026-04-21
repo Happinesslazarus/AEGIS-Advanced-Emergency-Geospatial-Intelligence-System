@@ -4,7 +4,7 @@
  * - Used by React components that need this functionality */
 
 import { useEffect, useRef, useCallback } from 'react'
-import { createFocusTrap, focusFirstElement } from '../utils/accessibility'
+import { createFocusTrap} from '../utils/accessibility'
 
 interface UseFocusTrapOptions {
   /** Whether the trap is currently active */

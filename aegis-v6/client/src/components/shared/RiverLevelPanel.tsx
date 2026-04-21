@@ -8,7 +8,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Waves, RefreshCw, TrendingUp, TrendingDown, Minus,
   AlertTriangle, Droplets, Clock, Activity, ChevronDown,
-  ChevronUp, MapPin, Thermometer, Navigation
+  ChevronUp, Navigation
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'

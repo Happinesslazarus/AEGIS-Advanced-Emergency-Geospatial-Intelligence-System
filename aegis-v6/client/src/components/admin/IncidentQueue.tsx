@@ -5,9 +5,8 @@
 
 /* IncidentQueue.tsx -- Incident Assignment / Response Queue for admin dashboard */
 
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import {
-  AlertTriangle, User, Clock, ChevronRight, ChevronDown,
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { User, Clock, ChevronDown,
   UserPlus, ArrowUpRight, CheckCircle2, RotateCcw, Siren, Shield, Users
 } from 'lucide-react'
 import type { Report, Operator } from '../../types'

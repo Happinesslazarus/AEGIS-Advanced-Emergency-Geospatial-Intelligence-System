@@ -15,7 +15,7 @@
  * */
 
 import { useState, useEffect, useRef } from 'react'
-import { X, BookOpen, Shield, ChevronDown, ChevronUp, CheckCircle, AlertTriangle, Play, RotateCcw, Trophy, Users, Clock, Star, Flame, Waves, Wind, Zap, Thermometer, AlertCircle, Filter, Timer, Award, Target, Heart, ArrowRight, Sparkles, ThumbsUp, Droplets, Package, Flashlight, Cross, Pill, BatteryCharging, FileText, Banknote, Radio, Shirt, Volume2, Hand, CloudRain, Glasses, Wrench, Map, Box, Baby, PawPrint, Phone, Globe, Crown, Backpack, Lock, type LucideIcon } from 'lucide-react'
+import { X, BookOpen, Shield, ChevronDown, CheckCircle, AlertTriangle, Play, RotateCcw, Trophy, Users, Clock, Star, Flame, Waves, Wind, Zap, Thermometer, AlertCircle, Filter, Timer, Award, Target, Heart, ArrowRight, Sparkles, ThumbsUp, Droplets, Package, Flashlight, Cross, Pill, BatteryCharging, FileText, Banknote, Radio, Shirt, Volume2, Hand, CloudRain, Glasses, Wrench, Map, Box, Baby, PawPrint, Phone, Globe, Crown, Backpack, Lock, type LucideIcon } from 'lucide-react'
 import { PREPAREDNESS_TIPS, PREPAREDNESS_SCENARIOS, EMERGENCY_KIT_ITEMS, ALL_QUIZ, BADGES } from '../../data/preparedness'
 import { useAlerts } from '../../contexts/AlertsContext'
 import { t } from '../../utils/i18n'
@@ -32,7 +32,6 @@ function getIcon(name: string | undefined): LucideIcon {
   if (!name) return Shield
   return ICON_MAP[name] || Shield
 }
-import { useLanguage } from '../../hooks/useLanguage'
 
 /* Inline SVG -- Readiness Ring */
 function ReadinessRing({ pct, size = 100, light }: { pct: number; size?: number; light?: boolean }) {

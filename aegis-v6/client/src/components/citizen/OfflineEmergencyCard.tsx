@@ -7,17 +7,15 @@
    Covers all countries worldwide with emergency numbers, survival tips, GPS detection */
 
 import { useMemo, useRef, useState } from 'react'
-import { Download, Shield, Phone, MapPin, Heart, Wifi, WifiOff, AlertTriangle, CheckCircle, Printer, Share2, Search, Loader2, Compass, ChevronDown, Globe, Zap, Clipboard } from 'lucide-react'
+import { Download, Shield, Phone, MapPin, Heart, Wifi, WifiOff, CheckCircle, Printer, Share2, Search, Loader2, Compass, ChevronDown, Zap, Clipboard } from 'lucide-react'
 import { forwardGeocode, getDeviceLocation, reverseGeocode } from '../../utils/locationUtils'
 import { t } from '../../utils/i18n'
 import { escapeHtml } from '../../utils/helpers'
 import { useLanguage } from '../../hooks/useLanguage'
-import { codeToFlag } from '../../data/countryCodes'
 import {
-  ALL_COUNTRIES, CONTINENT_GROUPS,
+  ALL_COUNTRIES,
   getEmergencyInfo, getSurvivalTips, getCountryEntryByCode,
-  type EmergencyInfo,
-} from '../../data/allCountries'
+  type EmergencyInfo } from '../../data/allCountries'
 import ProfileCountryPicker from '../shared/ProfileCountryPicker'
 
 interface EmergencyContact {

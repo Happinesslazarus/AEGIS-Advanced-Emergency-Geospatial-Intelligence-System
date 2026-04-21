@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   Brain, Zap, Clock, Activity, TrendingUp, AlertTriangle, CheckCircle, Sparkles,
   Waves, Map, Package, Database, Radio,
-  ArrowRight, ChevronDown, ChevronUp, Gauge, GitBranch,
+  ArrowRight, Gauge, GitBranch,
   Keyboard, X, Eye, Target, BarChart3, Cpu,
   Crown, ShieldCheck, RotateCcw, Loader2,
   Download, Calendar, RefreshCw

@@ -33,19 +33,15 @@ import {
   Globe,
   BookOpen,
   Layers,
-  TrendingUp,
   CheckCircle,
   ChevronDown,
   ChevronUp,
   Route,
   Info,
   Target,
-  Radio,
   Crosshair,
   BarChart2,
   Filter,
-  Thermometer,
-  Wind,
   Eye,
   Copy,
   Share2,
@@ -56,10 +52,8 @@ import {
   UtensilsCrossed,
   BedDouble,
   CheckCircle2,
-  Users,
-} from 'lucide-react'
-import { forwardGeocode, getDeviceLocation, haversineKm, reverseGeocode, type Coordinates, type ForwardGeocodeResult } from '../../utils/locationUtils'
-import { t } from '../../utils/i18n'
+  Users } from 'lucide-react'
+import { forwardGeocode, getDeviceLocation, haversineKm, reverseGeocode, type Coordinates} from '../../utils/locationUtils'
 import { useLanguage } from '../../hooks/useLanguage'
 
 const ShelterMap = lazy(() => import('./ShelterMap'))

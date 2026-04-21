@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   MessageSquare, Send, Users, Loader2, Trash2, Shield,
   AlertCircle, ArrowDown, Hash, Radio, UserCheck,
-  Image as ImageIcon, Smile, X, Reply, ZoomIn,
+  Image as ImageIcon, Smile, X, Reply,
   Edit2, Flag, Check, Ban, RefreshCw, LogOut, LogIn, VolumeX, Volume2, Languages, Search
 } from 'lucide-react'
 import { Socket } from 'socket.io-client'

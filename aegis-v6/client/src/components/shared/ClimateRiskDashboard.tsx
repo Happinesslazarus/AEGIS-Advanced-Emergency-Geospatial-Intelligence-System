@@ -6,11 +6,10 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  TrendingUp, TrendingDown, AlertTriangle, Droplets,
-  Thermometer, Wind, BarChart3, Activity, RefreshCw,
-  Shield, Clock, ArrowUpRight, ArrowDownRight, Minus,
-  MapPin, Cpu,
-} from 'lucide-react'
+  TrendingUp, AlertTriangle, Droplets,
+  Thermometer, BarChart3, Activity, RefreshCw,
+  Shield, ArrowUpRight, ArrowDownRight, Minus,
+  MapPin, Cpu } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { apiFetch } from '../../utils/api'

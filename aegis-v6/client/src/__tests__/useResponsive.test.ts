@@ -38,7 +38,7 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { renderHook} from '@testing-library/react'
 import { useResponsive, useMediaQuery, BREAKPOINTS } from '../hooks/useResponsive'
 
 describe('useResponsive', () => {

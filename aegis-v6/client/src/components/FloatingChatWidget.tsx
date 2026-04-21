@@ -14,12 +14,11 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import {
   MessageSquare, X, Send, Plus, ArrowLeft, Loader2,
-  AlertTriangle, Check, CheckCheck, ChevronDown
-} from 'lucide-react'
+  AlertTriangle} from 'lucide-react'
 import { useCitizenAuth } from '../contexts/CitizenAuthContext'
 import { type ChatThread, type ChatMessage } from '../hooks/useSocket'
 import { useSharedSocket } from '../contexts/SocketContext'
-import { API_BASE, timeAgoCompact } from '../utils/helpers'
+import { timeAgoCompact } from '../utils/helpers'
 import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 import MessageStatusIcon from './ui/MessageStatusIcon'

@@ -20,11 +20,8 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Shield, Mail, Lock, User, Phone, MapPin, Eye, EyeOff,
-  ArrowRight, ArrowLeft, AlertCircle, CheckCircle, Loader2,
-  Globe, Calendar, Heart, Building2, Camera, FileText, Home,
-  ChevronRight, ChevronDown, Menu, Users, Info, QrCode,
-  Smartphone
-} from 'lucide-react'
+  ArrowRight, ArrowLeft, AlertCircle, CheckCircle, Loader2, Calendar, Heart, Building2, Camera, FileText, Home,
+  ChevronRight, ChevronDown, Menu, QrCode} from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { useCitizenAuth } from '../contexts/CitizenAuthContext'
 import type { CitizenUser, CitizenPreferences } from '../contexts/CitizenAuthContext'

@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   AlertTriangle, Activity, Zap, Thermometer, Flame, CloudLightning,
-  Mountain, Droplets, ZapOff, Shield, Biohazard, RefreshCw, Circle,
+  Mountain, Droplets, ZapOff, Shield, Biohazard, RefreshCw,
   TrendingUp, Clock, Cpu, Workflow, Sun, Radio, Radar,
   ChevronRight, Layers, Gauge, Sparkles
 } from 'lucide-react'

@@ -16,7 +16,7 @@
  *
  * - Run by the test runner (Vitest or Jest) */
 
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach} from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 

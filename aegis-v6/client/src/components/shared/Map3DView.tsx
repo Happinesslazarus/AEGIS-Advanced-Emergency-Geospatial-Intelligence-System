@@ -12,10 +12,9 @@ import { Deck } from '@deck.gl/core'
 import { ScatterplotLayer, ArcLayer, ColumnLayer, TextLayer } from '@deck.gl/layers'
 import { HeatmapLayer } from '@deck.gl/aggregation-layers'
 import {
-  RotateCcw, RefreshCw, Eye, EyeOff,
+  RotateCcw, RefreshCw,
   Maximize2, CircleDot, Orbit
 } from 'lucide-react'
-import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { RISK_HEX, STATION_HEX, SEVERITY_RGBA, STATUS_RGBA } from '../../utils/colorTokens'
 

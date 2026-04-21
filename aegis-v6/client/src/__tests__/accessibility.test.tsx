@@ -40,7 +40,7 @@
  */
 
 import { describe, test, expect, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen} from '@testing-library/react'
 import { axe } from 'vitest-axe'
 import type { AxeResults } from 'axe-core'
 import '@testing-library/jest-dom'

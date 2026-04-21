@@ -83,9 +83,7 @@ import {
   type IncidentPrediction,
   type IncidentAlert,
   type IncidentMapMarker,
-  type IncidentMapData,
-  type IncidentDashboardSummary,
-} from '../utils/incidentApi'
+  type IncidentDashboardSummary } from '../utils/incidentApi'
 
 //incidentApi function tests
 describe('incidentApi', () => {

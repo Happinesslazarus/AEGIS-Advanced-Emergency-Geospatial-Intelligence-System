@@ -15,11 +15,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import {
   Navigation, RefreshCw, Layers, Package, AlertTriangle, FileText, Map, Clock,
-  Truck, Flame, Anchor, Brain, Eye, ChevronDown, ChevronRight, Search,
+  Truck, Flame, Anchor, Brain, ChevronDown, ChevronRight, Search,
   Activity, Shield, ArrowDown, Users, CheckCircle,
   Radio, Target, Crosshair, LayoutGrid, List, Keyboard, Plus, Trash2, X,
-  Link2, Cpu, MapPin, Zap, Edit3, Save, BarChart3, Sparkles, AlertCircle,
-  TrendingUp, Hash, Siren, HeartPulse, Wind, Droplets, Mountain, Building2,
+  Link2, Cpu, MapPin, Zap, Edit3, Save, BarChart3, Sparkles, AlertCircle, Hash, Siren, HeartPulse, Wind, Droplets, Mountain, Building2,
   Thermometer, Sun, Leaf, type LucideIcon
 } from 'lucide-react'
 const DisasterMap = lazy(() => import('../shared/DisasterMap'))

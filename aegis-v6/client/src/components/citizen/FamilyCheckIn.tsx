@@ -5,8 +5,7 @@
  */
 
 import { useState, useCallback } from 'react'
-import { X, Heart, Send, UserPlus, Phone, MessageCircle, Check, Shield, AlertTriangle, Clock, Trash2, Users } from 'lucide-react'
-import { t } from '../../utils/i18n'
+import { X, Heart, Send, UserPlus, Check, Shield, AlertTriangle, Clock, Trash2, Users } from 'lucide-react'
 import { useLanguage } from '../../hooks/useLanguage'
 import { useAlerts } from '../../contexts/AlertsContext'
 

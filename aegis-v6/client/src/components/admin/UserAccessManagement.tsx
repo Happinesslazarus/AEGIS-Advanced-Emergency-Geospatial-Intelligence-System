@@ -18,7 +18,7 @@ import {
   Shield, Users, Activity, Eye, Search, RefreshCw, Clock, ChevronDown,
   ChevronRight, Edit2, Ban, CheckCircle2, Trash2, Key,
   AlertTriangle, Lock, UserPlus, Fingerprint, Building2,
-  ShieldAlert, History, BarChart3, User, XCircle, Check, X, FileText
+  ShieldAlert, History, BarChart3, XCircle, Check, X, FileText
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'

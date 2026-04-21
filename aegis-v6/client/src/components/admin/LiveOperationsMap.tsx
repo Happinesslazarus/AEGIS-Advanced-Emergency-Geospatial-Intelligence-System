@@ -3,17 +3,14 @@
  *
  * - Rendered inside AdminPage.tsx based on active view */
 
-import React, { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense, memo } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense, memo } from 'react'
 import {
   Map, Brain, Layers, Maximize2, Minimize2, X, MapPin, Crosshair,
-  Clock, Wifi, WifiOff, Radio, Thermometer, Eye, EyeOff,
-  Droplets, Building2, ShieldAlert, Users, Flame, HeartPulse,
-  Radiation, Zap, Anchor, Truck, Navigation, CircleDot,
-  ChevronUp, ChevronDown, Camera, Download, Ruler, Activity,
-  AlertTriangle, Compass, Hash, Globe, Signal,
-  Target, BarChart3, Bell, BellRing, Shield, Gauge, RefreshCw,
-  ScanLine, Satellite, ChevronRight, Copy, Siren, TrendingUp
-} from 'lucide-react'
+  Clock, Radio, Eye,
+  Droplets, Building2, ShieldAlert, Users, Flame, HeartPulse, Camera, Download, Activity,
+  AlertTriangle, Hash, Globe, Signal,
+  Target, BellRing, Shield, Gauge, RefreshCw,
+  ScanLine, ChevronRight, Copy, Siren} from 'lucide-react'
 const LiveMap = lazy(() => import('../shared/LiveMap'))
 import IntelligenceDashboard from '../shared/IntelligenceDashboard'
 import RiverLevelPanel from '../shared/RiverLevelPanel'

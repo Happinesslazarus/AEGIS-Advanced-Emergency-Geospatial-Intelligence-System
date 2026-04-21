@@ -11,10 +11,8 @@ import { useLanguage } from '../../hooks/useLanguage'
 import {
   getConsent,
   saveConsent,
-  resetConsent,
   CONSENT_CHANGE_EVENT,
-  type ConsentCategory,
-} from '../../utils/cookiePreferences'
+  type ConsentCategory } from '../../utils/cookiePreferences'
 
 //Component
 

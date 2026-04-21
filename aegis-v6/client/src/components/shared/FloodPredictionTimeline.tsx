@@ -8,7 +8,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAsync } from '../../hooks/useAsync'
 import {
   Play, Pause, SkipForward, SkipBack, Clock,
-  AlertTriangle, Droplets, Home, Users, TrendingUp, ChevronDown
+  AlertTriangle, Home, Users, TrendingUp, ChevronDown
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'

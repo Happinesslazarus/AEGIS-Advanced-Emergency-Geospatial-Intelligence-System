@@ -18,14 +18,14 @@
 
 import { Link } from 'react-router-dom'
 import { usePageTitle } from '../hooks/usePageTitle'
-import { Shield, Users, Settings, ArrowRight, Radio, Droplets, AlertTriangle, MapPin, Globe, Zap, Heart, Activity, Eye, Brain, Bell, BarChart3, Layers, Smartphone, Lock, Wifi, ChevronRight, ExternalLink, Map, Siren } from 'lucide-react'
+import { Shield, Users, Settings, ArrowRight, Radio, Droplets, AlertTriangle, Globe, Heart, Activity, Eye, Brain, Bell, BarChart3, Layers, Smartphone, Lock, Wifi, Map, Siren } from 'lucide-react'
 import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 import { resetConsent } from '../utils/cookiePreferences'
 import ThemeSelector from '../components/ui/ThemeSelector'
 import LanguageSelector from '../components/shared/LanguageSelector'
 import { useTheme } from '../contexts/ThemeContext'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState} from 'react'
 
 /*  Scroll-reveal hook using IntersectionObserver  */
 function useReveal(threshold = 0.15) {

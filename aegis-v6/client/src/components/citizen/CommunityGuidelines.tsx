@@ -3,7 +3,7 @@
  *
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
-import React, { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { AlertCircle, CheckCircle, X, Eye, EyeOff, ChevronDown, Sparkles, Shield } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'

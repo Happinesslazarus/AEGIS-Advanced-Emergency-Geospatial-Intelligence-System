@@ -10,7 +10,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, ChevronRight, ChevronLeft, MapPin, Camera, Send, AlertTriangle, CheckCircle, Wind, Flame, Droplets, Home, Construction, Zap, Users, Siren } from 'lucide-react'
-import { MapContainer, TileLayer, Circle, CircleMarker, Marker, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
+import { MapContainer, TileLayer, Circle, Marker, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { INCIDENT_CATEGORIES, DISASTER_SUBTYPES, SEVERITY_LEVELS, TRAPPED_OPTIONS } from '../../data/disasterTypes'

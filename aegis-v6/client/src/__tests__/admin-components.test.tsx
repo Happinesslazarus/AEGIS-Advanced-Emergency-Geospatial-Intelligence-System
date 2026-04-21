@@ -41,7 +41,7 @@
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, act } from '@testing-library/react'
-import userEvent from '@testing-library/user-event' // realistic user interaction simulation
+import {} from '@testing-library/user-event' // realistic user interaction simulation
 import ActivityLog, { addActivity, useActivityLog, type ActivityEntry } from '../components/admin/ActivityLog'
 import { renderHook } from '@testing-library/react'
 

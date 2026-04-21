@@ -20,13 +20,12 @@ import { useState, useRef, useEffect, useCallback, KeyboardEvent, memo, useMemo 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
-  Send, X, Bot, Sparkles, Wifi, WifiOff,
+  Send, X, Bot, Sparkles, WifiOff,
   Square, Copy, ThumbsUp, ThumbsDown, RefreshCw, Check,
   Mic, MicOff, Image, Brain, Wrench, ChevronDown, ChevronUp,
   FileText, AlertTriangle, Shield, Zap, Globe,
-  Volume2, VolumeX, Download, Clock, Hash, RotateCcw, ArrowDown,
-  Maximize2, Minimize2, MessageSquare, Command, History, LogIn, Trash2,
-} from 'lucide-react'
+  Volume2, VolumeX, Download, Clock, RotateCcw, ArrowDown,
+  Maximize2, Minimize2, MessageSquare, Command, History, LogIn, Trash2 } from 'lucide-react'
 import { generateChatResponse, getSuggestions } from '../../utils/chatbotEngine'
 import { t, setLanguage } from '../../utils/i18n'
 import type { ChatMessage } from '../../types'

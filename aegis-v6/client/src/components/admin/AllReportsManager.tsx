@@ -9,7 +9,7 @@ import {
   Brain, Eye, Camera, Send, Flag, Siren, Clock, CheckCircle,
   CheckCircle2, AlertTriangle, MapPin, ChevronRight, ChevronDown,
   ChevronUp, Archive, XCircle, BarChart3, Grid3X3, List,
-  ArrowUpDown, Keyboard, Hash, Calendar,
+  ArrowUpDown, Keyboard,
   Droplets, Building2, ShieldAlert, Users, Flame, HeartPulse
 } from 'lucide-react'
 import IncidentFilterPanel from '../shared/IncidentFilterPanel'

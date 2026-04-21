@@ -7,8 +7,7 @@
 import { useState, useMemo } from 'react'
 import {
   Layers, ChevronDown, ChevronUp, Eye, EyeOff,
-  Droplets, Navigation, AlertTriangle, Zap, Map
-} from 'lucide-react'
+  Droplets, Navigation, Zap} from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 

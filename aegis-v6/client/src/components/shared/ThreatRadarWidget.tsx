@@ -4,11 +4,10 @@
  * positioned by category and coloured by severity.
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect} from 'react'
 import { useAsync } from '../../hooks/useAsync'
-import { AlertTriangle, Activity, Droplets, Flame, Wind, CloudLightning, RefreshCw, MapPin, Clock, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
+import { AlertTriangle, Activity, Droplets, Flame, Wind, CloudLightning, RefreshCw, MapPin, Clock, ChevronDown, ChevronUp} from 'lucide-react'
 import { useLocation } from '../../contexts/LocationContext'
-import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
 interface ThreatItem {

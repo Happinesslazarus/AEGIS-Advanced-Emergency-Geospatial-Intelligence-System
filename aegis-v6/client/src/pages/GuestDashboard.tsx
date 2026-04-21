@@ -22,11 +22,11 @@ import {
   AlertTriangle, Activity, MapPin, Shield, Bell, Clock,
   ChevronRight, Globe, RefreshCw, Droplets, CloudLightning,
   Thermometer, Flame, Mountain, ZapOff, Biohazard, Eye, Sun,
-  Menu, X, Radio, Users, Lock, LogIn, ArrowRight,
-  Siren, ChevronDown, Wifi, WifiOff, Zap, Heart, BarChart3,
-  Phone, BookOpen, FileText, TrendingUp, Satellite, Signal,
-  ShieldCheck, Layers, Navigation, Compass, Search,
-  CloudRain, Wind, PhoneCall, Megaphone, AlertCircle, ScanEye,
+  Menu, X, Users, Lock, LogIn, ArrowRight,
+  Siren, ChevronDown, Wifi, Zap, Heart, BarChart3,
+  Phone, BookOpen, TrendingUp, Satellite, Signal,
+  ShieldCheck, Layers, Navigation, Compass,
+  CloudRain, PhoneCall, Megaphone, AlertCircle, ScanEye,
   Sparkles, Timer, Map, AlertOctagon
 } from 'lucide-react'
 import { useIncidents } from '../contexts/IncidentContext'

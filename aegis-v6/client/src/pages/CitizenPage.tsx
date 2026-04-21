@@ -24,15 +24,15 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import {
   Shield, AlertTriangle, Users, MapPin, BookOpen, Bell, Sun, Moon,
-  ArrowUpDown, Phone, CheckCircle, HelpCircle, X, Heart, Home, Car,
-  HeartPulse, Shirt, Crosshair, ExternalLink, Newspaper, FileText,
-  ShieldCheck, ThumbsUp, ThumbsDown, Mail, Smartphone, Wifi, MessageCircle,
-  Send as SendIcon, Eye, MessageSquare, Droplets, Wind, Thermometer,
+  ArrowUpDown, Phone, CheckCircle, X, Heart, Home,
+  HeartPulse, Crosshair, ExternalLink, Newspaper, FileText,
+  ShieldCheck, Smartphone, Wifi, MessageCircle,
+  Eye, MessageSquare, Droplets, Wind, Thermometer,
   BarChart3, Clock, ChevronLeft, ChevronRight, Info, Search,
   Waves, Building2, Flame, TreePine, Bot, RefreshCw, Mountain, ChevronDown,
   Printer, Share2, User, Radio, Filter, Activity,
-  Sparkles, Satellite, TrendingUp, PhoneCall, Zap, Siren, Globe,
-  CloudRain, Timer, Layers, AlertCircle, ScanEye, Map as MapIcon,
+  Sparkles, Satellite, PhoneCall, Zap, Siren, Globe,
+  CloudRain, AlertCircle, ScanEye,
   Package, Banknote, Navigation
 } from 'lucide-react'
 import { useReports } from '../contexts/ReportsContext'
@@ -40,9 +40,8 @@ import { useCitizenAuth } from '../contexts/CitizenAuthContext'
 import { useAlerts } from '../contexts/AlertsContext'
 import { useLocation } from '../contexts/LocationContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { t, getLanguage, isRtl } from '../utils/i18n'
+import { t, isRtl } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
-import { useWebPush } from '../hooks/useWebPush'
 import { apiGetNews, apiGetAlerts, type NewsItem } from '../utils/api'
 import { getCitizenToken } from '../contexts/CitizenAuthContext'
 import { type CountryCode } from '../data/countryCodes'
@@ -50,7 +49,6 @@ import ALL_COUNTRY_CODES from '../data/allCountryCodes'
 import { getEmergencyInfo as getGlobalEmergencyFallback } from '../data/allCountries'
 import ReportCard from '../components/shared/ReportCard'
 import SubscribeModal from '../components/shared/SubscribeModal'
-import ThemeSelector from '../components/ui/ThemeSelector'
 import AppLayout from '../components/layout/AppLayout'
 import ErrorBoundary from '../components/shared/ErrorBoundary'
 import AlertsPanel from '../components/shared/AlertsPanel'

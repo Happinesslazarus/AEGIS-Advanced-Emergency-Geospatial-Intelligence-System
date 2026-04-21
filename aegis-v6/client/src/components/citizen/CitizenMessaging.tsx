@@ -5,10 +5,9 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
-  MessageSquare, Send, Search, Plus, X, AlertTriangle, Clock,
-  User, ChevronDown, Loader2, Image as ImageIcon,
+  MessageSquare, Send, Search, Plus, X, AlertTriangle, Clock, ChevronDown, Loader2,
   AlertCircle, ArrowLeft, Shield, Headphones, Inbox, RefreshCw,
-  CheckCircle, Zap, Hash, ChevronLeft, Paperclip
+  CheckCircle, Zap, Hash, Paperclip
 } from 'lucide-react'
 import { type ChatThread, type ChatMessage } from '../../hooks/useSocket'
 import { useSharedSocket } from '../../contexts/SocketContext'

@@ -8,7 +8,7 @@ import { Globe } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LANGUAGES, loadLanguage } from '../../i18n/config'
-import { setLanguage, t } from '../../utils/i18n'
+import { setLanguage} from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { clearTranslationCache } from '../../utils/translateService'
 

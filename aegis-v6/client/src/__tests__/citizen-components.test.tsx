@@ -39,11 +39,10 @@
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, test, expect, vi, beforeEach} from 'vitest'
+import { render, screen} from '@testing-library/react'
 import userEvent from '@testing-library/user-event' // realistic user-interaction library
 import SafetyCheckIn from '../components/citizen/SafetyCheckIn'
-import { AlertsProvider } from '../contexts/AlertsContext'
 
 //Module-level mocks
 

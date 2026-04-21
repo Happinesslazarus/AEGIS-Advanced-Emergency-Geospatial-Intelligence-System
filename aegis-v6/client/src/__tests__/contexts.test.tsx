@@ -37,12 +37,11 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
-import React from 'react'
 
-import { ThemeProvider, useTheme, THEMES, type ThemeName } from '../contexts/ThemeContext'
+import { ThemeProvider, useTheme, THEMES} from '../contexts/ThemeContext'
 
 //ThemeContext Tests
 

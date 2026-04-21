@@ -3,13 +3,11 @@
  *
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
-import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense, Component } from 'react'
+import { useState, useEffect, useMemo, useRef, lazy, Suspense, Component } from 'react'
 import {
   MapPin, Activity, AlertTriangle, Shield, Clock, ChevronDown, ChevronUp,
-  Radio, TrendingUp, TrendingDown, Minus, Filter, Crosshair,
-  Zap, Flame, Droplets, Building2, Heart, Eye, EyeOff, RefreshCw,
-  Users, CloudLightning, ShieldCheck, Waves, CheckCircle,
-} from 'lucide-react'
+  Radio, TrendingUp, TrendingDown, Minus, Crosshair, Flame, Building2, Heart, Eye, EyeOff, RefreshCw,
+  Users, CloudLightning, ShieldCheck, Waves, CheckCircle } from 'lucide-react'
 import type { Report, SeverityLevel, IncidentCategoryKey } from '../../types'
 const DisasterMap = lazy(() => import('../shared/DisasterMap'))
 import { t } from '../../utils/i18n'

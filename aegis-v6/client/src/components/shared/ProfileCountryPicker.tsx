@@ -10,7 +10,7 @@ import {
   Search, ChevronDown, ChevronRight, Check, X,
   Globe, Globe2, Landmark, Sun, Mountain, MapPin, TreePine, Waves, Crown,
 } from 'lucide-react'
-import { WORLD_REGIONS, getFlagUrl, type RegionGroup, type RegionEntry } from '../../data/worldRegions'
+import { WORLD_REGIONS, getFlagUrl, type RegionEntry } from '../../data/worldRegions'
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Globe, Globe2, Landmark, Sun, Mountain, MapPin, TreePine, Waves, Crown,
