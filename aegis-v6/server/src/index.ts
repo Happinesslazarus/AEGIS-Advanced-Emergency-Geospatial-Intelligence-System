@@ -245,6 +245,7 @@ import alertDeliveryRoutes from './routes/alertDeliveryRoutes.js'
 import deploymentRoutes from './routes/deploymentRoutes.js'
 import floodPredictionRoutes from './routes/floodPredictionRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
+import operationalAlertRoutes from './routes/operationalAlertRoutes.js'
 import aiRoutes from './routes/aiRoutes.js'
 import userRoutes from './routes/userRoutes.js'
 import chatRoutes from './routes/chatRoutes.js'
@@ -704,6 +705,7 @@ app.use('/api', alertDeliveryRoutes) // Alert delivery log, retries, CSV export
 app.use('/api', deploymentRoutes) // Resource deployments + assets (operator dispatch)
 app.use('/api', floodPredictionRoutes) // Flood predictions + pre-alert fan-out
 app.use('/api', notificationRoutes) // Notification test/status, Web Push, manual broadcast
+app.use('/api', operationalAlertRoutes) // Shelter capacity + transit disruption alerts
 app.use('/api/ai', aiRoutes) // AI prediction engine integration
 app.use('/api/chat', chatRoutes) // LLM chatbot with RAG
 app.use('/api/admin/setup', setupRoutes) // First-run onboarding wizard
