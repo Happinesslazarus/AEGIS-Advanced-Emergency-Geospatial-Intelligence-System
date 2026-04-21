@@ -5,7 +5,7 @@ tuning (Optuna), model training, evaluation, and model registration with
 governance metadata. Used as the unified entry point when training all
 hazard models in one pass.
 
-- Invoked by ai-engine/run_training_all.py and train_all.py
+- Invoked by app.training.train_all
 - Delegates data loading to training/data_loaders.py and data_ingestion.py
 - Feature engineering via training/feature_engineering.py
 - Saves model with governance via core/model_registry.py + core/governance.py

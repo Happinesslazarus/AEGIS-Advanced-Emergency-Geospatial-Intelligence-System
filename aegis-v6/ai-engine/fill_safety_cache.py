@@ -3,7 +3,7 @@
 Extract ERA5 data for atlanta + minneapolis from NSF NCAR S3,
 then assemble the complete public_safety weather cache.
 
-Uses the same ERA5 extraction pipeline as extract_era5_ec2.py but
+Uses the same ERA5 extraction approach as the main pipeline but
 runs locally -- fetches only the 2 missing safety locations.
 """
 from __future__ import annotations
@@ -32,7 +32,7 @@ MISSING_LOCS = [
 ]
 YEARS = list(range(2016, 2024))
 
-# ERA5 variable mapping (matches extract_era5_ec2.py)
+# ERA5 variable mapping
 ANAL_VARS = {
     "128_167_2t":    ("VAR_2T",  "temperature_2m"),
     "128_168_2d":    ("VAR_2D",  "dewpoint_2m"),

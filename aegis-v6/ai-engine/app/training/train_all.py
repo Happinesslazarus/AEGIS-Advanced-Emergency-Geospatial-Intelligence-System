@@ -7,7 +7,7 @@ UNSUPPORTED_HAZARDS = frozenset() -- no hazards are blocked.
 
 - Imports and calls each train_*_real.py pipeline class
 - Can be invoked directly: python app/training/train_all.py
-- Also called by ai-engine/run_training_all.py at the project root
+- Entrypoint: invoked directly via `python -m app.training.train_all`
 
 First-time setup (downloads all freely available training data):
     cd aegis-v6/ai-engine

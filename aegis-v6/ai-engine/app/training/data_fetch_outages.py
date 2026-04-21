@@ -565,7 +565,7 @@ def build_outage_label_df(
     end_date: str,
     radius_km: float = 200.0,
     min_customers: int = 0,
-    post_event_buffer_hours: int = 48,
+    post_event_buffer_hours: int = 0,
 ) -> pd.DataFrame:
     """Build hourly power outage labels from EIA OE-417 + UK storm outage records.
 

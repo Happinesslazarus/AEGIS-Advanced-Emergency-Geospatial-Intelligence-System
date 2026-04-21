@@ -243,7 +243,6 @@ import aiRoutes from './routes/aiRoutes.js'
 import userRoutes from './routes/userRoutes.js'
 import chatRoutes from './routes/chatRoutes.js'
 import configRoutes from './routes/configRoutes.js'
-import docsRoutes from './routes/docsRoutes.js'
 import uploadRoutes from './routes/uploadRoutes.js'
 import riverRoutes from './routes/riverRoutes.js'
 import floodRoutes from './routes/floodRoutes.js'
@@ -292,7 +291,6 @@ import { coalesce, getCoalescingStats, createUserLoader, createReportLoader } fr
 
 //Data layer and API services
 import eventStreaming from './services/eventStreaming.js'
-import openApiGenerator from './services/openApiGenerator.js'
 
 const app = express()
 const httpServer = createServer(app)  // Wrap Express in raw http.Server so Socket.IO can share the same port
@@ -436,7 +434,7 @@ app.use('/api', (req, res, next) => {
     return next()
   }
   //Short-lived cache for semi-static config/reference data (5 min public, 10 min stale)
-  const cacheablePrefixes = ['/api/config', '/api/docs', '/api/openapi']
+  const cacheablePrefixes = ['/api/config']
   if (cacheablePrefixes.some(p => req.originalUrl.startsWith(p))) {
     res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
   } else if (req.originalUrl.startsWith('/api/health')) {
@@ -657,13 +655,6 @@ app.get('/api/internal/streaming', authMiddleware as any, requireRole('admin') a
   res.json({ success: true, streaming: eventStreaming.getEventStreamingStats() })
 })
 
-app.get('/api/internal/openapi-stats', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, openapi: openApiGenerator.getOpenAPIStats() })
-})
-
-//OpenAPI 3.1 Documentation (public access)
-app.use('/api/openapi', openApiGenerator.createOpenAPIRouter())
-
 app.use('/api/auth/login', loginLimiter) // Brute-force protection for login
 app.use('/api/citizen-auth/login', loginLimiter) // Brute-force protection for citizen login
 app.use('/api/auth', authRoutes) // Authentication
@@ -689,7 +680,6 @@ app.use('/api', floodRoutes) // Flood prediction, evacuation, threat
 app.use('/api/distress', distressRoutes) // SOS / distress beacon
 app.use('/api', uploadRoutes) // Image/file uploads
 app.use('/api/config', configRoutes) // Region, hazard, shelter config
-app.use('/api/docs', docsRoutes) // Swagger API documentation
 app.use('/api/internal', internalRoutes) // n8n ws-bridge, error log, system health
 app.use('/api/translate', translationRoutes) // Translation service (Azure / DeepL / LibreTranslate)
 app.use('/api/spatial', spatialRoutes) // PostGIS spatial analysis tools

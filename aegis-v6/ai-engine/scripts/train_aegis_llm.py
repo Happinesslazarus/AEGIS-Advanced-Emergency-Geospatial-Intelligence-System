@@ -336,7 +336,7 @@ def train(args, hw: dict) -> None:
     dataset_path = Path(args.dataset)
     if not dataset_path.exists():
         print(f"ERROR: Dataset not found: {dataset_path}")
-        print("Run generate_training_data.py first.")
+        print("Run generate_training_data_free.py first.")
         sys.exit(1)
 
     line_count = sum(1 for _ in open(dataset_path))
